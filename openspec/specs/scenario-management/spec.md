@@ -1,11 +1,72 @@
 # Specification: Scenario Management & Voting System
 
+## Purpose
+
+The Scenario Management capability enables organizers and confirmed participants to propose, compare, vote on, and select destination/lodging scenarios as part of the event organization workflow.
+## Requirements
+
+*(Requirements are merged from archived changes; legacy implementation notes remain below.)*
+
+---
+
 **Version**: 1.0.0  
 **Date**: 25 décembre 2025  
 **Status**: ✅ Implémenté  
 **Change**: `add-full-prd-features` (Phase 1)
 
 ---
+
+### Requirement: Scenario Comparison for Confirmed Events MUST be supported
+Wakeve MUST let organizers and eligible participants compare scenarios that combine date or period, destination, lodging option when available, estimated participants, duration, and estimated cost. Scenario comparison MUST be available either after date confirmation in the legacy flow or directly in `COMPARING` for scenario matrix events.
+
+#### Scenario: Participants vote on generated matrix scenarios
+- **GIVEN** an event uses planning mode `SCENARIO_MATRIX`
+- **AND** the organizer has published generated scenarios
+- **WHEN** participants open the scenario list
+- **THEN** they can compare each complete date-and-destination scenario
+- **AND** they can vote `PREFER`, `NEUTRAL`, or `AGAINST` on each scenario
+- **AND** the system ranks scenarios using weighted scoring
+
+### Requirement: Final Scenario Selection MUST be available
+Wakeve MUST allow the organizer to select a final scenario or explicitly skip scenarios when the event does not require scenario comparison.
+
+#### Scenario: Organizer selects final scenario
+- **GIVEN** an event is in `COMPARING`
+- **AND** at least one scenario exists
+- **WHEN** the organizer selects a final scenario
+- **THEN** the selected scenario is marked final
+- **AND** related destination, lodging, budget estimate, and transport destination data become inputs for the organizing phase
+- **AND** the selection is persisted locally and queued for sync when offline
+
+### Requirement: Scenario Matrix Generation MUST be deterministic
+Wakeve MUST generate one draft scenario for every valid `TimeSlot × PotentialLocation` combination for an event using scenario matrix planning mode.
+
+#### Scenario: Generate all combinations
+- **GIVEN** an event has 3 proposed time slots
+- **AND** 2 potential locations
+- **WHEN** the organizer generates the scenario matrix
+- **THEN** Wakeve creates 6 draft scenarios
+- **AND** each scenario stores its source time slot ID, source potential location ID, and generation type `MATRIX`
+
+#### Scenario: Regeneration avoids duplicates
+- **GIVEN** an event already has generated matrix scenarios
+- **WHEN** the organizer regenerates the matrix without changing source time slots or locations
+- **THEN** Wakeve does not create duplicate scenarios for the same source time slot and potential location pair
+
+### Requirement: Generated Matrix Scenarios MUST be editable before publication
+Wakeve MUST let the organizer edit or remove generated draft matrix scenarios before participants can vote on them.
+
+#### Scenario: Organizer removes a generated scenario
+- **GIVEN** an event has draft matrix scenarios
+- **WHEN** the organizer removes one scenario before publishing
+- **THEN** the removed scenario is deleted locally
+- **AND** it is not published for participant voting
+
+#### Scenario: Organizer publishes generated scenarios
+- **GIVEN** an event has at least one draft matrix scenario
+- **WHEN** the organizer publishes the matrix
+- **THEN** draft matrix scenarios become `PROPOSED`
+- **AND** participants can vote `PREFER`, `NEUTRAL`, or `AGAINST`
 
 ## Vue d'ensemble
 
@@ -877,19 +938,19 @@ eventRepository.updateEventStatus("event-123", EventStatus.ORGANIZING)
 ### iOS UI (1,313 lignes)
 
 #### Views
-- **`iosApp/iosApp/Views/ScenarioListView.swift`** (495 lignes)
+- **`iosApp/src/Views/ScenarioListView.swift`** (495 lignes)
   - Équivalent de ScenarioListScreen
   - Design Liquid Glass (`.glassCard()`)
   - Async/await pour data
   - SF Symbols pour icônes
 
-- **`iosApp/iosApp/Views/ScenarioDetailView.swift`** (459 lignes)
+- **`iosApp/src/Views/ScenarioDetailView.swift`** (459 lignes)
   - Équivalent de ScenarioDetailScreen
   - Mode édition avec TextFields
   - Alert de confirmation
   - `.sheet` pour modals
 
-- **`iosApp/iosApp/Views/ScenarioComparisonView.swift`** (359 lignes)
+- **`iosApp/src/Views/ScenarioComparisonView.swift`** (359 lignes)
   - Table de comparaison
   - ScrollView bi-directionnel natif
   - VStack + HStack layout
@@ -990,7 +1051,7 @@ wakeve/
 - **Code**:
   - Backend: `shared/src/commonMain/kotlin/com/guyghost/wakeve/`
   - Android: `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/`
-  - iOS: `iosApp/iosApp/Views/`
+  - iOS: `iosApp/src/Views/`
   - Server: `server/src/main/kotlin/com/guyghost/wakeve/routes/`
 - **Tests**:
   - Unit: `shared/src/commonTest/kotlin/com/guyghost/wakeve/`

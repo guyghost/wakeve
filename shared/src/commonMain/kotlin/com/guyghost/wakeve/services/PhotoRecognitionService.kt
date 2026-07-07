@@ -120,6 +120,9 @@ class PhotoRecognitionService(
         imageBytes: ByteArray
     ): PhotoRecognitionResult = withContext(Dispatchers.Default) {
         val platform = getPlatform()
+        if (platform == Platform.UNKNOWN) {
+            throw IllegalStateException("Photo recognition service is not configured")
+        }
         
         // Detect faces based on platform
         val faces = when (platform) {
@@ -137,7 +140,7 @@ class PhotoRecognitionService(
                 // On iOS, bytes can be passed directly
                 iosPhotoRecognition?.detectFaces(imageBytes) ?: emptyList()
             }
-            Platform.UNKNOWN -> emptyList()
+            Platform.UNKNOWN -> error("Photo recognition service is not configured")
         }
         
         // Tag photo based on platform
@@ -154,7 +157,7 @@ class PhotoRecognitionService(
             Platform.IOS -> {
                 iosPhotoRecognition?.tagPhoto(imageBytes) ?: emptyList()
             }
-            Platform.UNKNOWN -> emptyList()
+            Platform.UNKNOWN -> error("Photo recognition service is not configured")
         }
         
         // Update photo with detections and tags

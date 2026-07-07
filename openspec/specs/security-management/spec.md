@@ -5,6 +5,10 @@
 > **Status**: Active
 > **Last Updated**: 2026-02-08
 
+## Purpose
+
+The Security Management capability defines authentication, authorization, data protection, audit logging, and privacy rules that every Wakeve workflow must enforce.
+
 ## Overview
 
 This specification defines the comprehensive security framework for the Wakeve platform, including authentication, authorization, session management, data protection, and audit logging. It establishes patterns that ALL other specifications MUST follow to ensure consistent security across the platform.
@@ -69,10 +73,10 @@ The Security Management capability provides the foundation for protecting user d
 - **Guest Exploration**: New users can explore the app locally before committing to account creation
 - **Security Monitoring**: Administrators can review audit logs to detect suspicious activity
 - **Compliance**: Audit trails support GDPR and other data protection regulations
-
 ## Requirements
-
 ### Requirement: JWT Token Structure
+The system SHALL issue JWT tokens with the required Wakeve security claims.
+
 **ID**: `SEC-001`
 
 All JWT tokens issued by the Wakeve API SHALL contain the following claims:
@@ -127,6 +131,8 @@ All JWT tokens issued by the Wakeve API SHALL contain the following claims:
   - Never synchronize data to the server
 
 ### Requirement: Role-Based Access Control (RBAC)
+The system SHALL enforce role-based access control for protected operations.
+
 **ID**: `SEC-002`
 
 The system SHALL implement hierarchical roles with the following permissions:
@@ -152,6 +158,8 @@ The system SHALL implement hierarchical roles with the following permissions:
   - Log an authorization failure event
 
 ### Requirement: Resource-Level Authorization
+The system SHALL enforce resource-level authorization for user-owned and event-scoped data.
+
 **ID**: `SEC-003`
 
 The system SHALL verify that authenticated users have permission to access requested resources based on ownership or participation.
@@ -177,6 +185,8 @@ The system SHALL verify that authenticated users have permission to access reque
   - Prevent Insecure Direct Object Reference (IDOR) attacks
 
 ### Requirement: Session Management
+The system SHALL manage authenticated user sessions securely.
+
 **ID**: `SEC-004`
 
 The system SHALL support multi-device session management with the following capabilities:
@@ -215,6 +225,8 @@ The system SHALL support multi-device session management with the following capa
   - Instruct the user to use logout instead
 
 ### Requirement: Token Blacklist
+The system SHALL reject blacklisted tokens.
+
 **ID**: `SEC-005`
 
 The system SHALL maintain a blacklist of revoked tokens.
@@ -238,6 +250,8 @@ The system SHALL maintain a blacklist of revoked tokens.
   - Log the error for investigation
 
 ### Requirement: Audit Logging
+The system SHALL record security-relevant audit logs.
+
 **ID**: `SEC-006`
 
 The system SHALL log all security-relevant events in structured JSON format.
@@ -301,6 +315,8 @@ The system SHALL log all security-relevant events in structured JSON format.
   ```
 
 ### Requirement: Rate Limiting
+The system SHALL rate limit sensitive and authenticated endpoints.
+
 **ID**: `SEC-007`
 
 The system SHALL apply rate limiting to all API endpoints to prevent abuse.
@@ -330,6 +346,8 @@ The system SHALL apply rate limiting to all API endpoints to prevent abuse.
   - `X-RateLimit-Reset: <unix_timestamp>`
 
 ### Requirement: Security Configuration
+The system SHALL enforce secure configuration rules for each environment.
+
 **ID**: `SEC-008`
 
 Security settings SHALL be environment-aware with production safeguards.
@@ -356,6 +374,8 @@ Security settings SHALL be environment-aware with production safeguards.
   - Return HTTP 403 Forbidden
 
 ### Requirement: Input Validation
+The system SHALL validate untrusted input before processing it.
+
 **ID**: `SEC-009`
 
 The system SHALL validate all input parameters to prevent injection attacks.
@@ -386,6 +406,8 @@ The system SHALL validate all input parameters to prevent injection attacks.
   - Include error: "Duration must be between 1 and 1440 minutes"
 
 ### Requirement: Guest Mode Data Isolation
+The system SHALL isolate guest-mode data from synchronized authenticated data.
+
 **ID**: `SEC-010`
 
 Guest mode SHALL operate with complete data isolation.
@@ -408,6 +430,88 @@ Guest mode SHALL operate with complete data isolation.
   - Clear the guest session
   - Create a new authenticated session
   - Optionally migrate local data based on user consent
+
+### Requirement: Confirmed-Attendee Detail Access MUST be enforced
+Wakeve MUST restrict full event organization details to organizers and participants confirmed for the retained date.
+
+#### Scenario: Unconfirmed participant opens organization details
+- **GIVEN** an event has a confirmed date
+- **AND** the current user is invited but has not confirmed attendance
+- **WHEN** the user requests transport, lodging, budget, payment, or meeting details
+- **THEN** the system denies access
+- **AND** returns or displays an access-denied reason
+- **AND** records the authorization denial in audit logs where backend access is attempted
+
+### Requirement: External Organization Link Safety MUST be enforced
+Wakeve MUST validate and audit external links used for payment, Tricount, booking, calendar download, and meetings.
+
+#### Scenario: Suspicious payment link is saved
+- **GIVEN** an organizer adds an external payment link
+- **WHEN** the URL scheme, host, or provider metadata fails validation
+- **THEN** the system rejects the link or marks it unverified
+- **AND** the unsafe link cannot be presented as a trusted action
+
+### Requirement: Account Deletion Security Enforcement
+The system SHALL enforce secure, authenticated, auditable account deletion for registered users.
+
+#### Scenario: Authenticated deletion request
+- **GIVEN** a registered user has a valid session
+- **WHEN** the user sends `DELETE /api/user/delete`
+- **THEN** the system SHALL:
+  - Authenticate the bearer token
+  - Delete or anonymize the authenticated user's personal data
+  - Revoke every active session for the user
+  - Reject future use of the deleted user's access and refresh tokens
+  - Return a stable success response
+  - Write an audit log containing the deleted user ID, request ID, timestamp, and outcome
+
+#### Scenario: Unauthenticated deletion request
+- **GIVEN** no valid bearer token is provided
+- **WHEN** a deletion request is sent to `DELETE /api/user/delete`
+- **THEN** the system SHALL:
+  - Deny the request with HTTP 401 Unauthorized
+  - Avoid deleting any account data
+  - Log the failed attempt without exposing sensitive token details
+
+#### Scenario: Repeated deletion request
+- **GIVEN** a user deletion request has already completed
+- **WHEN** the same authenticated deletion operation is replayed or retried
+- **THEN** the system SHALL:
+  - Treat the operation as idempotent for user-visible behavior
+  - Not restore or recreate deleted account data
+  - Return a success or gone response that the client can handle as complete
+
+#### Scenario: Sign in with Apple revocation evidence
+- **GIVEN** the deleted account was created with Sign in with Apple
+- **WHEN** account deletion is processed
+- **THEN** the system SHALL:
+  - Attempt Apple credential revocation when required authorization material is available
+  - Record whether Apple revocation succeeded, failed, or was unavailable
+  - Complete Wakeve-side account deletion even if provider revocation fails transiently
+
+### Requirement: Moderation Audit and Authorization
+The system SHALL authorize and audit moderation, report review, and user-blocking operations.
+
+#### Scenario: Moderator reviews a report
+- **GIVEN** a user with MODERATOR or ADMIN privileges reviews a content report
+- **WHEN** the moderator approves, rejects, hides, restores, or escalates the target content
+- **THEN** the system SHALL verify the moderator's role
+- **AND** write an audit log with moderator ID, report ID, target type, target ID, action, reason, timestamp, and outcome
+- **AND** update the target content visibility according to the decision
+
+#### Scenario: Unauthorized report review is denied
+- **GIVEN** a regular user attempts to perform a moderator-only report review action
+- **WHEN** the request is processed
+- **THEN** the system SHALL deny the request with HTTP 403 Forbidden
+- **AND** leave report status and target content unchanged
+- **AND** log the authorization failure
+
+#### Scenario: User block is owner-scoped
+- **GIVEN** a user creates or removes a block
+- **WHEN** the block operation is processed
+- **THEN** the system SHALL authenticate the user
+- **AND** only create, list, or remove blocks owned by that authenticated user
+- **AND** prevent one user from managing another user's block list
 
 ## Data Models
 

@@ -9,6 +9,8 @@ import com.guyghost.wakeve.repository.EventRepositoryInterface
 import com.guyghost.wakeve.repository.PhotoRepository
 import com.guyghost.wakeve.services.SharingSuggestion
 import com.guyghost.wakeve.services.SmartSharingService
+import com.guyghost.wakeve.ui.event.EventPhotosFollowUpUiState
+import com.guyghost.wakeve.ui.event.eventAlbumsPhotosFollowUpUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -65,6 +67,7 @@ class AlbumsViewModel(
 
     private val _uiState = MutableStateFlow(AlbumsUiState())
     val uiState: StateFlow<AlbumsUiState> = _uiState.asStateFlow()
+    private var currentEventId: String? = null
 
     init {
         loadAlbums()
@@ -74,27 +77,48 @@ class AlbumsViewModel(
      * Loads all albums (both auto-generated and custom).
      */
     fun loadAlbums() {
+        loadAlbums(eventId = null)
+    }
+
+    /**
+     * Loads albums scoped to one event.
+     *
+     * @param eventId Event identifier used to filter albums
+     */
+    fun loadAlbumsForEvent(eventId: String) {
+        loadAlbums(eventId = eventId)
+    }
+
+    private fun loadAlbums(eventId: String?) {
+        currentEventId = eventId
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
 
             try {
-                val albums = albumRepository.getAlbums(eventId = null)
+                val albums = albumRepository.getAlbums(eventId = eventId)
                 val autoSuggestions = generateAutoAlbumSuggestions(albums)
 
                 _uiState.update {
                     it.copy(
+                        eventId = eventId,
                         isLoading = false,
                         albums = albums.sortedByDescending { album ->
                             album.createdAt
                         },
-                        autoAlbumSuggestions = autoSuggestions
+                        autoAlbumSuggestions = autoSuggestions,
+                        postEventPhotoFollowUp = eventId?.let {
+                            eventAlbumsPhotosFollowUpUiState(
+                                eventId = it,
+                                albums = albums
+                            )
+                        }
                     )
                 }
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        error = e.message ?: "Erreur lors du chargement des albums"
+                        error = albumListFailureMessage()
                     )
                 }
             }
@@ -147,7 +171,7 @@ class AlbumsViewModel(
                 _uiState.update {
                     it.copy(
                         isSearching = false,
-                        error = e.message ?: "Erreur lors de la recherche"
+                        error = albumSearchFailureMessage()
                     )
                 }
             }
@@ -179,7 +203,7 @@ class AlbumsViewModel(
                 _uiState.update {
                     it.copy(
                         isLoadingDetails = false,
-                        error = e.message ?: "Erreur lors du chargement de l'album"
+                        error = albumDetailFailureMessage()
                     )
                 }
             }
@@ -212,7 +236,7 @@ class AlbumsViewModel(
             try {
                 val newAlbum = Album(
                     id = generateAlbumId(),
-                    eventId = null,
+                    eventId = currentEventId,
                     name = name,
                     coverPhotoId = photoIds.firstOrNull(),
                     photoIds = photoIds,
@@ -221,14 +245,14 @@ class AlbumsViewModel(
                 )
 
                 albumRepository.createAlbum(newAlbum)
-                loadAlbums()
+                loadAlbums(eventId = currentEventId)
 
                 _uiState.update { it.copy(isLoading = false) }
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        error = e.message ?: "Erreur lors de la création de l'album"
+                        error = albumCreateFailureMessage()
                     )
                 }
             }
@@ -247,7 +271,7 @@ class AlbumsViewModel(
             try {
                 val newAlbum = Album(
                     id = generateAlbumId(),
-                    eventId = null,
+                    eventId = currentEventId,
                     name = suggestionTitle,
                     coverPhotoId = null,
                     photoIds = emptyList(),
@@ -256,14 +280,14 @@ class AlbumsViewModel(
                 )
 
                 albumRepository.createAlbum(newAlbum)
-                loadAlbums()
+                loadAlbums(eventId = currentEventId)
 
                 _uiState.update { it.copy(isLoading = false) }
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        error = e.message ?: "Erreur lors de la création de l'album"
+                        error = albumCreateFailureMessage()
                     )
                 }
             }
@@ -281,7 +305,7 @@ class AlbumsViewModel(
 
             try {
                 albumRepository.deleteAlbum(albumId)
-                loadAlbums()
+                loadAlbums(eventId = currentEventId)
 
                 if (_uiState.value.selectedAlbum?.id == albumId) {
                     clearSelectedAlbum()
@@ -292,7 +316,7 @@ class AlbumsViewModel(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        error = e.message ?: "Erreur lors de la suppression de l'album"
+                        error = albumDeleteFailureMessage()
                     )
                 }
             }
@@ -309,7 +333,7 @@ class AlbumsViewModel(
         viewModelScope.launch {
             try {
                 albumRepository.updateAlbumCover(albumId, coverPhotoId)
-                loadAlbums()
+                loadAlbums(eventId = currentEventId)
 
                 // Update selected album if needed
                 _uiState.value.selectedAlbum?.let { selected ->
@@ -319,7 +343,7 @@ class AlbumsViewModel(
                 }
             } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(error = e.message ?: "Erreur lors de la mise à jour de la couverture")
+                    it.copy(error = albumCoverUpdateFailureMessage())
                 }
             }
         }
@@ -398,7 +422,7 @@ class AlbumsViewModel(
                 _uiState.update { it.copy(sharingSuggestions = suggestions) }
             } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(error = e.message ?: "Erreur lors de la génération des suggestions")
+                    it.copy(error = albumSharingSuggestionFailureMessage())
                 }
             }
         }
@@ -416,6 +440,7 @@ class AlbumsViewModel(
  * UI state for the Albums screen.
  *
  * @property albums List of all albums
+ * @property eventId Event scope when albums are filtered for one event
  * @property selectedAlbum Currently selected album (for detail view)
  * @property selectedAlbumPhotos Photos in the selected album
  * @property searchQuery Current search query
@@ -428,7 +453,9 @@ class AlbumsViewModel(
  * @property error Error message if any
  */
 data class AlbumsUiState(
+    val eventId: String? = null,
     val albums: List<Album> = emptyList(),
+    val postEventPhotoFollowUp: EventPhotosFollowUpUiState? = null,
     val selectedAlbum: Album? = null,
     val selectedAlbumPhotos: List<Photo> = emptyList(),
     val searchQuery: String = "",
@@ -453,3 +480,25 @@ data class SearchResult(
     val relevanceScore: Double,
     val matchedTags: List<String>
 )
+
+internal fun albumListFailureMessage(): String = "Impossible de charger les albums. Réessayez."
+
+internal fun albumSearchFailureMessage(): String = "Impossible de rechercher dans les photos. Réessayez."
+
+internal fun albumDetailFailureMessage(): String = "Impossible d'ouvrir cet album. Réessayez."
+
+internal fun albumCreateFailureMessage(): String = "Impossible de créer l'album. Réessayez."
+
+internal fun albumUpdateFailureMessage(): String = "Impossible de mettre à jour l'album. Réessayez."
+
+internal fun albumDeleteFailureMessage(): String = "Impossible de supprimer l'album. Réessayez."
+
+internal fun albumCoverUpdateFailureMessage(): String = "Impossible de mettre à jour la couverture. Réessayez."
+
+internal fun albumFavoriteUpdateFailureMessage(): String = "Impossible de modifier ce favori. Réessayez."
+
+internal fun albumAddPhotosFailureMessage(): String = "Impossible d'ajouter les photos à l'album. Réessayez."
+
+internal fun albumRemovePhotosFailureMessage(): String = "Impossible de retirer les photos de l'album. Réessayez."
+
+internal fun albumSharingSuggestionFailureMessage(): String = "Impossible de préparer les suggestions de partage. Réessayez."

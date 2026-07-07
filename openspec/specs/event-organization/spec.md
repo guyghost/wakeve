@@ -15,7 +15,7 @@ This specification includes the **Enhanced DRAFT Phase** features:
 - Potential Locations List
 - Flexible Time Slots (time of day)
 
-### Core Concepts
+**Core Concepts**
 
 **Event**: A collaborative event created by an organizer with proposed time slots and a voting deadline.
 
@@ -33,6 +33,8 @@ This specification includes the **Enhanced DRAFT Phase** features:
 - `CONFIRMED`: Event has a final confirmed date
 ## Requirements
 ### Requirement: Organizers SHALL be able to create a new event with a title, description, event type, estimated participants, potential locations, proposed time slots with flexible time-of-day, and voting deadline
+Organizers SHALL be able to create a comprehensive DRAFT event with required planning metadata.
+
 **ID**: `event-org-001`
 
 Organizers SHALL be able to create a new event with title (required), description (required), event type (optional, default OTHER), estimated participants (optional: min, max, expected), potential locations (optional, 0 or more), proposed time slots (required, 1 or more) with flexible timeOfDay, and voting deadline (required).
@@ -47,70 +49,122 @@ Organizers SHALL be able to create a new event with title (required), descriptio
   - Deadline = 2 weeks
 - **THEN** Event is created with status DRAFT, all fields are saved, and potential locations are linked.
 
-### Organizers SHALL be able to invite participants and manage the participant list for an event
-**ID**: `event-org-002`
+### Requirement: Organizers SHALL be able to invite participants and manage the participant list for an event
+Organizers SHALL be able to invite participants and manage the participant list for an event. While an event is in `DRAFT`, the organizer SHALL be able to add participants manually by email or by selecting contacts from the device address book. Contact selection SHALL use email addresses only for this version.
 
-#### Scenario: Organizer invites participants
+#### Scenario: Organizer invites participants manually
 - **WHEN** Organizer adds participant emails (e.g., alice@example.com, bob@example.com)
 - **THEN** Participants are added to the event, and invitations are queued.
 
-### The system SHALL transition an event to POLLING status and enable participants to vote on proposed time slots
-**ID**: `event-org-003`
+#### Scenario: Organizer selects contacts as participants
+- **GIVEN** an organizer is managing participants for a DRAFT event
+- **AND** the organizer grants contacts access
+- **WHEN** the organizer selects contacts that contain email addresses
+- **THEN** the selected email addresses are added as pending participants
+- **AND** duplicate emails already present in the event are skipped
+- **AND** no unselected contact data is persisted or synchronized.
 
-#### Scenario: Organizer launches poll
+#### Scenario: Organizer denies contacts access
+- **GIVEN** an organizer is managing participants for a DRAFT event
+- **WHEN** the organizer denies contacts access
+- **THEN** the manual email invitation flow remains available
+- **AND** the UI explains that contacts access is optional.
+
+### Requirement: The system SHALL transition an event to POLLING status and enable participants to vote on proposed time slots
+The system SHALL transition a `TIME_SLOT_POLL` event to `POLLING` status and enable participants to vote on proposed time slots. For `SCENARIO_MATRIX` events, participants SHALL vote on published scenarios in `COMPARING` status instead of voting directly on time slots.
+
+#### Scenario: Organizer launches legacy poll
+- **GIVEN** an event uses planning mode `TIME_SLOT_POLL`
 - **WHEN** Organizer clicks "Start Poll"
-- **THEN** Event status changes to POLLING, poll is initialized with empty votes, and participants can vote.
+- **THEN** Event status changes to `POLLING`, poll is initialized with empty votes, and participants can vote on time slots.
 
-### Participants SHALL be able to vote on proposed time slots with options: YES, MAYBE, NO
+#### Scenario: Organizer publishes matrix scenarios
+- **GIVEN** an event uses planning mode `SCENARIO_MATRIX`
+- **AND** draft matrix scenarios have been generated
+- **WHEN** Organizer publishes the scenario matrix
+- **THEN** Event status changes to `COMPARING`
+- **AND** participants can vote on the published scenarios.
+
+### Requirement: Participants SHALL be able to vote on proposed time slots with options: YES, MAYBE, NO
+Participants SHALL be able to vote on proposed time slots with options: YES, MAYBE, NO.
+
 **ID**: `event-org-004`
+
+Participants SHALL be able to vote on proposed time slots with options: YES, MAYBE, NO.
 
 #### Scenario: Participant votes on slots
 - **WHEN** Participant selects votes for each proposed slot (e.g., YES for Slot 1, MAYBE for Slot 2, NO for Slot 3)
 - **THEN** Votes are recorded in the poll with the participant's ID and slot ID.
 
-### The system SHALL enforce the voting deadline and prevent new votes after the deadline has passed
+### Requirement: The system SHALL enforce the voting deadline and prevent new votes after the deadline has passed
+The system SHALL enforce the voting deadline and prevent new votes after the deadline has passed.
+
 **ID**: `event-org-005`
+
+The system SHALL enforce the voting deadline and prevent new votes after the deadline has passed.
 
 #### Scenario: Voting closes at deadline
 - **WHEN** Deadline time arrives
 - **THEN** Voting interface becomes read-only, and no new votes can be submitted.
 
-### The system SHALL calculate the best time slot based on weighted participant votes: YES=2 points, MAYBE=1 point, NO=-1 point
+### Requirement: The system SHALL calculate the best time slot based on weighted participant votes
+The system SHALL calculate the best time slot based on weighted participant votes.
+
 **ID**: `event-org-006`
+
+The system SHALL calculate the best time slot based on weighted participant votes: YES=2 points, MAYBE=1 point, NO=-1 point.
 
 #### Scenario: System recommends best slot
 - **WHEN** Organizer views the poll results after voting deadline
 - **THEN** System displays the slot with the highest score as recommended, with score breakdown visible.
 
-### Organizers SHALL be able to validate and confirm the final event date, transitioning the event to CONFIRMED status
+### Requirement: Organizers SHALL be able to validate and confirm the final event date
+Organizers SHALL be able to validate and confirm the final event date.
+
 **ID**: `event-org-007`
+
+Organizers SHALL be able to validate and confirm the final event date, transitioning the event to CONFIRMED status.
 
 #### Scenario: Organizer confirms final date
 - **WHEN** Organizer clicks "Confirm" on the recommended slot (or selects a different slot and confirms)
 - **THEN** Event transitions to CONFIRMED status, finalDate is set, and all participants are notified.
 
-### The system SHALL support timezone-aware time slot creation and display, storing times in UTC and displaying in participant local timezone
+### Requirement: The system SHALL support timezone-aware time slot creation and display
+The system SHALL support timezone-aware time slot creation and display.
+
 **ID**: `event-org-008`
+
+The system SHALL support timezone-aware time slot creation and display, storing times in UTC and displaying in participant local timezone.
 
 #### Scenario: Participant in different timezone views slots
 - **WHEN** Participant in US/Eastern timezone opens the app
 - **THEN** Slots are displayed in their local time from UTC times.
 
-### The system SHALL enforce role-based access control where Organizers can create and confirm events while Participants can only vote and view event details
+### Requirement: The system SHALL enforce role-based access control for event organization
+The system SHALL enforce role-based access control for event organization.
+
 **ID**: `event-org-009`
+
+The system SHALL enforce role-based access control where Organizers can create and confirm events while Participants can only vote and view event details.
 
 #### Scenario: Participant attempts unauthorized action
 - **WHEN** Participant tries to change the event deadline or confirm the final date
 - **THEN** System prevents the action and displays an error message.
 
-### The system SHALL persist event data and poll votes to survive app restart
+### Requirement: The system SHALL persist event data and poll votes to survive app restart
+The system SHALL persist event data and poll votes to survive app restart.
+
 **ID**: `event-org-010`
+
+The system SHALL persist event data and poll votes to survive app restart.
 
 #### Scenario: App restart preserves event state
 - **WHEN** User closes and reopens the app
 - **THEN** Event and poll data are restored exactly as before.
 
-### Requirement: Event Type Classification
+### Requirement: Event Type Classification MUST be supported
+The system MUST support event type classification.
+
 **ID**: `event-org-101`
 
 The system SHALL allow organizers to categorize an event with a predefined or custom type.
@@ -131,7 +185,9 @@ The system SHALL allow organizers to categorize an event with a predefined or cu
 - **WHEN** They select "CUSTOM" and enter "Robotics Hackathon"
 - **THEN** Event.eventType = CUSTOM, Event.eventTypeCustom = "Robotics Hackathon".
 
-### Requirement: Participant Count Estimation
+### Requirement: Participant Count Estimation MUST be supported
+The system MUST support participant count estimation.
+
 **ID**: `event-org-102`
 
 The system SHALL allow organizers to estimate the expected number of participants.
@@ -152,7 +208,9 @@ The system SHALL allow organizers to estimate the expected number of participant
 - **WHEN** They attempt to save
 - **THEN** Validation error is displayed and save is blocked.
 
-### Requirement: Potential Locations List
+### Requirement: Potential Locations List MUST be supported
+The system MUST support potential locations lists during event creation.
+
 **ID**: `event-org-103`
 
 The system SHALL allow organizers to propose a list of potential locations for the event.
@@ -168,7 +226,9 @@ The system SHALL allow organizers to propose a list of potential locations for t
 - **WHEN** They add "Paris" (CITY) and "Château de Versailles" (SPECIFIC_VENUE)
 - **THEN** PotentialLocations are created in the DB and displayed in the DRAFT UI.
 
-### Requirement: Flexible Time Slots with Time of Day
+### Requirement: Flexible Time Slots with Time of Day MUST be supported
+The system MUST support flexible time slots with time-of-day metadata.
+
 **ID**: `event-org-104`
 
 The system SHALL support flexible time slots with time-of-day indication.
@@ -185,11 +245,11 @@ The system SHALL support flexible time slots with time-of-day indication.
 
 ---
 
-### Requirement: Delete Event
+### Requirement: Delete Event MUST be supported
 
 The organizer of an event MUST be able to delete that event.
 
-#### Règles métier
+**Règles métier**
 
 | Status de l'événement | Suppression autorisée | Confirmation requise |
 |-----------------------|----------------------|---------------------|
@@ -246,11 +306,11 @@ The organizer of an event MUST be able to delete that event.
 - **THEN** un `SideEffect.ShowToast("Événement introuvable")` est émis
 - **AND** le state.error contient le message d'erreur
 
-### Requirement: Cascade Delete
+### Requirement: Cascade Delete MUST be supported
 
 When deleting an event, all related data MUST be deleted in cascade.
 
-#### Données à supprimer en cascade
+**Données à supprimer en cascade**
 
 1. **Participants** - Table `participant` où `eventId = ?`
 2. **Time Slots** - Table `time_slot` où `eventId = ?`
@@ -270,11 +330,11 @@ When deleting an event, all related data MUST be deleted in cascade.
 - **AND** les queries `SELECT * FROM time_slot WHERE eventId = ?` retournent 0 résultats
 - **AND** les queries `SELECT * FROM vote WHERE eventId = ?` retournent 0 résultats
 
-### Requirement: UI Confirmation Dialog
+### Requirement: UI Confirmation Dialog MUST be shown before deletion
 
 The user interface MUST display a confirmation dialog before deletion.
 
-#### Android (Material You)
+**Android (Material You)**
 
 ```kotlin
 AlertDialog(
@@ -285,7 +345,7 @@ AlertDialog(
 )
 ```
 
-#### iOS (SwiftUI)
+**iOS (SwiftUI)**
 
 ```swift
 Alert(
@@ -304,7 +364,7 @@ Alert(
 - **AND** the confirmation dialog is announced as a modal
 - **AND** the destructive action is identified by its semantic role
 
-### Requirement: Delete Event Repository Method
+### Requirement: Delete Event Repository Method MUST be provided
 
 The EventRepositoryInterface MUST include a deleteEvent method for cascade deletion.
 
@@ -327,7 +387,7 @@ interface EventRepositoryInterface {
 - **THEN** the event is removed from the repository
 - **AND** Result.success is returned
 
-### Requirement: DeleteEvent Intent Authorization
+### Requirement: DeleteEvent Intent Authorization MUST be enforced
 
 The DeleteEvent intent MUST include userId for authorization verification.
 
@@ -345,9 +405,88 @@ data class DeleteEvent(
 - **THEN** it verifies userId matches the event's organizerId
 - **AND** proceeds with deletion only if authorized
 
-## MODIFIED Requirements
+### Requirement: Complete Event Organization Lifecycle MUST be supported
+Wakeve MUST support a complete organizer-led event lifecycle from creation through finalization using the status flow `DRAFT -> POLLING -> CONFIRMED -> COMPARING -> ORGANIZING -> FINALIZED`.
 
-### Requirement: Enhanced Event Creation
+#### Scenario: Organizer completes an event end to end
+- **GIVEN** an organizer has created an event with proposed slots and invited participants
+- **WHEN** participants vote, the organizer confirms the date, compares scenarios, completes required logistics, and finalizes the event
+- **THEN** the event status progresses through `DRAFT`, `POLLING`, `CONFIRMED`, `COMPARING`, `ORGANIZING`, and `FINALIZED`
+- **AND** each phase exposes only the actions valid for that status
+- **AND** the final event is read-only except for viewing, export, and explicitly allowed post-finalization actions
+
+### Requirement: Organization Readiness Summary MUST be available
+Wakeve MUST provide an organization readiness summary for every event after date confirmation.
+
+#### Scenario: Organizer views missing organization work
+- **GIVEN** an event is in `CONFIRMED`, `COMPARING`, or `ORGANIZING`
+- **WHEN** the organizer opens the event organization dashboard
+- **THEN** the system shows readiness for participants, scenario/destination/lodging, transport, meetings, calendar, notifications, budget, payment or Tricount, and sync status
+- **AND** each incomplete required item links to the relevant section
+- **AND** optional sections can be explicitly marked as not needed with an auditable reason
+
+### Requirement: iOS Create Event Wizard MUST stage multiple proposed slots and preview before creation
+The iOS Create Event wizard MUST let organizers stage one or more proposed time slots and MUST show an event preview before the event is persisted.
+
+#### Scenario: Organizer adds multiple proposed slots
+- **GIVEN** an organizer is on the Create Event date step
+- **WHEN** they save more than one date/time selection
+- **THEN** each saved selection is retained as a proposed time slot
+- **AND** the organizer can review and remove staged slots before continuing
+- **AND** event creation persists all staged slots in `Event.proposedSlots`.
+
+#### Scenario: Organizer previews before creating
+- **GIVEN** an organizer has entered a title, description, and at least one proposed slot
+- **WHEN** they reach the final wizard step
+- **THEN** the primary action opens the event preview
+- **AND** the event is not persisted until the organizer confirms creation from the preview.
+
+#### Scenario: Organizer cannot create without a proposed slot
+- **GIVEN** an organizer has not added any proposed slot
+- **WHEN** they attempt to preview or create the event
+- **THEN** the wizard blocks the action and explains that at least one slot is required.
+
+### Requirement: Scenario Matrix Planning Mode MUST be supported
+Wakeve MUST allow organizers to choose a scenario matrix planning mode where participants vote on complete date-and-destination scenarios instead of voting only on time slots.
+
+#### Scenario: Organizer creates a scenario matrix event
+- **GIVEN** an organizer is creating an event with at least one proposed time slot
+- **AND** at least one potential location has been added
+- **WHEN** the organizer chooses scenario matrix planning mode
+- **THEN** the event is saved with planning mode `SCENARIO_MATRIX`
+- **AND** the event remains in `DRAFT` until generated scenarios are published
+- **AND** the legacy time-slot polling mode remains available as the default planning mode
+
+#### Scenario: Matrix mode requires at least one destination
+- **GIVEN** an organizer chooses scenario matrix planning mode
+- **AND** no potential location exists for the event
+- **WHEN** the organizer attempts to generate or publish matrix scenarios
+- **THEN** Wakeve blocks the action
+- **AND** reports that at least one destination is required
+
+### Requirement: Matrix Scenario Selection MUST lock date and destination
+Wakeve MUST lock both final date and final destination when the organizer selects a final scenario generated from the scenario matrix.
+
+#### Scenario: Organizer selects final matrix scenario
+- **GIVEN** an event is in `COMPARING`
+- **AND** a published matrix scenario exists with source time slot and potential location references
+- **WHEN** the organizer selects that scenario as final
+- **THEN** the event final date is set from the scenario source time slot
+- **AND** the selected destination is available to destination, lodging, transport, budget, and organization workflows
+- **AND** the event transitions to `CONFIRMED`
+
+### Requirement: AI Draft Review Before Event Creation
+Wakeve MUST present AI-generated event planning data as a reviewable draft and MUST NOT create or persist an event automatically from AI output.
+
+#### Scenario: User reviews extracted fields
+- **WHEN** the assistant returns an `EventPlanDraft`
+- **THEN** the UI shows extracted fields and missing information for review before the user applies the draft to event creation.
+
+## Legacy Enhanced Creation Notes
+
+### Requirement: Enhanced Event Creation MUST be supported
+The system MUST support enhanced event creation fields.
+
 **ID**: `event-org-001` (from original spec)
 
 Organizers SHALL be able to create a new event with title (required), description (required), event type (optional, default OTHER), estimated participants (optional: min, max, expected), potential locations (optional, 0 or more), proposed time slots (required, 1 or more) with flexible timeOfDay, and voting deadline (required).
@@ -360,7 +499,7 @@ Organizers SHALL be able to create a new event with title (required), descriptio
 
 ## Data Models
 
-### Event
+**Event**
 ```kotlin
 data class Event(
     val id: String,
@@ -384,10 +523,10 @@ data class Event(
 )
 ```
 
-### EventType (enum)
+**EventType (enum)**
 `BIRTHDAY`, `WEDDING`, `TEAM_BUILDING`, `CONFERENCE`, `WORKSHOP`, `PARTY`, `SPORTS_EVENT`, `CULTURAL_EVENT`, `FAMILY_GATHERING`, `OTHER`, `CUSTOM`
 
-### PotentialLocation
+**PotentialLocation**
 ```kotlin
 data class PotentialLocation(
     val id: String,
@@ -400,10 +539,10 @@ data class PotentialLocation(
 )
 ```
 
-### LocationType (enum)
+**LocationType (enum)**
 `CITY`, `REGION`, `SPECIFIC_VENUE`, `ONLINE`
 
-### Coordinates
+**Coordinates**
 ```kotlin
 data class Coordinates(
     val latitude: Double,
@@ -411,7 +550,7 @@ data class Coordinates(
 )
 ```
 
-### TimeSlot
+**TimeSlot**
 ```kotlin
 data class TimeSlot(
     val id: String,
@@ -422,29 +561,29 @@ data class TimeSlot(
 )
 ```
 
-### TimeOfDay (enum)
+**TimeOfDay (enum)**
 `ALL_DAY`, `MORNING`, `AFTERNOON`, `EVENING`, `SPECIFIC`
 
 ## API Changes
 
-### POST /api/events (modified body)
+**POST /api/events (modified body)**
 Includes new fields: `eventType`, `eventTypeCustom`, `minParticipants`, `maxParticipants`, `expectedParticipants`. `proposedSlots` now include `timeOfDay`.
 
-### Potential Locations Endpoints
+**Potential Locations Endpoints**
 - **GET /api/events/{eventId}/potential-locations**: List potential locations.
 - **POST /api/events/{eventId}/potential-locations**: Add a new potential location.
 - **DELETE /api/events/{eventId}/potential-locations/{locationId}**: Remove a potential location.
 
 ## Testing Requirements
 
-### Unit Tests
+**Unit Tests**
 - EventType enum serialization/deserialization.
 - Event validation (maxParticipants >= minParticipants).
 - PotentialLocation creation with all LocationTypes.
 - TimeSlot with timeOfDay variations.
 - Migration test: existing events get default values.
 
-### Integration Tests
+**Integration Tests**
 - Create DRAFT event with full data → StartPoll → POLLING.
 - Add/remove PotentialLocations in DRAFT.
 - Attempt to modify PotentialLocations in POLLING (should fail).
@@ -452,11 +591,11 @@ Includes new fields: `eventType`, `eventTypeCustom`, `minParticipants`, `maxPart
 
 ## Migration Strategy
 
-### Phase 1: Schema Migration
+**Phase 1: Schema Migration**
 1. Run SQLDelight migration to add columns/tables.
 2. Verify existing events still load correctly.
 
-### Phase 2: Data Migration
+**Phase 2: Data Migration**
 1. Existing events: `eventType = OTHER`, participants counts = null.
 2. Existing TimeSlots: `timeOfDay = SPECIFIC`.
 3. No PotentialLocations for old events.

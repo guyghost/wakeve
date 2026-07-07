@@ -16,7 +16,7 @@ La migration de **EquipmentChecklistView** vers le design system **Liquid Glass 
 
 ## 📁 Fichiers Livrés
 
-### 1. ✅ `iosApp/iosApp/Components/GlassBadge.swift` (NOUVEAU)
+### 1. ✅ `iosApp/src/Components/GlassBadge.swift` (NOUVEAU)
 
 **Composant réutilisable SwiftUI pour badges Liquid Glass**
 
@@ -54,7 +54,7 @@ struct GlassBadge: View {
 
 ---
 
-### 2. ✅ `iosApp/iosApp/Views/EquipmentChecklistView.swift` (MODIFIÉ)
+### 2. ✅ `iosApp/src/Views/EquipmentChecklistView.swift` (MODIFIÉ)
 
 **Refactorisation complète des composants UI avec Liquid Glass**
 
@@ -254,7 +254,7 @@ GlassBadge(
 
 ### Extensions SwiftUI Utilisées
 
-**De `iosApp/iosApp/Extensions/ViewExtensions.swift`:**
+**De `iosApp/src/Extensions/ViewExtensions.swift`:**
 
 1. **`.glassCard()`** - Appliqué à:
    - StatsCard (progression, coûts)
@@ -476,8 +476,8 @@ La migration de **EquipmentChecklistView** vers Liquid Glass est **COMPLÈTE, VA
 ## 📎 Fichiers Livrés
 
 ```
-✅ iosApp/iosApp/Components/GlassBadge.swift (130 lignes)
-✅ iosApp/iosApp/Views/EquipmentChecklistView.swift (942 lignes)
+✅ iosApp/src/Components/GlassBadge.swift (130 lignes)
+✅ iosApp/src/Views/EquipmentChecklistView.swift (942 lignes)
 ✅ Commit: refactor(ios): migrate EquipmentChecklistView to Liquid Glass design system
 ```
 

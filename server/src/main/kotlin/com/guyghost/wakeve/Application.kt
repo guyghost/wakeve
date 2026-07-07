@@ -16,6 +16,8 @@ import com.guyghost.wakeve.notification.NotificationPreferencesRepository
 import com.guyghost.wakeve.notification.NotificationScheduler
 import com.guyghost.wakeve.notification.ServerAPNsSender
 import com.guyghost.wakeve.notification.ServerFCMSender
+import com.guyghost.wakeve.moderation.ModerationPolicy
+import com.guyghost.wakeve.moderation.ModerationRepository
 import com.guyghost.wakeve.gamification.BadgeEligibilityChecker
 import com.guyghost.wakeve.gamification.GamificationService
 import com.guyghost.wakeve.gamification.repository.InMemoryUserBadgesRepository
@@ -24,6 +26,7 @@ import com.guyghost.wakeve.repository.PotentialLocationRepository
 import com.guyghost.wakeve.repository.PotentialLocationRepositoryInterface
 import com.guyghost.wakeve.routes.ChatService
 import com.guyghost.wakeve.routes.analyticsRoutes
+import com.guyghost.wakeve.routes.accountRoutes
 import com.guyghost.wakeve.routes.authRoutes
 import com.guyghost.wakeve.routes.budgetRoutes
 import com.guyghost.wakeve.routes.calendarRoutes
@@ -38,13 +41,16 @@ import com.guyghost.wakeve.routes.invitationAcceptRoutes
 import com.guyghost.wakeve.routes.invitationRoutes
 import com.guyghost.wakeve.routes.mealRoutes
 import com.guyghost.wakeve.routes.meetingProxyRoutes
+import com.guyghost.wakeve.routes.moderationRoutes
 import com.guyghost.wakeve.routes.notificationRoutes
 import com.guyghost.wakeve.routes.participantRoutes
+import com.guyghost.wakeve.routes.paymentRoutes
 import com.guyghost.wakeve.routes.potentialLocationRoutes
 import com.guyghost.wakeve.routes.publicInvitationRoutes
 import com.guyghost.wakeve.routes.scenarioRoutes
 import com.guyghost.wakeve.routes.sessionRoutes
 import com.guyghost.wakeve.routes.syncRoutes
+import com.guyghost.wakeve.routes.transportRoutes
 import com.guyghost.wakeve.routes.voteRoutes
 import com.guyghost.wakeve.invitation.InvitationRepository
 import com.guyghost.wakeve.sync.SyncService
@@ -52,6 +58,8 @@ import com.guyghost.wakeve.auth.SessionRepository
 import com.guyghost.wakeve.database.DatabaseProvider
 import com.guyghost.wakeve.repository.DatabaseEventRepository
 import com.guyghost.wakeve.repository.ScenarioRepository
+import com.guyghost.wakeve.transport.TransportRepository
+import com.guyghost.wakeve.payment.TricountHandoffRepository
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
@@ -224,22 +232,23 @@ fun main() {
     val commentRepository = com.guyghost.wakeve.comment.CommentRepository(database)
     val locationRepository = PotentialLocationRepository(eventRepository)
     val accommodationRepository = com.guyghost.wakeve.accommodation.AccommodationRepository(database)
+    val transportRepository = TransportRepository(database)
+    val tricountHandoffRepository = TricountHandoffRepository(database)
     
     // Initialize Calendar Service
     val platformCalendarService = PlatformCalendarServiceImpl()
     val calendarService = CalendarService(database, platformCalendarService)
     
     // Initialize Chat Service
-    val chatService = ChatService(database)
+    val moderationRepository = ModerationRepository(database)
+    val moderationPolicy = ModerationPolicy()
+    val chatService = ChatService(database, moderationRepository = moderationRepository)
 
     // Initialize Analytics Dashboard
     val analyticsDashboard = AnalyticsDashboard(database)
 
     // Initialize Gamification Service
-    val userPointsRepository = InMemoryUserPointsRepository()
-    val userBadgesRepository = InMemoryUserBadgesRepository()
-    val badgeEligibilityChecker = BadgeEligibilityChecker(userPointsRepository, userBadgesRepository)
-    val gamificationService = GamificationService(userPointsRepository, userBadgesRepository, badgeEligibilityChecker)
+    val gamificationService = createGamificationService()
 
     // Initialize Invitation Repository
     val invitationRepository = InvitationRepository(database)
@@ -254,7 +263,7 @@ fun main() {
         fcmSender = fcmSender,
         apnsSender = apnsSender
     )
-    val eventNotificationTrigger = EventNotificationTrigger(notificationService, eventRepository)
+    val eventNotificationTrigger = EventNotificationTrigger(notificationService, eventRepository, moderationRepository)
 
     // Initialize and start the notification scheduler
     val notificationScheduler = NotificationScheduler(notificationService, eventNotificationTrigger, eventRepository)
@@ -262,21 +271,24 @@ fun main() {
 
     embeddedServer(Netty, port = SERVER_PORT, host = "0.0.0.0", module = {
         module(
-            database,
-            eventRepository,
-            scenarioRepository,
-            budgetRepository,
-            mealRepository,
-            commentRepository,
-            locationRepository,
-            calendarService,
-            chatService,
-            accommodationRepository,
-            analyticsDashboard,
-            invitationRepository,
-            notificationService,
-            eventNotificationTrigger,
-            gamificationService
+            database = database,
+            eventRepository = eventRepository,
+            scenarioRepository = scenarioRepository,
+            budgetRepository = budgetRepository,
+            mealRepository = mealRepository,
+            commentRepository = commentRepository,
+            locationRepository = locationRepository,
+            calendarService = calendarService,
+            moderationRepository = moderationRepository,
+            chatService = chatService,
+            accommodationRepository = accommodationRepository,
+            analyticsDashboard = analyticsDashboard,
+            invitationRepository = invitationRepository,
+            notificationService = notificationService,
+            eventNotificationTrigger = eventNotificationTrigger,
+            gamificationService = gamificationService,
+            transportRepository = transportRepository,
+            moderationPolicy = moderationPolicy
         )
     }).start(wait = true)
 }
@@ -290,7 +302,9 @@ fun Application.module(
     commentRepository: com.guyghost.wakeve.comment.CommentRepository = com.guyghost.wakeve.comment.CommentRepository(database),
     locationRepository: PotentialLocationRepositoryInterface = PotentialLocationRepository(eventRepository),
     calendarService: CalendarService = CalendarService(database, PlatformCalendarServiceImpl()),
-    chatService: ChatService = ChatService(database),
+    moderationRepository: ModerationRepository = ModerationRepository(database),
+    moderationPolicy: ModerationPolicy = ModerationPolicy(),
+    chatService: ChatService = ChatService(database, moderationRepository = moderationRepository),
     accommodationRepository: com.guyghost.wakeve.accommodation.AccommodationRepository = com.guyghost.wakeve.accommodation.AccommodationRepository(database),
     analyticsDashboard: AnalyticsDashboard = AnalyticsDashboard(database),
     invitationRepository: InvitationRepository = InvitationRepository(database),
@@ -300,12 +314,9 @@ fun Application.module(
         fcmSender = ServerFCMSender(),
         apnsSender = ServerAPNsSender()
     ),
-    eventNotificationTrigger: EventNotificationTrigger = EventNotificationTrigger(notificationService, eventRepository),
-    gamificationService: GamificationService = GamificationService(
-        InMemoryUserPointsRepository(),
-        InMemoryUserBadgesRepository(),
-        BadgeEligibilityChecker(InMemoryUserPointsRepository(), InMemoryUserBadgesRepository())
-    )
+    eventNotificationTrigger: EventNotificationTrigger = EventNotificationTrigger(notificationService, eventRepository, moderationRepository),
+    gamificationService: GamificationService = createGamificationService(),
+    transportRepository: TransportRepository = TransportRepository(database)
 ) {
     // Initialize metrics
     val meterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
@@ -376,6 +387,7 @@ fun Application.module(
     val sessionManager = SessionManager(database)
     val jwtBlacklistCache = JwtBlacklistCache()
     val syncService = SyncService(database)
+    val tricountHandoffRepository = TricountHandoffRepository(database)
 
     // Install plugins
     install(ContentNegotiation) {
@@ -434,9 +446,6 @@ fun Application.module(
             call.respondText("OK")
         }
 
-        // WebSocket endpoint for real-time chat
-        chatWebSocketRoute()
-
         // Metrics endpoint (Prometheus format) - protected by IP whitelist
         get("/metrics") {
             // Get whitelisted IPs from environment variable (comma-separated)
@@ -476,6 +485,10 @@ fun Application.module(
 
                 // API endpoints (protected by JWT authentication + blacklist check)
                 authenticate("auth-jwt") {
+                    // WebSocket endpoint for real-time chat. Authentication is required so
+                    // moderation block filters can be applied per recipient.
+                    chatWebSocketRoute(database, moderationRepository)
+
                     rateLimit(RateLimitName("api")) {
                         route("/api") {
                             // Install JWT blacklist checking for all API routes
@@ -484,20 +497,24 @@ fun Application.module(
                                 this.jwtBlacklistCache = jwtBlacklistCache
                             }
 
-                            eventRoutes(eventRepository, gamificationService, eventNotificationTrigger)
-                            participantRoutes(eventRepository, gamificationService)
+                            eventRoutes(eventRepository, gamificationService, eventNotificationTrigger, database, moderationPolicy)
+                            accountRoutes(authService)
+                            participantRoutes(eventRepository, gamificationService, database)
                             voteRoutes(eventRepository, eventNotificationTrigger, gamificationService)
-                            scenarioRoutes(scenarioRepository)
-                            budgetRoutes(budgetRepository, eventRepository)
-                            mealRoutes(mealRepository)
-                            commentRoutes(commentRepository, eventNotificationTrigger)
-                            potentialLocationRoutes(locationRepository)
+                            scenarioRoutes(scenarioRepository, database)
+                            transportRoutes(transportRepository, database)
+                            budgetRoutes(budgetRepository, eventRepository, database, moderationPolicy)
+                            paymentRoutes(tricountHandoffRepository, eventRepository, database)
+                            mealRoutes(mealRepository, eventRepository, database, moderationPolicy)
+                            commentRoutes(commentRepository, eventNotificationTrigger, eventRepository, moderationRepository)
+                            moderationRoutes(moderationRepository, database)
+                            potentialLocationRoutes(locationRepository, eventRepository, database, moderationPolicy)
                             syncRoutes(syncService)
-                            accommodationRoutes(accommodationRepository)
+                            accommodationRoutes(accommodationRepository, database)
                             sessionRoutes(sessionManager)
-                            calendarRoutes(calendarService)
+                            calendarRoutes(calendarService, database)
                             chatRoutes(chatService)
-                            meetingProxyRoutes()
+                            meetingProxyRoutes(database, eventRepository)
                             analyticsRoutes(analyticsDashboard)
                             notificationRoutes(notificationService)
                             invitationRoutes(invitationRepository, eventRepository, database)
@@ -513,4 +530,11 @@ fun Application.module(
             call.respondText("Wakev API v1.0")
         }
     }
+}
+
+private fun createGamificationService(): GamificationService {
+    val userPointsRepository = InMemoryUserPointsRepository()
+    val userBadgesRepository = InMemoryUserBadgesRepository()
+    val badgeEligibilityChecker = BadgeEligibilityChecker(userPointsRepository, userBadgesRepository)
+    return GamificationService(userPointsRepository, userBadgesRepository, badgeEligibilityChecker)
 }

@@ -1,0 +1,119 @@
+# Release Performance Profiling Runbook
+
+Date: 2026-06-13
+
+Status: local harness ready, device evidence pending.
+
+## Scope
+
+This runbook covers the remaining roadmap performance evidence for:
+
+- iOS and Android cold start.
+- Home/list scrolling.
+- Event creation.
+- Scenario matrix rendering and voting.
+- WakeveAI generation latency, cancellation latency, and memory use.
+
+It does not close the roadmap items by itself. Closure requires real captures from representative release hardware, plus the generated report committed or attached to the App Store evidence packet.
+
+## Local Capture Command
+
+Use the profiling helper to collect repeatable local evidence:
+
+```bash
+./scripts/profile-release-performance.sh --runs 5
+```
+
+For stronger release evidence on machines with the right toolchain and connected targets:
+
+```bash
+./scripts/profile-release-performance.sh --build-ios --build-android --runs 5
+```
+
+Useful scoped runs:
+
+```bash
+./scripts/profile-release-performance.sh --ios-only --build-ios --runs 5
+./scripts/profile-release-performance.sh --android-only --build-android --runs 5
+```
+
+Reports are written to `docs/performance/release-performance-<timestamp>.md`.
+The helper records min, median, p95, max, and average for successful cold-start
+samples. When several iOS simulators are booted, `IOS_SIMULATOR` selects the
+preferred target before falling back to the first booted simulator.
+
+Android `--build-android` always attempts to build the Release APK before
+checking for a connected device. If no device or emulator is available, the
+report still records the local Release artifact and marks Android cold start as
+`SKIPPED`. The Gradle invocation disables configuration cache for this build so
+the `google-services` release task cannot turn a successful APK assembly into a
+configuration-cache storage failure.
+
+Builds are bounded so the helper can be used in release gates without hanging on
+slow or broken local toolchains:
+
+```bash
+IOS_BUILD_TIMEOUT_SECONDS=900 ANDROID_BUILD_TIMEOUT_SECONDS=900 \
+  ./scripts/profile-release-performance.sh --build-ios --build-android --runs 5
+```
+
+If a build fails or exceeds its timeout, the report records the platform section
+as `SKIPPED` and points to the raw build log for that run. The default timeout is
+600 seconds per platform build.
+
+For the WakeveAI-specific physical-device gate, prepare a dedicated capture note:
+
+```bash
+./scripts/prepare-wakeve-ai-device-profile.sh
+```
+
+The helper writes `docs/performance/wakeve-ai-device-profile-<timestamp>.md`.
+It records currently visible Apple devices and creates the exact evidence table
+needed for OpenSpec task `add-on-device-wakeve-ai` / `6.6`. A generated report
+with status `PENDING_PHYSICAL_IOS_DEVICE` or missing `TODO` values is preparation
+only; it does not close the task.
+
+For the Android event-workspace product audit, prepare a dedicated capture note:
+
+```bash
+./scripts/prepare-android-event-workspace-device-audit.sh
+```
+
+The helper writes `docs/product/android-event-workspace-device-audit-<timestamp>.md`.
+It records `adb` path/version, Android SDK environment, Gradle wrapper version,
+the selected `ANDROID_SERIAL`, Android model/API, the expected Wakeve package
+id, installed package metadata when available, and copy/paste capture commands
+for screenshots and screen recording. It creates the
+evidence table for the remaining roadmap P2.1 flow: creation -> invitation -> vote -> date confirmed -> day J. A generated report with
+`PENDING_ANDROID_DEVICE_OR_EMULATOR` or `TODO` values is preparation only; it
+does not close the Android audit item.
+
+Latest preparation refresh: `docs/product/android-event-workspace-device-audit-2026-06-20T23-11-32Z.md`.
+Current status is `PENDING_ANDROID_DEVICE_OR_EMULATOR`: `adb` is available, but
+no Android device or emulator is attached in `device` state. Before closure,
+boot or connect a target, install Wakeve, rerun the helper with the selected
+`ANDROID_SERIAL` when needed, then execute and record the full audited flow.
+
+Each generated report also includes a runtime profiling matrix for the flows
+that still require device traces: cold start, home/list, create event, scenario
+matrix, and WakeveAI generation/cancellation/memory. Rows remain
+`PENDING_DEVICE_TRACE` until a representative signed build is profiled.
+
+## Device Closure Requirements
+
+Before checking off the roadmap performance items, attach or reference:
+
+- iOS physical device model, OS version, build number, and run count.
+- Android physical device or emulator model/API, build variant, and run count.
+- Cold-start samples from the script report.
+- iOS Instruments SwiftUI + Time Profiler traces for home/list, event creation, scenario matrix, and WakeveAI.
+- Android screenshots or screen recording for creation, invitation/share, vote, date confirmed, and day J coordination.
+- Android TalkBack, 200 percent font scaling, and back-stack spot-checks for the audited event-workspace flow.
+- WakeveAI generation latency, cancellation latency, and memory peak from a supported device where Foundation Models is available.
+- Notes for every skipped flow, including whether it is blocked by device support, Apple Intelligence availability, signing, or missing test data.
+
+## Interpretation
+
+Treat script cold-start numbers as process-launch samples. They are useful for regression tracking, but they do not prove first meaningful render or SwiftUI frame stability.
+
+Treat simulator captures as local preflight only. Device traces are required for App Store/release closure because Simulator timing can hide rendering, memory, and Apple Intelligence availability behavior.

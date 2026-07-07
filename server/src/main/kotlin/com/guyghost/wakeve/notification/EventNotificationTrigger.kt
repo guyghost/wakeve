@@ -2,6 +2,7 @@ package com.guyghost.wakeve.notification
 
 import com.guyghost.wakeve.repository.DatabaseEventRepository
 import com.guyghost.wakeve.i18n.ServerLocalizer
+import com.guyghost.wakeve.moderation.ModerationRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -32,7 +33,8 @@ import kotlin.time.Duration.Companion.minutes
  */
 class EventNotificationTrigger(
     private val notificationService: NotificationService,
-    private val eventRepository: DatabaseEventRepository
+    private val eventRepository: DatabaseEventRepository,
+    private val moderationRepository: ModerationRepository? = null
 ) {
     private val logger = LoggerFactory.getLogger("EventNotificationTrigger")
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -82,7 +84,7 @@ class EventNotificationTrigger(
             timestamps.removeAll { it < oneHourAgo }
 
             if (timestamps.size >= maxNotificationsPerHour) {
-                logger.info("Rate limit atteint pour $userId (${timestamps.size}/$maxNotificationsPerHour/h)")
+                logger.info("Notification rate limit reached ({}/{}/h)", timestamps.size, maxNotificationsPerHour)
                 return false
             }
 
@@ -98,7 +100,7 @@ class EventNotificationTrigger(
         if (!canSendNotification(request.userId)) {
             return Result.failure(Exception("Rate limit atteint pour ${request.userId}"))
         }
-        return notificationService.sendNotification(request)
+        return notificationService.sendNotification(request.withDeepLink())
     }
 
     /**
@@ -139,7 +141,7 @@ class EventNotificationTrigger(
                     }
                 }
 
-                logger.info("Vote de $displayName pour event $eventId mis en file d'attente")
+                logger.info("Vote notification queued for batching")
             } catch (e: Exception) {
                 logger.error("Error triggering vote notification", e)
             }
@@ -187,8 +189,8 @@ class EventNotificationTrigger(
             )
 
             sendWithRateLimit(request)
-                .onSuccess { logger.info("Vote notification (batch=${voterNames.size}) sent for event $eventId") }
-                .onFailure { logger.warn("Failed to send batched vote notification: ${it.message}") }
+                .onSuccess { logger.info("Vote notification batch sent (count={})", voterNames.size) }
+                .onFailure { logger.warn("Failed to send batched vote notification") }
         } catch (e: Exception) {
             logger.error("Error flushing vote notification batch", e)
         }
@@ -237,6 +239,7 @@ class EventNotificationTrigger(
                 }
 
                 // Notifier tous les participants (sauf l'organisateur qui a fait le changement)
+                val deliveryResults = mutableListOf<Result<String>>()
                 for (participantId in participants) {
                     if (participantId == event.organizerId) continue
 
@@ -253,11 +256,20 @@ class EventNotificationTrigger(
                         )
                     )
 
-                    sendWithRateLimit(request)
-                        .onFailure { logger.warn("Failed to notify participant $participantId: ${it.message}") }
+                    val result = sendWithRateLimit(request)
+                    deliveryResults += result
+                    result
+                        .onFailure { logger.warn("Failed to send status change notification") }
                 }
 
-                logger.info("Status change notifications sent for event $eventId -> $newStatus")
+                val summary = summarizeNotificationDelivery(deliveryResults)
+                logger.info(
+                    "Status change notifications processed (status={}, attempted={}, sent={}, failed={})",
+                    newStatus,
+                    summary.attempted,
+                    summary.sent,
+                    summary.failed
+                )
             } catch (e: Exception) {
                 logger.error("Error triggering status change notification", e)
             }
@@ -286,9 +298,11 @@ class EventNotificationTrigger(
                     commentPreview
                 }
 
+                val deliveryResults = mutableListOf<Result<String>>()
                 for (participantId in participants) {
                     // Ne pas notifier l'auteur du commentaire
                     if (participantId == authorId) continue
+                    if (moderationRepository?.isBlockedForEvent(participantId, authorId, eventId) == true) continue
 
                     val request = NotificationRequest(
                         userId = participantId,
@@ -302,9 +316,19 @@ class EventNotificationTrigger(
                         )
                     )
 
-                    sendWithRateLimit(request)
-                        .onFailure { logger.warn("Failed to notify participant $participantId: ${it.message}") }
+                    val result = sendWithRateLimit(request)
+                    deliveryResults += result
+                    result
+                        .onFailure { logger.warn("Failed to send comment notification") }
                 }
+
+                val summary = summarizeNotificationDelivery(deliveryResults)
+                logger.info(
+                    "Comment notifications processed (attempted={}, sent={}, failed={})",
+                    summary.attempted,
+                    summary.sent,
+                    summary.failed
+                )
             } catch (e: Exception) {
                 logger.error("Error triggering comment notification", e)
             }
@@ -331,6 +355,7 @@ class EventNotificationTrigger(
                     else -> ServerLocalizer.t("notification.deadline.time_days", locale, hoursRemaining / 24)
                 }
 
+                val deliveryResults = mutableListOf<Result<String>>()
                 for (participantId in participants) {
                     val request = NotificationRequest(
                         userId = participantId,
@@ -344,14 +369,39 @@ class EventNotificationTrigger(
                         )
                     )
 
-                    sendWithRateLimit(request)
-                        .onFailure { logger.warn("Failed to send deadline reminder to $participantId: ${it.message}") }
+                    val result = sendWithRateLimit(request)
+                    deliveryResults += result
+                    result
+                        .onFailure { logger.warn("Failed to send deadline reminder") }
                 }
 
-                logger.info("Deadline reminders sent for event $eventId ($hoursRemaining hours remaining)")
+                val summary = summarizeNotificationDelivery(deliveryResults)
+                logger.info(
+                    "Deadline reminders processed (attempted={}, sent={}, failed={}, hoursRemaining={})",
+                    summary.attempted,
+                    summary.sent,
+                    summary.failed,
+                    hoursRemaining
+                )
             } catch (e: Exception) {
                 logger.error("Error triggering deadline notification", e)
             }
         }
     }
+}
+
+internal data class NotificationDeliverySummary(
+    val attempted: Int,
+    val sent: Int,
+    val failed: Int
+)
+
+internal fun summarizeNotificationDelivery(results: List<Result<String>>): NotificationDeliverySummary {
+    val sent = results.count { it.isSuccess }
+    val failed = results.count { it.isFailure }
+    return NotificationDeliverySummary(
+        attempted = results.size,
+        sent = sent,
+        failed = failed
+    )
 }

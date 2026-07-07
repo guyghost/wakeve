@@ -1,5 +1,6 @@
 package com.guyghost.wakeve.routes
 
+import com.guyghost.wakeve.auth.userId
 import com.guyghost.wakeve.repository.DatabaseEventRepository
 import com.guyghost.wakeve.gamification.GamificationService
 import com.guyghost.wakeve.gamification.PointsAction
@@ -8,6 +9,8 @@ import com.guyghost.wakeve.models.PollResponse
 import com.guyghost.wakeve.models.Vote
 import com.guyghost.wakeve.notification.EventNotificationTrigger
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -29,6 +32,20 @@ fun Route.voteRoutes(
                     mapOf("error" to "Event ID required")
                 )
 
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+                val event = repository.getEvent(eventId) ?: return@get call.respond(
+                    HttpStatusCode.NotFound,
+                    mapOf("error" to "Event not found")
+                )
+                val callerId = principal.userId
+                if (event.organizerId != callerId && !event.participants.contains(callerId)) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to this poll")
+                    )
+                }
+
                 val poll = repository.getPoll(eventId) ?: return@get call.respond(
                     HttpStatusCode.NotFound,
                     mapOf("error" to "Poll not found for event")
@@ -44,7 +61,7 @@ fun Route.voteRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to pollReadFailureMessage())
                 )
             }
         }
@@ -58,6 +75,26 @@ fun Route.voteRoutes(
                 )
 
                 val request = call.receive<AddVoteRequest>()
+
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
+                val event = repository.getEvent(eventId) ?: return@post call.respond(
+                    HttpStatusCode.NotFound,
+                    mapOf("error" to "Event not found")
+                )
+
+                val callerId = principal.userId
+                val isOrganizer = event.organizerId == callerId
+                val isParticipantVotingForSelf = callerId == request.participantId &&
+                    event.participants.contains(request.participantId)
+
+                if (!isOrganizer && !isParticipantVotingForSelf) {
+                    return@post call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to vote on this event")
+                    )
+                }
                 
                 val vote = try {
                     Vote.valueOf(request.vote)
@@ -106,15 +143,21 @@ fun Route.voteRoutes(
                 } else {
                     call.respond(
                         HttpStatusCode.BadRequest,
-                        mapOf("error" to (result.exceptionOrNull()?.message ?: "Failed to add vote"))
+                        mapOf("error" to voteAddFailureMessage())
                     )
                 }
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.BadRequest,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to voteAddFailureMessage())
                 )
             }
         }
     }
 }
+
+internal fun pollReadFailureMessage(): String =
+    "Failed to fetch poll. Please try again."
+
+internal fun voteAddFailureMessage(): String =
+    "Failed to save your vote. Please try again."

@@ -74,7 +74,7 @@ class OtpManager(
         val normalizedEmail = email.lowercase().trim()
 
         if (isRateLimited(normalizedEmail)) {
-            logger.warn("Rate limit atteint pour l'email: {}", normalizedEmail)
+            logger.warn("OTP request rate limit reached")
             return null
         }
 
@@ -91,9 +91,25 @@ class OtpManager(
         // Enregistrer la demande dans l'historique
         requestHistory.computeIfAbsent(normalizedEmail) { mutableListOf() }.add(now)
 
-        logger.info("OTP généré pour {}: {} (expire dans {}s)", normalizedEmail, code, otpTtlSeconds)
+        logger.info("OTP generated; expires in {}s", otpTtlSeconds)
 
         return code
+    }
+
+    /**
+     * Removes a newly generated OTP when delivery fails.
+     */
+    fun discardOtp(email: String) {
+        val normalizedEmail = email.lowercase().trim()
+        otpStore.remove(normalizedEmail)
+
+        val history = requestHistory[normalizedEmail] ?: return
+        if (history.isNotEmpty()) {
+            history.removeAt(history.lastIndex)
+        }
+        if (history.isEmpty()) {
+            requestHistory.remove(normalizedEmail)
+        }
     }
 
     /**
@@ -108,12 +124,12 @@ class OtpManager(
         val entry = otpStore[normalizedEmail]
 
         if (entry == null) {
-            logger.debug("Aucun OTP trouvé pour: {}", normalizedEmail)
+            logger.debug("OTP verification failed: no active code")
             return false
         }
 
         if (entry.isExpired()) {
-            logger.debug("OTP expiré pour: {}", normalizedEmail)
+            logger.debug("OTP verification failed: code expired")
             otpStore.remove(normalizedEmail)
             return false
         }
@@ -121,22 +137,22 @@ class OtpManager(
         entry.attempts++
 
         if (entry.attempts > maxAttempts) {
-            logger.warn("Nombre maximum de tentatives atteint pour: {}", normalizedEmail)
+            logger.warn("OTP verification failed: maximum attempts reached")
             otpStore.remove(normalizedEmail)
             return false
         }
 
         if (entry.code != code) {
             logger.debug(
-                "OTP invalide pour: {} (tentative {}/{})",
-                normalizedEmail, entry.attempts, maxAttempts
+                "OTP verification failed: invalid code attempt {}/{}",
+                entry.attempts, maxAttempts
             )
             return false
         }
 
         // OTP valide, le supprimer du cache
         otpStore.remove(normalizedEmail)
-        logger.info("OTP vérifié avec succès pour: {}", normalizedEmail)
+        logger.info("OTP verified successfully")
         return true
     }
 

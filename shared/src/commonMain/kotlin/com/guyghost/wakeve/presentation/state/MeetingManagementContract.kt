@@ -155,15 +155,10 @@ object MeetingManagementContract {
         /**
          * Check if meetings can be created based on event status.
          *
-         * Meetings can only be created in CONFIRMED, ORGANIZING, or FINALIZED states.
-         * Before CONFIRMED, the event date hasn't been confirmed yet.
+         * Meetings can only be created while the event is actively organizing.
+         * Earlier phases are still preparing logistics, and FINALIZED is read-only.
          */
-        fun canCreateMeetings(): Boolean =
-            eventStatus in listOf(
-                EventStatus.CONFIRMED,
-                EventStatus.ORGANIZING,
-                EventStatus.FINALIZED
-            )
+        fun canCreateMeetings(): Boolean = eventStatus == EventStatus.ORGANIZING
     }
 
     /**
@@ -191,7 +186,10 @@ object MeetingManagementContract {
         /**
          * Cancel a meeting
          */
-        data class CancelMeeting(val meetingId: String) : Intent
+        data class CancelMeeting(
+            val meetingId: String,
+            val currentUserId: String
+        ) : Intent
 
         /**
          * Generate a meeting link for a specific platform

@@ -1,6 +1,6 @@
 # 🎨 Quick Review Guide - Liquid Glass Migration
 
-**Fichier**: `iosApp/iosApp/Views/ModernPollVotingView.swift`  
+**Fichier**: `iosApp/src/Views/ModernPollVotingView.swift`  
 **Status**: ✅ READY FOR REVIEW  
 **Duration**: ~2 minutes to review
 

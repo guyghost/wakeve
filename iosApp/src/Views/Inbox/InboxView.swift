@@ -1,0 +1,1095 @@
+import SwiftUI
+
+/**
+ * InboxView - Notifications and invitations screen for iOS.
+ *
+ * Displays:
+ * - Notifications (event invites, poll updates, comments)
+ * - Filter chips (All, Unread, Invitations)
+ * - Liquid Glass design system
+ * - Matches Android InboxScreen functionality
+ *
+ * Uses:
+ * - GlassBadge for status badges
+ */
+struct InboxView: View {
+    let userId: String
+    let onBack: () -> Void
+    @Binding var unreadCount: Int
+
+    /// Optional override for initial items (used by previews).
+    var initialItems: [InboxItemModel]? = nil
+
+    @StateObject private var viewModel: InboxViewModel
+    @State private var selectedFilter: InboxFilter = .inbox
+    @State private var showNotificationBanner = true
+    @State private var selectedEventFilter: String? = nil
+    @State private var showEventSheet = false
+    @State private var isSelectionMode = false
+    @State private var selectedItemIds: Set<String> = []
+    @State private var showActionBar = false
+    @State private var searchText = ""
+    @Environment(\.colorScheme) private var colorScheme
+
+    init(userId: String, onBack: @escaping () -> Void, unreadCount: Binding<Int>, initialItems: [InboxItemModel]? = nil) {
+        self.userId = userId
+        self.onBack = onBack
+        self._unreadCount = unreadCount
+        self.initialItems = initialItems
+        self._viewModel = StateObject(wrappedValue: InboxViewModel(userId: userId))
+    }
+
+    // Derived from loaded items for the event filter dropdown
+    private var availableEvents: [String] {
+        Array(Set(viewModel.items.compactMap { $0.eventName })).sorted()
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                SemanticColor.appBackground(for: colorScheme)
+                    .ignoresSafeArea()
+
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: WakeveTheme.Spacing.lg) {
+                        messagesHeader
+                        coordinationOverviewCard
+                        searchField
+
+                        if viewModel.isLoading {
+                            LoadingSkeleton(rows: 4, showsHero: false)
+                        } else if filteredConversations.isEmpty {
+                            EmptyState(
+                                systemImage: "message.fill",
+                                title: emptyStateTitle,
+                                subtitle: emptyStateSubtitle
+                            )
+                        } else {
+                            conversationsList
+                        }
+                    }
+                    .padding(.horizontal, WakeveTheme.Spacing.page)
+                    .padding(.top, WakeveTheme.Spacing.lg)
+                    .padding(.bottom, WakeveTheme.Spacing.xxl)
+                }
+            }
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            #if os(iOS)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    if isSelectionMode {
+                        Button(String(localized: "common.cancel")) {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                isSelectionMode = false
+                                showActionBar = false
+                                selectedItemIds.removeAll()
+                            }
+                        }
+                    } else {
+                        if !filteredItems.isEmpty {
+                            Button(String(localized: "inbox.selection.select")) {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                    isSelectionMode = true
+                                    showActionBar = true
+                                }
+                            }
+                        }
+                    }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    if isSelectionMode {
+                        Button(String(localized: "inbox.selection.select_all")) {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                selectedItemIds = Set(filteredItems.map { $0.id })
+                            }
+                        }
+                    }
+                }
+            }
+            .toolbar(showActionBar ? .hidden : .visible, for: .tabBar)
+            #endif
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if showActionBar {
+                    actionBarView
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
+            .sheet(isPresented: $showEventSheet) {
+                EventFilterSheet(
+                    events: availableEvents,
+                    selectedEvent: $selectedEventFilter,
+                    onSelect: {
+                        selectedFilter = .event
+                    },
+                    onDismiss: {
+                        showEventSheet = false
+                    }
+                )
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+            }
+        }
+        .onAppear(perform: loadItems)
+        .onChange(of: viewModel.items) { _, newItems in
+            unreadCount = newItems.filter { !$0.isRead }.count
+            if newItems.isEmpty {
+                exitSelectionMode()
+            }
+        }
+        .refreshable {
+            viewModel.loadNotifications()
+        }
+    }
+    
+    // MARK: - Filter Tabs View
+    
+    private var filterTabsView: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Filter chips row
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    // Active filter indicator (shows when filter is active)
+                    if selectedFilter != .inbox || selectedEventFilter != nil {
+                        ActiveFilterIndicator(count: activeFilterCount) {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                selectedFilter = .inbox
+                                selectedEventFilter = nil
+                            }
+                        }
+                    }
+                    
+                    // Inbox filter with dropdown
+                    FilterTabButton(
+                        title: String(localized: "inbox.filter.inbox"),
+                        isSelected: selectedFilter == .inbox && selectedEventFilter == nil,
+                        hasDropdown: true,
+                        action: { 
+                            selectedFilter = .inbox
+                            selectedEventFilter = nil
+                        }
+                    )
+                    
+                    // Focused filter with "New" badge
+                    FilterTabButton(
+                        title: String(localized: "inbox.filter.focused"),
+                        isSelected: selectedFilter == .focused,
+                        badge: String(localized: "inbox.filter.new"),
+                        action: { selectedFilter = .focused }
+                    )
+                    
+                    // Unread filter
+                    FilterTabButton(
+                        title: String(localized: "inbox.filter.unread"),
+                        isSelected: selectedFilter == .unread,
+                        action: { selectedFilter = .unread }
+                    )
+                    
+                    // Event filter with sheet
+                    EventFilterTabButton(
+                        title: selectedEventFilter ?? String(localized: "inbox.filter.event"),
+                        isSelected: selectedFilter == .event,
+                        hasDropdown: true,
+                        action: {
+                            showEventSheet = true
+                        }
+                    )
+                }
+                .padding(.horizontal, 16)
+            }
+            
+            // Divider line
+            Divider()
+                .padding(.top, 8)
+        }
+    }
+    
+    // MARK: - Filtered Items
+    
+    private var filteredItems: [InboxItemModel] {
+        switch selectedFilter {
+        case .inbox:
+            return viewModel.items
+        case .focused:
+            return viewModel.items.filter { $0.isFocused || $0.requiresAction }
+        case .unread:
+            return viewModel.items.filter { !$0.isRead }
+        case .event:
+            if let eventName = selectedEventFilter {
+                return viewModel.items.filter { $0.eventName?.contains(eventName) ?? false }
+            }
+            return viewModel.items.filter { $0.eventName != nil }
+        }
+    }
+
+    private var coordinationOverviewCard: some View {
+        InboxCoordinationOverviewCard(
+            unreadCount: unreadMessageCount,
+            actionRequiredCount: actionRequiredCount,
+            eventCount: eventConversations.count,
+            onUnread: {
+                WakeveHaptics.selection()
+                selectedFilter = .unread
+                selectedEventFilter = nil
+            },
+            onActionRequired: {
+                WakeveHaptics.selection()
+                selectedFilter = .focused
+                selectedEventFilter = nil
+            },
+            onAllEvents: {
+                WakeveHaptics.selection()
+                selectedFilter = .inbox
+                selectedEventFilter = nil
+            }
+        )
+    }
+
+    private var messagesHeader: some View {
+        VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xs) {
+            Text(String(localized: "inbox.title"))
+                .font(WakeveTheme.Typography.largeTitle)
+                .foregroundColor(SemanticColor.primaryText(for: colorScheme))
+
+            Text(eventConversationCountText(eventConversations.count))
+                .font(WakeveTheme.Typography.callout)
+                .foregroundColor(SemanticColor.secondaryText(for: colorScheme))
+        }
+    }
+
+    private var searchField: some View {
+        WakeveSearchField(
+            placeholder: String(localized: "inbox.search_placeholder"),
+            text: $searchText
+        )
+    }
+
+    private var conversationsList: some View {
+        VStack(spacing: WakeveTheme.Spacing.md) {
+            ForEach(filteredConversations) { conversation in
+                if let latest = conversation.latestItem {
+                    NavigationLink {
+                        InboxDetailView(item: latest, conversationItems: conversation.items)
+                            .onAppear {
+                                markConversationAsRead(conversation)
+                            }
+                    } label: {
+                        EventConversationRow(conversation: conversation)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private var unreadMessageCount: Int {
+        viewModel.items.filter { !$0.isRead }.count
+    }
+
+    private var actionRequiredCount: Int {
+        viewModel.items.filter { $0.requiresAction }.count
+    }
+
+    private var eventConversations: [EventConversationPreview] {
+        let grouped = Dictionary(grouping: viewModel.items) { item in
+            item.eventId ?? item.eventName ?? "general"
+        }
+
+        return grouped.map { key, items in
+            let sortedItems = items.sorted { lhs, rhs in
+                lhs.id > rhs.id
+            }
+            let latest = sortedItems.first
+            return EventConversationPreview(
+                id: key,
+                eventName: latest?.eventName ?? String(localized: "inbox.general_conversation"),
+                latestItem: latest,
+                items: sortedItems,
+                unreadCount: sortedItems.filter { !$0.isRead }.count,
+                requiresAction: sortedItems.contains { $0.requiresAction }
+            )
+        }
+        .sorted { lhs, rhs in
+            if lhs.unreadCount != rhs.unreadCount {
+                return lhs.unreadCount > rhs.unreadCount
+            }
+            return (lhs.latestItem?.id ?? "") > (rhs.latestItem?.id ?? "")
+        }
+    }
+
+    private func eventConversationCountText(_ count: Int) -> String {
+        count == 1
+            ? String(format: String(localized: "inbox.event_conversation_count_singular_format"), count)
+            : String(format: String(localized: "inbox.event_conversation_count_plural_format"), count)
+    }
+
+    private var filteredConversations: [EventConversationPreview] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else {
+            return eventConversations
+        }
+
+        return eventConversations.filter { conversation in
+            conversation.eventName.localizedCaseInsensitiveContains(query) ||
+                conversation.items.contains { item in
+                    item.title.localizedCaseInsensitiveContains(query) ||
+                        item.message.localizedCaseInsensitiveContains(query)
+                }
+        }
+    }
+
+    private var hasUnreadItems: Bool {
+        viewModel.items.contains { !$0.isRead }
+    }
+    
+    private var activeFilterCount: Int {
+        var count = 0
+        if selectedFilter != .inbox {
+            count += 1
+        }
+        if selectedEventFilter != nil {
+            count += 1
+        }
+        return count
+    }
+    
+    // MARK: - Loading View
+    
+    private var loadingView: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+                .scaleEffect(1.5)
+                .tint(.wakevePrimary)
+                .accessibilityLabel(String(localized: "common.loading"))
+            Text(String(localized: "common.loading"))
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    // MARK: - Empty State View
+    
+    private var emptyStateView: some View {
+        ContentUnavailableView(
+            emptyStateTitle,
+            systemImage: emptyStateIcon,
+            description: Text(emptyStateSubtitle)
+        )
+    }
+    
+    private var emptyStateIcon: String {
+        switch selectedFilter {
+        case .inbox: return "tray"
+        case .focused: return "star"
+        case .unread: return "envelope.open"
+        case .event: return "calendar"
+        }
+    }
+    
+    private var emptyStateTitle: String {
+        switch selectedFilter {
+        case .inbox: return String(localized: "inbox.empty.no_notifications")
+        case .focused: return String(localized: "inbox.empty.no_focused")
+        case .unread: return String(localized: "inbox.empty.no_unread")
+        case .event: return selectedEventFilter != nil ? String(format: String(localized: "inbox.empty.no_notifications_for"), selectedEventFilter!) : String(localized: "inbox.empty.no_events")
+        }
+    }
+    
+    private var emptyStateSubtitle: String {
+        switch selectedFilter {
+        case .inbox: return String(localized: "inbox.empty.notifications_subtitle")
+        case .focused: return String(localized: "inbox.empty.focused_subtitle")
+        case .unread: return String(localized: "inbox.empty.unread_subtitle")
+        case .event: return String(localized: "inbox.empty.events_subtitle")
+        }
+    }
+    
+    // MARK: - Action Bar View
+    
+    private var actionBarView: some View {
+        HStack(spacing: 12) {
+            ActionBarButton(
+                title: String(localized: "inbox.action.mark_read"),
+                isEnabled: !selectedItemIds.isEmpty,
+                action: {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        markSelectedAsRead()
+                        exitSelectionMode()
+                    }
+                }
+            )
+            
+            ActionBarButton(
+                title: String(localized: "inbox.action.mark_done"),
+                isEnabled: !selectedItemIds.isEmpty,
+                action: {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        markSelectedAsDone()
+                        exitSelectionMode()
+                    }
+                }
+            )
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(WakeveTheme.ColorToken.cardFill(for: colorScheme))
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(SemanticColor.separator(for: colorScheme))
+                .frame(height: 1)
+        }
+        .accessibilityElement(children: .contain)
+    }
+    
+    private func markSelectedAsRead() {
+        for id in selectedItemIds {
+            viewModel.markAsRead(id)
+        }
+    }
+
+    private func markSelectedAsDone() {
+        for id in selectedItemIds {
+            viewModel.deleteNotification(id)
+        }
+    }
+    
+    private func toggleSelection(for itemId: String) {
+        if selectedItemIds.contains(itemId) {
+            selectedItemIds.remove(itemId)
+        } else {
+            selectedItemIds.insert(itemId)
+        }
+    }
+
+    private func exitSelectionMode() {
+        isSelectionMode = false
+        showActionBar = false
+        selectedItemIds.removeAll()
+    }
+    
+    // MARK: - Actions
+
+    private func loadItems() {
+        if let override = initialItems {
+            // Preview mode: use injected data
+            viewModel.items = override
+            viewModel.isLoading = false
+            return
+        }
+        viewModel.loadNotifications()
+    }
+
+    private func markItemAsRead(_ itemId: String) {
+        viewModel.markAsRead(itemId)
+    }
+
+    private func markConversationAsRead(_ conversation: EventConversationPreview) {
+        conversation.items.forEach { item in
+            markItemAsRead(item.id)
+        }
+    }
+}
+
+// MARK: - Coordination Overview
+
+private struct InboxCoordinationOverviewCard: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let unreadCount: Int
+    let actionRequiredCount: Int
+    let eventCount: Int
+    let onUnread: @MainActor () -> Void
+    let onActionRequired: @MainActor () -> Void
+    let onAllEvents: @MainActor () -> Void
+
+    var body: some View {
+        WakeveContentCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.lg) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xs) {
+                    Label(String(localized: "inbox.coordination.title"), systemImage: "checklist.checked")
+                        .font(WakeveTheme.Typography.section)
+                        .foregroundColor(SemanticColor.primaryText(for: colorScheme))
+
+                    Text(String(localized: "inbox.coordination.subtitle"))
+                        .font(WakeveTheme.Typography.callout)
+                        .foregroundColor(SemanticColor.secondaryText(for: colorScheme))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                HStack(spacing: WakeveTheme.Spacing.sm) {
+                    InboxCoordinationMetricButton(
+                        title: String(localized: "inbox.coordination.unread"),
+                        value: "\(unreadCount)",
+                        systemImage: "envelope.badge.fill",
+                        color: SemanticColor.selectedState(for: colorScheme),
+                        action: onUnread
+                    )
+                    InboxCoordinationMetricButton(
+                        title: String(localized: "inbox.coordination.action_required"),
+                        value: "\(actionRequiredCount)",
+                        systemImage: "exclamationmark.bubble.fill",
+                        color: SemanticColor.warning(for: colorScheme),
+                        action: onActionRequired
+                    )
+                    InboxCoordinationMetricButton(
+                        title: String(localized: "inbox.coordination.events"),
+                        value: "\(eventCount)",
+                        systemImage: "calendar.badge.clock",
+                        color: SemanticColor.confirmation(for: colorScheme),
+                        action: onAllEvents
+                    )
+                }
+            }
+        }
+        .accessibilityIdentifier("inboxCoordinationOverviewCard")
+    }
+}
+
+private struct InboxCoordinationMetricButton: View {
+    let title: String
+    let value: String
+    let systemImage: String
+    let color: Color
+    let action: @MainActor () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xs) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(color)
+                    .frame(width: 30, height: 30)
+                    .background(color.opacity(0.14))
+                    .clipShape(Circle())
+
+                Text(value)
+                    .font(WakeveTheme.Typography.rowTitle)
+                    .foregroundColor(color)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+
+                Text(title)
+                    .font(WakeveTheme.Typography.tiny)
+                    .foregroundColor(.secondary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.76)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(WakeveTheme.Spacing.sm)
+            .background(color.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Filter Tab Button
+
+struct FilterTabButton: View {
+    let title: String
+    let isSelected: Bool
+    var hasDropdown: Bool = false
+    var badge: String? = nil
+    let action: @MainActor () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                Text(title)
+                    .font(.subheadline.weight(isSelected ? .semibold : .regular))
+                
+                if let badge = badge {
+                    Text(badge)
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.accentColor)
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                }
+                
+                if hasDropdown {
+                    Image(systemName: "chevron.down")
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .foregroundStyle(isSelected ? .primary : .secondary)
+            .padding(.vertical, 8)
+        }
+    }
+}
+
+// MARK: - Active Filter Indicator
+
+struct ActiveFilterIndicator: View {
+    let count: Int
+    let action: @MainActor () -> Void
+    
+    var body: some View {
+        Menu {
+            Section {
+                Text(filterAppliedText)
+                    .foregroundStyle(.secondary)
+            }
+            
+            Button(role: .destructive) {
+                action()
+            } label: {
+                Text(String(localized: "inbox.filter.clear_all"))
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "line.3.horizontal.decrease")
+                    .font(.footnote)
+                
+                Text("\(count)")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 20, height: 20)
+                    .background(Circle().fill(Color.accentColor))
+            }
+            .foregroundStyle(.primary)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(
+                Capsule()
+                    .fill(Color(.systemGray5))
+            )
+        }
+    }
+    
+    private var filterAppliedText: String {
+        if count == 1 {
+            return String(localized: "inbox.filter.one_applied")
+        } else {
+            return String(format: String(localized: "inbox.filter.many_applied"), count)
+        }
+    }
+}
+
+// MARK: - Event Filter Tab Button
+
+struct EventFilterTabButton: View {
+    let title: String
+    let isSelected: Bool
+    var hasDropdown: Bool = false
+    let action: @MainActor () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                Text(title)
+                    .font(.subheadline.weight(isSelected ? .semibold : .regular))
+                
+                if hasDropdown {
+                    Image(systemName: "chevron.down")
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .foregroundStyle(isSelected ? .primary : .secondary)
+            .padding(.vertical, 8)
+        }
+    }
+}
+
+// MARK: - Event Filter Sheet
+
+struct EventFilterSheet: View {
+    let events: [String]
+    @Binding var selectedEvent: String?
+    let onSelect: @MainActor () -> Void
+    let onDismiss: @MainActor () -> Void
+    @Environment(\.colorScheme) private var colorScheme
+    
+    var body: some View {
+        NavigationStack {
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                    WakeveContentCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.lg) {
+                        VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xs) {
+                            Label(String(localized: "inbox.filter_by_event"), systemImage: "line.3.horizontal.decrease.circle.fill")
+                                .font(WakeveTheme.Typography.title2)
+                                .foregroundColor(SemanticColor.primaryText(for: colorScheme))
+
+                            Text(String(localized: "inbox.events"))
+                                .font(WakeveTheme.Typography.callout)
+                                .foregroundColor(SemanticColor.secondaryText(for: colorScheme))
+                        }
+                    }
+
+                    EventFilterOptionRow(
+                        title: String(localized: "inbox.all_events"),
+                        subtitle: String(localized: "inbox.filter_all_subtitle"),
+                        systemImage: "tray.full.fill",
+                        isSelected: selectedEvent == nil,
+                        action: {
+                            selectedEvent = nil
+                            onSelect()
+                            onDismiss()
+                        }
+                    )
+
+                    ForEach(events, id: \.self) { event in
+                        EventFilterOptionRow(
+                            title: event,
+                            subtitle: String(localized: "inbox.filter_event_subtitle"),
+                            systemImage: "calendar",
+                            isSelected: selectedEvent == event,
+                            action: {
+                                selectedEvent = event
+                                onSelect()
+                                onDismiss()
+                            }
+                        )
+                    }
+                }
+                .padding(WakeveTheme.Spacing.page)
+            }
+            .background(WakeveScreenBackground(style: .grouped))
+            .navigationTitle(String(localized: "inbox.filter_by_event"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(String(localized: "common.close")) {
+                        onDismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct EventFilterOptionRow: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let title: String
+    let subtitle: String
+    let systemImage: String
+    let isSelected: Bool
+    let action: @MainActor () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            WakeveContentCard(prominence: isSelected ? .regular : .subtle, cornerRadius: WakeveTheme.Radius.lg, padding: WakeveTheme.Spacing.md) {
+                HStack(spacing: WakeveTheme.Spacing.md) {
+                    Image(systemName: systemImage)
+                        .font(.headline.weight(.bold))
+                        .foregroundColor(isSelected ? .white : SemanticColor.selectedState(for: colorScheme))
+                        .frame(width: 42, height: 42)
+                        .background(isSelected ? SemanticColor.selectedState(for: colorScheme) : SemanticColor.selectedState(for: colorScheme).opacity(0.14))
+                        .clipShape(Circle())
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(title)
+                            .font(WakeveTheme.Typography.rowTitle)
+                            .foregroundColor(SemanticColor.primaryText(for: colorScheme))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.78)
+
+                        Text(subtitle)
+                            .font(WakeveTheme.Typography.callout)
+                            .foregroundColor(SemanticColor.secondaryText(for: colorScheme))
+                            .lineLimit(2)
+                    }
+
+                    Spacer()
+
+                    if isSelected {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.title3.weight(.bold))
+                            .foregroundColor(SemanticColor.selectedState(for: colorScheme))
+                    }
+                }
+            }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Inbox Row
+
+private struct EventConversationPreview: Identifiable, Equatable {
+    let id: String
+    let eventName: String
+    let latestItem: InboxItemModel?
+    let items: [InboxItemModel]
+    let unreadCount: Int
+    let requiresAction: Bool
+}
+
+private struct EventConversationRow: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let conversation: EventConversationPreview
+
+    var body: some View {
+        WakeveContentCard(prominence: conversation.unreadCount > 0 ? .regular : .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+            HStack(spacing: WakeveTheme.Spacing.md) {
+                ZStack(alignment: .topTrailing) {
+                    Image(systemName: conversation.requiresAction ? "calendar.badge.clock" : "message.fill")
+                        .font(.title3.weight(.bold))
+                        .foregroundColor(iconColor)
+                        .frame(width: 52, height: 52)
+                        .background(iconColor.opacity(0.14))
+                        .clipShape(Circle())
+
+                    if conversation.unreadCount > 0 {
+                        Circle()
+                            .fill(SemanticColor.destructive(for: colorScheme))
+                            .frame(width: 12, height: 12)
+                            .overlay(Circle().stroke(SemanticColor.appBackground(for: colorScheme), lineWidth: 2))
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+                    HStack(spacing: WakeveTheme.Spacing.xs) {
+                        Text(conversation.eventName)
+                            .font(WakeveTheme.Typography.rowTitle)
+                            .foregroundColor(SemanticColor.primaryText(for: colorScheme))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.78)
+
+                        if conversation.requiresAction {
+                            Text(String(localized: "inbox.action_required"))
+                                .font(WakeveTheme.Typography.tiny)
+                                .foregroundColor(SemanticColor.warning(for: colorScheme))
+                                .padding(.horizontal, WakeveTheme.Spacing.xs)
+                                .padding(.vertical, 3)
+                                .background(SemanticColor.warning(for: colorScheme).opacity(0.14))
+                                .clipShape(Capsule())
+                        }
+                    }
+
+                    Text(conversation.latestItem?.title ?? String(localized: "inbox.empty.no_message"))
+                        .font(WakeveTheme.Typography.callout.weight(conversation.unreadCount > 0 ? .semibold : .regular))
+                        .foregroundColor(SemanticColor.primaryText(for: colorScheme))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
+
+                    Text(conversation.latestItem?.message ?? String(localized: "inbox.conversation_fallback_message"))
+                        .font(WakeveTheme.Typography.callout)
+                        .foregroundColor(SemanticColor.secondaryText(for: colorScheme))
+                        .lineLimit(2)
+                }
+
+                Spacer(minLength: WakeveTheme.Spacing.sm)
+
+                VStack(alignment: .trailing, spacing: WakeveTheme.Spacing.xs) {
+                    Text(conversation.latestItem?.timeAgo ?? "")
+                        .font(WakeveTheme.Typography.tiny)
+                        .foregroundColor(SemanticColor.secondaryText(for: colorScheme))
+
+                    if conversation.unreadCount > 0 {
+                        Text("\(conversation.unreadCount)")
+                            .font(WakeveTheme.Typography.tiny)
+                            .foregroundColor(.white)
+                            .frame(width: 24, height: 24)
+                            .background(SemanticColor.selectedState(for: colorScheme))
+                            .clipShape(Circle())
+                    }
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var iconColor: Color {
+        conversation.requiresAction
+            ? SemanticColor.warning(for: colorScheme)
+            : SemanticColor.selectedState(for: colorScheme)
+    }
+}
+
+struct InboxRow: View {
+    let item: InboxItemModel
+    var isSelectionMode: Bool = false
+    var isSelected: Bool = false
+    
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            if isSelectionMode {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.title2)
+                    .foregroundStyle(isSelected ? Color.accentColor : .secondary)
+                    .padding(.top, 2)
+            } else {
+                // Unread indicator (like Mail.app)
+                Circle()
+                    .fill(item.isRead ? Color.clear : Color.accentColor)
+                    .frame(width: 10, height: 10)
+                    .padding(.top, 6)
+            }
+            
+            // Type icon
+            Image(systemName: item.icon)
+                .font(.title3.weight(.medium))
+                .foregroundStyle(item.iconColor)
+                .frame(width: 24)
+                .padding(.top, 2)
+            
+            // Content
+            VStack(alignment: .leading, spacing: 3) {
+                // Event name
+                if let eventName = item.eventName {
+                    Text(eventName)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                
+                // Title
+                Text(item.title)
+                    .font(.subheadline.weight(item.isRead ? .regular : .semibold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
+                
+                // Subtitle
+                Text(item.message)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+            }
+            
+            Spacer()
+            
+            // Timestamp
+            Text(item.timeAgo)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.top, 2)
+        }
+        .padding(.vertical, 6)
+    }
+}
+
+// MARK: - Action Bar Button
+
+struct ActionBarButton: View {
+    let title: String
+    let isEnabled: Bool
+    let action: @MainActor () -> Void
+
+    @Environment(\.colorScheme) private var colorScheme
+    
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.subheadline)
+                .foregroundStyle(.primary)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(
+                    Capsule()
+                        .fill(SemanticColor.badge(for: colorScheme))
+                )
+        }
+        .disabled(!isEnabled)
+        .opacity(isEnabled ? 1.0 : 0.5)
+        .animation(.easeInOut(duration: 0.2), value: isEnabled)
+    }
+}
+
+// MARK: - Supporting Types
+
+enum InboxFilter {
+    case inbox, focused, unread, event
+}
+
+struct InboxItemModel: Identifiable, Equatable, Hashable {
+    let id: String
+    var title: String
+    var message: String
+    var timeAgo: String
+    var type: InboxItemType
+    var isRead: Bool
+    var commentCount: Int
+    var isFocused: Bool
+    var eventName: String?
+    var eventId: String?
+    
+    var requiresAction: Bool {
+        switch type {
+        case .invitation, .pollUpdate:
+            return true
+        case .comment, .eventUpdate:
+            return false
+        }
+    }
+    
+    var icon: String {
+        switch type {
+        case .invitation: return "envelope.fill"
+        case .pollUpdate: return "chart.bar.fill"
+        case .comment: return "bubble.left.fill"
+        case .eventUpdate: return "calendar"
+        }
+    }
+    
+    var iconColor: Color {
+        switch type {
+        case .invitation: return .wakevePrimary
+        case .pollUpdate: return .wakeveAccent
+        case .comment: return .wakeveSuccess
+        case .eventUpdate: return .wakeveWarning
+        }
+    }
+    
+    var accessibilityLabel: String {
+        let typeLabel: String
+        switch type {
+        case .invitation: typeLabel = String(localized: "inbox.type.invitation")
+        case .pollUpdate: typeLabel = String(localized: "inbox.type.poll_update")
+        case .comment: typeLabel = String(localized: "inbox.type.comment")
+        case .eventUpdate: typeLabel = String(localized: "inbox.type.event_update")
+        }
+        return "\(typeLabel): \(title)"
+    }
+    
+    var accessibilityHint: String {
+        switch type {
+        case .invitation:
+            return String(localized: "inbox.invitation_hint")
+        case .pollUpdate:
+            return String(localized: "inbox.vote_hint")
+        case .comment:
+            return String(localized: "inbox.comment_hint")
+        case .eventUpdate:
+            return String(localized: "inbox.event_hint")
+        }
+    }
+}
+
+enum InboxItemType {
+    case invitation, pollUpdate, comment, eventUpdate
+}
+
+// MARK: - Previews
+
+#if DEBUG
+#Preview("Inbox - With Notifications Light") {
+    InboxView(userId: "preview-user", onBack: {}, unreadCount: .constant(3), initialItems: InboxItemFactory.mixedList())
+        .previewEnvironment()
+        .preferredColorScheme(.light)
+}
+
+#Preview("Inbox - With Notifications Dark") {
+    InboxView(userId: "preview-user", onBack: {}, unreadCount: .constant(3), initialItems: InboxItemFactory.mixedList())
+        .previewEnvironment()
+        .preferredColorScheme(.dark)
+}
+#Preview("Inbox - Empty Light") {
+    InboxView(userId: "preview-user", onBack: {}, unreadCount: .constant(0), initialItems: [])
+        .previewEnvironment()
+        .preferredColorScheme(.light)
+}
+
+#Preview("Inbox - Empty Dark") {
+    InboxView(userId: "preview-user", onBack: {}, unreadCount: .constant(0), initialItems: [])
+        .previewEnvironment()
+        .preferredColorScheme(.dark)
+}
+#endif

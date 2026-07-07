@@ -48,7 +48,7 @@ class AppNavigationTest {
      * Then: Should navigate to ONBOARDING route
      */
     @Test
-    fun `first authenticated launch shows onboarding`() {
+    fun first_authenticated_launch_shows_onboarding() {
         // Arrange: Simulate first authenticated launch
         // - Onboarding is not completed (default state)
         // - User is authenticated (simulate by checking auth state)
@@ -80,7 +80,7 @@ class AppNavigationTest {
      * Then: Should navigate to HOME route
      */
     @Test
-    fun `returning authenticated user skips onboarding`() {
+    fun returning_authenticated_user_skips_onboarding() {
         // Arrange: Simulate returning user
         // - Mark onboarding as complete
         markOnboardingComplete(context)
@@ -116,7 +116,7 @@ class AppNavigationTest {
      * Then: Should navigate to GetStarted route (which leads to Auth)
      */
     @Test
-    fun `unauthenticated user goes to get started`() {
+    fun unauthenticated_user_goes_to_get_started() {
         // Arrange: Simulate unauthenticated user
         val isAuthenticated = false
         val hasOnboarded = hasCompletedOnboarding(context)
@@ -146,7 +146,7 @@ class AppNavigationTest {
      * Then: Should navigate to GetStarted (auth check takes precedence)
      */
     @Test
-    fun `unauthenticated user goes to get started even if onboarded`() {
+    fun unauthenticated_user_goes_to_get_started_even_if_onboarded() {
         // Arrange: Mark onboarding as complete but not authenticated
         markOnboardingComplete(context)
         val isAuthenticated = false
@@ -180,7 +180,7 @@ class AppNavigationTest {
      * - Onboarding state only checked when authenticated
      */
     @Test
-    fun `navigation correctly prioritizes auth check over onboarding`() {
+    fun navigation_correctly_prioritizes_auth_check_over_onboarding() {
         // Test matrix: [isAuthenticated][hasOnboarded] → expected route
         val navigationMatrix = listOf(
             Triple(false, false, Screen.GetStarted.route),  // No auth, no onboard
@@ -221,7 +221,7 @@ class AppNavigationTest {
      * Then: Next navigation should go to HOME instead of ONBOARDING
      */
     @Test
-    fun `onboarding completion changes navigation from ONBOARDING to HOME`() {
+    fun onboarding_completion_changes_navigation_from_ONBOARDING_to_HOME() {
         // Arrange: Simulate authenticated user before onboarding
         val isAuthenticated = true
         val beforeOnboarding = when {

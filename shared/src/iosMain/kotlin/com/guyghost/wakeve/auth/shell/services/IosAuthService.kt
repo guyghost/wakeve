@@ -101,9 +101,9 @@ actual class AuthService {
 
     /**
      * Base URL for the Wakeve API server.
-     * TODO: Move to build configuration.
+     * Uses the production backend by default for App Store builds.
      */
-    private val baseUrl: String = "http://localhost:8080/api"
+    private val baseUrl: String = "https://api.wakeve.app/api"
 
     /**
      * Sets the native sign-in callback from the Swift side.

@@ -16,7 +16,7 @@ struct AddToCalendarButton: View {
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.white)
                 
-                Text("Add to Calendar")
+                Text(String(localized: "meetings.add_to_calendar"))
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.white)
                 
@@ -26,6 +26,7 @@ struct AddToCalendarButton: View {
                     ProgressView()
                         .scaleEffect(0.8)
                         .tint(.white)
+                        .accessibilityHidden(true)
                 }
             }
             .frame(height: 48)
@@ -35,60 +36,38 @@ struct AddToCalendarButton: View {
         }
         .disabled(!isEnabled || isLoading)
         .opacity(isLoading || !isEnabled ? 0.7 : 1.0)
-        .accessibilityLabel("Add event to calendar")
-        .accessibilityHint("Adds '\(event.title)' to your native calendar")
+        .accessibilityLabel(String(localized: "calendar.add_event_accessibility"))
+        .accessibilityHint(String(format: String(localized: "calendar.add_event_hint"), event.title))
     }
 }
 
 // MARK: - Preview
 
-#Preview {
-    let now = ISO8601DateFormatter().string(from: Date())
-
-    VStack(spacing: 20) {
-        AddToCalendarButton(
-            event: Event(
-                id: "event-1",
-                organizerId: "user-1",
-                title: "Team Meeting",
-                description: "Q4 Planning",
-                status: "CONFIRMED",
-                deadline: ISO8601DateFormatter().string(from: Date()),
-                createdAt: now,
-                updatedAt: now,
-                version: 1,
-                eventType: "TEAM_BUILDING",
-                eventTypeCustom: nil,
-                minParticipants: nil,
-                maxParticipants: nil,
-                expectedParticipants: nil
-            ),
-            isLoading: false,
-            isEnabled: true,
-            action: { print("Tapped add to calendar") }
-        )
-        
-        AddToCalendarButton(
-            event: Event(
-                id: "event-2",
-                organizerId: "user-1",
-                title: "Team Meeting",
-                description: "Q4 Planning",
-                status: "POLLING",
-                deadline: ISO8601DateFormatter().string(from: Date()),
-                createdAt: now,
-                updatedAt: now,
-                version: 1,
-                eventType: "TEAM_BUILDING",
-                eventTypeCustom: nil,
-                minParticipants: nil,
-                maxParticipants: nil,
-                expectedParticipants: nil
-            ),
-            isLoading: true,
-            isEnabled: false,
-            action: { print("Tapped add to calendar") }
-        )
-    }
+#if DEBUG
+#Preview("Enabled") {
+    AddToCalendarButton(
+        event: EventFactory.make(
+            title: "Team Meeting",
+            status: .confirmed,
+            finalDate: ISO8601DateFormatter().string(from: Date().addingTimeInterval(86400))
+        ),
+        isLoading: false,
+        isEnabled: true,
+        action: {}
+    )
     .padding()
 }
+
+#Preview("Loading / Disabled") {
+    AddToCalendarButton(
+        event: EventFactory.make(
+            title: "Birthday Dinner",
+            status: .polling
+        ),
+        isLoading: true,
+        isEnabled: false,
+        action: {}
+    )
+    .padding()
+}
+#endif

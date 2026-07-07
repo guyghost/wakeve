@@ -1,14 +1,13 @@
 package com.guyghost.wakeve.di
 
 import com.guyghost.wakeve.image.ImagePickerService
-import com.guyghost.wakeve.image.StubImagePickerService
+import com.guyghost.wakeve.image.NoConfiguredImagePickerService
 
 /**
  * Android implementation of ImagePickerFactory.
- * 
- * Note: This is a stub implementation. For full functionality,
- * the image picker should be implemented in the composeApp module
- * where Activity context is available.
+ *
+ * Returns an explicit not-configured service until an Activity-backed picker
+ * is wired from the composeApp module.
  */
 actual class ImagePickerFactory {
     
@@ -19,6 +18,6 @@ actual class ImagePickerFactory {
     }
     
     actual fun createPickerService(): ImagePickerService {
-        return StubImagePickerService()
+        return NoConfiguredImagePickerService
     }
 }

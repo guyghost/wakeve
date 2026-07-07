@@ -1,29 +1,34 @@
 package com.guyghost.wakeve.ui.auth.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.R
+import com.guyghost.wakeve.ui.designsystem.WakeveSize
+import com.guyghost.wakeve.ui.designsystem.WakeveSpacing
 
-/**
- * Google Sign-In button following Material Design guidelines.
- * 
- * @param onClick Callback when button is clicked
- * @param enabled Whether the button is enabled
- * @param modifier Modifier for the button
- */
 @Composable
 fun GoogleSignInButton(
     onClick: () -> Unit,
@@ -34,51 +39,23 @@ fun GoogleSignInButton(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .height(56.dp),
+            .heightIn(min = 56.dp),
         enabled = enabled,
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.large,
         colors = ButtonDefaults.outlinedButtonColors(
             containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            // Google Icon (drawable resource)
-            Box(
-                modifier = Modifier
-                    .size(24.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(Color.White),
-                contentAlignment = Alignment.Center
-            ) {
-                // Placeholder for Google icon - in production, use actual icon
-                Text(
-                    text = "G",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            Text(
-                text = stringResource(R.string.continue_with_google),
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Medium
-            )
-        }
+        ProviderInitial(initial = "G")
+        Spacer(modifier = Modifier.width(WakeveSpacing.md))
+        Text(
+            text = stringResource(R.string.continue_with_google),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Medium
+        )
     }
 }
 
-/**
- * Apple Sign-In button following Human Interface Guidelines.
- * 
- * @param onClick Callback when button is clicked
- * @param enabled Whether the button is enabled
- * @param modifier Modifier for the button
- */
 @Composable
 fun AppleSignInButton(
     onClick: () -> Unit,
@@ -89,47 +66,28 @@ fun AppleSignInButton(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .height(56.dp),
+            .heightIn(min = 56.dp),
         enabled = enabled,
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.large,
         colors = ButtonDefaults.buttonColors(
-            containerColor = Color.Black,
-            contentColor = Color.White
+            containerColor = MaterialTheme.colorScheme.inverseSurface,
+            contentColor = MaterialTheme.colorScheme.inverseOnSurface
         )
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            // Apple Icon (drawable resource)
-            Box(
-                modifier = Modifier.size(24.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                // Placeholder for Apple icon - in production, use actual icon
-                Text(
-                    text = "🍎",
-                    style = MaterialTheme.typography.labelLarge
-                )
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            Text(
-                text = stringResource(R.string.continue_with_apple),
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Medium
-            )
-        }
+        Icon(
+            imageVector = Icons.Default.AccountCircle,
+            contentDescription = null,
+            modifier = Modifier.size(22.dp)
+        )
+        Spacer(modifier = Modifier.width(WakeveSpacing.md))
+        Text(
+            text = stringResource(R.string.continue_with_apple),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Medium
+        )
     }
 }
 
-/**
- * Email Sign-In button with icon.
- * 
- * @param onClick Callback when button is clicked
- * @param enabled Whether the button is enabled
- * @param modifier Modifier for the button
- */
 @Composable
 fun EmailSignInButton(
     onClick: () -> Unit,
@@ -140,38 +98,24 @@ fun EmailSignInButton(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .height(56.dp),
+            .heightIn(min = 56.dp),
         enabled = enabled,
-        shape = RoundedCornerShape(16.dp)
+        shape = MaterialTheme.shapes.large
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = "@",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = stringResource(R.string.sign_in_with_email),
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Medium
-            )
-        }
+        Icon(
+            imageVector = Icons.Default.Email,
+            contentDescription = null,
+            modifier = Modifier.size(22.dp)
+        )
+        Spacer(modifier = Modifier.width(WakeveSpacing.sm + 4.dp))
+        Text(
+            text = stringResource(R.string.sign_in_with_email),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Medium
+        )
     }
 }
 
-/**
- * Skip button for guest mode.
- * This button is positioned at the top-right of the auth screen.
- * 
- * @param onClick Callback when button is clicked
- * @param enabled Whether the button is enabled
- * @param modifier Modifier for the button
- */
 @Composable
 fun SkipButton(
     onClick: () -> Unit,
@@ -181,12 +125,29 @@ fun SkipButton(
     TextButton(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier
+        modifier = modifier.heightIn(min = WakeveSize.minTouchTarget)
     ) {
         Text(
             text = stringResource(R.string.skip),
+            style = MaterialTheme.typography.labelLarge
+        )
+    }
+}
+
+@Composable
+private fun ProviderInitial(initial: String) {
+    Box(
+        modifier = Modifier
+            .size(28.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = initial,
             style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
         )
     }
 }

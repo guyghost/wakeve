@@ -30,7 +30,7 @@ struct EventInfoSheet: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
             }
-            .navigationTitle("Informations sur l'évènement")
+            .navigationTitle(String(localized: "event_info.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -48,7 +48,7 @@ struct EventInfoSheet: View {
                                     .fill(Color.blue)
                             )
                     }
-                    .accessibilityLabel("Confirmer")
+                    .accessibilityLabel(String(localized: "common.confirm"))
                 }
             }
             .background(Color(.systemBackground))
@@ -63,7 +63,7 @@ struct EventInfoSheet: View {
     
     private var descriptionSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Description de l'évènement")
+            Text(String(localized: "event_info.description_title"))
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(.secondary)
             
@@ -73,7 +73,7 @@ struct EventInfoSheet: View {
                     .fill(Color(.secondarySystemBackground))
                 
                 if tempDescription.isEmpty && !descriptionFocused {
-                    Text("Informez vos invités de l'organisation de votre évènement.")
+                    Text(String(localized: "event_info.description_placeholder"))
                         .font(.body)
                         .foregroundColor(.secondary.opacity(0.6))
                         .padding(16)
@@ -89,7 +89,7 @@ struct EventInfoSheet: View {
             .frame(minHeight: 200)
             
             // Character limit
-            Text("Limite de caractères : \(tempDescription.count)/\(characterLimit)")
+            Text(String(format: String(localized: "event_info.character_limit_format"), tempDescription.count, characterLimit))
                 .font(.subheadline)
                 .foregroundColor(.secondary)
         }
@@ -99,7 +99,7 @@ struct EventInfoSheet: View {
     
     private var profileSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Nom et photo de profil")
+            Text(String(localized: "event_info.profile_title"))
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(.secondary)
             
@@ -114,7 +114,7 @@ struct EventInfoSheet: View {
                             .fill(Color(hex: "FF6B35"))
                             .frame(width: 44, height: 44)
                         
-                        if let photoUrl = organizerPhotoUrl {
+                        if organizerPhotoUrl != nil {
                             // AsyncImage would go here
                             Text(String(tempName.prefix(1)).uppercased())
                                 .font(.system(size: 18, weight: .bold))
@@ -132,7 +132,7 @@ struct EventInfoSheet: View {
                     
                     Spacer()
                     
-                    Text("Modifier")
+                    Text(String(localized: "common.edit"))
                         .font(.body.weight(.medium))
                         .foregroundColor(.primary)
                 }
@@ -144,7 +144,7 @@ struct EventInfoSheet: View {
             }
             
             // Help text
-            Text("Il s'agit de la photo et du nom qui seront visibles pour les invités de cet évènement. Vous pouvez utiliser une photo de profil et un nom différents pour chaque évènement.")
+            Text(String(localized: "event_info.profile_help"))
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .lineSpacing(4)

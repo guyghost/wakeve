@@ -187,15 +187,16 @@ class CompleteWorkflowE2ETest {
             id = "meeting-1", eventId = eventId, organizerId = organizerId,
             title = "Planning Meeting", description = "Pre-event planning",
             startTime = Instant.parse("2025-06-10T14:00:00Z"), duration = 1.hours,
-            platform = MeetingPlatform.ZOOM, meetingLink = "https://zoom.us/j/123",
-            hostMeetingId = "123", password = "pwd", invitedParticipants = participantIds,
+            platform = MeetingPlatform.ZOOM, meetingLink = "https://zoom.us/j/1234567890?pwd=ABC123",
+            hostMeetingId = "1234567890", password = "ABC123", invitedParticipants = participantIds,
             status = com.guyghost.wakeve.meeting.MeetingStatus.SCHEDULED,
             createdAt = Clock.System.now().toString()
         )
         meetingRepository.createMeeting(meeting)
+        seedFinalizationReadiness(eventId, organizerId)
 
         // Finalize event
-        eventRepository.updateEventStatus(eventId, EventStatus.FINALIZED, "2025-06-15T09:00:00Z")
+        eventRepository.updateEventStatus(eventId, EventStatus.FINALIZED, "2025-06-15T09:00:00Z").getOrThrow()
         currentEvent = eventRepository.getEvent(eventId)!!
         assertEquals(EventStatus.FINALIZED, currentEvent.status)
 
@@ -400,7 +401,8 @@ class CompleteWorkflowE2ETest {
         scenarioRepository.updateScenarioStatus(scenario.id, ScenarioStatus.SELECTED)
 
         eventRepository.updateEventStatus(eventId, EventStatus.ORGANIZING, "2025-10-15T10:00:00Z")
-        eventRepository.updateEventStatus(eventId, EventStatus.FINALIZED, "2025-10-15T10:00:00Z")
+        seedFinalizationReadiness(eventId, organizerId)
+        eventRepository.updateEventStatus(eventId, EventStatus.FINALIZED, "2025-10-15T10:00:00Z").getOrThrow()
 
         // Verify final state
         val finalEvent = eventRepository.getEvent(eventId)!!
@@ -410,6 +412,61 @@ class CompleteWorkflowE2ETest {
         assertEquals(ScenarioStatus.SELECTED, scenarioRepository.getSelectedScenario(eventId)?.status)
 
         println("✅ E2E-005: Data integrity verified!")
+    }
+
+    private fun seedFinalizationReadiness(eventId: String, organizerId: String) {
+        val now = Clock.System.now().toString()
+
+        database.participantQueries.selectByEventId(eventId).executeAsList().forEach { participant ->
+            database.participantQueries.updateValidation(
+                hasValidatedDate = 1L,
+                updatedAt = now,
+                id = participant.id
+            )
+        }
+
+        val planId = "plan-$eventId"
+        database.transportQueries.insertPlan(
+            id = planId,
+            event_id = eventId,
+            destination_json = """{"name":"Selected destination","address":"Selected destination"}""",
+            optimization_type = "BALANCED",
+            total_group_cost = 0.0,
+            group_arrivals_json = "[]",
+            created_at = now
+        )
+        database.transportQueries.upsertSelectedPlan(
+            event_id = eventId,
+            plan_id = planId,
+            selected_at = now,
+            selected_by_user_id = organizerId
+        )
+        seedReadinessDecision(eventId, "MEETINGS", organizerId, now)
+        seedReadinessDecision(eventId, "LODGING", organizerId, now)
+        seedReadinessDecision(eventId, "BUDGET_BASELINE", organizerId, now)
+        database.tricountHandoffQueries.upsertHandoff(
+            eventId = eventId,
+            provider = "TRICOUNT",
+            providerId = null,
+            providerUrl = null,
+            syncStatus = "NOT_NEEDED",
+            trusted = 1L,
+            explicitNotNeeded = 1L,
+            lastSyncAt = now,
+            createdAt = now,
+            updatedAt = now
+        )
+    }
+
+    private fun seedReadinessDecision(eventId: String, section: String, organizerId: String, decidedAt: String) {
+        database.organizationReadinessDecisionQueries.upsertDecision(
+            id = "readiness-$section-$eventId",
+            eventId = eventId,
+            section = section,
+            notNeeded = 1L,
+            decidedBy = organizerId,
+            decidedAt = decidedAt
+        )
     }
 
     class TestSyncManager(private val repository: EventRepositoryInterface) {

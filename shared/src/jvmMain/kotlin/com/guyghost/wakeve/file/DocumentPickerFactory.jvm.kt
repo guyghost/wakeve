@@ -2,8 +2,9 @@ package com.guyghost.wakeve.file
 
 /**
  * JVM implementation of DocumentPickerFactory.
- * 
- * Provides a stub implementation for desktop/server environments.
+ *
+ * Provides an explicit not-configured implementation for desktop/server
+ * environments without a native document picker.
  */
 actual class DocumentPickerFactory {
     
@@ -14,6 +15,6 @@ actual class DocumentPickerFactory {
     }
     
     actual fun createPickerService(): DocumentPickerService {
-        return StubDocumentPickerService()
+        return NoConfiguredDocumentPickerService
     }
 }

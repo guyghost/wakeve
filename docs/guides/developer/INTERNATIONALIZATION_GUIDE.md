@@ -35,9 +35,9 @@ Wakeve utilise un système d'internationalisation (i18n) complet qui supporte :
 | `composeApp/src/androidMain/res/values/strings.xml` | Android | FR (défaut) | `stringResource(R.string.xxx)` |
 | `composeApp/src/androidMain/res/values-en/strings.xml` | Android | EN | `stringResource(R.string.xxx)` |
 | `composeApp/src/androidMain/res/values-es/strings.xml` | Android | ES | `stringResource(R.string.xxx)` |
-| `iosApp/iosApp/fr.lproj/Localizable.strings` | iOS | FR | `NSLocalizedString("xxx", comment: "...")` |
-| `iosApp/iosApp/en.lproj/Localizable.strings` | iOS | EN | `NSLocalizedString("xxx", comment: "...")` |
-| `iosApp/iosApp/es.lproj/Localizable.strings` | iOS | ES | `NSLocalizedString("xxx", comment: "...")` |
+| `iosApp/src/fr.lproj/Localizable.strings` | iOS | FR | `NSLocalizedString("xxx", comment: "...")` |
+| `iosApp/src/en.lproj/Localizable.strings` | iOS | EN | `NSLocalizedString("xxx", comment: "...")` |
+| `iosApp/src/es.lproj/Localizable.strings` | iOS | ES | `NSLocalizedString("xxx", comment: "...")` |
 
 ---
 
@@ -408,8 +408,8 @@ mkdir -p composeApp/src/androidMain/res/values-it  # Italien
 
 **iOS** :
 ```bash
-mkdir -p iosApp/iosApp/de.lproj  # Allemand
-mkdir -p iosApp/iosApp/it.lproj  # Italien
+mkdir -p iosApp/src/de.lproj  # Allemand
+mkdir -p iosApp/src/it.lproj  # Italien
 ```
 
 ### Étape 2: Créer les fichiers de traduction

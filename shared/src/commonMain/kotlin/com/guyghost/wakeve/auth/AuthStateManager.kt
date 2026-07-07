@@ -171,7 +171,7 @@ class AuthStateManager(
             }
         } catch (e: Exception) {
             _authState.value = AuthState.Error(
-                message = e.message ?: "Unknown error",
+                message = authProfileRestoreFailureMessage(),
                 code = mapErrorCode(e)
             )
         }
@@ -225,7 +225,7 @@ class AuthStateManager(
             }
         } catch (e: Exception) {
             _authState.value = AuthState.Error(
-                message = e.message ?: "Unknown error",
+                message = authLoginFailureMessage(),
                 code = mapErrorCode(e)
             )
         }
@@ -279,7 +279,7 @@ class AuthStateManager(
             }
         } catch (e: Exception) {
             _authState.value = AuthState.Error(
-                message = e.message ?: "Unknown error",
+                message = authLoginFailureMessage(),
                 code = mapErrorCode(e)
             )
         }
@@ -314,13 +314,13 @@ class AuthStateManager(
                 }
             } else {
                 _authState.value = AuthState.Error(
-                    message = "Token refresh failed",
+                    message = authTokenRefreshFailureMessage(),
                     code = ErrorCode.TOKEN_EXPIRED
                 )
             }
         } catch (e: Exception) {
             _authState.value = AuthState.Error(
-                message = e.message ?: "Unknown error",
+                message = authTokenRefreshFailureMessage(),
                 code = mapErrorCode(e)
             )
         }
@@ -338,7 +338,7 @@ class AuthStateManager(
             _authState.value = AuthState.Unauthenticated
         } catch (e: Exception) {
             _authState.value = AuthState.Error(
-                message = e.message ?: "Logout failed",
+                message = authLogoutFailureMessage(),
                 code = mapErrorCode(e)
             )
         }
@@ -398,12 +398,14 @@ class AuthStateManager(
      * Map exception to error code.
      */
     private fun mapErrorCode(error: Throwable): ErrorCode {
+        val classificationText = error.classificationText()
+
         return when {
-            error.message?.contains("network", ignoreCase = true) == true -> ErrorCode.NETWORK_ERROR
-            error.message?.contains("invalid", ignoreCase = true) == true -> ErrorCode.INVALID_CREDENTIALS
-            error.message?.contains("expired", ignoreCase = true) == true -> ErrorCode.TOKEN_EXPIRED
-            error.message?.contains("server", ignoreCase = true) == true -> ErrorCode.SERVER_ERROR
-            error.message?.contains("cancel", ignoreCase = true) == true -> ErrorCode.USER_CANCELLED
+            classificationText.contains("network", ignoreCase = true) -> ErrorCode.NETWORK_ERROR
+            classificationText.contains("invalid", ignoreCase = true) -> ErrorCode.INVALID_CREDENTIALS
+            classificationText.contains("expired", ignoreCase = true) -> ErrorCode.TOKEN_EXPIRED
+            classificationText.contains("server", ignoreCase = true) -> ErrorCode.SERVER_ERROR
+            classificationText.contains("cancel", ignoreCase = true) -> ErrorCode.USER_CANCELLED
             else -> ErrorCode.UNKNOWN
         }
     }
@@ -577,6 +579,21 @@ private fun generateSessionId(): String {
     return "session-${currentTimeMillis()}-${(0..999).random()}"
 }
 
+internal fun authProfileRestoreFailureMessage(): String =
+    "Could not restore your session. Please sign in again."
+
+internal fun authLoginFailureMessage(): String =
+    "Sign-in failed. Please try again."
+
+internal fun authTokenRefreshFailureMessage(): String =
+    "Session refresh failed. Please sign in again."
+
+internal fun authLogoutFailureMessage(): String =
+    "Sign-out failed. Please try again."
+
+private fun Throwable.classificationText(): String =
+    message.orEmpty()
+
 /**
  * Simple authentication error class.
  */
@@ -586,15 +603,15 @@ private class NotImplementedError(message: String) : Exception(message)
  * Dummy implementation of SecureTokenStorage for shared module compilation.
  */
 private class DummySecureTokenStorage : SecureTokenStorage {
-    override suspend fun storeAccessToken(token: String) = Result.success(Unit)
-    override suspend fun storeRefreshToken(token: String) = Result.success(Unit)
-    override suspend fun storeUserId(userId: String) = Result.success(Unit)
-    override suspend fun storeTokenExpiry(expiryTimestamp: Long) = Result.success(Unit)
-    override suspend fun storeUserEmail(email: String) = Result.success(Unit)
-    override suspend fun storeUserName(name: String) = Result.success(Unit)
-    override suspend fun storeUserProvider(provider: String) = Result.success(Unit)
-    override suspend fun storeUserAvatarUrl(avatarUrl: String?) = Result.success(Unit)
-    override suspend fun storeUserProfile(profile: UserProfileData) = Result.success(Unit)
+    override suspend fun storeAccessToken(token: String) = storageUnavailable()
+    override suspend fun storeRefreshToken(token: String) = storageUnavailable()
+    override suspend fun storeUserId(userId: String) = storageUnavailable()
+    override suspend fun storeTokenExpiry(expiryTimestamp: Long) = storageUnavailable()
+    override suspend fun storeUserEmail(email: String) = storageUnavailable()
+    override suspend fun storeUserName(name: String) = storageUnavailable()
+    override suspend fun storeUserProvider(provider: String) = storageUnavailable()
+    override suspend fun storeUserAvatarUrl(avatarUrl: String?) = storageUnavailable()
+    override suspend fun storeUserProfile(profile: UserProfileData) = storageUnavailable()
     override suspend fun getAccessToken(): String? = null
     override suspend fun getRefreshToken(): String? = null
     override suspend fun getUserId(): String? = null
@@ -605,10 +622,14 @@ private class DummySecureTokenStorage : SecureTokenStorage {
     override suspend fun getUserAvatarUrl(): String? = null
     override suspend fun getUserProfile(): UserProfileData? = null
     override suspend fun getSessionId(): String? = null
-    override suspend fun storeSessionId(sessionId: String) = Result.success(Unit)
-    override suspend fun clearAllTokens() = Result.success(Unit)
+    override suspend fun storeSessionId(sessionId: String) = storageUnavailable()
+    override suspend fun clearAllTokens() = storageUnavailable()
     override suspend fun isTokenExpired(): Boolean = true
     override suspend fun hasValidToken(): Boolean = false
+
+    private fun storageUnavailable(): Result<Unit> {
+        return Result.failure(NotImplementedError("Use platform-specific secure token storage"))
+    }
 }
 
 /**
@@ -627,7 +648,8 @@ private class DummyAuthenticationService(
     override suspend fun refreshToken(): Result<OAuthLoginResponse> =
         Result.failure(NotImplementedError("Use platform-specific implementation"))
 
-    override suspend fun logout(): Result<Unit> = Result.success(Unit)
+    override suspend fun logout(): Result<Unit> =
+        Result.failure(NotImplementedError("Use platform-specific implementation"))
 
     override suspend fun getStoredAccessToken(): String? = null
 

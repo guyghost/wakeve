@@ -63,7 +63,10 @@ class ScenarioDetailViewModel: StateMachineViewModel<
             description: description,
             status: scenario?.status ?? ScenarioStatus.proposed,
             createdAt: scenario?.createdAt ?? "",
-            updatedAt: ""
+            updatedAt: "",
+            sourceTimeSlotId: scenario?.sourceTimeSlotId,
+            sourcePotentialLocationId: scenario?.sourcePotentialLocationId,
+            generationType: scenario?.generationType ?? ScenarioGenerationType.manual
         )
         dispatch(ScenarioManagementContractIntentUpdateScenario(scenario: updatedScenario))
         isEditing = false
@@ -84,7 +87,7 @@ class ScenarioDetailViewModel: StateMachineViewModel<
     func shareScenario() {
         if let scenario = scenario {
             let shareText = prepareShareText(scenario: scenario)
-            print("Share scenario: \(shareText)")
+            debugLog("Share scenario: \(shareText)")
         }
     }
 
@@ -140,7 +143,7 @@ class ScenarioDetailViewModel: StateMachineViewModel<
 
     private func shareScenarioInternal(scenario: Scenario_) {
         let shareText = prepareShareText(scenario: scenario)
-        print("Share scenario: \(shareText)")
+        debugLog("Share scenario: \(shareText)")
     }
 
     private func prepareShareText(scenario: Scenario_) -> String {

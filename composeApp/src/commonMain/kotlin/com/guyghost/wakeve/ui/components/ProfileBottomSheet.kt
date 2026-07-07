@@ -23,14 +23,14 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -62,11 +62,11 @@ import androidx.compose.ui.unit.dp
  * @param isGuest Whether the user is in guest mode
  * @param isAuthenticated Whether the user is authenticated
  * @param notificationsEnabled Current notifications state
- * @param calendarSyncEnabled Current calendar sync state
- * @param emailNotificationsEnabled Current email notifications state
+ * @param quietHoursLabel Current quiet hours summary
+ * @param soundAndVibrationLabel Current sound and vibration summary
  * @param onNotificationsClick Called when notifications row is clicked
- * @param onCalendarSyncClick Called when calendar sync row is clicked
- * @param onEmailNotificationsClick Called when email notifications row is clicked
+ * @param onQuietHoursClick Called when quiet hours row is clicked
+ * @param onSoundAndVibrationClick Called when sound and vibration row is clicked
  * @param onPrivacyClick Called when privacy section is clicked
  * @param onHelpClick Called when help link is clicked
  * @param onTermsClick Called when terms link is clicked
@@ -84,11 +84,11 @@ fun ProfileBottomSheet(
     isGuest: Boolean = false,
     isAuthenticated: Boolean = false,
     notificationsEnabled: Boolean = false,
-    calendarSyncEnabled: Boolean = false,
-    emailNotificationsEnabled: Boolean = false,
+    quietHoursLabel: String = "Non configurées",
+    soundAndVibrationLabel: String = "Non configurés",
     onNotificationsClick: () -> Unit = {},
-    onCalendarSyncClick: () -> Unit = {},
-    onEmailNotificationsClick: () -> Unit = {},
+    onQuietHoursClick: () -> Unit = {},
+    onSoundAndVibrationClick: () -> Unit = {},
     onPrivacyClick: () -> Unit = {},
     onHelpClick: () -> Unit = {},
     onTermsClick: () -> Unit = {},
@@ -115,11 +115,11 @@ fun ProfileBottomSheet(
             isGuest = isGuest,
             isAuthenticated = isAuthenticated,
             notificationsEnabled = notificationsEnabled,
-            calendarSyncEnabled = calendarSyncEnabled,
-            emailNotificationsEnabled = emailNotificationsEnabled,
+            quietHoursLabel = quietHoursLabel,
+            soundAndVibrationLabel = soundAndVibrationLabel,
             onNotificationsClick = onNotificationsClick,
-            onCalendarSyncClick = onCalendarSyncClick,
-            onEmailNotificationsClick = onEmailNotificationsClick,
+            onQuietHoursClick = onQuietHoursClick,
+            onSoundAndVibrationClick = onSoundAndVibrationClick,
             onPrivacyClick = onPrivacyClick,
             onHelpClick = onHelpClick,
             onTermsClick = onTermsClick,
@@ -156,11 +156,11 @@ private fun ProfileSheetContent(
     isGuest: Boolean,
     isAuthenticated: Boolean,
     notificationsEnabled: Boolean,
-    calendarSyncEnabled: Boolean,
-    emailNotificationsEnabled: Boolean,
+    quietHoursLabel: String,
+    soundAndVibrationLabel: String,
     onNotificationsClick: () -> Unit,
-    onCalendarSyncClick: () -> Unit,
-    onEmailNotificationsClick: () -> Unit,
+    onQuietHoursClick: () -> Unit,
+    onSoundAndVibrationClick: () -> Unit,
     onPrivacyClick: () -> Unit,
     onHelpClick: () -> Unit,
     onTermsClick: () -> Unit,
@@ -243,7 +243,7 @@ private fun ProfileSheetContent(
                         color = if (isGuest) {
                             MaterialTheme.colorScheme.tertiary
                         } else {
-                            Color(0xFFFFA500) // Orange like in the screenshot
+                            MaterialTheme.colorScheme.primary
                         }
                     ) {
                         Box(contentAlignment = Alignment.Center) {
@@ -315,22 +315,22 @@ private fun ProfileSheetContent(
                 
                 SettingsDivider()
                 
-                // Calendar Sync
+                // Quiet hours
                 SettingsRow(
                     icon = Icons.Default.CalendarToday,
-                    title = "Synchronisation du calendrier",
-                    value = if (calendarSyncEnabled) "Oui" else "Non",
-                    onClick = onCalendarSyncClick
+                    title = "Heures calmes",
+                    value = quietHoursLabel,
+                    onClick = onQuietHoursClick
                 )
                 
                 SettingsDivider()
                 
-                // Email Notifications
+                // Sound and vibration
                 SettingsRow(
-                    icon = Icons.Default.Email,
-                    title = "Notifications par e-mail",
-                    value = if (emailNotificationsEnabled) "Activées" else "Désactivées",
-                    onClick = onEmailNotificationsClick
+                    icon = Icons.AutoMirrored.Filled.VolumeUp,
+                    title = "Sons et vibrations",
+                    value = soundAndVibrationLabel,
+                    onClick = onSoundAndVibrationClick
                 )
             }
         }
@@ -536,7 +536,7 @@ private fun SettingsLinkRow(
 
 @Composable
 private fun SettingsDivider() {
-    Divider(
+    HorizontalDivider(
         color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
         modifier = Modifier.padding(horizontal = 16.dp)
     )

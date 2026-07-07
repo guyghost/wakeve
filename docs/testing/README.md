@@ -17,6 +17,7 @@ Ce dossier contient toute la documentation relative aux tests : guides, rapports
 ### Guides
 - [Quick Reference](quick-reference.md) - Référence rapide des commandes
 - [Correction Guide](guides/correction-guide.md) - Guide de correction des tests
+- [Offline Critical Scenarios](offline-critical-scenarios.md) - Matrice des scenarios offline critiques, sync, conflits et decision CRDT
 
 ### Tests par Fonctionnalité
 
@@ -89,6 +90,8 @@ Tous les services doivent être testés en mode offline :
 - Votes offline
 - Synchronisation à la reconnexion
 - Résolution de conflits
+
+La matrice maintenue des scenarios offline critiques est dans [Offline Critical Scenarios](offline-critical-scenarios.md).
 
 ## CI/CD
 

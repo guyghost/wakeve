@@ -42,6 +42,7 @@ coil = "2.6.0"
 firebase-messaging = "24.1.0"
 firebase-bom = "32.7.0"
 firebase-analytics = "21.5.0"
+firebase-ai = "17.13.0"
 koin-androidx-compose = "3.5.3"
 compose-ui-test = "1.6.0"
 androidx-test-core = "1.5.0"
@@ -51,6 +52,8 @@ google-services-base = "18.5.0"
 work-runtime = "2.9.0"
 mlkit-image-labeling = "16.0.8"
 mlkit-face-detection-legacy = "17.1.0"
+mlkit-genai-prompt = "1.0.0-beta2"
+zxing = "3.5.3"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -115,6 +118,7 @@ coil-svg = { module = "io.coil-kt:coil-svg", version.ref = "coil" }
 firebase-messaging = { module = "com.google.firebase:firebase-messaging", version.ref = "firebase-messaging" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics-ktx", version.ref = "firebase-analytics" }
+firebase-ai = { module = "com.google.firebase:firebase-ai", version.ref = "firebase-ai" }
 
 # AndroidX additional
 activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activity-ktx" }
@@ -135,6 +139,8 @@ work-runtime = { module = "androidx.work:work-runtime-ktx", version.ref = "work-
 # ML Kit
 mlkit-image-labeling = { module = "com.google.android.gms:play-services-mlkit-image-labeling", version.ref = "mlkit-image-labeling" }
 mlkit-face-detection-legacy = { module = "com.google.android.gms:play-services-mlkit-face-detection", version.ref = "mlkit-face-detection-legacy" }
+zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
+mlkit-genai-prompt = { module = "com.google.mlkit:genai-prompt", version.ref = "mlkit-genai-prompt" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

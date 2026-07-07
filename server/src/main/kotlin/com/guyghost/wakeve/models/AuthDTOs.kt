@@ -185,3 +185,15 @@ data class TokenRefreshResponse(
     val refreshToken: String? = null,
     val expiresInSeconds: Int = 3600
 )
+
+/**
+ * Response returned after an authenticated account deletion request.
+ */
+@Serializable
+data class AccountDeletionResponse(
+    val success: Boolean,
+    val deleted: Boolean,
+    val message: String,
+    val localCleanupRequired: Boolean,
+    val providerRevocationStatus: String
+)

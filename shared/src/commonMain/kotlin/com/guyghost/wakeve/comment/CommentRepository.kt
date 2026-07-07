@@ -11,6 +11,9 @@ import com.guyghost.wakeve.models.CommentThread
 import com.guyghost.wakeve.models.CommentsBySection
 import com.guyghost.wakeve.models.ParticipantCommentActivity
 import com.guyghost.wakeve.models.Mention
+import com.guyghost.wakeve.moderation.ModerationPolicy
+import com.guyghost.wakeve.moderation.ModerationRejectedException
+import com.guyghost.wakeve.moderation.ModerationStatus
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.minus
@@ -43,7 +46,8 @@ class CommentRepository(
     private val db: WakeveDb,
     private val commentNotificationService: CommentNotificationService? = null,
     private val eventRepository: EventRepositoryInterface? = null,
-    private val cache: CommentCache = CommentCache()
+    private val cache: CommentCache = CommentCache(),
+    private val moderationPolicy: ModerationPolicy = ModerationPolicy()
 ) {
     
     private val commentQueries = db.commentQueries
@@ -67,6 +71,11 @@ class CommentRepository(
         request: CommentRequest,
         usernameToUserIdMap: Map<String, String> = emptyMap()
     ): Comment {
+        val moderationResult = moderationPolicy.evaluate(request.content)
+        if (moderationResult.status == ModerationStatus.REJECTED) {
+            throw ModerationRejectedException(moderationResult)
+        }
+
         val now = getCurrentUtcIsoString()
         val commentId = generateId()
 
@@ -107,7 +116,8 @@ class CommentRepository(
             createdAt = now,
             updatedAt = null,
             isEdited = false,
-            replyCount = 0
+            replyCount = 0,
+            moderationStatus = moderationResult.status
         )
 
         commentQueries.insertComment(
@@ -125,7 +135,8 @@ class CommentRepository(
             created_at = comment.createdAt,
             updated_at = comment.updatedAt,
             is_edited = if (comment.isEdited) 1L else 0L,
-            reply_count = comment.replyCount.toLong()
+            reply_count = comment.replyCount.toLong(),
+            moderation_status = comment.moderationStatus.name
         )
 
         // Store mentions in separate table for efficient lookup
@@ -145,42 +156,63 @@ class CommentRepository(
         }
 
         // Send notifications if services are available
-        if (commentNotificationService != null && eventRepository != null) {
+        if (comment.moderationStatus == ModerationStatus.APPROVED && commentNotificationService != null && eventRepository != null) {
             // Send mention notifications
             mentionParseResult.mentionedUserIds.forEach { mentionedUserId ->
-                commentNotificationService.notifyMention(
-                    eventId = eventId,
-                    mentionedUserId = mentionedUserId,
-                    authorId = authorId,
-                    authorName = authorName,
-                    content = request.content,
+                runNotificationSideEffect(
                     commentId = commentId,
-                    excludeRecipient = authorId
-                )
+                    eventId = eventId,
+                    notificationType = "MENTION",
+                    recipientId = mentionedUserId
+                ) {
+                    commentNotificationService.notifyMention(
+                        eventId = eventId,
+                        mentionedUserId = mentionedUserId,
+                        authorId = authorId,
+                        authorName = authorName,
+                        content = request.content,
+                        commentId = commentId,
+                        excludeRecipient = authorId
+                    )
+                }
             }
 
             if (request.parentCommentId == null) {
                 // New top-level comment
-                commentNotificationService.notifyCommentPosted(
-                    eventId = eventId,
-                    section = request.section,
-                    sectionItemId = request.sectionItemId,
-                    authorId = authorId,
-                    authorName = authorName,
-                    content = request.content,
+                runNotificationSideEffect(
                     commentId = commentId,
-                    excludeRecipient = authorId
-                )
+                    eventId = eventId,
+                    notificationType = "COMMENT_POSTED",
+                    recipientId = null
+                ) {
+                    commentNotificationService.notifyCommentPosted(
+                        eventId = eventId,
+                        section = request.section,
+                        sectionItemId = request.sectionItemId,
+                        authorId = authorId,
+                        authorName = authorName,
+                        content = request.content,
+                        commentId = commentId,
+                        excludeRecipient = authorId
+                    )
+                }
             } else {
                 // Reply to a comment
                 val parentComment = getCommentById(request.parentCommentId!!)
                 if (parentComment != null) {
-                    commentNotificationService.notifyCommentReply(
+                    runNotificationSideEffect(
+                        commentId = commentId,
                         eventId = eventId,
-                        parentComment = parentComment,
-                        replyComment = comment,
-                        excludeRecipient = authorId
-                    )
+                        notificationType = "COMMENT_REPLY",
+                        recipientId = parentComment.authorId
+                    ) {
+                        commentNotificationService.notifyCommentReply(
+                            eventId = eventId,
+                            parentComment = parentComment,
+                            replyComment = comment,
+                            excludeRecipient = authorId
+                        )
+                    }
                 }
             }
         }
@@ -779,8 +811,12 @@ class CommentRepository(
      * Update a comment.
      */
     fun updateComment(commentId: String, content: String): Comment? {
+        val moderationResult = moderationPolicy.evaluate(content)
+        if (moderationResult.status == ModerationStatus.REJECTED) {
+            throw ModerationRejectedException(moderationResult)
+        }
         val now = getCurrentUtcIsoString()
-        commentQueries.updateComment(content, now, commentId)
+        commentQueries.updateComment(content, now, moderationResult.status.name, commentId)
         
         val updatedComment = getCommentById(commentId)
         if (updatedComment != null) {
@@ -924,6 +960,69 @@ class CommentRepository(
             }
         }
     }
+
+    private suspend fun runNotificationSideEffect(
+        commentId: String,
+        eventId: String,
+        notificationType: String,
+        recipientId: String?,
+        block: suspend () -> Unit
+    ) {
+        try {
+            block()
+        } catch (e: Exception) {
+            queueCommentNotificationRetry(
+                commentId = commentId,
+                eventId = eventId,
+                notificationType = notificationType,
+                recipientId = recipientId,
+                error = commentNotificationRetryFailureMessage()
+            )
+        }
+    }
+
+    private fun queueCommentNotificationRetry(
+        commentId: String,
+        eventId: String,
+        notificationType: String,
+        recipientId: String?,
+        error: String
+    ) {
+        val timestamp = getCurrentUtcIsoString()
+        val payload = buildString {
+            append("{")
+            appendJson("eventId", eventId)
+            append(",")
+            appendJson("commentId", commentId)
+            append(",")
+            appendJson("notificationType", notificationType)
+            append(",")
+            appendJson("recipientId", recipientId.orEmpty())
+            append(",")
+            appendJson("error", error)
+            append("}")
+        }
+
+        db.syncMetadataQueries.insertSyncMetadataWithPayload(
+            id = "sync-comment-notification-${commentId}-${generateId()}",
+            entityType = "comment_notification",
+            entityId = commentId,
+            operation = "SEND",
+            payload = payload,
+            timestamp = timestamp,
+            retryState = "READY",
+            retryCount = 0,
+            synced = 0
+        )
+    }
+
+    private fun StringBuilder.appendJson(key: String, value: String) {
+        append("\"")
+        append(key)
+        append("\":\"")
+        append(value.replace("\\", "\\\\").replace("\"", "\\\""))
+        append("\"")
+    }
     
     /**
      * Convert SQL Comment entity to Kotlin model.
@@ -953,7 +1052,11 @@ class CommentRepository(
             createdAt = this.created_at,
             updatedAt = this.updated_at,
             isEdited = this.is_edited == 1L,
-            replyCount = this.reply_count.toInt()
+            replyCount = this.reply_count.toInt(),
+            moderationStatus = ModerationStatus.valueOf(this.moderation_status)
         )
     }
 }
+
+internal fun commentNotificationRetryFailureMessage(): String =
+    "Comment notification delivery failed. It will be retried."

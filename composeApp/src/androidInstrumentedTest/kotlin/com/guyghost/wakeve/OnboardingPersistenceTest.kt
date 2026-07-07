@@ -48,7 +48,7 @@ class OnboardingPersistenceTest {
      * Then: Should return false (no onboarding completed yet)
      */
     @Test
-    fun `hasCompletedOnboarding returns false for first launch`() {
+    fun hasCompletedOnboarding_returns_false_for_first_launch() {
         // Arrange: Context is initialized with empty preferences (done in setup())
 
         // Act: Check if onboarding is completed
@@ -66,7 +66,7 @@ class OnboardingPersistenceTest {
      * Then: hasCompletedOnboarding() should return true
      */
     @Test
-    fun `markOnboardingComplete saves state`() {
+    fun markOnboardingComplete_saves_state() {
         // Arrange: Clear preferences (done in setup())
         assertFalse(
             hasCompletedOnboarding(context),
@@ -91,7 +91,7 @@ class OnboardingPersistenceTest {
      * Then: All calls should return true (persistent state)
      */
     @Test
-    fun `onboarding state persists between reads`() {
+    fun onboarding_state_persists_between_reads() {
         // Arrange: Mark onboarding as complete
         markOnboardingComplete(context)
         assertTrue(
@@ -118,7 +118,7 @@ class OnboardingPersistenceTest {
      * Then: The state should still be persisted
      */
     @Test
-    fun `onboarding state persists across SharedPreferences instances`() {
+    fun onboarding_state_persists_across_SharedPreferences_instances() {
         // Arrange: Mark onboarding as complete
         markOnboardingComplete(context)
         assertTrue(
@@ -145,7 +145,7 @@ class OnboardingPersistenceTest {
      * Then: hasCompletedOnboarding should return false again
      */
     @Test
-    fun `onboarding state can be reset`() {
+    fun onboarding_state_can_be_reset() {
         // Arrange: Mark onboarding as complete
         markOnboardingComplete(context)
         assertTrue(
@@ -171,7 +171,7 @@ class OnboardingPersistenceTest {
      * Then: Should return a SharedPreferences instance with correct name
      */
     @Test
-    fun `getSharedPreferences returns correct preferences instance`() {
+    fun getSharedPreferences_returns_correct_preferences_instance() {
         // Act: Get SharedPreferences instance
         val prefs = getSharedPreferences(context)
 

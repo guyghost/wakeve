@@ -19,7 +19,7 @@
 
 ### 1️⃣ ModernHomeView.swift ✅ 4 Fixes
 
-**File**: `iosApp/iosApp/Views/ModernHomeView.swift`
+**File**: `iosApp/src/Views/ModernHomeView.swift`
 
 #### Fix 1.1: ParticipantAvatar Touch Target
 - **Line**: 466
@@ -51,7 +51,7 @@
 
 ### 2️⃣ DraftEventWizardView.swift ✅ 3 Fixes
 
-**File**: `iosApp/iosApp/Views/DraftEventWizardView.swift`
+**File**: `iosApp/src/Views/DraftEventWizardView.swift`
 
 #### Fix 2.1: Title TextField Accessibility Label
 - **Line**: 224 + 231
@@ -75,7 +75,7 @@
 
 ### 3️⃣ ModernEventDetailView.swift ✅ 1 Fix
 
-**File**: `iosApp/iosApp/Views/ModernEventDetailView.swift`
+**File**: `iosApp/src/Views/ModernEventDetailView.swift`
 
 #### Fix 3.1: Hero Section Status Badge Contrast
 - **Line**: 316
@@ -88,7 +88,7 @@
 
 ### 4️⃣ ProfileScreen.swift ✅ 2 Fixes
 
-**File**: `iosApp/iosApp/Views/ProfileScreen.swift`
+**File**: `iosApp/src/Views/ProfileScreen.swift`
 
 #### Fix 4.1: Color Indicator Circle Accessibility
 - **Line**: 122 + 123
@@ -106,7 +106,7 @@
 
 ### 5️⃣ CreateEventView.swift ✅ 1 Fix
 
-**File**: `iosApp/iosApp/Views/CreateEventView.swift`
+**File**: `iosApp/src/Views/CreateEventView.swift`
 
 #### Fix 5.1: Saving Overlay Modal Announcement
 - **Line**: 57-77 + added line

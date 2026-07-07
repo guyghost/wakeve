@@ -331,8 +331,8 @@ graph TB
 graph TD
     subgraph "Project Root"
         SHARED[shared/]
-        ANDROID[wakeveApp/]
-        IOS[wakeveApp/wakeveApp/]
+        ANDROID[composeApp/]
+        IOS[iosApp/src/]
     end
 
     subgraph "Shared Module"

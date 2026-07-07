@@ -108,34 +108,16 @@ enum class NotificationPriority {
 }
 
 /**
- * Get priority for a notification type.
+ * Get priority for a notification type from the centralized delivery policy.
  */
-fun NotificationType.getPriority(): NotificationPriority = when (this) {
-    NotificationType.EVENT_INVITE,
-    NotificationType.DATE_CONFIRMED,
-    NotificationType.SCENARIO_SELECTED -> NotificationPriority.HIGH
-
-    NotificationType.MEETING_REMINDER -> NotificationPriority.URGENT
-
-    NotificationType.VOTE_REMINDER,
-    NotificationType.NEW_SCENARIO,
-    NotificationType.MENTION,
-    NotificationType.PAYMENT_DUE,
-    NotificationType.VOTE_CLOSE_REMINDER,
-    NotificationType.DEADLINE_REMINDER -> NotificationPriority.MEDIUM
-
-    NotificationType.NEW_COMMENT,
-    NotificationType.EVENT_UPDATE,
-    NotificationType.COMMENT_REPLY -> NotificationPriority.LOW
-}
+fun NotificationType.getPriority(): NotificationPriority =
+    deliveryProfile().priority
 
 /**
  * Check if notification should bypass quiet hours.
  */
-fun NotificationType.isUrgent(): Boolean = when (this) {
-    NotificationType.MEETING_REMINDER -> true
-    else -> false
-}
+fun NotificationType.isUrgent(): Boolean =
+    deliveryProfile().bypassQuietHours
 
 /**
  * Check if notification requires user action.

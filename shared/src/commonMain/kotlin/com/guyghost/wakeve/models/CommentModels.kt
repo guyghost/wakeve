@@ -1,6 +1,7 @@
 package com.guyghost.wakeve.models
 
 import kotlinx.serialization.Serializable
+import com.guyghost.wakeve.moderation.ModerationStatus
 
 /**
  * Section of the event where a comment is posted
@@ -57,7 +58,8 @@ data class Comment(
     val createdAt: String,  // ISO 8601 UTC timestamp
     val updatedAt: String? = null,  // ISO 8601 UTC timestamp, null if never edited
     val isEdited: Boolean = false,
-    val replyCount: Int = 0
+    val replyCount: Int = 0,
+    val moderationStatus: ModerationStatus = ModerationStatus.APPROVED
 ) {
     init {
         require(content.isNotBlank()) { "Comment content cannot be blank" }

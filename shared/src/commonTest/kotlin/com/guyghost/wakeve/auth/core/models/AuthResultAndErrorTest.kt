@@ -196,12 +196,27 @@ class AuthErrorTest {
     }
 
     @Test
-    fun `OAuthError has provider name in message`() {
+    fun `OAuthError uses stable provider message`() {
         // Given
-        val error = OAuthError(APPLE, "Sign in failed")
+        val error = OAuthError(APPLE, "Sign in failed with token=SECRET at internal.local")
         
         // Then
-        assertEquals("Sign in failed", error.userMessage)
+        assertEquals("Erreur de connexion avec Apple", error.userMessage)
+        assertFalse(error.userMessage.contains("SECRET"))
+        assertFalse(error.userMessage.contains("token="))
+        assertFalse(error.userMessage.contains("internal.local"))
+    }
+
+    @Test
+    fun `UnknownError uses stable generic message`() {
+        // Given
+        val error = AuthError.UnknownError("SQL failed with token=SECRET at internal.local")
+
+        // Then
+        assertEquals("Une erreur est survenue", error.userMessage)
+        assertFalse(error.userMessage.contains("SECRET"))
+        assertFalse(error.userMessage.contains("token="))
+        assertFalse(error.userMessage.contains("internal.local"))
     }
 
     @Test

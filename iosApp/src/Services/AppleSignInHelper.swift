@@ -19,9 +19,9 @@ import SwiftUI
  *     switch result {
  *     case .success(let credentials):
  *         // Pass to AuthenticationService.loginWithApple(credentials.authCode, userInfo: credentials.idToken)
- *         print("Authorization code: \(credentials.authCode)")
+ *         debugLog("Authorization code: \(credentials.authCode)")
  *     case .failure(let error):
- *         print("Sign-in failed: \(error.localizedDescription)")
+ *         debugLog("Sign-in failed: \(error.localizedDescription)")
  *     }
  * }
  * ```
@@ -217,6 +217,16 @@ extension AppleSignInHelper: ASAuthorizationControllerDelegate {
                 signInError = .failed("Not interactive")
             case .unknown:
                 signInError = .unknown
+            case .matchedExcludedCredential:
+                signInError = .failed("Matched excluded credential")
+            case .credentialImport:
+                signInError = .failed("Credential import failed")
+            case .credentialExport:
+                signInError = .failed("Credential export failed")
+            case .preferSignInWithApple:
+                signInError = .failed("Prefer Sign in with Apple")
+            case .deviceNotConfiguredForPasskeyCreation:
+                signInError = .failed("Device is not configured for passkey creation")
             @unknown default:
                 signInError = .unknown
             }

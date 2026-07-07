@@ -4,11 +4,11 @@
 
 ---
 
-## 1️⃣ NOUVEAU FICHIER: `iosApp/iosApp/Components/GlassBadge.swift`
+## 1️⃣ NOUVEAU FICHIER: `iosApp/src/Components/GlassBadge.swift`
 
 ### Location
 ```
-iosApp/iosApp/Components/GlassBadge.swift
+iosApp/src/Components/GlassBadge.swift
 ```
 
 ### Type
@@ -166,11 +166,11 @@ GlassBadge(text: "Assigner", icon: "person.badge.plus", color: .secondary, style
 
 ---
 
-## 2️⃣ FICHIER MODIFIÉ: `iosApp/iosApp/Views/EquipmentChecklistView.swift`
+## 2️⃣ FICHIER MODIFIÉ: `iosApp/src/Views/EquipmentChecklistView.swift`
 
 ### Location
 ```
-iosApp/iosApp/Views/EquipmentChecklistView.swift
+iosApp/src/Views/EquipmentChecklistView.swift
 ```
 
 ### Type

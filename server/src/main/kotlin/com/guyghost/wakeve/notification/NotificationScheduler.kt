@@ -104,7 +104,7 @@ class NotificationScheduler(
                 eventNotificationTrigger.onDeadlineApproaching(eventId, 24)
                 scheduledJobs.remove(jobKey)
             }
-            logger.info("Rappel 24h planifie pour l'evenement $eventId dans ${delay24h.inWholeMinutes} minutes")
+            logger.info("Rappel 24h planifie dans {} minutes", delay24h.inWholeMinutes)
         }
 
         // Rappel 1h avant
@@ -119,7 +119,7 @@ class NotificationScheduler(
                 eventNotificationTrigger.onDeadlineApproaching(eventId, 1)
                 scheduledJobs.remove(jobKey)
             }
-            logger.info("Rappel 1h planifie pour l'evenement $eventId dans ${delay1h.inWholeMinutes} minutes")
+            logger.info("Rappel 1h planifie dans {} minutes", delay1h.inWholeMinutes)
         }
     }
 
@@ -128,11 +128,11 @@ class NotificationScheduler(
      */
     fun cancelReminders(eventId: String) {
         scheduledJobs.keys
-            .filter { it.contains(eventId) }
+            .filter { scheduledJobBelongsToEvent(it, eventId) }
             .forEach { key ->
                 scheduledJobs[key]?.cancel()
                 scheduledJobs.remove(key)
-                logger.info("Rappel annule: $key")
+                logger.info("Rappel annule")
             }
     }
 
@@ -205,12 +205,12 @@ class NotificationScheduler(
 
                 notificationService.sendNotification(request)
                     .onFailure {
-                        logger.warn("Echec du rappel jour-J pour $participantId: ${it.message}")
+                        logger.warn("Echec du rappel jour-J")
                     }
             }
 
             scheduledJobs[jobKey] = Job() // Marquer comme traite
-            logger.info("Rappels jour-J envoyes pour l'evenement ${event.id}")
+            logger.info("Rappels jour-J envoyes (recipients={})", participants.size)
         }
     }
 
@@ -278,10 +278,21 @@ class NotificationScheduler(
 
             notificationService.sendNotification(request)
                 .onFailure {
-                    logger.warn("Echec du digest pour $userId: ${it.message}")
+                    logger.warn("Echec du digest hebdomadaire")
                 }
         }
 
         scheduledJobs[weekKey] = Job()
     }
+
+}
+
+internal fun scheduledJobBelongsToEvent(jobKey: String, eventId: String): Boolean {
+    if (eventId.isBlank()) return false
+
+    return jobKey == "deadline-24h-$eventId" ||
+        jobKey == "deadline-1h-$eventId" ||
+        jobKey == "deadline-check-24h-$eventId" ||
+        jobKey == "deadline-check-1h-$eventId" ||
+        jobKey.startsWith("event-day-$eventId-")
 }

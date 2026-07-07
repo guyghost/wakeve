@@ -40,7 +40,7 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to activityListFailureMessage())
                 )
             }
         }
@@ -58,7 +58,7 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to activityScheduleFailureMessage())
                 )
             }
         }
@@ -91,7 +91,7 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to activityDateListFailureMessage())
                 )
             }
         }
@@ -125,7 +125,7 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to activityStatisticsFailureMessage())
                 )
             }
         }
@@ -162,7 +162,7 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to activityDetailFailureMessage())
                 )
             }
         }
@@ -185,7 +185,7 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to activityParticipantsFailureMessage())
                 )
             }
         }
@@ -234,7 +234,7 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to activityCreateFailureMessage())
                 )
             }
         }
@@ -293,7 +293,7 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to activityRegistrationFailureMessage())
                 )
             }
         }
@@ -348,25 +348,14 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
                 }
                 
                 // Apply updates to existing activity - preserving ID, eventID and registered participants
-                val updatedActivityData = existingActivity.copy(
-                    name = request.name ?: existingActivity.name,
-                    description = request.description ?: existingActivity.description,
-                    date = request.date ?: existingActivity.date,
-                    time = request.time ?: existingActivity.time,
-                    duration = request.durationMinutes ?: existingActivity.duration,
-                    location = request.location ?: existingActivity.location,
-                    maxParticipants = request.maxParticipants ?: existingActivity.maxParticipants,
-                    cost = request.costPerPerson ?: existingActivity.cost,
-                    organizerId = request.organizerId ?: existingActivity.organizerId,
-                    updatedAt = java.time.Instant.now().toString()
-                )
+                val updatedActivityData = request.applyTo(existingActivity)
 
                 val updatedActivity = repository.updateActivity(updatedActivityData)
                 call.respond(HttpStatusCode.OK, updatedActivity)
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to activityUpdateFailureMessage())
                 )
             }
         }
@@ -389,7 +378,7 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to activityDeleteFailureMessage())
                 )
             }
         }
@@ -417,9 +406,42 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to activityUnregistrationFailureMessage())
                 )
             }
         }
     }
 }
+
+internal fun activityListFailureMessage(): String =
+    "Failed to fetch activities. Please try again."
+
+internal fun activityScheduleFailureMessage(): String =
+    "Failed to fetch the activity schedule. Please try again."
+
+internal fun activityDateListFailureMessage(): String =
+    "Failed to fetch activities for this date. Please try again."
+
+internal fun activityStatisticsFailureMessage(): String =
+    "Failed to fetch activity statistics. Please try again."
+
+internal fun activityDetailFailureMessage(): String =
+    "Failed to fetch activity details. Please try again."
+
+internal fun activityParticipantsFailureMessage(): String =
+    "Failed to fetch activity participants. Please try again."
+
+internal fun activityCreateFailureMessage(): String =
+    "Failed to create the activity. Please try again."
+
+internal fun activityRegistrationFailureMessage(): String =
+    "Failed to register for this activity. Please try again."
+
+internal fun activityUpdateFailureMessage(): String =
+    "Failed to update the activity. Please try again."
+
+internal fun activityDeleteFailureMessage(): String =
+    "Failed to delete the activity. Please try again."
+
+internal fun activityUnregistrationFailureMessage(): String =
+    "Failed to unregister from this activity. Please try again."

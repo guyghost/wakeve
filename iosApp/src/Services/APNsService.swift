@@ -15,7 +15,7 @@ import UIKit
  * Handles permission requests, token registration with the backend, and notification display.
  *
  * Token registration flow:
- * 1. App requests notification permission on launch (via AppDelegate)
+ * 1. A user-facing settings/onboarding action requests notification permission
  * 2. System calls didRegisterForRemoteNotifications with device token
  * 3. APNsService converts token to hex string and stores it locally
  * 4. When user is authenticated, token is sent to POST /api/notifications/register
@@ -58,7 +58,7 @@ import UIKit
 
     /**
      * Request notification permission from user.
-     * Call this on app launch.
+     * Call this only from an explicit user action.
      */
     public func requestAuthorization(completion: @escaping (Bool, Error?) -> Void) {
         let options: UNAuthorizationOptions = [.alert, .sound, .badge]
@@ -66,6 +66,18 @@ import UIKit
             DispatchQueue.main.async {
                 completion(granted, error)
             }
+        }
+    }
+
+    /**
+     * Request permission and register with APNs when granted.
+     */
+    public func requestAuthorizationAndRegister(completion: ((Bool, Error?) -> Void)? = nil) {
+        requestAuthorization { [weak self] granted, error in
+            if granted {
+                self?.registerForRemoteNotifications()
+            }
+            completion?(granted, error)
         }
     }
 
@@ -117,7 +129,7 @@ import UIKit
         let tokenParts = deviceToken.map { data in String(format: "%02.2hhx", data) }
         let token = tokenParts.joined()
 
-        print("[APNsService] Device token received: \(token.prefix(20))...")
+        debugLog("[APNsService] Device token received: \(token.prefix(20))...")
 
         // Store token locally
         currentDeviceToken = token
@@ -132,7 +144,7 @@ import UIKit
      * Call this from UIApplicationDelegate.
      */
     public func didFailToRegisterForRemoteNotifications(error: Error) {
-        print("[APNsService] Failed to register for remote notifications: \(error.localizedDescription)")
+        debugLog("[APNsService] Failed to register for remote notifications: \(error.localizedDescription)")
     }
 
     // MARK: - Backend Token Registration
@@ -145,7 +157,7 @@ import UIKit
      */
     public func registerTokenWithBackendIfAuthenticated() {
         guard let token = currentDeviceToken ?? UserDefaults.standard.string(forKey: "apns_device_token") else {
-            print("[APNsService] No device token available for registration")
+            debugLog("[APNsService] No device token available for registration")
             return
         }
 
@@ -153,7 +165,7 @@ import UIKit
         let tokenStorage = SecureTokenStorage()
         Task {
             guard let accessToken = await tokenStorage.getAccessToken() else {
-                print("[APNsService] User not authenticated, deferring token registration")
+                debugLog("[APNsService] User not authenticated, deferring token registration")
                 return
             }
 
@@ -183,13 +195,13 @@ import UIKit
 
             if let httpResponse = response as? HTTPURLResponse {
                 if httpResponse.statusCode == 200 {
-                    print("[APNsService] Token registered with backend successfully")
+                    debugLog("[APNsService] Token registered with backend successfully")
                 } else {
-                    print("[APNsService] Token registration failed: HTTP \(httpResponse.statusCode)")
+                    debugLog("[APNsService] Token registration failed: HTTP \(httpResponse.statusCode)")
                 }
             }
         } catch {
-            print("[APNsService] Token registration error: \(error.localizedDescription)")
+            debugLog("[APNsService] Token registration error: \(error.localizedDescription)")
         }
     }
 
@@ -218,7 +230,7 @@ import UIKit
             do {
                 let (_, response) = try await session.data(for: request)
                 if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
-                    print("[APNsService] Token unregistered from backend")
+                    debugLog("[APNsService] Token unregistered from backend")
                     UserDefaults.standard.removeObject(forKey: "apns_device_token")
                     currentDeviceToken = nil
                     completion(true, nil)
@@ -226,7 +238,7 @@ import UIKit
                     completion(false, nil)
                 }
             } catch {
-                print("[APNsService] Token unregistration error: \(error.localizedDescription)")
+                debugLog("[APNsService] Token unregistration error: \(error.localizedDescription)")
                 completion(false, error)
             }
         }
@@ -239,7 +251,7 @@ import UIKit
      * Call this from UIApplicationDelegate.
      */
     public func didReceiveRemoteNotification(userInfo: [AnyHashable: Any]) {
-        print("[APNsService] Received notification: \(userInfo)")
+        debugLog("[APNsService] Received notification: \(userInfo)")
 
         // Notify callback
         onNotificationReceived?(userInfo)
@@ -266,7 +278,7 @@ import UIKit
 
         notificationCenter.add(request) { error in
             if let error = error {
-                print("[APNsService] Failed to add local notification: \(error.localizedDescription)")
+                debugLog("[APNsService] Failed to add local notification: \(error.localizedDescription)")
             }
         }
     }
@@ -275,12 +287,10 @@ import UIKit
      * Handle notification content and route to appropriate handler.
      */
     private func handleNotification(userInfo: [AnyHashable: Any]) {
-        guard let aps = userInfo["aps"] as? [String: Any] else { return }
+        guard userInfo["aps"] is [String: Any] else { return }
 
         // Extract notification data
-        let eventId = userInfo["eventId"] as? String
         let notificationId = userInfo["notificationId"] as? String ?? UUID().uuidString
-        let deepLinkUri = userInfo["deepLink"] as? String
 
         // Check if app is in foreground
         DispatchQueue.main.async {
@@ -292,7 +302,7 @@ import UIKit
                     userInfo: userInfo
                 )
             } else {
-                print("[APNsService] Background notification received: \(notificationId)")
+                debugLog("[APNsService] Background notification received: \(notificationId)")
             }
         }
     }
@@ -303,8 +313,10 @@ import UIKit
      * Set notification badge count.
      */
     public func setBadgeCount(_ count: Int) {
-        DispatchQueue.main.async {
-            UIApplication.shared.applicationIconBadgeNumber = count
+        UNUserNotificationCenter.current().setBadgeCount(count) { error in
+            if let error = error {
+                debugLog("[APNsService] Failed to set badge count: \(error.localizedDescription)")
+            }
         }
     }
 
@@ -354,7 +366,7 @@ extension APNsService: UNUserNotificationCenterDelegate {
     ) {
         let userInfo = notification.request.content.userInfo
 
-        print("[APNsService] Foreground notification: \(userInfo)")
+        debugLog("[APNsService] Foreground notification: \(userInfo)")
 
         // Show banner and play sound even in foreground
         completionHandler([.banner, .sound, .badge])
@@ -374,14 +386,14 @@ extension APNsService: UNUserNotificationCenterDelegate {
     ) {
         let userInfo = response.notification.request.content.userInfo
 
-        print("[APNsService] Notification tapped: \(userInfo)")
+        debugLog("[APNsService] Notification tapped: \(userInfo)")
 
         // Notify tap callback
         onNotificationTapped?(userInfo)
 
         // Handle deep link navigation
         if let deepLinkUri = userInfo["deepLink"] as? String,
-           let url = URL(string: deepLinkUri) {
+           URL(string: deepLinkUri) != nil {
             // Use the deep link URI from notification payload
             DispatchQueue.main.async {
                 NotificationCenter.default.post(
@@ -403,7 +415,7 @@ extension APNsService: UNUserNotificationCenterDelegate {
      * Posts a notification for SwiftUI navigation handling.
      */
     private func handleDeepLink(eventId: String) {
-        print("[APNsService] Deep link to event: \(eventId)")
+        debugLog("[APNsService] Deep link to event: \(eventId)")
 
         NotificationCenter.default.post(
             name: NSNotification.Name("NavigateToEvent"),

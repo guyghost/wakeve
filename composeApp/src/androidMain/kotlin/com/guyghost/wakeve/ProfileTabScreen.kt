@@ -15,9 +15,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
@@ -71,6 +71,7 @@ fun ProfileTabScreen(
     isAuthenticated: Boolean = false,
     userEmail: String? = null,
     userName: String? = null,
+    appVersionLabel: String = "Version inconnue",
     onNavigateToSettings: () -> Unit,
     onNavigateToInbox: () -> Unit,
     onNavigateToDashboard: () -> Unit = {},
@@ -239,7 +240,7 @@ fun ProfileTabScreen(
             item {
                 ProfileActionItem(
                     icon = Icons.Default.Notifications,
-                    title = "Boîte de réception",
+                    title = "Notifications",
                     subtitle = "Notifications et invitations",
                     onClick = onNavigateToInbox
                 )
@@ -269,7 +270,7 @@ fun ProfileTabScreen(
             if (isAuthenticated && !isGuest) {
                 item {
                     ProfileActionItem(
-                        icon = Icons.Default.ExitToApp,
+                        icon = Icons.AutoMirrored.Filled.ExitToApp,
                         title = "Se déconnecter",
                         subtitle = "Quitter votre compte",
                         onClick = onSignOut,
@@ -323,7 +324,7 @@ fun ProfileTabScreen(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Version 1.0.0 (Phase 2)",
+                            text = appVersionLabel,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -403,7 +404,7 @@ private fun ProfileActionItem(
                 )
             }
             Icon(
-                imageVector = Icons.Default.ArrowForward,
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                 contentDescription = "Accéder",
                 tint = when {
                     destructive -> MaterialTheme.colorScheme.onErrorContainer

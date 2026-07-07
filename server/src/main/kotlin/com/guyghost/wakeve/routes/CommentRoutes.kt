@@ -1,10 +1,21 @@
 package com.guyghost.wakeve.routes
 
+import com.guyghost.wakeve.auth.userId
 import com.guyghost.wakeve.comment.CommentRepository
 import com.guyghost.wakeve.models.CommentRequest
 import com.guyghost.wakeve.models.CommentSection
+import com.guyghost.wakeve.models.Comment
+import com.guyghost.wakeve.models.CommentStatistics
+import com.guyghost.wakeve.models.CommentThread
+import com.guyghost.wakeve.models.CommentsBySection
+import com.guyghost.wakeve.moderation.ModerationRejectedException
+import com.guyghost.wakeve.moderation.ModerationRepository
+import com.guyghost.wakeve.moderation.ModerationStatus
 import com.guyghost.wakeve.notification.EventNotificationTrigger
+import com.guyghost.wakeve.repository.DatabaseEventRepository
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.delete
@@ -12,6 +23,9 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
+import kotlinx.datetime.Clock
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.minus
 import kotlinx.serialization.Serializable
 
 /**
@@ -26,7 +40,9 @@ import kotlinx.serialization.Serializable
  */
 fun io.ktor.server.routing.Route.commentRoutes(
     repository: CommentRepository,
-    eventNotificationTrigger: EventNotificationTrigger? = null
+    eventNotificationTrigger: EventNotificationTrigger? = null,
+    eventRepository: DatabaseEventRepository? = null,
+    moderationRepository: ModerationRepository? = null
 ) {
     route("/events/{eventId}/comments") {
 
@@ -39,6 +55,21 @@ fun io.ktor.server.routing.Route.commentRoutes(
                 )
 
                 val request = call.receive<CreateCommentRequest>()
+                val principal = call.principal<JWTPrincipal>()
+                val authorId = bindCommentAuthorToAuthenticatedUser(
+                    requestedAuthorId = request.authorId,
+                    authenticatedUserId = principal?.userId
+                ).getOrElse { error ->
+                    return@post call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to commentAuthorForbiddenMessage())
+                    )
+                }
+                val authorName = resolveAuthenticatedCommentAuthorName(
+                    authenticatedUserName = principal?.payload?.getClaim("userName")?.asString(),
+                    authenticatedEmail = principal?.payload?.getClaim("email")?.asString(),
+                    authenticatedUserId = authorId
+                )
 
                 val commentRequest = CommentRequest(
                     section = request.section,
@@ -49,24 +80,33 @@ fun io.ktor.server.routing.Route.commentRoutes(
 
                 val comment = repository.createComment(
                     eventId = eventId,
-                    authorId = request.authorId,
-                    authorName = request.authorName,
+                    authorId = authorId,
+                    authorName = authorName,
                     request = commentRequest
                 )
 
-                // Trigger notification for new comment (async, non-blocking)
-                eventNotificationTrigger?.onNewComment(
-                    eventId = eventId,
-                    authorId = request.authorId,
-                    authorName = request.authorName,
-                    commentPreview = request.content
+                val status = if (comment.moderationStatus == ModerationStatus.PENDING_REVIEW) {
+                    HttpStatusCode.Accepted
+                } else {
+                    // Trigger notification only for comments that are visible immediately.
+                    eventNotificationTrigger?.onNewComment(
+                        eventId = eventId,
+                        authorId = authorId,
+                        authorName = authorName,
+                        commentPreview = request.content
+                    )
+                    HttpStatusCode.Created
+                }
+                call.respond(status, comment)
+            } catch (e: ModerationRejectedException) {
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to e.result.userMessage, "reasonCode" to e.result.reasonCode)
                 )
-
-                call.respond(HttpStatusCode.Created, comment)
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to commentCreateFailureMessage())
                 )
             }
         }
@@ -82,29 +122,37 @@ fun io.ktor.server.routing.Route.commentRoutes(
                 val section = call.request.queryParameters["section"]?.let { CommentSection.valueOf(it) }
                 val sectionItemId = call.request.queryParameters["sectionItemId"]
                 val threaded = call.request.queryParameters["threaded"]?.toBoolean() ?: true
-                val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 50
-                val offset = call.request.queryParameters["offset"]?.toIntOrNull() ?: 0
+                val limit = parseCommentListLimit(call.request.queryParameters["limit"])
+                val offset = parseCommentOffset(call.request.queryParameters["offset"])
+                val viewerUserId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
 
-                val comments = if (section != null) {
+                if (section != null) {
                     if (threaded) {
-                        repository.getCommentsWithThreads(eventId, section, sectionItemId)
+                        val comments = repository.getCommentsWithThreads(eventId, section, sectionItemId)
+                            .filterBlockedCommentsBySection(eventId, viewerUserId, moderationRepository)
+                            .paginate(offset, limit)
+                        call.respond(HttpStatusCode.OK, comments)
                     } else {
-                        repository.getCommentsBySection(eventId, section, sectionItemId)
+                        val comments = repository.getCommentsBySection(eventId, section, sectionItemId)
+                            .filterBlockedComments(eventId, viewerUserId, moderationRepository)
+                            .paginate(offset, limit)
+                        call.respond(HttpStatusCode.OK, comments)
                     }
                 } else {
-                    repository.getCommentsByEvent(eventId)
+                    val comments = repository.getCommentsByEvent(eventId)
+                        .filterBlockedComments(eventId, viewerUserId, moderationRepository)
+                        .paginate(offset, limit)
+                    call.respond(HttpStatusCode.OK, comments)
                 }
-
-                call.respond(HttpStatusCode.OK, comments)
             } catch (e: IllegalArgumentException) {
                 call.respond(
                     HttpStatusCode.BadRequest,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to commentListInvalidRequestMessage())
                 )
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to commentListFailureMessage())
                 )
             }
         }
@@ -134,13 +182,23 @@ fun io.ktor.server.routing.Route.commentRoutes(
                         HttpStatusCode.NotFound,
                         mapOf("error" to "Comment not found in this event")
                     )
+                } else if (comment.isBlockedForViewer(
+                        viewerUserId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString(),
+                        eventId = eventId,
+                        moderationRepository = moderationRepository
+                    )
+                ) {
+                    call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Comment not found")
+                    )
                 } else {
                     call.respond(HttpStatusCode.OK, comment)
                 }
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to commentDetailFailureMessage())
                 )
             }
         }
@@ -178,6 +236,15 @@ fun io.ktor.server.routing.Route.commentRoutes(
                     return@put
                 }
 
+                val currentUserId = call.principal<JWTPrincipal>()?.userId
+                if (!isCommentAuthor(existingComment, currentUserId)) {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only the comment author can update comments")
+                    )
+                    return@put
+                }
+
                 val updatedComment = repository.updateComment(commentId, request.content)
                 if (updatedComment != null) {
                     call.respond(HttpStatusCode.OK, updatedComment)
@@ -187,12 +254,12 @@ fun io.ktor.server.routing.Route.commentRoutes(
             } catch (e: IllegalArgumentException) {
                 call.respond(
                     HttpStatusCode.BadRequest,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to commentUpdateInvalidRequestMessage())
                 )
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to commentUpdateFailureMessage())
                 )
             }
         }
@@ -228,12 +295,25 @@ fun io.ktor.server.routing.Route.commentRoutes(
                     return@delete
                 }
 
+                val currentUserId = call.principal<JWTPrincipal>()?.userId
+                val event = eventRepository?.getEvent(eventId)
+                val canDelete = isCommentAuthor(existingComment, currentUserId) ||
+                    isEventOrganizer(event?.organizerId, currentUserId)
+
+                if (!canDelete) {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only the organizer or the comment author can delete comments")
+                    )
+                    return@delete
+                }
+
                 repository.deleteComment(commentId)
                 call.respond(HttpStatusCode.NoContent)
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to commentDeleteFailureMessage())
                 )
             }
         }
@@ -246,12 +326,19 @@ fun io.ktor.server.routing.Route.commentRoutes(
                     mapOf("error" to "Event ID required")
                 )
 
+                val viewerUserId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
                 val statistics = repository.getCommentStatistics(eventId)
+                    .filterBlockedStatistics(
+                        comments = repository.getCommentsByEvent(eventId),
+                        eventId = eventId,
+                        viewerUserId = viewerUserId,
+                        moderationRepository = moderationRepository
+                    )
                 call.respond(HttpStatusCode.OK, statistics)
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to commentStatisticsFailureMessage())
                 )
             }
         }
@@ -264,8 +351,10 @@ fun io.ktor.server.routing.Route.commentRoutes(
                     mapOf("error" to "Event ID required")
                 )
 
-                val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 10
+                val limit = parseCommentContributorLimit(call.request.queryParameters["limit"])
+                val viewerUserId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
                 val contributors = repository.getTopContributors(eventId, limit)
+                    .filterBlockedContributors(eventId, viewerUserId, moderationRepository)
 
                 // Convert to response format
                 val response = contributors.map { (authorId, authorName, count) ->
@@ -280,7 +369,7 @@ fun io.ktor.server.routing.Route.commentRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to commentTopContributorsFailureMessage())
                 )
             }
         }
@@ -294,7 +383,7 @@ fun io.ktor.server.routing.Route.commentRoutes(
                 )
 
                 val since = call.request.queryParameters["since"]
-                val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 20
+                val limit = parseRecentCommentLimit(call.request.queryParameters["limit"])
 
                 if (since == null) {
                     call.respond(
@@ -304,12 +393,14 @@ fun io.ktor.server.routing.Route.commentRoutes(
                     return@get
                 }
 
+                val viewerUserId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
                 val comments = repository.getRecentComments(eventId, since, limit)
+                    .filterBlockedComments(eventId, viewerUserId, moderationRepository)
                 call.respond(HttpStatusCode.OK, comments)
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to recentCommentsFailureMessage())
                 )
             }
         }
@@ -345,8 +436,18 @@ fun io.ktor.server.routing.Route.commentRoutes(
                     return@post
                 }
 
-                // TODO: Check if user is organizer (requires auth context)
-                // For now, allow pinning for demo purposes
+                // Check if caller is the event organizer
+                val currentUserId = call.principal<JWTPrincipal>()?.userId
+                val event = eventRepository?.getEvent(eventId)
+                val isOrganizer = currentUserId != null && event?.organizerId == currentUserId
+
+                if (!isOrganizer) {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only the event organizer can pin comments")
+                    )
+                    return@post
+                }
 
                 val pinnedComment = repository.pinComment(commentId)
                 if (pinnedComment != null) {
@@ -357,7 +458,7 @@ fun io.ktor.server.routing.Route.commentRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to commentPinFailureMessage())
                 )
             }
         }
@@ -393,8 +494,18 @@ fun io.ktor.server.routing.Route.commentRoutes(
                     return@delete
                 }
 
-                // TODO: Check if user is organizer (requires auth context)
-                // For now, allow unpinning for demo purposes
+                // Check if caller is the event organizer
+                val currentUserId = call.principal<JWTPrincipal>()?.userId
+                val event = eventRepository?.getEvent(eventId)
+                val isOrganizer = currentUserId != null && event?.organizerId == currentUserId
+
+                if (!isOrganizer) {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only the event organizer can unpin comments")
+                    )
+                    return@delete
+                }
 
                 val unpinnedComment = repository.unpinComment(commentId)
                 if (unpinnedComment != null) {
@@ -405,7 +516,7 @@ fun io.ktor.server.routing.Route.commentRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to commentUnpinFailureMessage())
                 )
             }
         }
@@ -441,8 +552,19 @@ fun io.ktor.server.routing.Route.commentRoutes(
                     return@post
                 }
 
-                // TODO: Check if user is organizer or comment author (requires auth context)
-                // For now, allow restoring for demo purposes
+                // Check if caller is the organizer or the comment author
+                val currentUserId = call.principal<JWTPrincipal>()?.userId
+                val event = eventRepository?.getEvent(eventId)
+                val isOrganizer = currentUserId != null && event?.organizerId == currentUserId
+                val isAuthor = currentUserId != null && existingComment.authorId == currentUserId
+
+                if (!isOrganizer && !isAuthor) {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only the organizer or the comment author can restore comments")
+                    )
+                    return@post
+                }
 
                 val restoredComment = repository.restoreComment(commentId)
                 if (restoredComment != null) {
@@ -453,7 +575,7 @@ fun io.ktor.server.routing.Route.commentRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to commentRestoreFailureMessage())
                 )
             }
         }
@@ -466,17 +588,245 @@ fun io.ktor.server.routing.Route.commentRoutes(
                     mapOf("error" to "Event ID required")
                 )
 
-                val statsBySection = repository.getCommentStatsBySection(eventId)
+                val viewerUserId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
+                val statsBySection = repository.getCommentsByEvent(eventId)
+                    .filterBlockedComments(eventId, viewerUserId, moderationRepository)
+                    .groupingBy(Comment::section)
+                    .eachCount()
                 call.respond(HttpStatusCode.OK, statsBySection)
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to commentSectionsFailureMessage())
                 )
             }
         }
     }
 }
+
+private fun List<Comment>.filterBlockedComments(
+    eventId: String,
+    viewerUserId: String?,
+    moderationRepository: ModerationRepository?
+): List<Comment> {
+    if (viewerUserId == null || moderationRepository == null) return this
+    return filterNot { comment -> moderationRepository.isBlockedForEvent(viewerUserId, comment.authorId, eventId) }
+}
+
+private fun Comment.isBlockedForViewer(
+    eventId: String,
+    viewerUserId: String?,
+    moderationRepository: ModerationRepository?
+): Boolean =
+    viewerUserId != null &&
+        moderationRepository != null &&
+        moderationRepository.isBlockedForEvent(viewerUserId, authorId, eventId)
+
+private fun List<Triple<String, String, Int>>.filterBlockedContributors(
+    eventId: String,
+    viewerUserId: String?,
+    moderationRepository: ModerationRepository?
+): List<Triple<String, String, Int>> {
+    if (viewerUserId == null || moderationRepository == null) return this
+    return filterNot { (authorId, _, _) -> moderationRepository.isBlockedForEvent(viewerUserId, authorId, eventId) }
+}
+
+private fun CommentStatistics.filterBlockedStatistics(
+    comments: List<Comment>,
+    eventId: String,
+    viewerUserId: String?,
+    moderationRepository: ModerationRepository?
+): CommentStatistics {
+    val visibleComments = comments.filterBlockedComments(eventId, viewerUserId, moderationRepository)
+    if (visibleComments.size == comments.size) return this
+
+    val recentThreshold = Clock.System.now()
+        .minus(24, DateTimeUnit.HOUR)
+        .toString()
+    val visibleTopContributors = visibleComments
+        .groupingBy(Comment::authorId)
+        .eachCount()
+        .entries
+        .sortedByDescending { it.value }
+        .take(5)
+        .map { it.key to it.value }
+
+    return copy(
+        totalComments = visibleComments.size,
+        commentsBySection = visibleComments.groupingBy(Comment::section).eachCount(),
+        topContributors = visibleTopContributors,
+        recentActivity = visibleComments.count { it.createdAt > recentThreshold }
+    )
+}
+
+private fun List<CommentThread>.filterBlockedThreads(
+    eventId: String,
+    viewerUserId: String?,
+    moderationRepository: ModerationRepository?
+): List<CommentThread> {
+    if (viewerUserId == null || moderationRepository == null) return this
+    return mapNotNull { thread ->
+        if (moderationRepository.isBlockedForEvent(viewerUserId, thread.comment.authorId, eventId)) {
+            null
+        } else {
+            thread.copy(replies = thread.replies.filterBlockedComments(eventId, viewerUserId, moderationRepository))
+        }
+    }
+}
+
+private fun CommentsBySection.filterBlockedCommentsBySection(
+    eventId: String,
+    viewerUserId: String?,
+    moderationRepository: ModerationRepository?
+): CommentsBySection {
+    val visibleThreads = comments.filterBlockedThreads(eventId, viewerUserId, moderationRepository)
+    return copy(
+        comments = visibleThreads,
+        totalComments = visibleThreads.sumOf { 1 + it.replies.size }
+    )
+}
+
+private fun <T> List<T>.paginate(offset: Int, limit: Int): List<T> =
+    drop(offset).take(limit)
+
+private fun CommentsBySection.paginate(offset: Int, limit: Int): CommentsBySection {
+    val visibleThreads = comments.paginate(offset, limit)
+    return copy(
+        comments = visibleThreads,
+        totalComments = visibleThreads.sumOf { 1 + it.replies.size }
+    )
+}
+
+private fun isCommentAuthor(comment: Comment, currentUserId: String?): Boolean =
+    currentUserId != null && comment.authorId == currentUserId
+
+private fun isEventOrganizer(organizerId: String?, currentUserId: String?): Boolean =
+    currentUserId != null && organizerId == currentUserId
+
+internal fun parseCommentListLimit(rawLimit: String?): Int =
+    parseBoundedCommentLimit(
+        rawLimit = rawLimit,
+        defaultLimit = DEFAULT_COMMENT_LIST_LIMIT,
+        maxLimit = MAX_COMMENT_LIST_LIMIT
+    )
+
+internal fun parseCommentContributorLimit(rawLimit: String?): Int =
+    parseBoundedCommentLimit(
+        rawLimit = rawLimit,
+        defaultLimit = DEFAULT_COMMENT_CONTRIBUTOR_LIMIT,
+        maxLimit = MAX_COMMENT_CONTRIBUTOR_LIMIT
+    )
+
+internal fun parseRecentCommentLimit(rawLimit: String?): Int =
+    parseBoundedCommentLimit(
+        rawLimit = rawLimit,
+        defaultLimit = DEFAULT_RECENT_COMMENT_LIMIT,
+        maxLimit = MAX_RECENT_COMMENT_LIMIT
+    )
+
+internal fun parseCommentOffset(rawOffset: String?): Int {
+    val parsedOffset = rawOffset?.trim()?.toIntOrNull() ?: DEFAULT_COMMENT_OFFSET
+    return parsedOffset.coerceIn(MIN_COMMENT_OFFSET, MAX_COMMENT_OFFSET)
+}
+
+internal fun bindCommentAuthorToAuthenticatedUser(
+    requestedAuthorId: String,
+    authenticatedUserId: String?
+): Result<String> {
+    val normalizedAuthenticatedUserId = authenticatedUserId?.trim().orEmpty()
+    val normalizedRequestedAuthorId = requestedAuthorId.trim()
+
+    return when {
+        normalizedAuthenticatedUserId.isBlank() -> Result.failure(
+            IllegalArgumentException("Missing userId in token")
+        )
+        normalizedRequestedAuthorId.isBlank() -> Result.success(normalizedAuthenticatedUserId)
+        normalizedRequestedAuthorId == normalizedAuthenticatedUserId -> Result.success(normalizedAuthenticatedUserId)
+        else -> Result.failure(
+            IllegalArgumentException("Cannot create comments for another user")
+        )
+    }
+}
+
+internal fun resolveAuthenticatedCommentAuthorName(
+    authenticatedUserName: String?,
+    authenticatedEmail: String?,
+    authenticatedUserId: String
+): String {
+    val normalizedUserName = authenticatedUserName?.trim().orEmpty()
+    if (normalizedUserName.isNotBlank()) {
+        return normalizedUserName
+    }
+
+    val normalizedEmail = authenticatedEmail?.trim().orEmpty()
+    val emailPrefix = normalizedEmail.substringBefore("@").takeIf { it.isNotBlank() }
+    return emailPrefix ?: authenticatedUserId
+}
+
+internal fun commentAuthorForbiddenMessage(): String =
+    "You are not allowed to create this comment."
+
+internal fun commentCreateFailureMessage(): String =
+    "Failed to create the comment. Please try again."
+
+internal fun commentListInvalidRequestMessage(): String =
+    "Invalid comment list request."
+
+internal fun commentListFailureMessage(): String =
+    "Failed to fetch comments. Please try again."
+
+internal fun commentDetailFailureMessage(): String =
+    "Failed to fetch comment details. Please try again."
+
+internal fun commentUpdateInvalidRequestMessage(): String =
+    "Invalid comment update request."
+
+internal fun commentUpdateFailureMessage(): String =
+    "Failed to update the comment. Please try again."
+
+internal fun commentDeleteFailureMessage(): String =
+    "Failed to delete the comment. Please try again."
+
+internal fun commentStatisticsFailureMessage(): String =
+    "Failed to fetch comment statistics. Please try again."
+
+internal fun commentTopContributorsFailureMessage(): String =
+    "Failed to fetch comment contributors. Please try again."
+
+internal fun recentCommentsFailureMessage(): String =
+    "Failed to fetch recent comments. Please try again."
+
+internal fun commentPinFailureMessage(): String =
+    "Failed to pin the comment. Please try again."
+
+internal fun commentUnpinFailureMessage(): String =
+    "Failed to unpin the comment. Please try again."
+
+internal fun commentRestoreFailureMessage(): String =
+    "Failed to restore the comment. Please try again."
+
+internal fun commentSectionsFailureMessage(): String =
+    "Failed to fetch comment sections. Please try again."
+
+private fun parseBoundedCommentLimit(
+    rawLimit: String?,
+    defaultLimit: Int,
+    maxLimit: Int
+): Int {
+    val parsedLimit = rawLimit?.trim()?.toIntOrNull() ?: defaultLimit
+    return parsedLimit.coerceIn(MIN_COMMENT_LIMIT, maxLimit)
+}
+
+private const val DEFAULT_COMMENT_LIST_LIMIT = 50
+private const val DEFAULT_COMMENT_CONTRIBUTOR_LIMIT = 10
+private const val DEFAULT_RECENT_COMMENT_LIMIT = 20
+private const val MIN_COMMENT_LIMIT = 1
+private const val MAX_COMMENT_LIST_LIMIT = 100
+private const val MAX_COMMENT_CONTRIBUTOR_LIMIT = 50
+private const val MAX_RECENT_COMMENT_LIMIT = 100
+private const val DEFAULT_COMMENT_OFFSET = 0
+private const val MIN_COMMENT_OFFSET = 0
+private const val MAX_COMMENT_OFFSET = 10_000
 
 // Request/Response DTOs
 

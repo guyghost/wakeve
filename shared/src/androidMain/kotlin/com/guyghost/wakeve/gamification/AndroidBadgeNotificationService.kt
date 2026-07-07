@@ -8,7 +8,9 @@ import com.guyghost.wakeve.models.BadgeNotification
 
 /**
  * Android-specific implementation of badge notifications.
- * Uses NotificationCompat for compatibility with Android 13+.
+ * Creates platform notification channels and exposes permission status.
+ * Notification delivery remains unavailable until the composeApp notification
+ * implementation is wired with Android resources.
  *
  * Architecture: Imperative Shell - Handles platform-specific I/O operations.
  */
@@ -65,8 +67,7 @@ class AndroidBadgeNotificationService(
         badge: Badge,
         pointsEarned: Int
     ) {
-        // Stub implementation - notifications should be handled in composeApp
-        // where R resources are available
+        NoConfiguredBadgeNotificationService.showBadgeUnlockedNotification(userId, badge, pointsEarned)
     }
 
     override suspend fun showPointsEarnedNotification(
@@ -74,18 +75,18 @@ class AndroidBadgeNotificationService(
         points: Int,
         action: String
     ) {
-        // Stub implementation
+        NoConfiguredBadgeNotificationService.showPointsEarnedNotification(userId, points, action)
     }
 
     override suspend fun showVoiceAssistantError(
         userId: String,
         error: String
     ) {
-        // Stub implementation
+        NoConfiguredBadgeNotificationService.showVoiceAssistantError(userId, error)
     }
 
     override suspend fun sendBadgeNotification(notification: BadgeNotification) {
-        // Stub implementation
+        NoConfiguredBadgeNotificationService.sendBadgeNotification(notification)
     }
 
     override suspend fun clearBadgeNotification(notificationId: String) {
@@ -93,7 +94,7 @@ class AndroidBadgeNotificationService(
     }
 
     override suspend fun updateBadgeCount(count: Int) {
-        // Badge count on launcher icon - requires ShortcutBadger or similar
+        NoConfiguredBadgeNotificationService.updateBadgeCount(count)
     }
 
     override suspend fun requestNotificationPermission(): Boolean {

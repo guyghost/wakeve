@@ -48,7 +48,7 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to equipmentListFailureMessage())
                 )
             }
         }
@@ -80,7 +80,7 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to equipmentCategoryListFailureMessage())
                 )
             }
         }
@@ -112,7 +112,7 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to equipmentStatusListFailureMessage())
                 )
             }
         }
@@ -135,7 +135,7 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to participantEquipmentListFailureMessage())
                 )
             }
         }
@@ -155,7 +155,7 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to equipmentStatisticsFailureMessage())
                 )
             }
         }
@@ -190,7 +190,7 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to equipmentCreateFailureMessage())
                 )
             }
         }
@@ -227,7 +227,7 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to equipmentAutoGenerateFailureMessage())
                 )
             }
         }
@@ -246,6 +246,17 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
                 )
 
                 val request = call.receive<UpdateEquipmentItemRequest>()
+                val existingItem = repository.getEquipmentItemById(itemId)
+                    ?: return@put call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Equipment item not found")
+                    )
+                if (existingItem.eventId != eventId) {
+                    return@put call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Equipment item not found")
+                    )
+                }
                 
                 // Validate request
                 if (request.name != null && request.name.isBlank()) {
@@ -262,12 +273,12 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
                     )
                 }
 
-                val updatedItem = repository.updateEquipmentItem(request.applyTo(itemId, eventId))
+                val updatedItem = repository.updateEquipmentItem(request.applyTo(existingItem))
                 call.respond(HttpStatusCode.OK, updatedItem)
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to equipmentUpdateFailureMessage())
                 )
             }
         }
@@ -305,7 +316,7 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to equipmentAssignFailureMessage())
                 )
             }
         }
@@ -347,7 +358,7 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to equipmentStatusUpdateFailureMessage())
                 )
             }
         }
@@ -370,9 +381,42 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to equipmentDeleteFailureMessage())
                 )
             }
         }
     }
 }
+
+internal fun equipmentListFailureMessage(): String =
+    "Failed to fetch equipment items. Please try again."
+
+internal fun equipmentCategoryListFailureMessage(): String =
+    "Failed to fetch equipment items for this category. Please try again."
+
+internal fun equipmentStatusListFailureMessage(): String =
+    "Failed to fetch equipment items for this status. Please try again."
+
+internal fun participantEquipmentListFailureMessage(): String =
+    "Failed to fetch participant equipment items. Please try again."
+
+internal fun equipmentStatisticsFailureMessage(): String =
+    "Failed to fetch equipment statistics. Please try again."
+
+internal fun equipmentCreateFailureMessage(): String =
+    "Failed to create the equipment item. Please try again."
+
+internal fun equipmentAutoGenerateFailureMessage(): String =
+    "Failed to generate the equipment checklist. Please try again."
+
+internal fun equipmentUpdateFailureMessage(): String =
+    "Failed to update the equipment item. Please try again."
+
+internal fun equipmentAssignFailureMessage(): String =
+    "Failed to assign the equipment item. Please try again."
+
+internal fun equipmentStatusUpdateFailureMessage(): String =
+    "Failed to update equipment status. Please try again."
+
+internal fun equipmentDeleteFailureMessage(): String =
+    "Failed to delete the equipment item. Please try again."

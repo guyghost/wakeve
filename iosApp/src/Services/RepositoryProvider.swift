@@ -6,6 +6,14 @@ import Shared
 class RepositoryProvider {
     static let shared = RepositoryProvider()
 
+    private static let syncBaseUrl: String = {
+        #if DEBUG
+        return "http://localhost:8080"
+        #else
+        return "https://api.wakeve.app"
+        #endif
+    }()
+
     private let databaseFactory: IosDatabaseFactory
     /// The database instance - exposed for state machine creation
     let database: WakeveDb
@@ -24,7 +32,7 @@ class RepositoryProvider {
 
         // Create sync dependencies
         let networkDetector = KtorSyncHttpClientKt.createNetworkStatusDetector()
-        let httpClient = KtorSyncHttpClientKt.createSyncHttpClient(baseUrl: "http://localhost:8080")
+        let httpClient = KtorSyncHttpClientKt.createSyncHttpClient(baseUrl: Self.syncBaseUrl)
         let userRepository = UserRepository_(db: database)
         let eventRepository = DatabaseEventRepository(db: database, syncManager: nil)
         let metrics = InMemorySyncMetrics()
@@ -56,7 +64,9 @@ class RepositoryProvider {
             maxRetries: 3,
             baseRetryDelayMs: 1000,
             metrics: metrics,
-            alertManager: alertManager
+            alertManager: alertManager,
+            conflictResolutionEnabled: true,
+            pendingSideEffectReplayers: []
         )
 
         // Create the repository with the SyncManager enabled

@@ -1,5 +1,6 @@
 package com.guyghost.wakeve.presentation.statemachine
 
+import com.guyghost.wakeve.access.ParticipantAccessMapper
 import com.guyghost.wakeve.models.Coordinates
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.EventType
@@ -8,8 +9,19 @@ import com.guyghost.wakeve.models.PotentialLocation
 import com.guyghost.wakeve.presentation.state.EventManagementContract
 import com.guyghost.wakeve.presentation.usecase.CreateEventUseCase
 import com.guyghost.wakeve.presentation.usecase.LoadEventsUseCase
+import com.guyghost.wakeve.sample.SampleEventFactory
+import com.guyghost.wakeve.workflow.WorkflowOutboxRecord
+import com.guyghost.wakeve.workflow.WorkflowOutboxType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.datetime.Clock
+
+/**
+ * Functional interface for seeding sample event data.
+ * Implemented by DatabaseEventRepository to insert sample data into SQLDelight.
+ */
+fun interface SampleEventSeeder {
+    suspend fun seedSampleEvent(): Result<com.guyghost.wakeve.models.Event>
+}
 
 /**
  * State Machine for event management workflows.
@@ -19,6 +31,7 @@ import kotlinx.datetime.Clock
  * - Creating, updating, deleting events
  * - Selecting events and loading their details
  * - Managing participants and poll results
+ * - Seeding sample events for first-launch onboarding
  *
  * ## Architecture
  *
@@ -83,12 +96,14 @@ import kotlinx.datetime.Clock
  * @property loadEventsUseCase Use case for loading events
  * @property createEventUseCase Use case for creating events
  * @property eventRepository Direct access to repository for additional operations (nullable)
+ * @property sampleEventSeeder Seeder for sample/onboarding event data (nullable)
  * @property scope CoroutineScope for launching async work
  */
 class EventManagementStateMachine(
     private val loadEventsUseCase: LoadEventsUseCase,
     private val createEventUseCase: CreateEventUseCase,
     private val eventRepository: com.guyghost.wakeve.repository.EventRepositoryInterface?,
+    private val sampleEventSeeder: SampleEventSeeder? = null,
     scope: CoroutineScope
 ) : StateMachine<EventManagementContract.State, EventManagementContract.Intent, EventManagementContract.SideEffect>(
     initialState = EventManagementContract.State(),
@@ -130,6 +145,7 @@ class EventManagementStateMachine(
                 intent.eventId,
                 intent.locationId
             )
+            is EventManagementContract.Intent.SeedSampleEvent -> seedSampleEvent()
         }
     }
 
@@ -155,8 +171,8 @@ class EventManagementStateMachine(
             onSuccess = { events ->
                 updateState { it.copy(isLoading = false, events = events) }
             },
-            onFailure = { error ->
-                val errorMessage = error.message ?: "Failed to load events"
+            onFailure = { _ ->
+                val errorMessage = eventLoadFailureMessage()
                 updateState { it.copy(isLoading = false, error = errorMessage) }
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
             }
@@ -214,10 +230,9 @@ class EventManagementStateMachine(
                 // Refresh events list
                 loadEvents()
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast("Event created successfully"))
-                emitSideEffect(EventManagementContract.SideEffect.NavigateBack)
             },
-            onFailure = { error ->
-                val errorMessage = error.message ?: "Failed to create event"
+            onFailure = { _ ->
+                val errorMessage = eventCreateFailureMessage()
                 updateState { it.copy(isLoading = false, error = errorMessage) }
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
             }
@@ -245,17 +260,17 @@ class EventManagementStateMachine(
 
         updateState { it.copy(isLoading = true, error = null) }
 
-        val result = eventRepository.updateEvent(event)
+        val result = eventRepository.saveEvent(event)
 
         result.fold(
             onSuccess = {
                 // Update in state
-                val updatedEvents = currentState.events.map { if (it.id == event.id) event else it }
+                val updatedEvents = currentState.events.filterNot { it.id == event.id } + event
                 updateState { it.copy(isLoading = false, events = updatedEvents, selectedEvent = event) }
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast("Event updated successfully"))
             },
-            onFailure = { error ->
-                val errorMessage = error.message ?: "Failed to update event"
+            onFailure = { _ ->
+                val errorMessage = eventUpdateFailureMessage()
                 updateState { it.copy(isLoading = false, error = errorMessage) }
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
             }
@@ -326,8 +341,8 @@ class EventManagementStateMachine(
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast("Event deleted successfully"))
                 emitSideEffect(EventManagementContract.SideEffect.NavigateBack)
             },
-            onFailure = { error ->
-                val errorMessage = error.message ?: "Failed to delete event"
+            onFailure = { _ ->
+                val errorMessage = eventDeleteFailureMessage()
                 updateState { it.copy(isLoading = false, error = errorMessage) }
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
             }
@@ -339,17 +354,24 @@ class EventManagementStateMachine(
      *
      * Flow:
      * 1. Check if repository is available
-     * 2. Call repository.getParticipants(eventId)
-     * 3. Update state with participant IDs
+     * 2. Call repository.getParticipantRecords(eventId)
+     * 3. Update state with participant IDs and access states
      *
      * @param eventId The ID of the event
      */
     private suspend fun loadParticipants(eventId: String) {
         if (eventRepository == null) return
 
-        val participantIds = eventRepository.getParticipants(eventId) ?: return
+        val participantRecords = eventRepository.getParticipantRecords(eventId) ?: return
+        val participantIds = participantRecords.map { it.userId }
+        val participantAccessStates = participantRecords.map(ParticipantAccessMapper::fromRepositoryRecord)
 
-        updateState { it.copy(participantIds = participantIds) }
+        updateState {
+            it.copy(
+                participantIds = participantIds,
+                participantAccessStates = participantAccessStates
+            )
+        }
     }
 
     /**
@@ -377,8 +399,8 @@ class EventManagementStateMachine(
                 loadParticipants(eventId)
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast("Participant added successfully"))
             },
-            onFailure = { error ->
-                val errorMessage = error.message ?: "Failed to add participant"
+            onFailure = { _ ->
+                val errorMessage = eventAddParticipantFailureMessage()
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
             }
         )
@@ -509,8 +531,8 @@ class EventManagementStateMachine(
                 updateState { it.copy(isLoading = false, events = updatedEvents, selectedEvent = updatedEvent) }
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast("Event updated successfully"))
             },
-            onFailure = { error ->
-                val errorMessage = error.message ?: "Failed to update event"
+            onFailure = { _ ->
+                val errorMessage = eventUpdateFailureMessage()
                 updateState { it.copy(isLoading = false, error = errorMessage) }
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
             }
@@ -703,6 +725,13 @@ class EventManagementStateMachine(
             return
         }
 
+        if (event.planningMode == com.guyghost.wakeve.models.EventPlanningMode.SCENARIO_MATRIX) {
+            val errorMsg = "Cannot start poll: Matrix events must publish scenarios instead"
+            updateState { it.copy(isLoading = false, error = errorMsg) }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMsg))
+            return
+        }
+
         // Update event status to POLLING
         val result = eventRepository.updateEventStatus(
             id = eventId,
@@ -716,8 +745,8 @@ class EventManagementStateMachine(
                 loadEvents()
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast("Poll started successfully"))
             },
-            onFailure = { error ->
-                val errorMessage = error.message ?: "Failed to start poll"
+            onFailure = { _ ->
+                val errorMessage = eventStartPollFailureMessage()
                 updateState { it.copy(isLoading = false, error = errorMessage) }
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
             }
@@ -778,6 +807,13 @@ class EventManagementStateMachine(
             return
         }
 
+        if (eventRepository.isDeadlinePassed(event.deadline)) {
+            val errorMsg = "Cannot confirm date: Poll deadline has passed"
+            updateState { it.copy(isLoading = false, error = errorMsg) }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMsg))
+            return
+        }
+
         // Validate at least one vote exists
         val poll = eventRepository.getPoll(eventId)
         if (poll == null || poll.votes.isEmpty()) {
@@ -796,27 +832,54 @@ class EventManagementStateMachine(
             return
         }
 
-        // Update event status to CONFIRMED
-        val result = eventRepository.updateEventStatus(
-            id = eventId,
-            status = com.guyghost.wakeve.models.EventStatus.CONFIRMED,
-            finalDate = selectedSlot.start
+        val finalDate = selectedSlot.start
+        if (finalDate == null) {
+            val errorMsg = "Selected time slot has no confirmed start date"
+            updateState { it.copy(isLoading = false, error = errorMsg) }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMsg))
+            return
+        }
+
+        val result = eventRepository.confirmEventDate(
+            eventId = eventId,
+            slotId = slotId,
+            confirmedByOrganizerId = userId
         )
 
-        result.fold(
-            onSuccess = {
-                // Reload events to get updated status
-                loadEvents()
-                updateState { it.copy(scenariosUnlocked = true) }
-                emitSideEffect(EventManagementContract.SideEffect.ShowToast("Date confirmed successfully"))
-                emitSideEffect(EventManagementContract.SideEffect.NavigateTo("event/$eventId/scenarios"))
-            },
-            onFailure = { error ->
-                val errorMessage = error.message ?: "Failed to confirm date"
-                updateState { it.copy(isLoading = false, error = errorMessage) }
-                emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
-            }
+        if (result.isFailure) {
+            val errorMessage = eventDateConfirmationFailureMessage()
+            updateState { it.copy(isLoading = false, error = errorMessage) }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
+            return
+        }
+
+        val notificationResult = eventRepository.queueWorkflowOutbox(
+            WorkflowOutboxRecord(
+                eventId = eventId,
+                type = WorkflowOutboxType.DATE_CONFIRMATION_NOTIFICATION,
+                finalDate = finalDate
+            )
         )
+        val calendarResult = eventRepository.queueWorkflowOutbox(
+            WorkflowOutboxRecord(
+                eventId = eventId,
+                type = WorkflowOutboxType.CALENDAR_INVITATION_ARTIFACT,
+                finalDate = finalDate
+            )
+        )
+        val outboxError = notificationResult.exceptionOrNull() ?: calendarResult.exceptionOrNull()
+        if (outboxError != null) {
+            val errorMessage = eventConfirmationWorkflowQueueFailureMessage()
+            updateState { it.copy(isLoading = false, error = errorMessage) }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
+            return
+        }
+
+        // Reload events to get updated status
+        loadEvents()
+        updateState { it.copy(scenariosUnlocked = true) }
+        emitSideEffect(EventManagementContract.SideEffect.ShowToast("Date confirmed successfully"))
+        emitSideEffect(EventManagementContract.SideEffect.NavigateTo("event/$eventId/scenarios"))
     }
 
     /**
@@ -885,8 +948,8 @@ class EventManagementStateMachine(
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast("Transitioned to organizing phase"))
                 emitSideEffect(EventManagementContract.SideEffect.NavigateTo("event/$eventId/meetings"))
             },
-            onFailure = { error ->
-                val errorMessage = error.message ?: "Failed to transition to organizing"
+            onFailure = { _ ->
+                val errorMessage = eventTransitionToOrganizingFailureMessage()
                 updateState { it.copy(isLoading = false, error = errorMessage) }
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
             }
@@ -958,10 +1021,114 @@ class EventManagementStateMachine(
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast("Event finalized successfully!"))
             },
             onFailure = { error ->
-                val errorMessage = error.message ?: "Failed to finalize event"
+                val errorMessage = eventFinalizeFailureMessage(error)
+                updateState { it.copy(isLoading = false, error = errorMessage) }
+                emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
+            }
+        )
+    }
+
+    // ========================================================================
+    // Sample Event Handler
+    // ========================================================================
+
+    /**
+     * Seed the sample event for first-launch onboarding.
+     *
+     * Creates a pre-populated birthday event in POLLING status
+     * with participants, time slots, and pre-cast votes.
+     * Idempotent — does nothing if sample already exists.
+     *
+     * Flow:
+     * 1. Check if sampleEventSeeder is available
+     * 2. Set isLoading = true
+     * 3. Call seeder.seedSampleEvent()
+     * 4. On success: reload events, navigate to event detail
+     * 5. On failure: set error, emit ShowToast
+     */
+    private suspend fun seedSampleEvent() {
+        if (sampleEventSeeder == null) {
+            updateState { it.copy(error = "Sample event seeder not available") }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast("Sample event not available"))
+            return
+        }
+
+        updateState { it.copy(isLoading = true, error = null) }
+
+        val result = sampleEventSeeder.seedSampleEvent()
+
+        result.fold(
+            onSuccess = { event ->
+                // Reload events to include the new sample
+                loadEvents()
+                emitSideEffect(
+                    EventManagementContract.SideEffect.ShowToast(
+                        "✨ Sample event created! Explore the full flow."
+                    )
+                )
+                // Navigate to the sample event detail
+                emitSideEffect(
+                    EventManagementContract.SideEffect.NavigateTo(
+                        "event/${event.id}"
+                    )
+                )
+            },
+            onFailure = { _ ->
+                val errorMessage = eventSeedSampleFailureMessage()
                 updateState { it.copy(isLoading = false, error = errorMessage) }
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
             }
         )
     }
 }
+
+internal fun eventLoadFailureMessage(): String =
+    "Failed to load events"
+
+internal fun eventCreateFailureMessage(): String =
+    "Failed to create event"
+
+internal fun eventUpdateFailureMessage(): String =
+    "Failed to update event"
+
+internal fun eventDeleteFailureMessage(): String =
+    "Failed to delete event"
+
+internal fun eventAddParticipantFailureMessage(): String =
+    "Failed to add participant"
+
+internal fun eventStartPollFailureMessage(): String =
+    "Failed to start poll"
+
+internal fun eventDateConfirmationFailureMessage(): String =
+    "Failed to confirm date"
+
+internal fun eventConfirmationWorkflowQueueFailureMessage(): String =
+    "Failed to queue confirmation workflow"
+
+internal fun eventTransitionToOrganizingFailureMessage(): String =
+    "Failed to transition to organizing"
+
+internal fun eventFinalizeFailureMessage(error: Throwable? = null): String {
+    val messageText = error?.safeMessage().orEmpty()
+    val prefix = "Finalization blocked by "
+    if (messageText.startsWith(prefix)) {
+        val blockerText = messageText.removePrefix(prefix)
+        val blockersAreStructured = blockerText.isNotBlank() &&
+            blockerText.split(",").all { blocker ->
+                blocker.isNotBlank() &&
+                    blocker.all { it.isUpperCase() || it.isDigit() || it == '_' }
+            }
+        if (blockersAreStructured) {
+            return "$prefix$blockerText"
+        }
+    }
+
+    return "Failed to finalize event"
+}
+
+internal fun eventSeedSampleFailureMessage(): String =
+    "Failed to seed sample event"
+
+private fun Throwable.safeMessage(): String =
+    message.orEmpty()

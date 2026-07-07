@@ -83,7 +83,7 @@ ModernEventDetailView(
 
 ### 2. Update ModernEventDetailView.swift (Already Done)
 
-The file `/Users/guy/Developer/dev/wakeve/iosApp/iosApp/Views/ModernEventDetailView.swift` has been updated with:
+The file `/Users/guy/Developer/dev/wakeve/iosApp/src/Views/ModernEventDetailView.swift` has been updated with:
 - Optional navigation callback parameters
 - PRDFeatureButtonsSection now accepts callbacks
 - Navigation logic wired up
@@ -122,7 +122,7 @@ TEAM_ID=YOUR_TEAM_ID_HERE
 
 Once the project builds successfully:
 
-1. Open `iosApp/iosApp/ContentView.swift`
+1. Open `iosApp/src/ContentView.swift`
 2. Navigate to line 220 (the `ModernEventDetailView` call in `.eventDetail` case)
 3. Add the 6 navigation callbacks shown above
 
@@ -157,19 +157,19 @@ EventDetail (ORGANIZING)
 ## File Status
 
 ### Modified Files
-- ✅ `/Users/guy/Developer/dev/wakeve/iosApp/iosApp/Views/ModernEventDetailView.swift` - Navigation callbacks added
-- 🟡 `/Users/guy/Developer/dev/wakeve/iosApp/iosApp/ContentView.swift` - Needs navigation callback wiring (Step 4 above)
+- ✅ `/Users/guy/Developer/dev/wakeve/iosApp/src/Views/ModernEventDetailView.swift` - Navigation callbacks added
+- 🟡 `/Users/guy/Developer/dev/wakeve/iosApp/src/ContentView.swift` - Needs navigation callback wiring (Step 4 above)
 
 ### All iOS Views (Already Exist)
-- `/Users/guy/Developer/dev/wakeve/iosApp/iosApp/Views/ScenarioListView.swift`
-- `/Users/guy/Developer/dev/wakeve/iosApp/iosApp/Views/ScenarioDetailView.swift`
-- `/Users/guy/Developer/dev/wakeve/iosApp/iosApp/Views/ScenarioComparisonView.swift`
-- `/Users/guy/Developer/dev/wakeve/iosApp/iosApp/Views/BudgetOverviewView.swift`
-- `/Users/guy/Developer/dev/wakeve/iosApp/iosApp/Views/BudgetDetailView.swift`
-- `/Users/guy/Developer/dev/wakeve/iosApp/iosApp/Views/AccommodationView.swift`
-- `/Users/guy/Developer/dev/wakeve/iosApp/iosApp/Views/MealPlanningView.swift`
-- `/Users/guy/Developer/dev/wakeve/iosApp/iosApp/Views/EquipmentChecklistView.swift`
-- `/Users/guy/Developer/dev/wakeve/iosApp/iosApp/Views/ActivityPlanningView.swift`
+- `/Users/guy/Developer/dev/wakeve/iosApp/src/Views/ScenarioListView.swift`
+- `/Users/guy/Developer/dev/wakeve/iosApp/src/Views/ScenarioDetailView.swift`
+- `/Users/guy/Developer/dev/wakeve/iosApp/src/Views/ScenarioComparisonView.swift`
+- `/Users/guy/Developer/dev/wakeve/iosApp/src/Views/BudgetOverviewView.swift`
+- `/Users/guy/Developer/dev/wakeve/iosApp/src/Views/BudgetDetailView.swift`
+- `/Users/guy/Developer/dev/wakeve/iosApp/src/Views/AccommodationView.swift`
+- `/Users/guy/Developer/dev/wakeve/iosApp/src/Views/MealPlanningView.swift`
+- `/Users/guy/Developer/dev/wakeve/iosApp/src/Views/EquipmentChecklistView.swift`
+- `/Users/guy/Developer/dev/wakeve/iosApp/src/Views/ActivityPlanningView.swift`
 
 ## Xcode Project Configuration (Already Correct)
 

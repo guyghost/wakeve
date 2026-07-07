@@ -31,6 +31,7 @@ final class MockAuthStateManager: AuthStateManager {
         self.isAuthenticated = isAuthenticated
         self.currentUser = isAuthenticated ? user : nil
         self.isLoading = false
+        self.hasCheckedAuthStatus = true
         self.authError = nil
     }
 
@@ -49,6 +50,7 @@ final class MockAuthStateManager: AuthStateManager {
     override func signOut() {
         isAuthenticated = false
         currentUser = nil
+        hasCheckedAuthStatus = true
         authError = nil
     }
 

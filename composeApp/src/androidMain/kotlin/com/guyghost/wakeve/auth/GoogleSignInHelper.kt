@@ -87,7 +87,7 @@ class GoogleSignInHelper(
                 ?: account.idToken
                 ?: return Result.failure(Exception("No authorization code or ID token received"))
 
-            Log.d(TAG, "Google Sign-In successful for: ${account.email}")
+            Log.d(TAG, "Google Sign-In successful")
             Result.success(authCode)
 
         } catch (e: ApiException) {
@@ -98,13 +98,13 @@ class GoogleSignInHelper(
                 NETWORK_ERROR -> "Network error. Please check your connection and try again"
                 INTERNAL_ERROR -> "Internal error occurred. Please try again"
                 DEVELOPER_ERROR -> "Developer error. Check your Google Sign-In configuration"
-                else -> "Sign-in failed: ${e.message}"
+                else -> "Sign-in failed"
             }
 
             Result.failure(GoogleSignInException(errorMessage, e.statusCode, e))
         } catch (e: Exception) {
             Log.e(TAG, "Unexpected error during sign-in", e)
-            Result.failure(GoogleSignInException("Unexpected error: ${e.message}", UNKNOWN_ERROR, e))
+            Result.failure(GoogleSignInException("Unexpected error during sign-in", UNKNOWN_ERROR, e))
         }
     }
 

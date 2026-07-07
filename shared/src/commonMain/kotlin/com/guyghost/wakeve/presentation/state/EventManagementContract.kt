@@ -1,5 +1,6 @@
 package com.guyghost.wakeve.presentation.state
 
+import com.guyghost.wakeve.access.ParticipantAccessState
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventType
 import com.guyghost.wakeve.models.LocationType
@@ -49,6 +50,7 @@ object EventManagementContract {
         val events: List<Event> = emptyList(),
         val selectedEvent: Event? = null,
         val participantIds: List<String> = emptyList(),
+        val participantAccessStates: List<ParticipantAccessState> = emptyList(),
         val pollVotes: Map<String, Map<String, Vote>> = emptyMap(),
         val scenariosUnlocked: Boolean = false,
         val meetingsUnlocked: Boolean = false,
@@ -316,6 +318,18 @@ object EventManagementContract {
             val eventId: String,
             val locationId: String
         ) : Intent
+
+        /**
+         * Seed the sample event for first-launch onboarding.
+         *
+         * Creates a pre-populated birthday event in POLLING status
+         * with participants, time slots, and pre-cast votes.
+         * Idempotent — does nothing if sample already exists.
+         *
+         * After seeding, dispatches LoadEvents to refresh the list.
+         * Emits ShowToast side effect on success or error.
+         */
+        data object SeedSampleEvent : Intent
     }
 
     // ========================================================================
@@ -366,5 +380,19 @@ object EventManagementContract {
          * The UI should interpret this as popping the back stack.
          */
         data object NavigateBack : SideEffect
+
+        /**
+         * Critical sync conflicts detected — prompt the user to resolve them.
+         *
+         * The UI should show [ConflictResolutionDialog] with the provided summary.
+         * After the user resolves, dispatch [Intent.ApplyConflictResolutions].
+         *
+         * @property conflictSummaryJson JSON-encoded [ConflictSummary] for the UI
+         * @property eventId The ID of the conflicting event
+         */
+        data class ConflictDetected(
+            val eventId: String,
+            val criticalFieldCount: Int
+        ) : SideEffect
     }
 }

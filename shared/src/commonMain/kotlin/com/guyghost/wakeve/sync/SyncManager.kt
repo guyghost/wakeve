@@ -11,6 +11,10 @@ import com.guyghost.wakeve.models.SyncEventData
 import com.guyghost.wakeve.models.SyncOperation
 import com.guyghost.wakeve.models.SyncRequest
 import com.guyghost.wakeve.models.SyncResponse
+import com.guyghost.wakeve.sync.conflict.ConflictDetector
+import com.guyghost.wakeve.sync.conflict.ConflictLogRepository
+import com.guyghost.wakeve.sync.conflict.ConflictSummary
+import com.guyghost.wakeve.sync.conflict.ResolutionDecision
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -20,6 +24,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.Instant
@@ -38,16 +44,32 @@ class SyncManager(
     private val authTokenProvider: () -> String?,
     private val authTokenRefreshProvider: (suspend () -> String?)? = null,
     private val maxRetries: Int = 3,
-    private val baseRetryDelayMs: Long = 1000L, // 1 second
+    private val baseRetryDelayMs: Long = 1000L,
     private val metrics: SyncMetrics = InMemorySyncMetrics(),
-    private val alertManager: SyncAlertManager = LoggingSyncAlertManager()
+    private val alertManager: SyncAlertManager = LoggingSyncAlertManager(),
+    /**
+     * Feature flag: enable conflict detection & logging.
+     * When false, falls back to the original last-write-wins behaviour.
+     * Safe to flip at runtime — the sync loop checks this on every conflict.
+     */
+    val conflictResolutionEnabled: Boolean = true,
+    private val pendingSideEffectReplayers: List<PendingSyncSideEffectReplayer> = emptyList()
 ) {
     private val json = Json { ignoreUnknownKeys = true }
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    private val conflictLog = ConflictLogRepository(database)
+    private val syncMutex = Mutex()
+
+    // Callbacks for the presentation layer
+    /** Called when critical conflicts require user resolution. */
+    var onCriticalConflictsDetected: ((ConflictSummary) -> Unit)? = null
 
     // Sync status
     private val _syncStatus = MutableStateFlow<SyncStatus>(SyncStatus.Idle)
     val syncStatus: StateFlow<SyncStatus> = _syncStatus
+
+    // Timestamp of the last successful sync — used for incremental sync (avoids full re-sync)
+    private var lastSuccessfulSyncTimestamp: String? = null
 
     // Network status from platform-specific detector
     val isNetworkAvailable: StateFlow<Boolean> = networkDetector.isNetworkAvailable
@@ -95,7 +117,8 @@ class SyncManager(
      * Check if there are pending changes to sync
      */
     suspend fun hasPendingChanges(): Boolean {
-        return userRepository.getPendingSyncChanges().isNotEmpty()
+        return userRepository.getPendingSyncChanges().isNotEmpty() ||
+            pendingSideEffectReplayers.any { it.hasPending() }
     }
 
     /**
@@ -121,7 +144,9 @@ class SyncManager(
      * Trigger synchronization with server
      */
     suspend fun triggerSync(): Result<SyncResponse> = runCatching {
-        syncWithRetry().getOrThrow()
+        syncMutex.withLock {
+            syncWithRetry().getOrThrow()
+        }
     }
 
     /**
@@ -179,30 +204,48 @@ class SyncManager(
     }
 
     private suspend fun handleEventConflict(conflict: SyncConflict) {
-        // Get local and server versions
         val localEvent = eventRepository.getEvent(conflict.recordId)
         val serverEventJson = conflict.serverData ?: "{}"
         val serverEvent = try {
             json.decodeFromString(Event.serializer(), serverEventJson)
-        } catch (e: Exception) {
-            null
+        } catch (e: Exception) { null }
+
+        if (localEvent == null || serverEvent == null) {
+            // Nothing to compare — fall back to marking synced
+            userRepository.updateSyncStatus(conflict.changeId, true, 0, null)
+            return
         }
 
-        if (localEvent != null && serverEvent != null) {
-            // Merge using CRDT logic (LWW for each field)
-            // Temporarily use last-write-wins instead of CRDT
+        if (conflictResolutionEnabled) {
+            // ── New path: detect + classify + log ─────────────────────────
+            val summary = ConflictDetector.detect(localEvent, serverEvent)
+
+            // 1. Persist audit log
+            conflictLog.logSummary(summary)
+
+            // 2. Auto-resolve non-critical fields
+            val autoDecisions = ConflictDetector.autoResolveNonCritical(summary)
+            if (autoDecisions.isNotEmpty()) {
+                val autoMerged = ConflictDetector.applyDecisions(localEvent, autoDecisions)
+                eventRepository.updateEvent(autoMerged)
+            }
+
+            // 3. Surface critical conflicts to the presentation layer
+            if (summary.hasCritical) {
+                onCriticalConflictsDetected?.invoke(summary)
+                // For now: do NOT overwrite local for critical fields.
+                // The user will resolve via the dialog and a follow-up sync.
+                println("CONFLICT: ${summary.criticalConflicts.size} critical field(s) on event ${localEvent.id} — awaiting user resolution")
+            } else {
+                // All conflicts auto-resolved — mark synced
+                userRepository.updateSyncStatus(conflict.changeId, true, 0, null)
+            }
+        } else {
+            // ── Legacy path: last-write-wins (flag off) ───────────────────
             val mergedEvent = if (localEvent.updatedAt >= serverEvent.updatedAt) localEvent else serverEvent
-            // Update local database with merged event
             eventRepository.updateEvent(mergedEvent)
+            userRepository.updateSyncStatus(conflict.changeId, true, 0, null)
         }
-
-        // Mark as synced
-        userRepository.updateSyncStatus(
-            syncId = conflict.changeId,
-            synced = true,
-            retryCount = 0,
-            error = null
-        )
     }
 
     private suspend fun handleParticipantConflict(conflict: SyncConflict) {
@@ -273,7 +316,7 @@ class SyncManager(
                 syncId = change.id,
                 synced = false,
                 retryCount = newRetryCount,
-                error = error.message ?: "Sync failed"
+                error = syncFailureMessage()
             )
         }
     }
@@ -369,7 +412,11 @@ class SyncManager(
 
         val authToken = authTokenProvider() ?: throw IllegalStateException("No auth token available")
 
-        _syncStatus.value = SyncStatus.Syncing
+        if (hasPendingChanges()) {
+            _syncStatus.value = SyncStatus.Syncing
+        }
+
+        replayPendingSideEffects()
 
         val pendingChanges = getPendingChangesForSync()
         if (pendingChanges.isEmpty()) {
@@ -387,7 +434,7 @@ class SyncManager(
 
         val syncRequest = SyncRequest(
             changes = pendingChanges,
-            lastSyncTimestamp = null // TODO: Track last successful sync
+            lastSyncTimestamp = lastSuccessfulSyncTimestamp
         )
 
         // Make actual HTTP call to server
@@ -409,18 +456,30 @@ class SyncManager(
             alertManager.alertHighConflictRate(response.conflicts.size)
         }
 
-        _syncStatus.value = if (response.success) SyncStatus.Idle else SyncStatus.Error(response.message ?: "Sync failed")
+        _syncStatus.value = if (response.success) SyncStatus.Idle else SyncStatus.Error(syncFailureMessage())
 
         val duration = getCurrentTimeMillis() - startTime
         if (response.success) {
+            // Update incremental sync timestamp so next sync only fetches new changes
+            lastSuccessfulSyncTimestamp = response.serverTimestamp
             metrics.recordSyncSuccess(duration, response.appliedChanges)
         } else {
-            metrics.recordSyncFailure(duration, response.message ?: "Unknown error")
+            metrics.recordSyncFailure(duration, syncFailureMessage())
         }
 
         checkPerformance(duration)
 
         return response
+    }
+
+    private suspend fun replayPendingSideEffects(): Int {
+        var replayed = 0
+        pendingSideEffectReplayers.forEach { replayer ->
+            if (replayer.hasPending()) {
+                replayed += replayer.replayPending().getOrThrow()
+            }
+        }
+        return replayed
     }
 
     /**
@@ -434,7 +493,7 @@ class SyncManager(
                 return Result.success(performSyncWithTokenRefresh())
             } catch (e: Exception) {
                 lastException = e
-                _syncStatus.value = SyncStatus.Error("Sync failed (attempt ${attempt + 1}/${maxRetries + 1}): ${e.message}")
+                _syncStatus.value = SyncStatus.Error(syncRetryFailureMessage(attempt + 1, maxRetries + 1))
 
                 if (attempt < maxRetries) {
                     // Calculate exponential backoff delay: baseDelay * 2^attempt
@@ -443,7 +502,7 @@ class SyncManager(
                 } else {
                     // All retries failed, update sync status for failed changes
                     updateSyncStatusForFailure(e)
-                    alertManager.alertSyncFailure(e.message ?: "Unknown error", maxRetries)
+                    alertManager.alertSyncFailure(syncFailureMessage(), maxRetries)
                 }
             }
         }
@@ -480,3 +539,9 @@ class SyncManager(
         scope.cancel()
     }
 }
+
+internal fun syncFailureMessage(): String =
+    "Sync failed. Please retry when your connection is stable."
+
+internal fun syncRetryFailureMessage(attempt: Int, totalAttempts: Int): String =
+    "Sync failed (attempt $attempt/$totalAttempts). Please retry when your connection is stable."

@@ -54,7 +54,10 @@ class ScenarioListViewModel: StateMachineViewModel<
             description: description,
             status: ScenarioStatus.proposed,
             createdAt: "",
-            updatedAt: ""
+            updatedAt: "",
+            sourceTimeSlotId: nil,
+            sourcePotentialLocationId: nil,
+            generationType: ScenarioGenerationType.manual
         )
         dispatch(ScenarioManagementContractIntentCreateScenario(scenario: scenario))
     }
@@ -73,6 +76,36 @@ class ScenarioListViewModel: StateMachineViewModel<
 
     func voteScenario(scenarioId: String, voteType: ScenarioVoteType) {
         dispatch(ScenarioManagementContractIntentVoteScenario(scenarioId: scenarioId, vote: voteType))
+    }
+
+    func selectScenarioAsFinal(eventId: String, scenarioId: String, userId: String) {
+        dispatch(ScenarioManagementContractIntentSelectScenarioAsFinal(
+            eventId: eventId,
+            scenarioId: scenarioId,
+            userId: userId
+        ))
+    }
+
+    func generateScenarioMatrix(eventId: String, userId: String) {
+        dispatch(ScenarioManagementContractIntentGenerateScenarioMatrix(
+            eventId: eventId,
+            userId: userId
+        ))
+    }
+
+    func publishScenarioMatrix(eventId: String, userId: String) {
+        dispatch(ScenarioManagementContractIntentPublishScenarioMatrix(
+            eventId: eventId,
+            userId: userId
+        ))
+    }
+
+    func selectMatrixScenarioAsFinal(eventId: String, scenarioId: String, userId: String) {
+        dispatch(ScenarioManagementContractIntentSelectMatrixScenarioAsFinal(
+            eventId: eventId,
+            scenarioId: scenarioId,
+            userId: userId
+        ))
     }
 
     func compareScenarios(scenarioIds: [String]) {
@@ -96,6 +129,8 @@ class ScenarioListViewModel: StateMachineViewModel<
     var isEmpty: Bool { scenarios.isEmpty }
     var isComparing: Bool { comparison != nil }
     var scenariosRanked: [ScenarioWithVotes] { state.getScenariosRanked() }
+    var eventStatus: EventStatus? { state.eventStatus }
+    var canSelectScenarioAsFinal: Bool { state.canSelectScenarioAsFinal() }
     var isLoading: Bool { state.isLoading }
     var hasError: Bool { state.hasError }
     var errorMessage: String? { state.error }
@@ -132,7 +167,7 @@ class ScenarioListViewModel: StateMachineViewModel<
 
     private func shareScenarioInternal(scenario: Scenario_) {
         let shareText = prepareShareText(scenario: scenario)
-        print("Share scenario: \(shareText)")
+        debugLog("Share scenario: \(shareText)")
     }
 
     private func prepareShareText(scenario: Scenario_) -> String {

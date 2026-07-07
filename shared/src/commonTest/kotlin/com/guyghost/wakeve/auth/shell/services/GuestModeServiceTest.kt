@@ -217,7 +217,7 @@ class GuestModeServiceTest {
     // ========================================================================
 
     @Test
-    fun `full guest lifecycle - create, restore, convert`() {
+    fun `full guest lifecycle - create restore convert`() {
         val service = createService()
 
         // 1. No session initially

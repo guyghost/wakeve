@@ -117,7 +117,7 @@ struct LocationSelectionSheet: View {
         }
         .onReceive(locationManager.$error) { error in
             if let error = error {
-                print("Location error: \(error.localizedDescription)")
+                debugLog("Location error: \(error.localizedDescription)")
                 isLoadingLocation = false
             }
         }
@@ -154,7 +154,7 @@ struct LocationSelectionSheet: View {
             isLoadingLocation = false
             
             if let error = error {
-                print("Reverse geocoding error: \(error.localizedDescription)")
+                debugLog("Reverse geocoding error: \(error.localizedDescription)")
                 currentAddress = String(localized: "location.my_current_position")
                 return
             }
@@ -196,11 +196,6 @@ struct LocationSelectionSheet: View {
                 .font(.body)
                 .foregroundColor(.primary)
                 .focused($searchFieldFocused)
-                .onChange(of: searchFieldFocused) { _, isFocused in
-                    if isFocused {
-                        requestLocationPermissionForSearch()
-                    }
-                }
             
             if !searchText.isEmpty {
                 Button {
@@ -266,6 +261,7 @@ struct LocationSelectionSheet: View {
                             ProgressView()
                                 .scaleEffect(0.8)
                                 .frame(width: 16, height: 16)
+                                .accessibilityHidden(true)
                         } else {
                             Image(systemName: "location.fill")
                                 .font(.system(size: 16, weight: .semibold))
@@ -283,6 +279,7 @@ struct LocationSelectionSheet: View {
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                                 .lineLimit(1)
+                                .minimumScaleFactor(0.76)
                         }
                     }
                     
@@ -364,24 +361,6 @@ struct LocationSelectionSheet: View {
     
     // MARK: - Helpers
     
-    private func requestLocationPermissionForSearch() {
-        let status = locationManager.authorizationStatus
-        switch status {
-        case .notDetermined:
-            // Request permission when user taps search field
-            locationManager.requestAuthorization()
-        case .authorizedWhenInUse, .authorizedAlways:
-            // Permission already granted, user can type freely
-            break
-        case .denied, .restricted:
-            // Permission denied, show alert but still allow typing
-            // User can still search by typing manually
-            break
-        @unknown default:
-            break
-        }
-    }
-    
     private func requestCurrentLocation() {
         isLoadingLocation = true
         
@@ -401,8 +380,7 @@ struct LocationSelectionSheet: View {
     }
     
     private func triggerVoiceSearch() {
-        let generator = UINotificationFeedbackGenerator()
-        generator.notificationOccurred(.success)
+        WakeveHaptics.success()
     }
     
     private func confirmSelection() {
@@ -465,7 +443,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         self.error = error
-        print("Location manager error: \(error.localizedDescription)")
+        debugLog("Location manager error: \(error.localizedDescription)")
     }
     
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
@@ -488,10 +466,10 @@ struct LocationSelectionSheet_Previews: PreviewProvider {
         .sheet(isPresented: .constant(true)) {
             LocationSelectionSheet(
                 onDismiss: {
-                    print("Dismissed")
+                    debugLog("Dismissed")
                 },
                 onConfirm: { location in
-                    print("Confirmed: \(location.name)")
+                    debugLog("Confirmed: \(location.name)")
                 }
             )
         }

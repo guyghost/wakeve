@@ -92,6 +92,58 @@ interface BadgeNotificationService {
 }
 
 /**
+ * Default badge notification service for builds where no platform notification
+ * implementation has been wired.
+ */
+object NoConfiguredBadgeNotificationService : BadgeNotificationService {
+    private fun notConfigured(): Nothing =
+        throw IllegalStateException("Badge notification service is not configured")
+
+    override suspend fun showBadgeUnlockedNotification(
+        userId: String,
+        badge: Badge,
+        pointsEarned: Int
+    ) {
+        notConfigured()
+    }
+
+    override suspend fun showPointsEarnedNotification(
+        userId: String,
+        points: Int,
+        action: String
+    ) {
+        notConfigured()
+    }
+
+    override suspend fun showVoiceAssistantError(
+        userId: String,
+        error: String
+    ) {
+        notConfigured()
+    }
+
+    override suspend fun sendBadgeNotification(notification: BadgeNotification) {
+        notConfigured()
+    }
+
+    override suspend fun clearBadgeNotification(notificationId: String) {
+        notConfigured()
+    }
+
+    override suspend fun updateBadgeCount(count: Int) {
+        notConfigured()
+    }
+
+    override suspend fun requestNotificationPermission(): Boolean {
+        notConfigured()
+    }
+
+    override fun isNotificationEnabled(): Boolean {
+        notConfigured()
+    }
+}
+
+/**
  * Notification channels for gamification features.
  */
 enum class NotificationChannel {

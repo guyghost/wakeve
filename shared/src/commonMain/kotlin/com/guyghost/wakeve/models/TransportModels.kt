@@ -49,13 +49,45 @@ data class TransportPlan(
     val groupArrivals: List<String>, // ISO times when group arrives
     val totalGroupCost: Double,
     val optimizationType: OptimizationType,
-    val createdAt: String // ISO 8601
+    val createdAt: String, // ISO 8601
+    val id: String = "transport-plan-${eventId}-${createdAt}"
 )
 
 @Serializable
 enum class OptimizationType {
     COST_MINIMIZE, TIME_MINIMIZE, BALANCED
 }
+
+@Serializable
+data class DepartureLocationRecord(
+    val eventId: String,
+    val participantId: String,
+    val location: TransportLocation,
+    val updatedByUserId: String,
+    val updatedAt: String
+)
+
+@Serializable
+data class TransportReadiness(
+    val eventId: String,
+    val destination: TransportLocation,
+    val isComplete: Boolean,
+    val canGeneratePlan: Boolean,
+    val transportNotNeeded: Boolean,
+    val canFinalizeWithoutPlan: Boolean,
+    val missingDepartureParticipantIds: List<String>,
+    val missingDepartureParticipantNames: List<String>
+)
+
+@Serializable
+data class SelectedTransportPlanSummary(
+    val eventId: String,
+    val planId: String,
+    val totalCost: Double,
+    val optimizationType: OptimizationType,
+    val selectedAt: String,
+    val readiness: TransportReadiness
+)
 
 interface TransportService {
     suspend fun getTransportOptions(

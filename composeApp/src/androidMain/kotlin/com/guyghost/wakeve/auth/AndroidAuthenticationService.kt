@@ -1,6 +1,7 @@
 package com.guyghost.wakeve.auth
 
 import android.content.Context
+import com.guyghost.wakeve.BuildConfig
 import com.guyghost.wakeve.models.OAuthLoginRequest
 import com.guyghost.wakeve.models.OAuthLoginResponse
 import com.guyghost.wakeve.models.OAuthProvider
@@ -17,9 +18,21 @@ import kotlinx.serialization.json.Json
 /**
  * Android-specific authentication service
  */
+private const val DEFAULT_ANDROID_AUTH_SERVER_URL = "https://api.wakeve.app"
+
+internal fun resolveAndroidAuthServerBaseUrl(serverUrl: String?): String {
+    val normalized = serverUrl
+        ?.trim()
+        ?.trimEnd('/')
+        ?.takeIf { it.isNotBlank() }
+        ?: DEFAULT_ANDROID_AUTH_SERVER_URL
+
+    return normalized.removeSuffix("/api")
+}
+
 class AndroidAuthenticationService(
     context: Context,
-    baseUrl: String = "http://10.0.2.2:8080" // Android emulator localhost
+    baseUrl: String = resolveAndroidAuthServerBaseUrl(BuildConfig.SERVER_URL)
 ) : ClientAuthenticationService(
     secureStorage = AndroidSecureTokenStorage(context),
     baseUrl = baseUrl

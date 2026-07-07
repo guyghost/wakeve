@@ -427,7 +427,7 @@ class ActivityPlanningIntegrationTest {
                 authorName = participant1Name,
                 request = CommentRequest(
                     section = CommentSection.ACTIVITY,
-                    content = "COST SUMMARY: Cooking Class (4 registered): $120 total, Spa Day (3 registered): $120 actual cost, Total event activities: $240"
+                    content = "COST SUMMARY: Cooking Class registered total matches per-person shares; Spa Day actual cost matches three registered participants; Total event activities reconciled"
                 )
             )
             

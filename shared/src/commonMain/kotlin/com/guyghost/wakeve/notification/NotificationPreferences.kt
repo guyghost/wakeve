@@ -3,6 +3,8 @@ package com.guyghost.wakeve.notification
 import kotlinx.serialization.Serializable
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 /**
  * User notification preferences.
@@ -60,7 +62,8 @@ data class QuietTime(
  */
 fun NotificationPreferences.shouldSend(
     type: NotificationType,
-    currentTime: Instant
+    currentTime: Instant,
+    timeZone: TimeZone = TimeZone.currentSystemDefault()
 ): Boolean {
     // Check if type is enabled
     if (type !in enabledTypes) return false
@@ -72,8 +75,10 @@ fun NotificationPreferences.shouldSend(
     val start = quietHoursStart ?: return true
     val end = quietHoursEnd ?: return true
 
-    // Convert to minutes since midnight
-    val currentMinutes = currentTime.toEpochMilliseconds() / 60000 % 1440
+    // Convert to local minutes since midnight. Quiet hours are a user-facing
+    // wall-clock preference, not a UTC interval.
+    val localDateTime = currentTime.toLocalDateTime(timeZone)
+    val currentMinutes = localDateTime.hour * 60 + localDateTime.minute
     val startMinutes = start.hour * 60 + start.minute
     val endMinutes = end.hour * 60 + end.minute
 
@@ -95,14 +100,7 @@ fun NotificationPreferences.shouldSend(
 fun defaultNotificationPreferences(userId: String): NotificationPreferences =
     NotificationPreferences(
         userId = userId,
-        enabledTypes = setOf(
-            NotificationType.EVENT_INVITE,
-            NotificationType.VOTE_REMINDER,
-            NotificationType.DATE_CONFIRMED,
-            NotificationType.NEW_SCENARIO,
-            NotificationType.MENTION,
-            NotificationType.MEETING_REMINDER
-        ),
+        enabledTypes = NotificationType.entries.toSet(),
         quietHoursStart = QuietTime(22, 0), // 10 PM
         quietHoursEnd = QuietTime(8, 0),    // 8 AM
         soundEnabled = true,

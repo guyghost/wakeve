@@ -1,9 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-sdk tools:overrideLibrary="com.google.mlkit.genai.prompt,com.google.mlkit.genai.common" />
 
     <!-- Permissions nécessaires -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
     <uses-permission android:name="android.permission.READ_CALENDAR" />
     <uses-permission android:name="android.permission.WRITE_CALENDAR" />
 
@@ -81,6 +86,26 @@
                     android:host="calendar" />
             </intent-filter>
 
+            <!-- Deep Link: Home - wakeve://home -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="wakeve"
+                    android:host="home" />
+            </intent-filter>
+
+            <!-- Deep Link: Notifications - wakeve://notifications?filter=unread -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="wakeve"
+                    android:host="notifications" />
+            </intent-filter>
+
             <!-- Deep Link: Reminder - wakeve://reminder/check-votes -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -140,6 +165,17 @@
                 <data
                     android:scheme="wakeve"
                     android:host="invite" />
+            </intent-filter>
+
+            <!-- App Link: Invite - https://wakeve.app/invite/{token} -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="wakeve.app"
+                    android:pathPrefix="/invite" />
             </intent-filter>
         </activity>
 

@@ -6,7 +6,9 @@
 
 The Meeting API provides secure endpoints for creating virtual meetings on external platforms (Zoom, Google Meet). These endpoints act as a **proxy** to hide API keys from clients, ensuring security by handling all external API authentication server-side.
 
-**Base URL:** `http://localhost:8080`
+**Production Base URL:** `https://api.wakeve.app`
+
+**Local Development Base URL:** `http://localhost:8080` after running `./gradlew server:run`
 
 **Content-Type:** `application/json`
 
@@ -122,7 +124,9 @@ Content-Type: application/json
 
 **Example cURL:**
 ```bash
-curl -X POST http://localhost:8080/api/meetings/proxy/zoom/create \
+WAKEVE_API_BASE="${WAKEVE_API_BASE:-https://api.wakeve.app}"
+
+curl -X POST "$WAKEVE_API_BASE/api/meetings/proxy/zoom/create" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Team Planning Session",
@@ -185,7 +189,9 @@ Content-Type: application/json
 
 **Example cURL:**
 ```bash
-curl -X POST http://localhost:8080/api/meetings/proxy/zoom/1234567890/cancel \
+WAKEVE_API_BASE="${WAKEVE_API_BASE:-https://api.wakeve.app}"
+
+curl -X POST "$WAKEVE_API_BASE/api/meetings/proxy/zoom/1234567890/cancel" \
   -H "Content-Type: application/json"
 ```
 
@@ -246,7 +252,9 @@ Content-Type: application/json
 
 **Example cURL:**
 ```bash
-curl -X GET http://localhost:8080/api/meetings/proxy/zoom/1234567890/status \
+WAKEVE_API_BASE="${WAKEVE_API_BASE:-https://api.wakeve.app}"
+
+curl -X GET "$WAKEVE_API_BASE/api/meetings/proxy/zoom/1234567890/status" \
   -H "Content-Type: application/json"
 ```
 
@@ -320,7 +328,9 @@ Content-Type: application/json
 
 **Example cURL:**
 ```bash
-curl -X POST http://localhost:8080/api/meetings/proxy/google-meet/create \
+WAKEVE_API_BASE="${WAKEVE_API_BASE:-https://api.wakeve.app}"
+
+curl -X POST "$WAKEVE_API_BASE/api/meetings/proxy/google-meet/create" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Team Sync",
@@ -472,27 +482,29 @@ val response = httpClient.post("https://www.googleapis.com/calendar/v3/calendars
 ### Using cURL
 
 ```bash
+WAKEVE_API_BASE="${WAKEVE_API_BASE:-https://api.wakeve.app}"
+
 # Create Zoom meeting
-curl -X POST http://localhost:8080/api/meetings/proxy/zoom/create \
+curl -X POST "$WAKEVE_API_BASE/api/meetings/proxy/zoom/create" \
   -H "Content-Type: application/json" \
   -d '{"title":"Test","scheduledFor":"2026-02-15T14:00:00Z","duration":60}'
 
 # Create Google Meet meeting
-curl -X POST http://localhost:8080/api/meetings/proxy/google-meet/create \
+curl -X POST "$WAKEVE_API_BASE/api/meetings/proxy/google-meet/create" \
   -H "Content-Type: application/json" \
   -d '{"title":"Test","scheduledFor":"2026-02-15T15:00:00Z","duration":45}'
 
 # Cancel meeting
-curl -X POST http://localhost:8080/api/meetings/proxy/zoom/1234567890/cancel
+curl -X POST "$WAKEVE_API_BASE/api/meetings/proxy/zoom/1234567890/cancel"
 
 # Get meeting status
-curl -X GET http://localhost:8080/api/meetings/proxy/zoom/1234567890/status
+curl -X GET "$WAKEVE_API_BASE/api/meetings/proxy/zoom/1234567890/status"
 ```
 
 ### Using Postman
 
 1. Import the following collection:
-2. Set base URL: `http://localhost:8080`
+2. Set `wakeve_api_base` to `https://api.wakeve.app` or `http://localhost:8080` for local development
 3. Configure environment variables if needed
 4. Run requests
 
@@ -501,13 +513,14 @@ curl -X GET http://localhost:8080/api/meetings/proxy/zoom/1234567890/status
 ```kotlin
 // In Android Jetpack Compose
 val httpClient = HttpClient()
+val baseUrl = "https://api.wakeve.app"
 
 suspend fun createZoomMeeting(
     title: String,
     scheduledFor: Instant,
     duration: Duration
 ): ZoomMeetingResponse {
-    val response = httpClient.post("http://localhost:8080/api/meetings/proxy/zoom/create") {
+    val response = httpClient.post("$baseUrl/api/meetings/proxy/zoom/create") {
         setBody(
             Json.encodeToString(
                 CreateZoomMeetingRequest(

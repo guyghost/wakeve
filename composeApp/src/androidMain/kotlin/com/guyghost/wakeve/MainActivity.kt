@@ -1,6 +1,8 @@
 package com.guyghost.wakeve
 
+import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -9,12 +11,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.browser.customtabs.CustomTabColorSchemeParams
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.lifecycleScope
 import com.guyghost.wakeve.auth.AndroidAuthenticationService
+import com.guyghost.wakeve.auth.core.models.AuthError
 import com.guyghost.wakeve.di.appModule
 import com.guyghost.wakeve.di.platformModule
 import com.guyghost.wakeve.navigation.AuthCallbacks
@@ -26,6 +30,7 @@ import com.guyghost.wakeve.auth.shell.services.AppleSignInProvider
 import com.guyghost.wakeve.auth.shell.services.AppleSignInWebFlow
 import com.guyghost.wakeve.ui.auth.AuthViewModel
 import com.guyghost.wakeve.deeplink.DeepLinkStateManager
+import com.guyghost.wakeve.deeplink.redactDeepLinkForLog
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import org.koin.android.ext.koin.androidContext
@@ -33,6 +38,7 @@ import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.GlobalContext
 import org.koin.core.context.startKoin
 import org.koin.core.logger.Level
+import java.util.Locale
 
 class MainActivity : ComponentActivity(), AuthCallbacks {
 
@@ -75,9 +81,15 @@ class MainActivity : ComponentActivity(), AuthCallbacks {
                 handleAuthResult(authResult)
             } catch (e: Exception) {
                 Log.e("MainActivity", "Error handling Google Sign-In result", e)
-                showToast("Erreur lors de la connexion Google: ${e.message}")
+                showToast(oauthResultFailureMessage(OAuthProviderName.GOOGLE))
             }
         }
+    }
+
+    override fun attachBaseContext(newBase: Context) {
+        val config = Configuration(newBase.resources.configuration)
+        config.setLocale(Locale.FRANCE)
+        super.attachBaseContext(newBase.createConfigurationContext(config))
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -239,14 +251,14 @@ class MainActivity : ComponentActivity(), AuthCallbacks {
                     if (signInIntent != null) {
                         googleSignInLauncher.launch(signInIntent)
                     } else {
-                        showToast("Impossible de lancer Google Sign-In")
+                        showToast(oauthLaunchFailureMessage(OAuthProviderName.GOOGLE))
                     }
                 } else {
-                    showToast("Google Sign-In non configuré - OAuth provider non initialisé")
+                    showToast(oauthUnavailableMessage(OAuthProviderName.GOOGLE))
                 }
             } catch (e: Exception) {
                 Log.e("MainActivity", "Error launching Google Sign-In", e)
-                showToast("Erreur: ${e.message}")
+                showToast(oauthLaunchFailureMessage(OAuthProviderName.GOOGLE))
             }
         }
     }
@@ -284,11 +296,11 @@ class MainActivity : ComponentActivity(), AuthCallbacks {
                     // Open URL in Chrome Custom Tab
                     openCustomTab(authUrl)
                 } else {
-                    showToast("Apple Sign-In non configuré - OAuth provider non initialisé")
+                    showToast(oauthUnavailableMessage(OAuthProviderName.APPLE))
                 }
             } catch (e: Exception) {
                 Log.e("MainActivity", "Error launching Apple Sign-In", e)
-                showToast("Erreur: ${e.message}")
+                showToast(oauthLaunchFailureMessage(OAuthProviderName.APPLE))
             }
         }
     }
@@ -305,14 +317,18 @@ class MainActivity : ComponentActivity(), AuthCallbacks {
      */
     private fun openCustomTab(url: String) {
         try {
+            val toolbarColor = android.graphics.Color.parseColor("#FFFFFF")
+            val colorSchemeParams = CustomTabColorSchemeParams.Builder()
+                .setToolbarColor(toolbarColor)
+                .build()
             val builder = CustomTabsIntent.Builder()
-            builder.setShowTitle(true)
-            builder.setToolbarColor(android.graphics.Color.parseColor("#FFFFFF"))
+                .setShowTitle(true)
+                .setDefaultColorSchemeParams(colorSchemeParams)
 
             val customTabsIntent = builder.build()
             customTabsIntent.launchUrl(this, Uri.parse(url))
 
-            Log.d("MainActivity", "Opened Custom Tab with URL: $url")
+            Log.d("MainActivity", "Opened OAuth Custom Tab")
         } catch (e: Exception) {
             Log.e("MainActivity", "Error opening Custom Tab", e)
             // Fallback: Open in default browser
@@ -354,16 +370,34 @@ class MainActivity : ComponentActivity(), AuthCallbacks {
      */
     private fun handleDeepLinkFromIntent(intent: Intent?) {
         intent?.data?.let { uri ->
-            Log.d("MainActivity", "Deep link received: $uri")
+            Log.d("MainActivity", "Deep link received: ${redactDeepLinkForLog(uri.toString())}")
 
             // Handle Apple Sign-In callback specifically
-            if (uri.scheme == "wakeve" && uri.host == "apple-auth-callback") {
-                Log.d("MainActivity", "Apple Sign-In callback received: $uri")
-                handleAppleAuthCallback(uri)
-            } else {
-                // Store deep link for Compose UI to handle
-                DeepLinkStateManager.updatePendingDeepLink(uri)
-                Log.d("MainActivity", "Deep link stored in state manager")
+            when (
+                appleOAuthCallbackDeepLinkDecision(
+                    scheme = uri.scheme,
+                    host = uri.host,
+                    encodedUserInfo = uri.encodedUserInfo,
+                    encodedFragment = uri.encodedFragment,
+                    port = uri.port
+                )
+            ) {
+                AppleOAuthCallbackDeepLinkDecision.ValidCallback -> {
+                    Log.d("MainActivity", "Apple Sign-In callback received: ${redactDeepLinkForLog(uri.toString())}")
+                    handleAppleAuthCallback(uri)
+                }
+                AppleOAuthCallbackDeepLinkDecision.InvalidCallback -> {
+                    Log.e("MainActivity", "Invalid Apple Sign-In callback rejected")
+                    authViewModel.handleOAuthError(appleOAuthCallbackFailureMessage(null))
+                }
+                AppleOAuthCallbackDeepLinkDecision.NotAppleCallback -> {
+                    // Store deep link for Compose UI to handle
+                    if (DeepLinkStateManager.updatePendingDeepLink(uri)) {
+                        Log.d("MainActivity", "Deep link stored in state manager")
+                    } else {
+                        Log.w("MainActivity", "Unsupported deep link rejected: ${redactDeepLinkForLog(uri.toString())}")
+                    }
+                }
             }
         } ?: run {
             Log.d("MainActivity", "No deep link URI in intent")
@@ -389,21 +423,20 @@ class MainActivity : ComponentActivity(), AuthCallbacks {
                 when {
                     error != null -> {
                         // User denied or error occurred
-                        val errorDesc = uri.getQueryParameter("error_description") ?: error
-                        Log.e("MainActivity", "Apple Sign-In error: $error - $errorDesc")
-                        authViewModel.handleOAuthError("Erreur Apple Sign-In: $errorDesc")
+                        Log.e("MainActivity", "Apple Sign-In error callback received")
+                        authViewModel.handleOAuthError(appleOAuthCallbackFailureMessage(error))
                     }
 
                     code == null -> {
                         // No authorization code
                         Log.e("MainActivity", "Apple Sign-In callback missing authorization code")
-                        authViewModel.handleOAuthError("Erreur: Code d'autorisation manquant")
+                        authViewModel.handleOAuthError(appleOAuthCallbackFailureMessage(null))
                     }
 
                     state != appleOAuthState -> {
                         // State mismatch - possible CSRF attack
-                        Log.e("MainActivity", "Apple Sign-In state mismatch: expected $appleOAuthState, got $state")
-                        authViewModel.handleOAuthError("Erreur: État de sécurité invalide")
+                        Log.e("MainActivity", "Apple Sign-In state mismatch")
+                        authViewModel.handleOAuthError(appleOAuthCallbackFailureMessage(null))
                     }
 
                     else -> {
@@ -423,7 +456,7 @@ class MainActivity : ComponentActivity(), AuthCallbacks {
                 }
             } catch (e: Exception) {
                 Log.e("MainActivity", "Error handling Apple auth callback", e)
-                authViewModel.handleOAuthError("Erreur lors de la connexion Apple: ${e.message}")
+                authViewModel.handleOAuthError(oauthResultFailureMessage(OAuthProviderName.APPLE))
             }
         }
     }
@@ -443,7 +476,7 @@ class MainActivity : ComponentActivity(), AuthCallbacks {
                 val user = authResult.user
                 val token = authResult.token
 
-                Log.d("MainActivity", "Authentication successful: ${user.displayName} (${user.email})")
+                Log.d("MainActivity", "Authentication successful")
 
                 // Propagate result to AuthViewModel
                 // This will update the StateMachine and trigger navigation
@@ -464,13 +497,13 @@ class MainActivity : ComponentActivity(), AuthCallbacks {
                 Log.e("MainActivity", "Authentication error: ${error::class.simpleName}")
 
                 val errorMessage = when (error) {
-                    is com.guyghost.wakeve.auth.core.models.AuthError.OAuthCancelled -> {
+                    is AuthError.OAuthCancelled -> {
                         "Connexion annulée"
                     }
-                    is com.guyghost.wakeve.auth.core.models.AuthError.OAuthError -> {
-                        "Erreur OAuth: ${error.message}"
+                    is AuthError.OAuthError -> {
+                        authenticationFailureMessage(error)
                     }
-                    is com.guyghost.wakeve.auth.core.models.AuthError.NetworkError -> {
+                    is AuthError.NetworkError -> {
                         "Erreur réseau: Vérifiez votre connexion"
                     }
                     else -> {
@@ -543,4 +576,79 @@ class MainActivity : ComponentActivity(), AuthCallbacks {
 @Composable
 fun AppAndroidPreview() {
     App()
+}
+
+internal enum class OAuthProviderName(val displayName: String) {
+    GOOGLE("Google"),
+    APPLE("Apple")
+}
+
+internal fun oauthLaunchFailureMessage(provider: OAuthProviderName): String {
+    return "Impossible de lancer la connexion ${provider.displayName}."
+}
+
+internal fun oauthResultFailureMessage(provider: OAuthProviderName): String {
+    return "Impossible de terminer la connexion ${provider.displayName}."
+}
+
+internal fun oauthUnavailableMessage(provider: OAuthProviderName): String {
+    return "Connexion ${provider.displayName} indisponible pour le moment."
+}
+
+internal fun appleOAuthCallbackFailureMessage(providerError: String?): String {
+    return "Connexion Apple annulée ou impossible."
+}
+
+internal enum class AppleOAuthCallbackDeepLinkDecision {
+    ValidCallback,
+    InvalidCallback,
+    NotAppleCallback
+}
+
+internal fun appleOAuthCallbackDeepLinkDecision(
+    scheme: String?,
+    host: String?,
+    encodedUserInfo: String?,
+    encodedFragment: String?,
+    port: Int
+): AppleOAuthCallbackDeepLinkDecision {
+    if (scheme != "wakeve" || host != "apple-auth-callback") {
+        return AppleOAuthCallbackDeepLinkDecision.NotAppleCallback
+    }
+
+    return if (
+        isAppleOAuthCallbackDeepLink(
+            scheme = scheme,
+            host = host,
+            encodedUserInfo = encodedUserInfo,
+            encodedFragment = encodedFragment,
+            port = port
+        )
+    ) {
+        AppleOAuthCallbackDeepLinkDecision.ValidCallback
+    } else {
+        AppleOAuthCallbackDeepLinkDecision.InvalidCallback
+    }
+}
+
+internal fun isAppleOAuthCallbackDeepLink(
+    scheme: String?,
+    host: String?,
+    encodedUserInfo: String?,
+    encodedFragment: String?,
+    port: Int
+): Boolean {
+    return scheme == "wakeve" &&
+        host == "apple-auth-callback" &&
+        encodedUserInfo == null &&
+        encodedFragment == null &&
+        port == -1
+}
+
+internal fun authenticationFailureMessage(error: AuthError): String {
+    return when (error) {
+        is AuthError.OAuthCancelled -> "Connexion annulée"
+        is AuthError.NetworkError -> "Erreur réseau: Vérifiez votre connexion"
+        else -> "Erreur d'authentification"
+    }
 }

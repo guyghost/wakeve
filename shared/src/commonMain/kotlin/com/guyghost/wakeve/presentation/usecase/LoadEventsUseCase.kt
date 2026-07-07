@@ -28,7 +28,9 @@ class LoadEventsUseCase(
      */
     operator fun invoke(): Result<List<Event>> {
         return try {
-            val events = eventRepository?.getAllEvents() ?: emptyList()
+            val repository = eventRepository
+                ?: return Result.failure(IllegalStateException("EventRepository is not available"))
+            val events = repository.getAllEvents()
             Result.success(events)
         } catch (e: Exception) {
             Result.failure(e)

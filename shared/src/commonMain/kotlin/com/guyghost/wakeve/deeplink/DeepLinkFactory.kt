@@ -19,9 +19,10 @@ object DeepLinkFactory {
         eventId: String,
         tab: String? = null
     ): DeepLink {
-        val params = if (tab != null) mapOf("tab" to tab) else emptyMap()
+        val normalizedEventId = normalizePathSegment(eventId, "eventId")
+        val params = tab?.trim()?.takeIf { it.isNotEmpty() }?.let { mapOf("tab" to it) } ?: emptyMap()
         return DeepLink.create(
-            route = "event/$eventId/details",
+            route = "event/$normalizedEventId/details",
             parameters = params
         )
     }
@@ -37,9 +38,10 @@ object DeepLinkFactory {
         eventId: String,
         slotId: String? = null
     ): DeepLink {
-        val params = if (slotId != null) mapOf("slotId" to slotId) else emptyMap()
+        val normalizedEventId = normalizePathSegment(eventId, "eventId")
+        val params = slotId?.trim()?.takeIf { it.isNotEmpty() }?.let { mapOf("slotId" to it) } ?: emptyMap()
         return DeepLink.create(
-            route = "event/$eventId/poll",
+            route = "event/$normalizedEventId/poll",
             parameters = params
         )
     }
@@ -55,9 +57,10 @@ object DeepLinkFactory {
         eventId: String,
         scenarioId: String? = null
     ): DeepLink {
-        val params = if (scenarioId != null) mapOf("scenarioId" to scenarioId) else emptyMap()
+        val normalizedEventId = normalizePathSegment(eventId, "eventId")
+        val params = scenarioId?.trim()?.takeIf { it.isNotEmpty() }?.let { mapOf("scenarioId" to it) } ?: emptyMap()
         return DeepLink.create(
-            route = "event/$eventId/scenarios",
+            route = "event/$normalizedEventId/scenarios",
             parameters = params
         )
     }
@@ -75,14 +78,27 @@ object DeepLinkFactory {
         meetingId: String,
         autoJoin: Boolean = false
     ): DeepLink {
+        val normalizedEventId = normalizePathSegment(eventId, "eventId")
+        val normalizedMeetingId = normalizeParameterValue(meetingId, "meetingId")
         val params = buildMap {
-            put("meetingId", meetingId)
+            put("meetingId", normalizedMeetingId)
             if (autoJoin) put("autoJoin", "true")
         }
         return DeepLink.create(
-            route = "event/$eventId/meetings",
+            route = "event/$normalizedEventId/meetings",
             parameters = params
         )
+    }
+
+    /**
+     * Creates a deep link to the event meetings list.
+     *
+     * @param eventId The ID of the event
+     * @return A DeepLink object
+     */
+    fun createEventMeetingsLink(eventId: String): DeepLink {
+        val normalizedEventId = normalizePathSegment(eventId, "eventId")
+        return DeepLink.create(route = "event/$normalizedEventId/meetings")
     }
 
     /**
@@ -94,7 +110,7 @@ object DeepLinkFactory {
     fun createNotificationPreferencesLink(
         section: String? = null
     ): DeepLink {
-        val params = if (section != null) mapOf("section" to section) else emptyMap()
+        val params = section?.trim()?.takeIf { it.isNotEmpty() }?.let { mapOf("section" to it) } ?: emptyMap()
         return DeepLink.create(
             route = "settings",
             parameters = params + mapOf("category" to "notifications")
@@ -108,7 +124,7 @@ object DeepLinkFactory {
      * @return A DeepLink object
      */
     fun createProfileLink(userId: String? = null): DeepLink {
-        val params = if (userId != null) mapOf("userId" to userId) else emptyMap()
+        val params = userId?.trim()?.takeIf { it.isNotEmpty() }?.let { mapOf("userId" to it) } ?: emptyMap()
         return DeepLink.create(
             route = "profile",
             parameters = params
@@ -124,7 +140,7 @@ object DeepLinkFactory {
     fun createNotificationsListLink(
         filter: String? = null
     ): DeepLink {
-        val params = if (filter != null) mapOf("filter" to filter) else emptyMap()
+        val params = filter?.trim()?.takeIf { it.isNotEmpty() }?.let { mapOf("filter" to it) } ?: emptyMap()
         return DeepLink.create(
             route = "notifications",
             parameters = params
@@ -138,11 +154,22 @@ object DeepLinkFactory {
      * @return A DeepLink object
      */
     fun createHomeLink(tab: String? = null): DeepLink {
-        val params = if (tab != null) mapOf("tab" to tab) else emptyMap()
+        val params = tab?.trim()?.takeIf { it.isNotEmpty() }?.let { mapOf("tab" to it) } ?: emptyMap()
         return DeepLink.create(
             route = "home",
             parameters = params
         )
+    }
+
+    /**
+     * Creates a deep link to accept an event invitation.
+     *
+     * @param code The invitation code from the shareable invite link
+     * @return A DeepLink object
+     */
+    fun createInvitationLink(code: String): DeepLink {
+        val normalizedCode = normalizePathSegment(code, "Invitation code")
+        return DeepLink.create(route = "invite/$normalizedCode")
     }
 
     /**
@@ -158,23 +185,36 @@ object DeepLinkFactory {
         eventId: String?,
         additionalParams: Map<String, String> = emptyMap()
     ): DeepLink {
-        return when (notificationType.uppercase()) {
-            "EVENT_INVITE", "DATE_CONFIRMED", "EVENT_UPDATE" -> {
+        return runCatching {
+            when (notificationType.uppercase()) {
+            "EVENT_INVITE" -> {
+                val invitationCode = additionalParams["code"]?.trim()?.takeIf { it.isNotEmpty() }
+                    ?: additionalParams["invitationCode"]?.trim()?.takeIf { it.isNotEmpty() }
+                if (invitationCode != null) {
+                    createInvitationLink(invitationCode)
+                } else {
+                    createEventDetailsLink(
+                        eventId = eventId.orEmpty(),
+                        tab = "details"
+                    )
+                }
+            }
+            "DATE_CONFIRMED", "EVENT_UPDATE" -> {
                 createEventDetailsLink(
-                    eventId = eventId ?: "",
+                    eventId = eventId.orEmpty(),
                     tab = "details"
                 )
             }
-            "VOTE_REMINDER", "VOTE_CLOSE_REMINDER" -> {
-                createPollVoteLink(eventId = eventId ?: "")
+            "DEADLINE_REMINDER", "VOTE_REMINDER", "VOTE_CLOSE_REMINDER" -> {
+                createPollVoteLink(eventId = eventId.orEmpty())
             }
             "NEW_SCENARIO", "SCENARIO_SELECTED" -> {
-                createScenarioComparisonLink(eventId = eventId ?: "")
+                createScenarioComparisonLink(eventId = eventId.orEmpty())
             }
             "MEETING_REMINDER" -> {
-                val meetingId = additionalParams["meetingId"] ?: ""
+                val meetingId = additionalParams["meetingId"].orEmpty()
                 createMeetingJoinLink(
-                    eventId = eventId ?: "",
+                    eventId = eventId.orEmpty(),
                     meetingId = meetingId,
                     autoJoin = additionalParams["autoJoin"] == "true"
                 )
@@ -182,18 +222,31 @@ object DeepLinkFactory {
             "MENTION", "NEW_COMMENT", "COMMENT_REPLY" -> {
                 val section = additionalParams["section"] ?: "comments"
                 createEventDetailsLink(
-                    eventId = eventId ?: "",
+                    eventId = eventId.orEmpty(),
                     tab = section
                 )
             }
             "PAYMENT_DUE" -> {
                 createEventDetailsLink(
-                    eventId = eventId ?: "",
+                    eventId = eventId.orEmpty(),
                     tab = "budget"
                 )
             }
             else -> createHomeLink()
+            }
+        }.getOrElse {
+            createNotificationsListLink(filter = "unread")
         }
+    }
+
+    private fun normalizePathSegment(value: String, fieldName: String): String {
+        return normalizeDeepLinkPathParameter(value, fieldName)
+    }
+
+    private fun normalizeParameterValue(value: String, fieldName: String): String {
+        val normalized = value.trim()
+        require(normalized.isNotEmpty()) { "$fieldName cannot be blank" }
+        return normalized
     }
 }
 
@@ -252,7 +305,7 @@ object DeepLinkUriBuilder {
         fun build(): String {
             var resolvedPath = baseRoute
             pathParams.forEach { (key, value) ->
-                resolvedPath = resolvedPath.replace("{$key}", value)
+                resolvedPath = resolvedPath.replace("{$key}", normalizeDeepLinkPathParameter(value, key))
             }
 
             val queryString = if (queryParams.isNotEmpty()) {

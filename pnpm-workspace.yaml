@@ -1,0 +1,12 @@
+packages:
+  - apps/*
+  - infra/cloudflare/*
+  - shared/build/dist/js/developmentLibrary
+
+allowBuilds:
+  esbuild: true
+  sharp: true
+  workerd: true
+
+overrides:
+  cookie@<0.7.0: 0.7.2

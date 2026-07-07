@@ -53,7 +53,7 @@ class RichNotificationManagerTest {
     }
 
     @Test
-    fun `showRichNotification should display notification with image`() = runTest {
+    fun showRichNotification_should_display_notification_with_image() = runTest {
         // Given
         val notificationId = 123
         val title = "Event Invite"
@@ -76,7 +76,7 @@ class RichNotificationManagerTest {
     }
 
     @Test
-    fun `showRichNotification should display notification without image`() = runTest {
+    fun showRichNotification_should_display_notification_without_image() = runTest {
         // Given
         val notificationId = 124
         val title = "Reminder"
@@ -96,7 +96,7 @@ class RichNotificationManagerTest {
     }
 
     @Test
-    fun `showRichNotification should include actions when provided`() = runTest {
+    fun showRichNotification_should_include_actions_when_provided() = runTest {
         // Given
         val notificationId = 125
         val title = "Event Invite"
@@ -126,7 +126,7 @@ class RichNotificationManagerTest {
     }
 
     @Test
-    fun `showProgressNotification should display indeterminate progress`() = runTest {
+    fun showProgressNotification_should_display_indeterminate_progress() = runTest {
         // Given
         val notificationId = 126
         val title = "Uploading..."
@@ -147,7 +147,7 @@ class RichNotificationManagerTest {
     }
 
     @Test
-    fun `showProgressNotification should display determinate progress`() = runTest {
+    fun showProgressNotification_should_display_determinate_progress() = runTest {
         // Given
         val notificationId = 127
         val title = "Uploading..."
@@ -172,7 +172,7 @@ class RichNotificationManagerTest {
     }
 
     @Test
-    fun `updateProgressNotification should update existing notification`() = runTest {
+    fun updateProgressNotification_should_update_existing_notification() = runTest {
         // Given
         val notificationId = 128
         val title = "Uploading..."
@@ -196,7 +196,7 @@ class RichNotificationManagerTest {
     }
 
     @Test
-    fun `cancelNotification should cancel notification by id`() = runTest {
+    fun cancelNotification_should_cancel_notification_by_id() = runTest {
         // Given
         val notificationId = 129
 
@@ -208,7 +208,7 @@ class RichNotificationManagerTest {
     }
 
     @Test
-    fun `cancelAllNotifications should cancel all notifications`() = runTest {
+    fun cancelAllNotifications_should_cancel_all_notifications() = runTest {
         // When
         notificationManager.cancelAllNotifications()
 
@@ -217,7 +217,7 @@ class RichNotificationManagerTest {
     }
 
     @Test
-    fun `loadImageBitmap should load bitmap from URI`() = runTest {
+    fun loadImageBitmap_should_load_bitmap_from_URI() = runTest {
         // This test would require a real image URI, which is difficult in unit tests
         // For now, we'll just verify the method exists and doesn't crash
         // Given
@@ -233,7 +233,7 @@ class RichNotificationManagerTest {
     }
 
     @Test
-    fun `showRichNotification with contentIntent should navigate on tap`() = runTest {
+    fun showRichNotification_with_contentIntent_should_navigate_on_tap() = runTest {
         // Given
         val notificationId = 130
         val title = "Event Updated"
@@ -258,7 +258,7 @@ class RichNotificationManagerTest {
     }
 
     @Test
-    fun `showRichNotification with largeIcon should use smallIcon when largeIcon is null`() = runTest {
+    fun showRichNotification_with_largeIcon_should_use_smallIcon_when_largeIcon_is_null() = runTest {
         // Given
         val notificationId = 131
         val title = "Simple Notification"

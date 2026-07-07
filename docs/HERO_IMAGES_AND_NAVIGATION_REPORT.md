@@ -13,9 +13,9 @@
 | **2.1** | Ajouter heroImageUrl dans Event.kt | shared/src/.../Event.kt | ✅ Modifié |
 | **2.1** | Créer HeroImageSection.kt | composeApp/.../ui/components/HeroImageSection.kt | ✅ Créé |
 | **2.1** | Intégrer dans EventDetailScreen | composeApp/.../EventDetailScreen.kt | ✅ Modifié |
-| **2.3** | Créer AppNavigation.swift | iosApp/iosApp/Navigation/AppNavigation.swift | ✅ Créé |
-| **2.3** | Créer ExploreView.swift | iosApp/iosApp/Views/ExploreView.swift | ✅ Créé |
-| **2.3** | Créer MessagesView.swift | iosApp/iosApp/Views/MessagesView.swift | ✅ Créé |
+| **2.3** | Créer AppNavigation.swift | iosApp/src/Navigation/AppNavigation.swift | ✅ Créé |
+| **2.3** | Créer ExploreView.swift | iosApp/src/Views/ExploreView.swift | ✅ Créé |
+| **2.3** | Créer MessagesView.swift | iosApp/src/Views/MessagesView.swift | ✅ Créé |
 | **3.2** | Mettre à jour AGENTS.md | AGENTS.md | ✅ Modifié |
 
 ---
@@ -159,7 +159,7 @@ Documenter la structure de navigation iOS pour vérifier la cohérence avec Andr
 
 ### 1. Création de AppNavigation.swift
 
-**Fichier:** `iosApp/iosApp/Navigation/AppNavigation.swift`
+**Fichier:** `iosApp/src/Navigation/AppNavigation.swift`
 
 **Composants :**
 - ✅ `MainTabView` - TabView principal (Home, Explore, Messages, Profile)
@@ -191,7 +191,7 @@ struct MainTabView: View {
 
 ### 2. Création de ExploreView.swift
 
-**Fichier:** `iosApp/iosApp/Views/ExploreView.swift`
+**Fichier:** `iosApp/src/Views/ExploreView.swift`
 
 **Fonctionnalités :**
 - ✅ Search bar (filtrage en temps réel)
@@ -237,7 +237,7 @@ private func performSearch(_ query: String) {
 
 ### 3. Création de MessagesView.swift
 
-**Fichier:** `iosApp/iosApp/Views/MessagesView.swift`
+**Fichier:** `iosApp/src/Views/MessagesView.swift`
 
 **Fonctionnalités :**
 - ✅ Tab bar (Notifications / Conversations)

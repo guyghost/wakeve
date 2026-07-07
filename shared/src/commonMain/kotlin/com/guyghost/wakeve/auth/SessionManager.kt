@@ -236,7 +236,7 @@ class SessionManager(
                         try {
                             onTokenRefreshNeeded(sessionId)
                         } catch (e: Exception) {
-                            println("Token refresh failed: ${e.message}")
+                            println(tokenRefreshFailureLogMessage())
                         }
                         // Wait before retrying
                         delay(30_000) // 30 seconds
@@ -246,7 +246,7 @@ class SessionManager(
                         try {
                             onTokenRefreshNeeded(sessionId)
                         } catch (e: Exception) {
-                            println("Token refresh failed: ${e.message}")
+                            println(tokenRefreshFailureLogMessage())
                         }
                         // Wait before checking again
                         delay(60_000) // 1 minute
@@ -319,3 +319,6 @@ class SessionManager(
         scope.cancel()
     }
 }
+
+internal fun tokenRefreshFailureLogMessage(): String =
+    "Token refresh failed. Please sign in again if the problem continues."

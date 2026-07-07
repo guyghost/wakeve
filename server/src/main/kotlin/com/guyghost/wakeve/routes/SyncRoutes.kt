@@ -51,10 +51,13 @@ fun io.ktor.server.routing.Route.syncRoutes(syncService: SyncService) {
                         appliedChanges = 0,
                         conflicts = emptyList(),
                         serverTimestamp = Clock.System.now().toString(),
-                        message = "Sync request failed: ${e.message}"
+                        message = syncRequestFailureMessage()
                     )
                 )
             }
         }
     }
 }
+
+internal fun syncRequestFailureMessage(): String =
+    "Sync request failed. Please retry when your connection is stable."

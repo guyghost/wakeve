@@ -8,8 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -45,6 +44,7 @@ import kotlinx.datetime.Clock
  * @param onDelete Callback to delete a comment
  * @param onPin Callback to pin/unpin a comment
  * @param onUserClick Callback when user avatar/name is clicked
+ * @param onLoadMoreReplies Callback to load additional replies for a parent comment
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,7 +60,8 @@ fun CommentListScreen(
     onEdit: (String, String) -> Unit = { _, _ -> },
     onDelete: (String) -> Unit = {},
     onPin: (String, Boolean) -> Unit = { _, _ -> },
-    onUserClick: (String) -> Unit = {}
+    onUserClick: (String) -> Unit = {},
+    onLoadMoreReplies: ((String) -> Unit)? = null
 ) {
     var commentText by remember { mutableStateOf("") }
     var mentionedUsers by remember { mutableStateOf<List<String>>(emptyList()) }
@@ -72,7 +73,7 @@ fun CommentListScreen(
                 title = { Text(getSectionTitle(section)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -107,7 +108,8 @@ fun CommentListScreen(
                         onEdit = onEdit,
                         onDelete = onDelete,
                         onPin = onPin,
-                        onUserClick = onUserClick
+                        onUserClick = onUserClick,
+                        onLoadMoreReplies = onLoadMoreReplies
                     )
                 }
 
@@ -150,7 +152,8 @@ fun CommentThreadItem(
     onEdit: (String, String) -> Unit,
     onDelete: (String) -> Unit,
     onPin: (String, Boolean) -> Unit,
-    onUserClick: (String) -> Unit
+    onUserClick: (String) -> Unit,
+    onLoadMoreReplies: ((String) -> Unit)?
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         // Parent comment
@@ -193,13 +196,20 @@ fun CommentThreadItem(
 
         // Load more replies indicator
         if (thread.hasMoreReplies) {
+            val canLoadMoreReplies = onLoadMoreReplies != null
             Text(
-                text = "Load more replies (${thread.comment.replyCount})",
-                color = WakeveColors.primary,
+                text = loadMoreRepliesLabel(thread.comment.replyCount),
+                color = if (canLoadMoreReplies) WakeveColors.primary else WakeveColors.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier
                     .padding(start = 56.dp, top = 4.dp)
-                    .clickable { /* TODO: Load more */ }
+                    .then(
+                        if (canLoadMoreReplies) {
+                            Modifier.clickable { onLoadMoreReplies?.invoke(thread.comment.id) }
+                        } else {
+                            Modifier
+                        }
+                    )
             )
         }
     }
@@ -217,13 +227,13 @@ fun EmptyCommentsSection() {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "No comments yet",
+            text = emptyCommentsTitle(),
             style = MaterialTheme.typography.titleLarge,
             color = WakeveColors.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Be the first to share your thoughts!",
+            text = emptyCommentsSubtitle(),
             style = MaterialTheme.typography.bodyMedium,
             color = WakeveColors.onSurfaceVariant
         )
@@ -233,16 +243,25 @@ fun EmptyCommentsSection() {
 /**
  * Get localized section title
  */
-private fun getSectionTitle(section: CommentSection): String {
+internal fun getSectionTitle(section: CommentSection): String {
     return when (section) {
-        CommentSection.GENERAL -> "Comments"
-        CommentSection.SCENARIO -> "Scenario Comments"
-        CommentSection.POLL -> "Poll Comments"
-        CommentSection.TRANSPORT -> "Transport Comments"
-        CommentSection.ACCOMMODATION -> "Accommodation Comments"
-        CommentSection.MEAL -> "Meal Comments"
-        CommentSection.EQUIPMENT -> "Equipment Comments"
-        CommentSection.ACTIVITY -> "Activity Comments"
-        CommentSection.BUDGET -> "Budget Comments"
+        CommentSection.GENERAL -> "Commentaires"
+        CommentSection.SCENARIO -> "Commentaires des options"
+        CommentSection.POLL -> "Commentaires du sondage"
+        CommentSection.TRANSPORT -> "Commentaires transport"
+        CommentSection.ACCOMMODATION -> "Commentaires logement"
+        CommentSection.MEAL -> "Commentaires repas"
+        CommentSection.EQUIPMENT -> "Commentaires equipement"
+        CommentSection.ACTIVITY -> "Commentaires activites"
+        CommentSection.BUDGET -> "Commentaires budget"
     }
 }
+
+internal fun loadMoreRepliesLabel(replyCount: Int): String =
+    "Afficher plus de reponses ($replyCount)"
+
+internal fun emptyCommentsTitle(): String =
+    "Aucun commentaire"
+
+internal fun emptyCommentsSubtitle(): String =
+    "Lancez la discussion pour aider le groupe a avancer."

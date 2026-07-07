@@ -59,15 +59,14 @@ class VoiceActionHandlers(
             return Result.failure(IllegalStateException("No participants to invite"))
         }
 
-        // Generate ICS invitation
-        return try {
-            val icsDocument = calendarService?.generateICSInvitation(eventId, participants)
-            // In a real implementation, this would trigger email/sms sending
-            // For now, just return the count
-            Result.success(participants.size)
-        } catch (e: Exception) {
-            // If calendar service fails, still return success with count
-            Result.success(participants.size)
+        val service = calendarService ?: return Result.failure(
+            IllegalStateException("Invitation delivery service is not configured")
+        )
+
+        return runCatching {
+            val icsDocument = service.generateICSInvitation(eventId, participants)
+            require(icsDocument.content.isNotBlank()) { "Generated invitation is empty" }
+            participants.size
         }
     }
 

@@ -22,8 +22,8 @@ public class AuthenticationService: ObservableObject {
 
     // MARK: - Configuration
 
-    /// Base URL for the Wakeve API server
-    /// TODO: Move to build config or environment variable
+    /// Base URL for the Wakeve API server. Debug uses a local backend;
+    /// Release uses the production endpoint required for App Store builds.
     private let baseUrl: String = {
         #if DEBUG
         return "http://localhost:8080/api"
@@ -32,8 +32,8 @@ public class AuthenticationService: ObservableObject {
         #endif
     }()
 
-    /// Secure token storage (Keychain-backed)
-    private let tokenStorage = SecureTokenStorage()
+    /// Secure token storage (Keychain-backed by default)
+    private let tokenStorage: SecureTokenStorageProtocol
 
     /// URLSession for network requests
     private let session: URLSession = {
@@ -42,6 +42,10 @@ public class AuthenticationService: ObservableObject {
         config.timeoutIntervalForResource = 60
         return URLSession(configuration: config)
     }()
+
+    init(tokenStorage: SecureTokenStorageProtocol = SecureTokenStorage()) {
+        self.tokenStorage = tokenStorage
+    }
 
     // MARK: - Apple Sign-In
 
@@ -247,15 +251,76 @@ public class AuthenticationService: ObservableObject {
      * Sign out and clear all stored tokens and user data.
      */
     func signOut() async {
+        await clearLocalAccountData()
+
+        debugLog("[AuthenticationService] User signed out, tokens cleared")
+    }
+
+    /**
+     * Delete the authenticated Wakeve account on the backend.
+     *
+     * Local credentials are intentionally not cleared here. The caller should
+     * clear local state only after this method returns successfully, so offline
+     * failures remain retryable and do not falsely imply backend erasure.
+     */
+    func deleteAccount() async throws -> AccountDeletionResponse {
+        guard let accessToken = await tokenStorage.getAccessToken(), !accessToken.isEmpty else {
+            throw AuthError.authenticationFailed("Authentication required")
+        }
+
+        let url = URL(string: "\(baseUrl)/user/delete")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            throw AuthError.networkError
+        }
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw AuthError.networkError
+        }
+
+        switch httpResponse.statusCode {
+        case 200:
+            return try JSONDecoder().decode(AccountDeletionResponse.self, from: data)
+
+        case 401:
+            let errorResponse = try? JSONDecoder().decode(AuthErrorResponse.self, from: data)
+            throw AuthError.authenticationFailed(errorResponse?.message ?? "Authentication required")
+
+        default:
+            let errorResponse = try? JSONDecoder().decode(AuthErrorResponse.self, from: data)
+            throw AuthError.serverError(errorResponse?.message ?? "Account deletion failed")
+        }
+    }
+
+    /**
+     * Clear local credentials, cached profile values, local guest identifiers,
+     * and app-scoped analytics identifiers after sign-out or confirmed deletion.
+     */
+    func clearLocalAccountData() async {
         try? await tokenStorage.clearAllTokens()
 
-        // Clear cached user profile
-        UserDefaults.standard.removeObject(forKey: "wakeve_user_name")
-        UserDefaults.standard.removeObject(forKey: "wakeve_user_email")
-        UserDefaults.standard.removeObject(forKey: "wakeve_user_avatar")
-        UserDefaults.standard.removeObject(forKey: "wakeve_user_provider")
+        let keys = [
+            "wakeve_user_name",
+            "wakeve_user_email",
+            "wakeve_user_avatar",
+            "wakeve_user_provider",
+            "wakeve_guest_user_id",
+            "wakeve_guest_user_name",
+            "wakeve_analytics_user_id",
+            "wakeve_analytics_session_id"
+        ]
 
-        print("[AuthenticationService] User signed out, tokens cleared")
+        for key in keys {
+            UserDefaults.standard.removeObject(forKey: key)
+        }
     }
 
     /**
@@ -266,6 +331,29 @@ public class AuthenticationService: ObservableObject {
     func getAccessToken() async -> String? {
         return await tokenStorage.getAccessToken()
     }
+
+    #if DEBUG
+    /**
+     * Store a local development session for simulator/manual testing.
+     *
+     * This keeps the SwiftUI auth state and the offline sync token provider aligned:
+     * the app can behave as authenticated without OAuth while SyncManager still has
+     * a bearer token to read from secure storage.
+     */
+    func storeDevelopmentSession(userId: String, accessToken: String) async throws {
+        let expiryTimestamp = Int64(Date().timeIntervalSince1970 * 1000) + (30 * 24 * 60 * 60 * 1000)
+
+        try await tokenStorage.storeAccessToken(accessToken)
+        try await tokenStorage.storeRefreshToken("dev-refresh-token")
+        try await tokenStorage.storeTokenExpiry(expiryTimestamp)
+        try await tokenStorage.storeUserId(userId)
+
+        UserDefaults.standard.set("Dev User", forKey: "wakeve_user_name")
+        UserDefaults.standard.set("dev@example.com", forKey: "wakeve_user_email")
+        UserDefaults.standard.removeObject(forKey: "wakeve_user_avatar")
+        UserDefaults.standard.set("development", forKey: "wakeve_user_provider")
+    }
+    #endif
 
     // MARK: - Private Helpers
 
@@ -292,7 +380,7 @@ public class AuthenticationService: ObservableObject {
         UserDefaults.standard.set(response.user.avatarUrl, forKey: "wakeve_user_avatar")
         UserDefaults.standard.set(response.user.provider, forKey: "wakeve_user_provider")
 
-        print("[AuthenticationService] Tokens stored for user: \(response.user.id)")
+        debugLog("[AuthenticationService] Tokens stored for user: \(response.user.id)")
     }
 }
 
@@ -315,6 +403,15 @@ private struct GoogleAuthRequestBody: Codable {
 /// Token refresh request body (matches server TokenRefreshRequest)
 private struct TokenRefreshRequestBody: Codable {
     let refreshToken: String
+}
+
+/// Response returned after authenticated backend account deletion.
+public struct AccountDeletionResponse: Codable {
+    let success: Bool
+    let deleted: Bool
+    let message: String
+    let localCleanupRequired: Bool?
+    let providerRevocationStatus: String?
 }
 
 /// Authentication login response (matches server OAuthLoginResponse)

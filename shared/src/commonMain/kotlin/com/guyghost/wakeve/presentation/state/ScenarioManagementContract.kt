@@ -263,6 +263,22 @@ object ScenarioManagementContract {
         ) : Intent
 
         /**
+         * Generate draft matrix scenarios from the event time slots and potential locations.
+         */
+        data class GenerateScenarioMatrix(
+            val eventId: String,
+            val userId: String
+        ) : Intent
+
+        /**
+         * Publish generated draft matrix scenarios for participant voting.
+         */
+        data class PublishScenarioMatrix(
+            val eventId: String,
+            val userId: String
+        ) : Intent
+
+        /**
          * Select a scenario as the final choice for the event.
          *
          * This is different from SelectScenario (which navigates to detail).
@@ -275,6 +291,15 @@ object ScenarioManagementContract {
          * @property userId The ID of the user attempting to select (must be organizer)
          */
         data class SelectScenarioAsFinal(
+            val eventId: String,
+            val scenarioId: String,
+            val userId: String
+        ) : Intent
+
+        /**
+         * Select a generated matrix scenario as final, locking both date and destination.
+         */
+        data class SelectMatrixScenarioAsFinal(
             val eventId: String,
             val scenarioId: String,
             val userId: String

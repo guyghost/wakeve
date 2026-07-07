@@ -1,6 +1,19 @@
 package com.guyghost.wakeve.di
 
 import com.guyghost.wakeve.AndroidDatabaseFactory
+import com.guyghost.wakeve.ai.AiTextGenerationClient
+import com.guyghost.wakeve.ai.EventSummaryAiAssistant
+import com.guyghost.wakeve.ai.FirebaseAiLogicCloudTextGenerationClient
+import com.guyghost.wakeve.ai.EventPlanningAiAssistant
+import com.guyghost.wakeve.ai.FallbackEventPlanningAiAssistant
+import com.guyghost.wakeve.ai.HybridOrganizerMessageAiAssistant
+import com.guyghost.wakeve.ai.MlKitLocalTextGenerationClient
+import com.guyghost.wakeve.ai.MlKitEventPlanningAiAssistant
+import com.guyghost.wakeve.ai.OnDeviceEventSummaryAiAssistant
+import com.guyghost.wakeve.ai.OrganizerMessageAiAssistant
+import com.guyghost.wakeve.ai.PlanningAgentClient
+import com.guyghost.wakeve.ai.RuleBasedEventPlanningAiAssistant
+import com.guyghost.wakeve.ai.UnavailablePlanningAgentClient
 import com.guyghost.wakeve.database.DatabaseFactory
 import com.guyghost.wakeve.database.DatabaseProvider
 import com.guyghost.wakeve.repository.DatabaseEventRepository
@@ -11,13 +24,21 @@ import com.guyghost.wakeve.auth.shell.services.EmailAuthService
 import com.guyghost.wakeve.auth.shell.services.GuestModeService
 import com.guyghost.wakeve.auth.shell.services.TokenStorage
 import com.guyghost.wakeve.auth.shell.statemachine.AuthStateMachine
+import com.guyghost.wakeve.auth.SessionRepository
 import com.guyghost.wakeve.database.WakeveDb
+import com.guyghost.wakeve.notification.NoConfiguredAPNsSender
+import com.guyghost.wakeve.notification.NoConfiguredFCMSender
+import com.guyghost.wakeve.notification.NotificationPreferencesRepository
+import com.guyghost.wakeve.notification.NotificationPreferencesRepositoryInterface
+import com.guyghost.wakeve.notification.NotificationService
+import com.guyghost.wakeve.repository.ScenarioRepository
 import com.guyghost.wakeve.ui.auth.AuthViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 /**
@@ -76,6 +97,31 @@ fun platformModule(): Module = module {
     single<EventRepositoryInterface> {
         val database = get<WakeveDb>()
         DatabaseEventRepository(db = database, syncManager = null)
+    }
+
+    /**
+     * Provide ScenarioRepository for scenario comparison and final selection.
+     */
+    single {
+        val database = get<WakeveDb>()
+        ScenarioRepository(database)
+    }
+
+    single<NotificationPreferencesRepositoryInterface> {
+        NotificationPreferencesRepository(get())
+    }
+
+    single {
+        NotificationService(
+            database = get(),
+            preferencesRepository = get(),
+            fcmSender = NoConfiguredFCMSender,
+            apnsSender = NoConfiguredAPNsSender
+        )
+    }
+
+    single {
+        SessionRepository(get())
     }
     
     // ========================================================================
@@ -157,5 +203,39 @@ fun platformModule(): Module = module {
             authStateMachine = get(),
             tokenStorage = get()
         )
+    }
+
+    single<EventPlanningAiAssistant> {
+        FallbackEventPlanningAiAssistant(
+            primary = MlKitEventPlanningAiAssistant(
+                fallback = RuleBasedEventPlanningAiAssistant()
+            ),
+            fallback = RuleBasedEventPlanningAiAssistant()
+        )
+    }
+
+    single<AiTextGenerationClient>(named("onDeviceAiTextGeneration")) {
+        MlKitLocalTextGenerationClient()
+    }
+
+    single<AiTextGenerationClient>(named("firebaseAiLogicTextGeneration")) {
+        FirebaseAiLogicCloudTextGenerationClient()
+    }
+
+    single<EventSummaryAiAssistant> {
+        OnDeviceEventSummaryAiAssistant(
+            localClient = get(named("onDeviceAiTextGeneration"))
+        )
+    }
+
+    single<OrganizerMessageAiAssistant> {
+        HybridOrganizerMessageAiAssistant(
+            onDeviceClient = get(named("onDeviceAiTextGeneration")),
+            cloudClient = get(named("firebaseAiLogicTextGeneration"))
+        )
+    }
+
+    single<PlanningAgentClient> {
+        UnavailablePlanningAgentClient()
     }
 }

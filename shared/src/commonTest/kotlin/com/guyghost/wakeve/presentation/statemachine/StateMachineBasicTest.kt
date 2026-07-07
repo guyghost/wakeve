@@ -9,6 +9,7 @@ import com.guyghost.wakeve.presentation.usecase.LoadEventsUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import java.io.File
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -149,6 +150,58 @@ class StateMachineBasicTest {
         assertNotNull(useCase)
     }
 
+    @Test
+    fun eventFailureMessagesDoNotExposeThrowableDetails() {
+        val messages = listOf(
+            eventLoadFailureMessage(),
+            eventCreateFailureMessage(),
+            eventUpdateFailureMessage(),
+            eventDeleteFailureMessage(),
+            eventAddParticipantFailureMessage(),
+            eventStartPollFailureMessage(),
+            eventDateConfirmationFailureMessage(),
+            eventConfirmationWorkflowQueueFailureMessage(),
+            eventTransitionToOrganizingFailureMessage(),
+            eventFinalizeFailureMessage(),
+            eventSeedSampleFailureMessage()
+        )
+
+        messages.forEach { message ->
+            assertFalse(message.contains("SECRET"))
+            assertFalse(message.contains("token="))
+            assertFalse(message.contains("internal.local"))
+            assertFalse(message.contains("SQL"))
+        }
+    }
+
+    @Test
+    fun eventFinalizationMessagePreservesStructuredReadinessBlockersOnly() {
+        assertEquals(
+            "Finalization blocked by TRANSPORT_REQUIRED,CRITICAL_SYNC_PENDING",
+            eventFinalizeFailureMessage(
+                IllegalStateException("Finalization blocked by TRANSPORT_REQUIRED,CRITICAL_SYNC_PENDING")
+            )
+        )
+        assertEquals(
+            "Failed to finalize event",
+            eventFinalizeFailureMessage(
+                IllegalStateException("Finalization blocked by token=SECRET,internal.local")
+            )
+        )
+    }
+
+    @Test
+    fun eventStateMachineDoesNotUseThrowableMessagesForUiErrors() {
+        val source = projectFile("shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/statemachine/EventManagementStateMachine.kt").readText()
+        val throwableMessage = listOf("error", ".message").joinToString("")
+        val exceptionMessage = listOf("exceptionOrNull()", "?", ".message").joinToString("")
+        val nullableMessage = listOf("message", " ?:").joinToString("")
+
+        assertFalse(source.contains(throwableMessage))
+        assertFalse(source.contains(exceptionMessage))
+        assertFalse(source.contains(nullableMessage))
+    }
+
     // ========================================================================
     // Helper Methods
     // ========================================================================
@@ -172,6 +225,12 @@ class StateMachineBasicTest {
             createdAt = "2025-11-01T10:00:00Z",
             updatedAt = "2025-11-01T10:00:00Z"
         )
+    }
+
+    private fun projectFile(relativePath: String): File {
+        val root = generateSequence(File(System.getProperty("user.dir")).absoluteFile) { it.parentFile }
+            .first { File(it, relativePath).exists() }
+        return File(root, relativePath)
     }
 
     /**

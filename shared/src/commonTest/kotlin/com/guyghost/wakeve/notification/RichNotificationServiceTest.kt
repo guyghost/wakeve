@@ -3,6 +3,7 @@ package com.guyghost.wakeve.notification
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -13,6 +14,51 @@ import kotlin.test.assertTrue
  * Covers rich notification creation, sending, validation, and retrieval.
  */
 class RichNotificationServiceTest {
+
+    @Test
+    fun `RichNotificationDeepLinks emits Android-supported routes`() {
+        assertEquals("wakeve://event/event-123/details", RichNotificationDeepLinks.event("event-123"))
+        assertEquals("wakeve://event/event-123/poll", RichNotificationDeepLinks.poll("event-123"))
+        assertEquals(
+            "wakeve://event/event-123/meetings?meetingId=meeting-456",
+            RichNotificationDeepLinks.meeting(eventId = "event-123", meetingId = "meeting-456")
+        )
+    }
+
+    @Test
+    fun `RichNotificationDeepLinks meeting without event falls back to notifications`() {
+        assertEquals("wakeve://notifications?filter=unread", RichNotificationDeepLinks.meeting("meeting-456"))
+    }
+
+    @Test
+    fun `RichNotificationDeepLinks rejects invalid event scoped IDs`() {
+        assertFailsWith<IllegalArgumentException> {
+            RichNotificationDeepLinks.event(" ")
+        }
+        assertFailsWith<IllegalArgumentException> {
+            RichNotificationDeepLinks.poll("event-123/poll")
+        }
+        assertFailsWith<IllegalArgumentException> {
+            RichNotificationDeepLinks.meeting(eventId = "event-123", meetingId = " ")
+        }
+    }
+
+    @Test
+    fun `RichNotificationActionPolicy hides direct decision actions without handlers`() {
+        assertTrue(RichNotificationActionPolicy.trustedActionsFor(NotificationCategory.EVENT_INVITE).isEmpty())
+        assertTrue(RichNotificationActionPolicy.trustedActionsFor(NotificationCategory.POLL_REMINDER).isEmpty())
+        assertTrue(RichNotificationActionPolicy.trustedActionsFor(NotificationCategory.SCENARIO_VOTE).isEmpty())
+        assertTrue(RichNotificationActionPolicy.trustedActionsFor(NotificationCategory.GENERAL).isEmpty())
+    }
+
+    @Test
+    fun `RichNotificationActionPolicy keeps meeting join action`() {
+        val actions = RichNotificationActionPolicy.trustedActionsFor(NotificationCategory.MEETING_STARTING)
+
+        assertEquals(1, actions.size)
+        assertEquals("join", actions.single().identifier)
+        assertEquals(ActionType.JOIN_MEETING, actions.single().type)
+    }
 
     @Test
     fun `RichNotification validate returns null for valid notification`() {
@@ -245,7 +291,7 @@ class RichNotificationServiceTest {
     }
 
     @Test
-    fun `RichNotificationBuilder withDefaultActions applies event invite actions`() {
+    fun `RichNotificationBuilder withDefaultActions hides event invite direct decisions`() {
         val notification = richNotification {
             id("test-id")
             userId("user-1")
@@ -255,15 +301,11 @@ class RichNotificationServiceTest {
             withDefaultActions()
         }
 
-        assertTrue(notification.hasActions())
-        assertEquals(3, notification.actions.size)
-        assertTrue(notification.actions.any { it.identifier == "accept" })
-        assertTrue(notification.actions.any { it.identifier == "maybe" })
-        assertTrue(notification.actions.any { it.identifier == "decline" })
+        assertFalse(notification.hasActions())
     }
 
     @Test
-    fun `RichNotificationBuilder withDefaultActions applies poll reminder actions`() {
+    fun `RichNotificationBuilder withDefaultActions hides poll direct vote`() {
         val notification = richNotification {
             id("test-id")
             userId("user-1")
@@ -273,9 +315,7 @@ class RichNotificationServiceTest {
             withDefaultActions()
         }
 
-        assertTrue(notification.hasActions())
-        assertEquals(1, notification.actions.size)
-        assertEquals("vote", notification.actions[0].identifier)
+        assertFalse(notification.hasActions())
     }
 
     @Test
@@ -295,7 +335,7 @@ class RichNotificationServiceTest {
     }
 
     @Test
-    fun `RichNotificationBuilder withDefaultActions applies scenario vote actions`() {
+    fun `RichNotificationBuilder withDefaultActions hides scenario direct votes`() {
         val notification = richNotification {
             id("test-id")
             userId("user-1")
@@ -305,10 +345,7 @@ class RichNotificationServiceTest {
             withDefaultActions()
         }
 
-        assertTrue(notification.hasActions())
-        assertEquals(2, notification.actions.size)
-        assertTrue(notification.actions.any { it.identifier == "yes" })
-        assertTrue(notification.actions.any { it.identifier == "no" })
+        assertFalse(notification.hasActions())
     }
 
     @Test
@@ -370,16 +407,16 @@ class RichNotificationServiceTest {
     @Test
     fun `NotificationCategory getDefaultActions returns correct actions`() {
         val eventInviteActions = NotificationCategory.EVENT_INVITE.getDefaultActions()
-        assertEquals(3, eventInviteActions.size)
+        assertEquals(0, eventInviteActions.size)
 
         val pollReminderActions = NotificationCategory.POLL_REMINDER.getDefaultActions()
-        assertEquals(1, pollReminderActions.size)
+        assertEquals(0, pollReminderActions.size)
 
         val meetingStartingActions = NotificationCategory.MEETING_STARTING.getDefaultActions()
         assertEquals(1, meetingStartingActions.size)
 
         val scenarioVoteActions = NotificationCategory.SCENARIO_VOTE.getDefaultActions()
-        assertEquals(2, scenarioVoteActions.size)
+        assertEquals(0, scenarioVoteActions.size)
 
         val generalActions = NotificationCategory.GENERAL.getDefaultActions()
         assertEquals(0, generalActions.size)

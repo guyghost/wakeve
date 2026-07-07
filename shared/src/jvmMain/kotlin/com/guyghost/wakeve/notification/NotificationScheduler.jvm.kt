@@ -3,18 +3,15 @@ package com.guyghost.wakeve.notification
 import kotlinx.datetime.Instant
 
 /**
- * JVM implementation of NotificationScheduler for testing purposes.
- * 
- * This is a no-op implementation suitable for unit tests and benchmarks
- * on the JVM platform, where native notifications are not available.
+ * JVM implementation of NotificationScheduler.
+ *
+ * Native scheduled notifications are not available on plain JVM, so scheduling
+ * fails explicitly instead of reporting a reminder that will never fire.
  */
 actual class NotificationScheduler {
 
     /**
-     * No-op implementation for JVM platform.
-     * 
-     * In a real application, this would schedule a system notification.
-     * For testing purposes, we simply return success.
+     * JVM has no native notification backend.
      */
     actual suspend fun scheduleEventReminder(
         eventId: String,
@@ -22,12 +19,24 @@ actual class NotificationScheduler {
         body: String,
         scheduledTime: Instant
     ): Result<Unit> {
-        // No-op for JVM testing
-        return Result.success(Unit)
+        return unavailable()
     }
 
     /**
-     * No-op implementation for JVM platform.
+     * JVM has no native notification backend.
+     */
+    actual suspend fun scheduleEventReminderWithId(
+        notificationId: String,
+        eventId: String,
+        title: String,
+        body: String,
+        scheduledTime: Instant
+    ): Result<String> {
+        return unavailableWithId()
+    }
+
+    /**
+     * JVM has no native notification backend.
      */
     actual suspend fun schedulePollDeadlineReminder(
         pollId: String,
@@ -36,8 +45,7 @@ actual class NotificationScheduler {
         body: String,
         deadlineTime: Instant
     ): Result<Unit> {
-        // No-op for JVM testing
-        return Result.success(Unit)
+        return unavailable()
     }
 
     /**
@@ -78,5 +86,13 @@ actual class NotificationScheduler {
      */
     private object InstanceHolder {
         val instance: NotificationScheduler = NotificationScheduler()
+    }
+
+    private fun unavailable(): Result<Unit> {
+        return Result.failure(IllegalStateException("Notification scheduling is not available on JVM"))
+    }
+
+    private fun unavailableWithId(): Result<String> {
+        return Result.failure(IllegalStateException("Notification scheduling is not available on JVM"))
     }
 }

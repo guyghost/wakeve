@@ -28,7 +28,6 @@ The Workflow Coordination capability enables seamless transitions between event 
 - `COMPARING`: Scenarios being compared (implicit state during scenario voting)
 - `ORGANIZING`: Meetings unlocked, event organization phase
 - `FINALIZED`: Event locked, all details confirmed, read-only
-
 ## Requirements
 
 ### The system SHALL enable automatic workflow transitions from DRAFT to FINALIZED status
@@ -210,6 +209,79 @@ The Workflow Coordination capability enables seamless transitions between event 
 - **AND** State machines restore scenariosUnlocked/meetingsUnlocked flags
 - **AND** User sees correct UI state based on persisted status
 - **AND** Workflow can continue from last known state
+
+### Requirement: Finalization Readiness Gate MUST be enforced
+The workflow MUST block `ORGANIZING -> FINALIZED` until required organization sections are complete or explicitly marked not needed.
+
+#### Scenario: Finalization blocked by missing transport plan
+- **GIVEN** an event is in `ORGANIZING`
+- **AND** transport is required for the selected scenario
+- **AND** no selected transport plan exists
+- **WHEN** the organizer attempts to finalize the event
+- **THEN** the workflow keeps the event in `ORGANIZING`
+- **AND** reports transport as a blocking readiness item
+- **AND** does not emit a finalized navigation or success side effect
+
+#### Scenario: Finalization succeeds after all readiness checks pass
+- **GIVEN** an event is in `ORGANIZING`
+- **AND** required scenario, destination, lodging, transport, meeting, calendar, notification, budget, payment, and sync checks are complete or explicitly not needed
+- **WHEN** the organizer finalizes the event
+- **THEN** the event transitions to `FINALIZED`
+- **AND** organization sections become read-only
+- **AND** participants receive a finalization notification
+
+### Requirement: Repository-Mediated Cross-Module Progress MUST be coordinated
+State machines MUST communicate workflow progress through repositories and persisted event-related records instead of direct state-machine calls.
+
+#### Scenario: Scenario selection unlocks organization work
+- **GIVEN** a scenario is selected as final
+- **WHEN** the scenario state machine persists the selected scenario and event status
+- **THEN** other organization modules derive availability from repository state
+- **AND** no direct call is made from the scenario state machine to meeting, transport, budget, or notification state machines
+
+### Requirement: Scenario Matrix Workflow MUST be coordinated through repositories
+Wakeve MUST coordinate scenario matrix generation, publication, voting, and selection through persisted repository state without direct state-machine dependencies.
+
+#### Scenario: Matrix generation remains draft-only
+- **GIVEN** an event is in `DRAFT` and uses planning mode `SCENARIO_MATRIX`
+- **WHEN** the organizer generates the scenario matrix
+- **THEN** generated scenarios are persisted with status `DRAFT`
+- **AND** event status remains `DRAFT`
+- **AND** no participant voting side effect is emitted
+
+#### Scenario: Matrix publication enters comparing phase
+- **GIVEN** an event is in `DRAFT` and has at least one draft matrix scenario
+- **WHEN** the organizer publishes the matrix
+- **THEN** generated scenarios are updated to `PROPOSED`
+- **AND** the event status changes to `COMPARING`
+- **AND** scenario voting UI becomes available
+
+### Requirement: Final Matrix Scenario Selection MUST confirm the event
+Wakeve MUST transition a scenario matrix event from `COMPARING` to `CONFIRMED` when the organizer selects the final matrix scenario.
+
+#### Scenario: Matrix final selection confirms event
+- **GIVEN** an event uses planning mode `SCENARIO_MATRIX`
+- **AND** the event is in `COMPARING`
+- **WHEN** the organizer selects a final matrix scenario
+- **THEN** the selected scenario becomes `SELECTED`
+- **AND** competing scenarios become `REJECTED`
+- **AND** event status changes to `CONFIRMED`
+- **AND** organization modules derive date and destination from the selected scenario
+
+### Requirement: Workflow State Machines Own AI-Proposed Actions
+Workflow state machines SHALL remain the only authority for event lifecycle transitions, feature unlocking, navigation side effects, and workflow persistence. AI modules MAY propose intents or draft values, but those proposals SHALL be validated through existing guards before any state transition occurs.
+
+#### Scenario: AI proposes finalizing an event
+- **GIVEN** an AI planning helper proposes that an event is ready to finalize
+- **WHEN** the organizer chooses to apply that proposal
+- **THEN** Wakeve dispatches the existing finalization intent
+- **AND** the workflow state machine enforces all finalization readiness guards
+- **AND** the event remains unchanged if any deterministic guard fails.
+
+#### Scenario: AI suggests a next workflow action
+- **WHEN** AI suggests the next event action
+- **THEN** Wakeve labels it as a suggestion
+- **AND** the current persisted event status remains the source of truth for which actions are enabled.
 
 ## Architecture
 

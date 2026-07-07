@@ -1,0 +1,484 @@
+# Fastfile — Wakeve Store Deployment
+
+ENV["FASTLANE_SKIP_UPDATE_CHECK"] = "1"
+opt_out_usage
+default_platform(:android)
+
+require "shellwords"
+require "json"
+require "open3"
+require "tmpdir"
+
+REPO_ROOT = File.expand_path("..", __dir__)
+FINAL_APP_STORE_SIGNOFF_RECORD = "docs/APP_STORE_FINAL_SIGNOFF.md"
+WEB_PNPM_COMMAND = "npx --yes pnpm@10"
+FINAL_APP_STORE_SIGNOFF_ENV_VARS = [
+  "APP_STORE_PRIVACY_SIGNOFF",
+  "APP_STORE_ACCESSIBILITY_SIGNOFF",
+  "APP_STORE_AVAILABILITY_CONFIRMED",
+  "APP_STORE_DSA_TRADER_STATUS_CONFIRMED",
+  "APP_STORE_PRICING_AVAILABILITY_CONFIRMED",
+  "APP_STORE_SDK_PRIVACY_CONFIRMED",
+  "APP_STORE_RELEASE_CONTROL_CONFIRMED",
+  "APP_STORE_MEDIA_LOCALIZATION_CONFIRMED",
+  "APP_STORE_LICENSE_NOTICES_CONFIRMED",
+  "APP_STORE_EULA_CONFIRMED",
+  "APP_STORE_ACCOUNT_DELETION_CONFIRMED",
+  "APP_STORE_UGC_MODERATION_CONFIRMED",
+  "APP_STORE_PAYMENT_COMPLIANCE_CONFIRMED",
+  "TESTFLIGHT_SMOKE_PASSED",
+  "APP_STORE_CAPABILITIES_CONFIRMED"
+].freeze
+
+# ──────────────────────────────────────────────
+# Android Lanes
+# ──────────────────────────────────────────────
+
+platform :android do
+  desc "Build Android App Bundle for release"
+  lane :build do
+    gradle(
+      task: "bundleRelease",
+      project_dir: repo_path("composeApp")
+    )
+  end
+
+  desc "Run all tests before release"
+  lane :test do
+    gradle(
+      task: "shared:test",
+      project_dir: REPO_ROOT
+    )
+  end
+
+  desc "Upload AAB to Google Play Internal Testing"
+  lane :upload_internal do
+    build
+    upload_to_play_store(
+      track: "internal",
+      aab: repo_path("composeApp/build/outputs/bundle/release/composeApp-release.aab"),
+      metadata_path: repo_path("composeApp/metadata/android"),
+      skip_upload_metadata: false,
+      skip_upload_screenshots: true
+    )
+  end
+
+  desc "Upload AAB to Google Play Production"
+  lane :upload_production do
+    build
+    upload_to_play_store(
+      track: "production",
+      aab: repo_path("composeApp/build/outputs/bundle/release/composeApp-release.aab"),
+      metadata_path: repo_path("composeApp/metadata/android")
+    )
+  end
+
+  desc "Validate store metadata"
+  lane :validate_metadata do
+    # Check required metadata files exist
+    validate_metadata_presence("composeApp/metadata/android")
+  end
+
+  desc "Full release pipeline: test → build → upload"
+  lane :release do
+    test
+    validate_metadata
+    upload_production
+  end
+end
+
+# ──────────────────────────────────────────────
+# iOS Lanes
+# ──────────────────────────────────────────────
+
+platform :ios do
+  desc "Build iOS IPA for release"
+  lane :build do
+    ensure_env_vars(["TEAM_ID"], "iOS signing")
+    ensure_apple_release_env_values(["TEAM_ID"])
+
+    build_ios_app(
+      project: repo_path("iosApp/iosApp.xcodeproj"),
+      scheme: "WakeveApp",
+      export_method: "app-store",
+      output_directory: repo_path("build/ios"),
+      output_name: "WakeveApp.ipa",
+      include_bitcode: false
+    )
+
+    validate_built_ipa_entitlements(repo_path("build/ios/WakeveApp.ipa"))
+  end
+
+  desc "Upload IPA to App Store Connect / TestFlight"
+  lane :upload_testflight do
+    ensure_env_vars(["APPLE_ID", "ITC_TEAM_ID", "TEAM_ID"], "TestFlight upload")
+    ensure_apple_release_env_values(["APPLE_ID", "ITC_TEAM_ID", "TEAM_ID"])
+    preflight
+    build
+
+    upload_to_testflight(
+      ipa: repo_path("build/ios/WakeveApp.ipa"),
+      distribute_external: false,
+      notify_internal_testers: true
+    )
+  end
+
+  desc "Upload IPA and metadata to App Store Connect"
+  lane :upload_appstore do
+    ensure_env_vars(["APPLE_ID", "ITC_TEAM_ID", "TEAM_ID", "APPLE_TEAM_ID"], "App Store Connect upload")
+    ensure_apple_release_env_values(["APPLE_ID", "ITC_TEAM_ID", "TEAM_ID", "APPLE_TEAM_ID"])
+    ensure_real_app_review_phone
+    ensure_truthy_env_vars(FINAL_APP_STORE_SIGNOFF_ENV_VARS, "App Store final upload")
+    ensure_final_app_store_signoff_record
+    run_final_app_store_submission_audit
+    preflight(strict: true, live_urls: true)
+    build
+
+    deliver(
+      ipa: repo_path("build/ios/WakeveApp.ipa"),
+      metadata_path: repo_path("composeApp/metadata/ios"),
+      screenshots_path: repo_path("composeApp/screenshots/ios"),
+      app_rating_config_path: repo_path("composeApp/metadata/ios/app_rating_config.json"),
+      app_review_information: app_review_information_from_metadata,
+      skip_screenshots: false,
+      submit_for_review: false,
+      automatic_release: false
+    )
+  end
+
+  desc "Validate store metadata"
+  lane :validate_metadata do |options|
+    validate_metadata_presence(
+      "composeApp/metadata/ios",
+      ["name.txt", "subtitle.txt", "description.txt", "keywords.txt", "release_notes.txt", "privacy_url.txt", "support_url.txt"]
+    )
+
+    copyright_path = repo_path("composeApp/metadata/ios/copyright.txt")
+    UI.user_error!("Missing copyright.txt in iOS metadata root") unless File.exist?(copyright_path)
+
+    rating_path = repo_path("composeApp/metadata/ios/app_rating_config.json")
+    UI.user_error!("Missing app_rating_config.json in iOS metadata root") unless File.exist?(rating_path)
+    require "json"
+    JSON.parse(File.read(rating_path))
+
+    review_notes_path = repo_path("composeApp/metadata/ios/review_information/notes.txt")
+    UI.user_error!("Missing App Review notes at composeApp/metadata/ios/review_information/notes.txt") unless File.exist?(review_notes_path)
+
+    ["first_name.txt", "last_name.txt", "email_address.txt"].each do |file|
+      path = repo_path("composeApp/metadata/ios/review_information/#{file}")
+      UI.user_error!("Missing App Review #{file}") unless File.exist?(path)
+    end
+
+    if truthy_option(options[:require_review_phone])
+      ensure_app_review_phone
+    end
+
+    validate_screenshots_presence("composeApp/screenshots/ios")
+  end
+
+  desc "Validate signed iOS IPA entitlements without uploading"
+  lane :validate_ipa_entitlements do |options|
+    ipa_path = options[:ipa].to_s.strip
+    ipa_path = repo_path("build/ios/WakeveApp.ipa") if ipa_path.empty?
+    ensure_env_vars(["TEAM_ID"], "IPA entitlement validation")
+    validate_built_ipa_entitlements(ipa_path)
+  end
+
+  desc "Run local App Store preflight checks without signing or upload"
+  lane :preflight do |options|
+    validate_metadata(require_review_phone: truthy_option(options[:strict]))
+
+    sh(
+      "cd #{Shellwords.escape(REPO_ROOT)} && " \
+      "xcodebuild -project iosApp/iosApp.xcodeproj " \
+      "-scheme WakeveApp " \
+      "-configuration Release " \
+      "-destination #{Shellwords.escape("generic/platform=iOS")} " \
+      "-derivedDataPath build/xcode-deriveddata-release " \
+      "CODE_SIGNING_ALLOWED=NO build"
+    )
+    ensure_latest_release_build_log_has_no_diagnostics
+
+    lint_args = ["--ios-only"]
+    lint_args << "--strict" if truthy_option(options[:strict])
+    lint_args << "--check-live-urls" if truthy_option(options[:live_urls])
+
+    sh("cd #{Shellwords.escape(REPO_ROOT)} && ./scripts/lint-store-metadata.sh #{lint_args.join(" ")}")
+    sh("cd #{Shellwords.escape(repo_path("apps/landing"))} && #{WEB_PNPM_COMMAND} audit --audit-level low")
+    sh("cd #{Shellwords.escape(repo_path("apps/landing"))} && #{WEB_PNPM_COMMAND} check")
+    sh("cd #{Shellwords.escape(repo_path("apps/landing"))} && #{WEB_PNPM_COMMAND} build")
+    run_local_web_route_check
+  end
+
+  desc "Run final App Store submission gate without uploading"
+  lane :submission_ready do
+    ensure_env_vars(["APPLE_ID", "ITC_TEAM_ID", "TEAM_ID", "APPLE_TEAM_ID"], "App Store submission readiness")
+    ensure_apple_release_env_values(["APPLE_ID", "ITC_TEAM_ID", "TEAM_ID", "APPLE_TEAM_ID"])
+    ensure_real_app_review_phone
+    preflight(strict: true, live_urls: true)
+    build
+  end
+
+  desc "Full release pipeline: validate → build → upload"
+  lane :release do
+    validate_metadata
+    upload_appstore
+  end
+end
+
+# ──────────────────────────────────────────────
+# Helpers
+# ──────────────────────────────────────────────
+
+def repo_path(path)
+  File.expand_path(path, REPO_ROOT)
+end
+
+def validate_metadata_presence(path, required_files = ["title.txt", "description.txt"])
+  metadata_path = repo_path(path)
+  ignored_dirs = ["review_information"]
+  locales = Dir.glob("#{metadata_path}/*").select { |f| File.directory?(f) && !ignored_dirs.include?(File.basename(f)) }
+
+  if locales.empty?
+    UI.user_error!("No locale directories found in #{metadata_path}")
+  end
+
+  locales.each do |locale|
+    required_files.each do |file|
+      filepath = File.join(locale, file)
+      unless File.exist?(filepath)
+        UI.user_error!("Missing #{file} in #{File.basename(locale)}")
+      end
+    end
+    UI.success("✅ #{File.basename(locale)} metadata valid")
+  end
+end
+
+def validate_screenshots_presence(path)
+  screenshots_path = repo_path(path)
+  locales = Dir.glob("#{screenshots_path}/*").select { |f| File.directory?(f) }
+
+  if locales.empty?
+    UI.user_error!("No locale screenshot directories found in #{screenshots_path}")
+  end
+
+  locales.each do |locale|
+    screenshots = Dir.glob("#{locale}/*.{png,jpg,jpeg}", File::FNM_CASEFOLD)
+    UI.user_error!("Missing screenshots in #{File.basename(locale)}") if screenshots.empty?
+    UI.success("✅ #{File.basename(locale)} screenshots valid")
+  end
+end
+
+def truthy_option(value)
+  value == true || value.to_s.casecmp("true").zero? || value.to_s == "1" || value.to_s.casecmp("yes").zero?
+end
+
+def ensure_env_vars(names, context)
+  missing = names.select { |name| ENV[name].to_s.strip.empty? }
+  return if missing.empty?
+
+  UI.user_error!("#{context} requires environment variable(s): #{missing.join(", ")}")
+end
+
+def ensure_apple_release_env_values(names)
+  names.each do |name|
+    value = ENV[name].to_s.strip
+    next if value.empty?
+
+    case name
+    when "APPLE_ID"
+      UI.user_error!("APPLE_ID must be an Apple account email address") unless value =~ /\A[^@\s]+@[^@\s]+\.[^@\s]+\z/
+      UI.user_error!("APPLE_ID uses the documented placeholder release@example.com; replace it with the real App Store Connect Apple account") if value == "release@example.com"
+    when "ITC_TEAM_ID"
+      UI.user_error!("ITC_TEAM_ID must be numeric") unless value =~ /\A\d+\z/
+      UI.user_error!("ITC_TEAM_ID uses the documented placeholder 123456789; replace it with the real App Store Connect team ID") if value == "123456789"
+    when "TEAM_ID", "APPLE_TEAM_ID"
+      UI.user_error!("#{name} must be a 10-character uppercase Apple Developer Team ID") unless value =~ /\A[A-Z0-9]{10}\z/
+      UI.user_error!("#{name} uses the documented placeholder ABCDE12345; replace it with the real Apple Developer Team ID") if value == "ABCDE12345"
+    end
+  end
+
+  return unless names.include?("TEAM_ID") && names.include?("APPLE_TEAM_ID")
+  return if ENV["TEAM_ID"].to_s.strip.empty? || ENV["APPLE_TEAM_ID"].to_s.strip.empty?
+  return if ENV["TEAM_ID"].to_s.strip == ENV["APPLE_TEAM_ID"].to_s.strip
+
+  UI.user_error!("TEAM_ID and APPLE_TEAM_ID must match for this release so AASA app IDs match the signed app")
+end
+
+def ensure_truthy_env_vars(names, context)
+  missing = names.reject { |name| truthy_option(ENV[name]) }
+  return if missing.empty?
+
+  UI.user_error!("#{context} requires confirmed variable(s): #{missing.join(", ")}")
+end
+
+def ensure_final_app_store_signoff_record
+  path = repo_path(FINAL_APP_STORE_SIGNOFF_RECORD)
+  UI.user_error!("Missing final App Store signoff record at #{FINAL_APP_STORE_SIGNOFF_RECORD}") unless File.exist?(path)
+
+  content = File.read(path)
+  unless content.include?("APP_STORE_FINAL_SIGNOFF_COMPLETE=true")
+    UI.user_error!("Final App Store signoff record is not complete; set APP_STORE_FINAL_SIGNOFF_COMPLETE=true in #{FINAL_APP_STORE_SIGNOFF_RECORD} only after all evidence is recorded")
+  end
+
+  unresolved_pattern = /\b(TBD|Pending)\b|Status: NOT|Status: not confirmed|\[ \]/
+  return unless content.match?(unresolved_pattern)
+
+  UI.user_error!("Final App Store signoff record still contains unresolved TBD/Pending/status/checklist placeholders; complete every evidence item before upload_appstore")
+end
+
+def run_final_app_store_submission_audit
+  sh("cd #{Shellwords.escape(REPO_ROOT)} && ./scripts/app-store-submission-audit.sh --check-live-urls --run-submission-ready")
+end
+
+def app_review_information_from_metadata
+  review_dir = repo_path("composeApp/metadata/ios/review_information")
+  info = {
+    first_name: read_review_information_file(review_dir, "first_name"),
+    last_name: read_review_information_file(review_dir, "last_name"),
+    email_address: read_review_information_file(review_dir, "email_address"),
+    phone_number: app_review_phone_number,
+    notes: read_review_information_file(review_dir, "notes")
+  }
+
+  info.compact
+end
+
+def read_review_information_file(review_dir, name)
+  path = File.join(review_dir, "#{name}.txt")
+  return nil unless File.exist?(path)
+
+  File.read(path).strip
+end
+
+def app_review_phone_number
+  env_phone = ENV["APP_REVIEW_PHONE_NUMBER"].to_s.strip
+  return env_phone unless env_phone.empty?
+
+  phone_path = repo_path("composeApp/metadata/ios/review_information/phone_number.txt")
+  return nil unless File.exist?(phone_path)
+
+  File.read(phone_path).strip
+end
+
+def ensure_app_review_phone
+  phone_number = app_review_phone_number
+  UI.user_error!("Missing App Review phone. Set APP_REVIEW_PHONE_NUMBER or add composeApp/metadata/ios/review_information/phone_number.txt") if phone_number.to_s.strip.empty?
+  UI.user_error!("App Review phone must include 4-20 digits, optionally prefixed with +") unless valid_review_phone?(phone_number)
+end
+
+def ensure_real_app_review_phone
+  ensure_app_review_phone
+
+  phone_number = app_review_phone_number
+  UI.user_error!("APP_REVIEW_PHONE_NUMBER uses the documented placeholder +15551234567; replace it with the real reachable App Review contact before submission_ready or upload_appstore") if placeholder_review_phone?(phone_number)
+end
+
+def ensure_latest_release_build_log_has_no_diagnostics
+  logs = Dir.glob(repo_path("build/xcode-deriveddata-release/Logs/Build/*.xcactivitylog"))
+  UI.user_error!("No Release xcodebuild activity log found") if logs.empty?
+
+  latest_log = logs.max_by { |path| File.mtime(path) }
+  command = "/usr/bin/gzip -cd #{Shellwords.escape(latest_log)} 2>/dev/null | /usr/bin/strings | /usr/bin/grep -nE 'warning:|error:'"
+  stdout, stderr, status = Open3.capture3(command)
+
+  if status.success?
+    diagnostics = stdout.lines.first(20).join
+    UI.user_error!("Release xcodebuild emitted diagnostics in #{latest_log}:\n#{diagnostics}")
+  end
+
+  return if status.exitstatus == 1
+
+  UI.user_error!("Could not inspect Release xcodebuild activity log #{latest_log}: #{stderr}")
+end
+
+def run_local_web_route_check
+  script = <<~BASH
+    set -euo pipefail
+
+    mkdir -p build
+    cd apps/landing
+    CI=true APPLE_TEAM_ID=A1B2C3D4E5 #{WEB_PNPM_COMMAND} exec vite dev --host 127.0.0.1 --port 3000 --strictPort > ../../build/app-store-local-web-route-check.log 2>&1 &
+    server_pid=$!
+    trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+
+    ready=false
+    for attempt in {1..30}; do
+      if curl -fsS http://127.0.0.1:3000/privacy >/dev/null 2>&1; then
+        ready=true
+        break
+      fi
+      sleep 1
+    done
+
+    if [ "$ready" != true ]; then
+      cat ../../build/app-store-local-web-route-check.log
+      echo "Local web server did not become ready"
+      exit 1
+    fi
+
+    cd ../..
+    BASE_URL=http://127.0.0.1:3000 APPLE_TEAM_ID=A1B2C3D4E5 ./scripts/app-store-local-web-route-check.sh
+  BASH
+
+  sh("cd #{Shellwords.escape(REPO_ROOT)} && bash -c #{Shellwords.escape(script)}")
+end
+
+def valid_review_phone?(value)
+  normalized = value.gsub(/[[:space:].()-]/, "")
+  normalized.match?(/\A\+?\d{4,20}\z/)
+end
+
+def placeholder_review_phone?(value)
+  normalized = value.to_s.gsub(/[[:space:].()-]/, "")
+  normalized == "+15551234567" || normalized == "15551234567"
+end
+
+def validate_built_ipa_entitlements(ipa_path)
+  UI.user_error!("Missing IPA at #{ipa_path}") unless File.exist?(ipa_path)
+
+  Dir.mktmpdir("wakeve-ipa-") do |dir|
+    sh("unzip -q #{Shellwords.escape(ipa_path)} -d #{Shellwords.escape(dir)}")
+
+    apps = Dir.glob(File.join(dir, "Payload", "*.app"))
+    UI.user_error!("Expected one .app inside #{ipa_path}, found #{apps.length}") unless apps.length == 1
+
+    entitlements_path = File.join(dir, "entitlements.plist")
+    sh("/usr/bin/codesign -d --entitlements :- #{Shellwords.escape(apps.first)} > #{Shellwords.escape(entitlements_path)} 2>/dev/null")
+
+    entitlements_json = capture_stdout!("/usr/bin/plutil -convert json -o - #{Shellwords.escape(entitlements_path)}")
+    entitlements = JSON.parse(entitlements_json)
+    expected_team_id = ENV.fetch("TEAM_ID").strip
+    expected_app_id = "#{expected_team_id}.com.guyghost.wakeve"
+
+    require_entitlement_value(entitlements, "application-identifier", expected_app_id)
+    require_entitlement_value(entitlements, "com.apple.developer.team-identifier", expected_team_id)
+    require_entitlement_value(entitlements, "aps-environment", "production")
+    require_entitlement_value(entitlements, "com.apple.developer.siri", true)
+    require_entitlement_array_value(entitlements, "com.apple.developer.applesignin", "Default")
+    require_entitlement_array_value(entitlements, "com.apple.developer.associated-domains", "applinks:wakeve.app")
+
+    UI.success("✅ Signed IPA entitlements match App Store capability requirements")
+  end
+end
+
+def capture_stdout!(command)
+  stdout, stderr, status = Open3.capture3(command)
+  return stdout if status.success?
+
+  UI.user_error!("Command failed: #{command}\n#{stderr}")
+end
+
+def require_entitlement_value(entitlements, key, expected)
+  actual = entitlements[key]
+  return if actual == expected
+
+  UI.user_error!("Signed IPA entitlement #{key} expected #{expected.inspect}, got #{actual.inspect}")
+end
+
+def require_entitlement_array_value(entitlements, key, expected)
+  values = Array(entitlements[key])
+  return if values.include?(expected)
+
+  UI.user_error!("Signed IPA entitlement #{key} must include #{expected.inspect}; got #{values.inspect}")
+end

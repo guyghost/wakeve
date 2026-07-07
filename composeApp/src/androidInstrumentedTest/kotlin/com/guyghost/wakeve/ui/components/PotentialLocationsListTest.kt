@@ -34,12 +34,12 @@ class PotentialLocationsListTest {
         
         // Then
         composeTestRule
-            .onNodeWithText("No locations yet")
+            .onNodeWithText("Aucun lieu pour l'instant")
             .assertExists()
             .assertIsDisplayed()
         
         composeTestRule
-            .onNodeWithText("Add potential venues, cities, or regions")
+            .onNodeWithText("Ajoutez des lieux, villes ou régions possibles")
             .assertExists()
     }
     
@@ -56,7 +56,7 @@ class PotentialLocationsListTest {
         
         // Then
         composeTestRule
-            .onNodeWithText("Potential Locations")
+            .onNodeWithText("Lieux potentiels")
             .assertExists()
             .assertIsDisplayed()
     }
@@ -74,7 +74,7 @@ class PotentialLocationsListTest {
         
         // Then
         composeTestRule
-            .onNodeWithText("Add")
+            .onNodeWithText("Ajouter")
             .assertExists()
             .assertIsDisplayed()
     }
@@ -94,7 +94,7 @@ class PotentialLocationsListTest {
         }
         
         composeTestRule
-            .onNodeWithText("Add")
+            .onNodeWithText("Ajouter")
             .performClick()
         
         // Then
@@ -301,7 +301,7 @@ class PotentialLocationsListTest {
         
         // Then
         composeTestRule
-            .onNodeWithText("Add")
+            .onNodeWithText("Ajouter")
             .assertIsNotEnabled()
     }
     

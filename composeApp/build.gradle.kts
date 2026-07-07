@@ -25,6 +25,31 @@ val enableDesktopTarget = providers.gradleProperty("enableDesktopTarget")
     .orNull
     ?.toBooleanStrictOrNull() == true
 
+val serverUrl = (localProperties["server.url"] as? String)
+    ?: providers.gradleProperty("wakeve.serverUrl").orNull
+    ?: "https://api.wakeve.app"
+val escapedServerUrl = serverUrl.replace("\\", "\\\\").replace("\"", "\\\"")
+
+// Release signing: set in local.properties (gitignored) or CI environment variables.
+// RELEASE_STORE_FILE=path/to/upload-keystore.jks
+// RELEASE_STORE_PASSWORD=...
+// RELEASE_KEY_ALIAS=...
+// RELEASE_KEY_PASSWORD=...
+fun readReleaseSigningProperty(name: String): String? =
+    (localProperties[name] as? String)?.trim()?.takeIf { it.isNotEmpty() }
+        ?: System.getenv(name)?.trim()?.takeIf { it.isNotEmpty() }
+
+val releaseStoreFile = readReleaseSigningProperty("RELEASE_STORE_FILE")
+val releaseStorePassword = readReleaseSigningProperty("RELEASE_STORE_PASSWORD")
+val releaseKeyAlias = readReleaseSigningProperty("RELEASE_KEY_ALIAS")
+val releaseKeyPassword = readReleaseSigningProperty("RELEASE_KEY_PASSWORD")
+val hasReleaseSigningConfig = listOf(
+    releaseStoreFile,
+    releaseStorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword
+).all { !it.isNullOrBlank() }
+
 kotlin {
     // Android target
     androidTarget {
@@ -115,6 +140,7 @@ kotlin {
                 // Image loading
                 implementation(libs.coil.compose)
                 implementation(libs.coil.svg)
+                implementation(libs.zxing.core)
                 
                 // Kotlinx Serialization
                 implementation(libs.kotlinx.serialization.json)
@@ -127,6 +153,9 @@ kotlin {
         }
         
         androidUnitTest {
+            dependencies {
+                implementation(libs.kotlinx.coroutines.test)
+            }
             kotlin {
                 // Temporarily exclude JVM/Mockito-heavy test until migrated to KMP-friendly stack
                 exclude("**/viewmodel/SmartAlbumsViewModelTest.kt")
@@ -188,12 +217,28 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "/META-INF/LICENSE.md"
+            excludes += "/META-INF/LICENSE-notice.md"
         }
     }
     
+    signingConfigs {
+        if (hasReleaseSigningConfig) {
+            create("release") {
+                storeFile = rootProject.file(releaseStoreFile!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         getByName("release") {
             isMinifyEnabled = false
+            if (hasReleaseSigningConfig) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
     
@@ -234,8 +279,12 @@ buildConfig {
     // Feature flag for progressive OAuth rollout
     buildConfigField("Boolean", "ENABLE_OAUTH", "true")
     
-    // Server URL for OAuth endpoints
-    buildConfigField("String", "SERVER_URL", "\"http://10.0.2.2:8080\"")
+    // Server URL for OAuth, invitation, and notification endpoints.
+    buildConfigField("String", "SERVER_URL", "\"$escapedServerUrl\"")
+
+    // App metadata surfaced in settings/about UI.
+    buildConfigField("String", "VERSION_NAME", "\"${android.defaultConfig.versionName}\"")
+    buildConfigField("Int", "VERSION_CODE", "${android.defaultConfig.versionCode}")
     
     // Google OAuth Client ID
     buildConfigField(
@@ -256,6 +305,13 @@ buildConfig {
         "String",
         "APPLE_REDIRECT_URI",
         "\"${localProperties["apple.redirect.uri"] as? String ?: "wakeve://apple-auth-callback"}\""
+    )
+
+    // Google Maps Platform Weather API key (optional Android weather provider).
+    buildConfigField(
+        "String",
+        "GOOGLE_MAPS_API_KEY",
+        "\"${localProperties["google.maps.api.key"] as? String ?: ""}\""
     )
 }
 

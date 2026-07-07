@@ -15,7 +15,7 @@
 - [x] Pattern AAA (GIVEN/WHEN/THEN)
 - [x] setUp/tearDown pour nettoyage
 
-**Fichier** : `iosApp/iosApp/Tests/OnboardingPersistenceTests.swift` (503 lignes)
+**Fichier** : `iosApp/WakeveTests/OnboardingPersistenceTests.swift` (503 lignes)
 
 ### ✅ Documentation
 - [x] README_TESTS.md - Quick start

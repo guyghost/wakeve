@@ -1,7 +1,7 @@
 # 🎨 Migration EventCreationSheet vers Liquid Glass - Résumé
 
 **Date**: 28 décembre 2025  
-**Fichier**: `iosApp/iosApp/Views/EventCreationSheet.swift`  
+**Fichier**: `iosApp/src/Views/EventCreationSheet.swift`  
 **Statut**: ✅ Complet
 
 ## 📋 Objectif
@@ -177,7 +177,7 @@ struct FormCardModifier: ViewModifier {
 
 - **Liquid Glass Guidelines**: `iosApp/LIQUID_GLASS_GUIDELINES.md`
 - **Design System**: `.opencode/design-system.md`
-- **Extensions**: `iosApp/iosApp/Extensions/ViewExtensions.swift`
+- **Extensions**: `iosApp/src/Extensions/ViewExtensions.swift`
 
 ## ✅ Checklist Finale
 
@@ -195,6 +195,6 @@ struct FormCardModifier: ViewModifier {
 ---
 
 **Migration complétée avec succès**  
-**Fichier**: `/Users/guy/Developer/dev/wakeve/iosApp/iosApp/Views/EventCreationSheet.swift`  
+**Fichier**: `/Users/guy/Developer/dev/wakeve/iosApp/src/Views/EventCreationSheet.swift`  
 **Lignes**: 625  
 **Statut**: 🟢 Prêt pour production

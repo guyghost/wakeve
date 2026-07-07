@@ -2,6 +2,7 @@ package com.guyghost.wakeve.routes
 
 import com.guyghost.wakeve.repository.DatabaseEventRepository
 import com.guyghost.wakeve.database.WakeveDb
+import com.guyghost.wakeve.deeplink.DeepLinkFactory
 import com.guyghost.wakeve.invitation.InvitationRepository
 import com.guyghost.wakeve.models.CreateInvitationRequest
 import com.guyghost.wakeve.models.Invitation
@@ -17,6 +18,8 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
+import kotlinx.serialization.Serializable
+import java.time.Instant
 
 /**
  * Invitation routes for event sharing and invitation links.
@@ -35,9 +38,9 @@ fun Route.invitationRoutes(
         // POST /api/events/{id}/invite - Generate invitation link
         post {
             try {
-                val eventId = call.parameters["id"] ?: return@post call.respond(
+                val eventId = normalizeInvitationEventRouteId(call.parameters["id"]) ?: return@post call.respond(
                     HttpStatusCode.BadRequest,
-                    mapOf("error" to "Event ID required")
+                    mapOf("error" to "Valid event ID required")
                 )
 
                 // Get authenticated user
@@ -53,6 +56,12 @@ fun Route.invitationRoutes(
                     HttpStatusCode.NotFound,
                     mapOf("error" to "Event not found")
                 )
+                if (event.organizerId != userId) {
+                    return@post call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only the event organizer can create invitation links")
+                    )
+                }
 
                 // Parse request body (optional parameters)
                 val request = try {
@@ -60,9 +69,20 @@ fun Route.invitationRoutes(
                 } catch (e: Exception) {
                     CreateInvitationRequest()
                 }
+                val validatedRequest = validateCreateInvitationRequest(request).getOrElse { throwable ->
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to createInvitationValidationFailureMessage(throwable))
+                    )
+                }
 
-                // Generate unique invitation code (8 characters, alphanumeric)
-                val code = generateInvitationCode()
+                // Generate a unique invitation code (8 characters, alphanumeric)
+                val code = generateUniqueInvitationCode(invitationRepository).getOrElse {
+                    return@post call.respond(
+                        HttpStatusCode.InternalServerError,
+                        mapOf("error" to "Failed to generate a unique invitation code")
+                    )
+                }
                 val now = java.time.Instant.now().toString()
 
                 val invitation = Invitation(
@@ -70,8 +90,8 @@ fun Route.invitationRoutes(
                     code = code,
                     eventId = eventId,
                     createdBy = userId,
-                    expiresAt = request.expiresAt,
-                    maxUses = request.maxUses,
+                    expiresAt = validatedRequest.expiresAt,
+                    maxUses = validatedRequest.maxUses,
                     currentUses = 0,
                     createdAt = now
                 )
@@ -89,19 +109,19 @@ fun Route.invitationRoutes(
                         currentUses = invitation.currentUses,
                         createdAt = invitation.createdAt,
                         inviteUrl = "https://wakeve.app/invite/$code",
-                        deepLinkUrl = "wakeve://invite/$code"
+                        deepLinkUrl = DeepLinkFactory.createInvitationLink(code).fullUri
                     )
                     call.respond(HttpStatusCode.Created, response)
                 } else {
                     call.respond(
                         HttpStatusCode.InternalServerError,
-                        mapOf("error" to (result.exceptionOrNull()?.message ?: "Failed to create invitation"))
+                        mapOf("error" to createInvitationFailureMessage())
                     )
                 }
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to createInvitationFailureMessage())
                 )
             }
         }
@@ -124,20 +144,33 @@ fun Route.publicInvitationRoutes(
         // GET /api/invite/{code} - Resolve invitation code (no auth required)
         get {
             try {
-                val code = call.parameters["code"] ?: return@get call.respond(
+                val code = normalizeInvitationRouteCode(call.parameters["code"]) ?: return@get call.respond(
                     HttpStatusCode.BadRequest,
-                    mapOf("error" to "Invitation code required")
+                    mapOf("error" to "Valid invitation code required")
                 )
 
-                // Look up invitation by code
-                val invitation = invitationRepository.getByCode(code) ?: return@get call.respond(
+                // Look up invitation by code without turning database failures into 404s.
+                val invitation = invitationRepository.getByCodeResult(code).getOrElse {
+                    return@get call.respond(
+                        HttpStatusCode.InternalServerError,
+                        mapOf("error" to "Failed to resolve invitation")
+                    )
+                } ?: return@get call.respond(
                     HttpStatusCode.NotFound,
                     mapOf("error" to "Invitation not found or invalid")
                 )
 
                 // Check validity
-                val now = java.time.Instant.now().toString()
-                val isValid = invitation.isValid(now)
+                val isValid = invitation.isValidAt(Instant.now())
+                if (!isValid) {
+                    return@get call.respond(
+                        HttpStatusCode.Gone,
+                        InvalidInvitationResolveResponse(
+                            error = "Invitation expired or no longer available",
+                            isValid = false
+                        )
+                    )
+                }
 
                 // Get event info
                 val event = eventRepository.getEvent(invitation.eventId)
@@ -161,7 +194,7 @@ fun Route.publicInvitationRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to invitationResolveFailureMessage())
                 )
             }
         }
@@ -184,9 +217,9 @@ fun Route.invitationAcceptRoutes(
         // POST /api/invite/{code}/accept - Accept invitation and join event
         post {
             try {
-                val code = call.parameters["code"] ?: return@post call.respond(
+                val code = normalizeInvitationRouteCode(call.parameters["code"]) ?: return@post call.respond(
                     HttpStatusCode.BadRequest,
-                    mapOf("error" to "Invitation code required")
+                    mapOf("error" to "Valid invitation code required")
                 )
 
                 // Get authenticated user
@@ -197,20 +230,16 @@ fun Route.invitationAcceptRoutes(
                         mapOf("error" to "Authentication required")
                     )
 
-                // Look up invitation
-                val invitation = invitationRepository.getByCode(code) ?: return@post call.respond(
+                // Look up invitation without turning database failures into 404s.
+                val invitation = invitationRepository.getByCodeResult(code).getOrElse {
+                    return@post call.respond(
+                        HttpStatusCode.InternalServerError,
+                        mapOf("error" to "Failed to resolve invitation")
+                    )
+                } ?: return@post call.respond(
                     HttpStatusCode.NotFound,
                     mapOf("error" to "Invitation not found or invalid")
                 )
-
-                // Check validity
-                val now = java.time.Instant.now().toString()
-                if (!invitation.isValid(now)) {
-                    return@post call.respond(
-                        HttpStatusCode.Gone,
-                        mapOf("error" to "This invitation has expired or reached its maximum uses")
-                    )
-                }
 
                 // Check if event exists
                 val event = eventRepository.getEvent(invitation.eventId)
@@ -233,22 +262,36 @@ fun Route.invitationAcceptRoutes(
                     return@post
                 }
 
+                // Check validity after idempotence so existing participants can reopen the app from an old link.
+                if (!invitation.isValidAt(Instant.now())) {
+                    return@post call.respond(
+                        HttpStatusCode.Gone,
+                        mapOf("error" to "This invitation has expired or reached its maximum uses")
+                    )
+                }
+
                 // Add participant to event via invitation (bypasses DRAFT-only restriction)
                 try {
+                    val db = database ?: return@post call.respond(
+                        HttpStatusCode.InternalServerError,
+                        mapOf("error" to "Invitation acceptance is not configured")
+                    )
                     val joinedAt = java.time.Instant.now().toString()
                     val participantId = "part_${invitation.eventId}_${userId}"
-                    database!!.participantQueries.insertParticipant(
-                        id = participantId,
-                        eventId = invitation.eventId,
-                        userId = userId,
-                        role = "PARTICIPANT",
-                        hasValidatedDate = 0,
-                        joinedAt = joinedAt,
-                        updatedAt = joinedAt
-                    )
+                    db.transaction {
+                        db.participantQueries.insertParticipant(
+                            id = participantId,
+                            eventId = invitation.eventId,
+                            userId = userId,
+                            role = "PARTICIPANT",
+                            hasValidatedDate = 0,
+                            joinedAt = joinedAt,
+                            updatedAt = joinedAt
+                        )
 
-                    // Increment invitation usage count
-                    invitationRepository.incrementUses(code)
+                        // Keep participant creation and link consumption in the same transaction.
+                        invitationRepository.incrementUses(code).getOrThrow()
+                    }
 
                     call.respond(
                         HttpStatusCode.OK,
@@ -264,18 +307,109 @@ fun Route.invitationAcceptRoutes(
                         InvitationAcceptResponse(
                             success = false,
                             eventId = invitation.eventId,
-                            message = "Impossible de rejoindre l'événement: ${e.message}"
+                            message = invitationAcceptFailureMessage()
                         )
                     )
                 }
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to invitationAcceptUnexpectedFailureMessage())
                 )
             }
         }
     }
+}
+
+/**
+ * Generate a unique alphanumeric invitation code.
+ */
+internal fun generateUniqueInvitationCode(
+    invitationRepository: InvitationRepository,
+    generateCandidate: () -> String = ::generateInvitationCode,
+    maxAttempts: Int = 8
+): Result<String> = runCatching {
+    repeat(maxAttempts) {
+        val code = generateCandidate()
+        if (invitationRepository.getByCodeResult(code).getOrThrow() == null) {
+            return@runCatching code
+        }
+    }
+    error("Failed to generate unique invitation code after $maxAttempts attempts")
+}
+
+private data class ValidatedCreateInvitationRequest(
+    val expiresAt: String?,
+    val maxUses: Int?
+)
+
+private class InvitationRequestValidationException(
+    val publicMessage: String
+) : IllegalArgumentException(publicMessage)
+
+@Serializable
+private data class InvalidInvitationResolveResponse(
+    val error: String,
+    val isValid: Boolean
+)
+
+internal fun normalizeInvitationRouteCode(code: String?): String? {
+    return normalizeInvitationPathSegment(code)
+}
+
+internal fun normalizeInvitationEventRouteId(eventId: String?): String? {
+    return normalizeInvitationPathSegment(eventId)
+}
+
+private fun normalizeInvitationPathSegment(value: String?): String? {
+    val normalized = value?.trim().orEmpty()
+    val lowercase = normalized.lowercase()
+    return normalized.takeIf {
+        it.isNotBlank() &&
+            !it.contains("/") &&
+            !it.contains("?") &&
+            !it.contains("#") &&
+            !lowercase.contains("%2f") &&
+            !lowercase.contains("%3f") &&
+            !lowercase.contains("%23")
+    }
+}
+
+private fun validateCreateInvitationRequest(request: CreateInvitationRequest): Result<ValidatedCreateInvitationRequest> {
+    return runCatching {
+        val now = Instant.now()
+        val expiresAt = request.expiresAt?.trim()?.let { value ->
+            if (value.isEmpty()) {
+                throw InvitationRequestValidationException("expiresAt must be an ISO-8601 instant")
+            }
+            val parsed = runCatching { Instant.parse(value) }.getOrElse {
+                throw InvitationRequestValidationException("expiresAt must be an ISO-8601 instant")
+            }
+            if (!parsed.isAfter(now)) {
+                throw InvitationRequestValidationException("expiresAt must be in the future")
+            }
+            parsed.toString()
+        }
+
+        val maxUses = request.maxUses?.also { value ->
+            if (value !in 1..1000) {
+                throw InvitationRequestValidationException("maxUses must be between 1 and 1000")
+            }
+        }
+
+        ValidatedCreateInvitationRequest(
+            expiresAt = expiresAt,
+            maxUses = maxUses
+        )
+    }
+}
+
+private fun Invitation.isValidAt(now: Instant): Boolean {
+    if (isMaxUsesReached()) return false
+    val expiresAtValue = expiresAt ?: return true
+    val expiresAtInstant = runCatching { Instant.parse(expiresAtValue) }.getOrNull()
+        ?: return false
+    return expiresAtInstant.isAfter(now)
 }
 
 /**
@@ -288,3 +422,24 @@ private fun generateInvitationCode(): String {
     val chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789" // Excluding ambiguous chars (I, O, 0, 1)
     return (1..8).map { chars.random() }.joinToString("")
 }
+
+internal fun createInvitationValidationFailureMessage(): String =
+    "Invalid invitation request. Please review the expiration and usage limits."
+
+private fun createInvitationValidationFailureMessage(error: Throwable): String =
+    when (error) {
+        is InvitationRequestValidationException -> error.publicMessage
+        else -> createInvitationValidationFailureMessage()
+    }
+
+internal fun createInvitationFailureMessage(): String =
+    "Failed to create invitation. Please try again."
+
+internal fun invitationResolveFailureMessage(): String =
+    "Failed to resolve invitation. Please try again."
+
+internal fun invitationAcceptFailureMessage(): String =
+    "Impossible de rejoindre l'événement. Veuillez réessayer."
+
+internal fun invitationAcceptUnexpectedFailureMessage(): String =
+    "Failed to accept invitation. Please try again."

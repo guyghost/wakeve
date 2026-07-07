@@ -1,8 +1,6 @@
 package com.guyghost.wakeve.ui.auth
 
-import androidx.compose.animation.core.EaseInOut
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,194 +9,161 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudDone
+import androidx.compose.material.icons.filled.HowToVote
+import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.Route
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.guyghost.wakeve.R
+import com.guyghost.wakeve.ui.designsystem.WakeveSize
+import com.guyghost.wakeve.ui.designsystem.WakeveSpacing
 
 /**
- * Get Started screen - Welcome/branding screen before login.
- * 
- * Displays the Wakeve branding, tagline, and CTA to proceed to login.
- * Matches iOS ModernGetStartedView with Material You design.
- * 
- * ## Features
- * - Animated logo and text fade-in
- * - Material You gradient background
- * - Primary CTA button
- * - Accessibility labels
- * 
- * @param onGetStarted Callback when user taps "Get Started" button
+ * Welcome screen before authentication.
+ *
+ * The screen keeps the first impression focused on Wakeve's task value:
+ * voting, planning, budget, and offline confidence.
  */
 @Composable
 fun GetStartedScreen(
     onGetStarted: () -> Unit
 ) {
-    var isVisible by remember { mutableStateOf(false) }
-    
-    // Trigger animation on first composition
-    LaunchedEffect(Unit) {
-        isVisible = true
-    }
-    
-    val alpha by animateFloatAsState(
-        targetValue = if (isVisible) 1f else 0f,
-        animationSpec = tween(durationMillis = 1000, easing = EaseInOut),
-        label = "fade_in_animation"
-    )
-    
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .alpha(alpha)
+    val scrollState = rememberScrollState()
+
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
     ) {
-        // Gradient Background (Material You colors)
-        Surface(
+        Box(
             modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
+            contentAlignment = Alignment.Center
         ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = WakeveSpacing.xl, vertical = WakeveSpacing.xxl),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Column(
+                Image(
+                    painter = painterResource(id = R.drawable.wakeve_app_icon),
+                    contentDescription = stringResource(R.string.wakeve_logo_content_description),
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                        .size(120.dp)
+                        .clip(RoundedCornerShape(28.dp)),
+                    contentScale = ContentScale.Fit
+                )
+
+                Spacer(modifier = Modifier.height(WakeveSpacing.xl))
+
+                Text(
+                    text = stringResource(R.string.app_name),
+                    style = MaterialTheme.typography.displayMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.semantics { heading() }
+                )
+
+                Spacer(modifier = Modifier.height(WakeveSpacing.md))
+
+                Text(
+                    text = stringResource(R.string.get_started_tagline),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(WakeveSpacing.xxl))
+
+                Button(
+                    onClick = onGetStarted,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = WakeveSize.minTouchTarget),
+                    shape = MaterialTheme.shapes.large
                 ) {
-                    // Logo placeholder (replace with actual logo)
-                    Icon(
-                        painter = painterResource(id = android.R.drawable.ic_dialog_info), // TODO: Replace with Wakeve logo
-                        contentDescription = "Wakeve Logo",
-                        modifier = Modifier.size(120.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    
-                    Spacer(modifier = Modifier.height(32.dp))
-                    
-                    // App Name
                     Text(
-                        text = "Wakeve",
-                        style = MaterialTheme.typography.displayLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 48.sp
-                        ),
-                        color = MaterialTheme.colorScheme.onBackground
+                        text = stringResource(R.string.get_started_cta),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
                     )
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    // Tagline
-                    Text(
-                        text = "Planification d'événements collaborative",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Normal,
-                            fontSize = 18.sp
-                        ),
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
-                        textAlign = TextAlign.Center
+                }
+
+                Spacer(modifier = Modifier.height(WakeveSpacing.lg))
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(WakeveSpacing.md),
+                    horizontalAlignment = Alignment.Start
+                ) {
+                    FeatureItem(
+                        icon = Icons.Default.HowToVote,
+                        text = stringResource(R.string.get_started_feature_poll)
                     )
-                    
-                    Spacer(modifier = Modifier.height(48.dp))
-                    
-                    // CTA Button
-                    Button(
-                        onClick = onGetStarted,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        )
-                    ) {
-                        Text(
-                            text = "Commencer",
-                            style = MaterialTheme.typography.labelLarge.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 18.sp
-                            )
-                        )
-                    }
-                    
-                    Spacer(modifier = Modifier.height(24.dp))
-                    
-                    // Features list
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 16.dp),
-                        horizontalAlignment = Alignment.Start
-                    ) {
-                        FeatureItem(
-                            icon = "✅",
-                            text = "Sondages collaboratifs pour trouver la meilleure date"
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        FeatureItem(
-                            icon = "🌍",
-                            text = "Planification de destinations et d'activités"
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        FeatureItem(
-                            icon = "💰",
-                            text = "Gestion de budget et cagnotte partagée"
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        FeatureItem(
-                            icon = "📱",
-                            text = "Disponible hors ligne, synchronisation automatique"
-                        )
-                    }
+                    FeatureItem(
+                        icon = Icons.Default.Route,
+                        text = stringResource(R.string.get_started_feature_plan)
+                    )
+                    FeatureItem(
+                        icon = Icons.Default.Payments,
+                        text = stringResource(R.string.get_started_feature_budget)
+                    )
+                    FeatureItem(
+                        icon = Icons.Default.CloudDone,
+                        text = stringResource(R.string.get_started_feature_offline)
+                    )
                 }
             }
         }
     }
 }
 
-/**
- * Feature item displaying an icon and text.
- */
 @Composable
 private fun FeatureItem(
-    icon: String,
+    icon: ImageVector,
     text: String
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.Top
     ) {
-        Text(
-            text = icon,
-            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 20.sp),
-            modifier = Modifier.padding(end = 12.dp)
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .padding(top = 2.dp, end = WakeveSpacing.md)
+                .size(22.dp)
         )
         Text(
             text = text,
-            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

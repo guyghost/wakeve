@@ -2,11 +2,16 @@ package com.guyghost.wakeve.routes
 
 import com.guyghost.wakeve.accommodation.AccommodationService
 import com.guyghost.wakeve.accommodation.AccommodationRepository
+import com.guyghost.wakeve.auth.userId
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.Accommodation
 import com.guyghost.wakeve.models.AccommodationRequest
+import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.RoomAssignment
 import com.guyghost.wakeve.models.RoomAssignmentRequest
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -27,7 +32,7 @@ import java.util.UUID
  * - Booking status tracking
  * - Statistics and summaries
  */
-fun Route.accommodationRoutes(repository: AccommodationRepository) {
+fun Route.accommodationRoutes(repository: AccommodationRepository, database: WakeveDb) {
     route("/events/{eventId}/accommodation") {
 
         // GET /api/events/{eventId}/accommodation - Get all accommodations for event
@@ -37,6 +42,15 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
+                if (!hasConfirmedAccommodationAccess(database, eventId, principal.userId)) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to accommodation details")
+                    )
+                }
 
                 val accommodations = repository.getAccommodationsByEventId(eventId)
                 call.respond(HttpStatusCode.OK, accommodations)
@@ -44,7 +58,7 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to accommodationListFailureMessage())
                 )
             }
         }
@@ -56,32 +70,31 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
-                
-                val request = call.receive<AccommodationRequest>()
-                
-                // Validate data
-                val validationError = AccommodationService.validateAccommodation(
-                    name = request.name,
-                    capacity = request.capacity,
-                    pricePerNight = request.pricePerNight,
-                    totalNights = request.totalNights,
-                    checkInDate = request.checkInDate,
-                    checkOutDate = request.checkOutDate
-                )
-                
-                if (validationError != null) {
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
+                if (!isAccommodationOrganizer(database, eventId, principal.userId)) {
                     return@post call.respond(
-                        HttpStatusCode.BadRequest,
-                        mapOf("error" to validationError)
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only the organizer can create accommodations")
+                    )
+                }
+
+                if (!isAccommodationCreationAllowed(database, eventId)) {
+                    return@post call.respond(
+                        HttpStatusCode.Conflict,
+                        mapOf("error" to "Accommodations can only be created for CONFIRMED or COMPARING events")
                     )
                 }
                 
-                // Calculate total cost
-                val totalCost = AccommodationService.calculateTotalCost(
-                    request.pricePerNight,
-                    request.totalNights
-                )
-                
+                val request = call.receive<AccommodationRequest>()
+                if (request.eventId.trim() != eventId) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Accommodation eventId must match path eventId")
+                    )
+                }
+
                 // Create accommodation
                 val accommodation = Accommodation(
                     id = UUID.randomUUID().toString(),
@@ -92,7 +105,7 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
                     capacity = request.capacity,
                     pricePerNight = request.pricePerNight,
                     totalNights = request.totalNights,
-                    totalCost = totalCost,
+                    totalCost = 0,
                     bookingStatus = request.bookingStatus,
                     bookingUrl = request.bookingUrl,
                     checkInDate = request.checkInDate,
@@ -101,14 +114,20 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
                     createdAt = AccommodationService.getCurrentUtcIsoString(),
                     updatedAt = AccommodationService.getCurrentUtcIsoString()
                 )
+                val normalized = AccommodationService.normalizeAccommodation(accommodation).getOrElse { _ ->
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to accommodationValidationFailureMessage())
+                    )
+                }
 
-                val created = repository.createAccommodation(accommodation)
+                val created = repository.createAccommodation(normalized)
                 call.respond(HttpStatusCode.Created, created)
                 
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to accommodationCreateFailureMessage())
                 )
             }
         }
@@ -120,22 +139,35 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Accommodation ID required")
                 )
+                val eventId = call.parameters["eventId"] ?: return@get call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Event ID required")
+                )
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
+                if (!hasConfirmedAccommodationAccess(database, eventId, principal.userId)) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to accommodation details")
+                    )
+                }
 
                 val accommodation = repository.getAccommodationById(accommodationId)
 
-                if (accommodation != null) {
-                    call.respond(HttpStatusCode.OK, accommodation)
-                } else {
-                    call.respond(
+                if (accommodation == null || accommodation.eventId != eventId) {
+                    return@get call.respond(
                         HttpStatusCode.NotFound,
                         mapOf("error" to "Accommodation not found")
                     )
                 }
+
+                call.respond(HttpStatusCode.OK, accommodation)
                 
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to accommodationDetailFailureMessage())
                 )
             }
         }
@@ -147,31 +179,27 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Accommodation ID required")
                 )
-                
-                val request = call.receive<AccommodationRequest>()
-                
-                // Validate data
-                val validationError = AccommodationService.validateAccommodation(
-                    name = request.name,
-                    capacity = request.capacity,
-                    pricePerNight = request.pricePerNight,
-                    totalNights = request.totalNights,
-                    checkInDate = request.checkInDate,
-                    checkOutDate = request.checkOutDate
+                val eventId = call.parameters["eventId"] ?: return@put call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Event ID required")
                 )
-                
-                if (validationError != null) {
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@put call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
+                if (!isAccommodationOrganizer(database, eventId, principal.userId)) {
                     return@put call.respond(
-                        HttpStatusCode.BadRequest,
-                        mapOf("error" to validationError)
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only the organizer can update accommodations")
                     )
                 }
                 
-                // Calculate total cost
-                val totalCost = AccommodationService.calculateTotalCost(
-                    request.pricePerNight,
-                    request.totalNights
-                )
+                val request = call.receive<AccommodationRequest>()
+                if (request.eventId.trim() != eventId) {
+                    return@put call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Accommodation eventId must match path eventId")
+                    )
+                }
 
                 // Get existing accommodation
                 val existing = repository.getAccommodationById(accommodationId)
@@ -182,17 +210,30 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
                         mapOf("error" to "Accommodation not found")
                     )
                 }
+                if (existing.eventId != eventId) {
+                    return@put call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Accommodation not found")
+                    )
+                }
+
+                if (isAccommodationEventFinalized(database, eventId)) {
+                    return@put call.respond(
+                        HttpStatusCode.Conflict,
+                        mapOf("error" to "Finalized events are read-only")
+                    )
+                }
 
                 val accommodation = Accommodation(
                     id = accommodationId,
-                    eventId = request.eventId,
+                    eventId = eventId,
                     name = request.name,
                     type = request.type,
                     address = request.address,
                     capacity = request.capacity,
                     pricePerNight = request.pricePerNight,
                     totalNights = request.totalNights,
-                    totalCost = totalCost,
+                    totalCost = existing.totalCost,
                     bookingStatus = request.bookingStatus,
                     bookingUrl = request.bookingUrl,
                     checkInDate = request.checkInDate,
@@ -201,14 +242,20 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
                     createdAt = existing.createdAt,
                     updatedAt = AccommodationService.getCurrentUtcIsoString()
                 )
+                val normalized = AccommodationService.normalizeAccommodation(accommodation).getOrElse { _ ->
+                    return@put call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to accommodationValidationFailureMessage())
+                    )
+                }
 
-                val updated = repository.updateAccommodation(accommodation)
+                val updated = repository.updateAccommodation(normalized)
                 call.respond(HttpStatusCode.OK, updated)
                 
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to accommodationUpdateFailureMessage())
                 )
             }
         }
@@ -220,6 +267,34 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Accommodation ID required")
                 )
+                val eventId = call.parameters["eventId"] ?: return@delete call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Event ID required")
+                )
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@delete call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
+                if (!isAccommodationOrganizer(database, eventId, principal.userId)) {
+                    return@delete call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only the organizer can delete accommodations")
+                    )
+                }
+
+                val existing = repository.getAccommodationById(accommodationId)
+                if (existing == null || existing.eventId != eventId) {
+                    return@delete call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Accommodation not found")
+                    )
+                }
+
+                if (isAccommodationEventFinalized(database, eventId)) {
+                    return@delete call.respond(
+                        HttpStatusCode.Conflict,
+                        mapOf("error" to "Finalized events are read-only")
+                    )
+                }
 
                 // Delete from repository (will cascade to room assignments via foreign key)
                 repository.deleteAccommodation(accommodationId)
@@ -229,7 +304,7 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to accommodationDeleteFailureMessage())
                 )
             }
         }
@@ -241,6 +316,27 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Accommodation ID required")
                 )
+                val eventId = call.parameters["eventId"] ?: return@get call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Event ID required")
+                )
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
+                if (!hasConfirmedAccommodationAccess(database, eventId, principal.userId)) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to room details")
+                    )
+                }
+
+                val accommodation = repository.getAccommodationById(accommodationId)
+                if (accommodation == null || accommodation.eventId != eventId) {
+                    return@get call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Accommodation not found")
+                    )
+                }
 
                 val rooms = repository.getRoomAssignmentsByAccommodationId(accommodationId)
 
@@ -249,7 +345,7 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to roomListFailureMessage())
                 )
             }
         }
@@ -261,8 +357,27 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Accommodation ID required")
                 )
+                val eventId = call.parameters["eventId"] ?: return@post call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Event ID required")
+                )
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
+                if (!isAccommodationOrganizer(database, eventId, principal.userId)) {
+                    return@post call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only the organizer can create room assignments")
+                    )
+                }
                 
                 val request = call.receive<RoomAssignmentRequest>()
+                if (request.accommodationId.trim() != accommodationId) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Room accommodationId must match path accommodationId")
+                    )
+                }
                 
                 // Validate room assignment
                 val validationError = AccommodationService.validateRoomAssignment(
@@ -286,13 +401,29 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
                         mapOf("error" to "Accommodation not found")
                     )
                 }
+                if (accommodation.eventId != eventId) {
+                    return@post call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Accommodation not found")
+                    )
+                }
+                val assignedParticipants = validateRoomAssignedParticipants(
+                    database = database,
+                    eventId = eventId,
+                    assignedParticipants = request.assignedParticipants
+                ).getOrElse { _ ->
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to roomAssignedParticipantsFailureMessage())
+                    )
+                }
 
                 // Calculate price share per person
                 val priceShare = AccommodationService.calculateRoomPriceShare(
                     accommodationTotalCost = accommodation.totalCost,
                     roomCapacity = request.capacity,
                     totalAccommodationCapacity = accommodation.capacity,
-                    assignedParticipants = request.assignedParticipants.size
+                    assignedParticipants = assignedParticipants.size
                 )
 
                 val roomAssignment = RoomAssignment(
@@ -300,19 +431,25 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
                     accommodationId = accommodationId,
                     roomNumber = request.roomNumber,
                     capacity = request.capacity,
-                    assignedParticipants = request.assignedParticipants,
+                    assignedParticipants = assignedParticipants,
                     priceShare = priceShare,
                     createdAt = AccommodationService.getCurrentUtcIsoString(),
                     updatedAt = AccommodationService.getCurrentUtcIsoString()
                 )
+                val normalized = AccommodationService.normalizeRoomAssignment(roomAssignment).getOrElse { _ ->
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to roomValidationFailureMessage())
+                    )
+                }
 
-                val created = repository.createRoomAssignment(roomAssignment)
+                val created = repository.createRoomAssignment(normalized)
                 call.respond(HttpStatusCode.Created, created)
                 
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to roomCreateFailureMessage())
                 )
             }
         }
@@ -324,8 +461,31 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Room ID required")
                 )
+                val accommodationId = call.parameters["id"] ?: return@put call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Accommodation ID required")
+                )
+                val eventId = call.parameters["eventId"] ?: return@put call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Event ID required")
+                )
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@put call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
+                if (!isAccommodationOrganizer(database, eventId, principal.userId)) {
+                    return@put call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only the organizer can update room assignments")
+                    )
+                }
                 
                 val request = call.receive<RoomAssignmentRequest>()
+                if (request.accommodationId.trim() != accommodationId) {
+                    return@put call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Room accommodationId must match path accommodationId")
+                    )
+                }
                 
                 // Validate room assignment
                 val validationError = AccommodationService.validateRoomAssignment(
@@ -359,13 +519,36 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
                         mapOf("error" to "Accommodation not found")
                     )
                 }
+                if (existing.accommodationId != accommodationId || accommodation.eventId != eventId) {
+                    return@put call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Room assignment not found")
+                    )
+                }
+
+                if (isAccommodationEventFinalized(database, eventId)) {
+                    return@put call.respond(
+                        HttpStatusCode.Conflict,
+                        mapOf("error" to "Finalized events are read-only")
+                    )
+                }
+                val assignedParticipants = validateRoomAssignedParticipants(
+                    database = database,
+                    eventId = eventId,
+                    assignedParticipants = request.assignedParticipants
+                ).getOrElse { _ ->
+                    return@put call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to roomAssignedParticipantsFailureMessage())
+                    )
+                }
 
                 // Calculate price share per person
                 val priceShare = AccommodationService.calculateRoomPriceShare(
                     accommodationTotalCost = accommodation.totalCost,
                     roomCapacity = request.capacity,
                     totalAccommodationCapacity = accommodation.capacity,
-                    assignedParticipants = request.assignedParticipants.size
+                    assignedParticipants = assignedParticipants.size
                 )
 
                 val updated = RoomAssignment(
@@ -373,19 +556,25 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
                     accommodationId = existing.accommodationId,
                     roomNumber = request.roomNumber,
                     capacity = request.capacity,
-                    assignedParticipants = request.assignedParticipants,
+                    assignedParticipants = assignedParticipants,
                     priceShare = priceShare,
                     createdAt = existing.createdAt,
                     updatedAt = AccommodationService.getCurrentUtcIsoString()
                 )
+                val normalized = AccommodationService.normalizeRoomAssignment(updated).getOrElse { _ ->
+                    return@put call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to roomValidationFailureMessage())
+                    )
+                }
 
-                repository.updateRoomAssignment(updated)
-                call.respond(HttpStatusCode.OK, updated)
+                val saved = repository.updateRoomAssignment(normalized)
+                call.respond(HttpStatusCode.OK, saved)
                 
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to roomUpdateFailureMessage())
                 )
             }
         }
@@ -397,6 +586,45 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Room ID required")
                 )
+                val accommodationId = call.parameters["id"] ?: return@delete call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Accommodation ID required")
+                )
+                val eventId = call.parameters["eventId"] ?: return@delete call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Event ID required")
+                )
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@delete call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
+                if (!isAccommodationOrganizer(database, eventId, principal.userId)) {
+                    return@delete call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only the organizer can delete room assignments")
+                    )
+                }
+
+                val existing = repository.getRoomAssignmentById(roomId)
+                if (existing == null || existing.accommodationId != accommodationId) {
+                    return@delete call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Room assignment not found")
+                    )
+                }
+                val accommodation = repository.getAccommodationById(existing.accommodationId)
+                if (accommodation == null || accommodation.eventId != eventId) {
+                    return@delete call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Room assignment not found")
+                    )
+                }
+
+                if (isAccommodationEventFinalized(database, eventId)) {
+                    return@delete call.respond(
+                        HttpStatusCode.Conflict,
+                        mapOf("error" to "Finalized events are read-only")
+                    )
+                }
 
                 repository.deleteRoomAssignment(roomId)
 
@@ -405,7 +633,7 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to roomDeleteFailureMessage())
                 )
             }
         }
@@ -417,6 +645,15 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
+                if (!hasConfirmedAccommodationAccess(database, eventId, principal.userId)) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to accommodation statistics")
+                    )
+                }
 
                 val stats = repository.getStatistics(eventId)
 
@@ -425,9 +662,108 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to accommodationStatisticsFailureMessage())
                 )
             }
         }
     }
 }
+
+private fun hasConfirmedAccommodationAccess(database: WakeveDb, eventId: String, userId: String): Boolean {
+    return isAccommodationOrganizer(database, eventId, userId) ||
+        isConfirmedAccommodationParticipant(database, eventId, userId)
+}
+
+private fun isAccommodationOrganizer(database: WakeveDb, eventId: String, userId: String): Boolean {
+    return database.eventQueries
+        .selectById(eventId)
+        .executeAsOneOrNull()
+        ?.organizerId == userId
+}
+
+private fun isConfirmedAccommodationParticipant(database: WakeveDb, eventId: String, userId: String): Boolean {
+    val participant = database.participantQueries
+        .selectByEventIdAndUserId(eventId, userId)
+        .executeAsOneOrNull()
+
+    return participant?.hasValidatedDate == 1L
+}
+
+private fun isAccommodationCreationAllowed(database: WakeveDb, eventId: String): Boolean {
+    val status = database.eventQueries
+        .selectById(eventId)
+        .executeAsOneOrNull()
+        ?.status
+
+    return status == EventStatus.CONFIRMED.name || status == EventStatus.COMPARING.name
+}
+
+private fun isAccommodationEventFinalized(database: WakeveDb, eventId: String): Boolean {
+    return database.eventQueries
+        .selectById(eventId)
+        .executeAsOneOrNull()
+        ?.status == EventStatus.FINALIZED.name
+}
+
+private fun validateRoomAssignedParticipants(
+    database: WakeveDb,
+    eventId: String,
+    assignedParticipants: List<String>
+): Result<List<String>> = runCatching {
+    val normalized = assignedParticipants.map { it.trim() }
+    require(normalized.none { it.isBlank() }) { "assignedParticipants cannot contain blank participant IDs" }
+    require(normalized.toSet().size == normalized.size) { "Duplicate participants are not allowed" }
+
+    val event = database.eventQueries.selectById(eventId).executeAsOneOrNull()
+        ?: throw IllegalArgumentException("Event not found")
+    val eventMemberIds = database.participantQueries
+        .selectByEventId(eventId)
+        .executeAsList()
+        .map { it.userId }
+        .toSet() + event.organizerId
+    val unknownParticipants = normalized.filterNot { it in eventMemberIds }
+    require(unknownParticipants.isEmpty()) {
+        "Room assignments can only include event members: ${unknownParticipants.joinToString(", ")}"
+    }
+
+    normalized
+}
+
+internal fun accommodationListFailureMessage(): String =
+    "Failed to fetch accommodations. Please try again."
+
+internal fun accommodationValidationFailureMessage(): String =
+    "Invalid accommodation details. Please review the request and try again."
+
+internal fun accommodationCreateFailureMessage(): String =
+    "Failed to create accommodation. Please try again."
+
+internal fun accommodationDetailFailureMessage(): String =
+    "Failed to fetch accommodation details. Please try again."
+
+internal fun accommodationUpdateFailureMessage(): String =
+    "Failed to update accommodation. Please try again."
+
+internal fun accommodationDeleteFailureMessage(): String =
+    "Failed to delete accommodation. Please try again."
+
+internal fun roomListFailureMessage(): String =
+    "Failed to fetch room assignments. Please try again."
+
+internal fun roomAssignedParticipantsFailureMessage(): String =
+    "Invalid assigned participants. Please select event members and try again."
+
+internal fun roomValidationFailureMessage(): String =
+    "Invalid room assignment details. Please review the request and try again."
+
+internal fun roomCreateFailureMessage(): String =
+    "Failed to create room assignment. Please try again."
+
+internal fun roomUpdateFailureMessage(): String =
+    "Failed to update room assignment. Please try again."
+
+internal fun roomDeleteFailureMessage(): String =
+    "Failed to delete room assignment. Please try again."
+
+internal fun accommodationStatisticsFailureMessage(): String =
+    "Failed to fetch accommodation statistics. Please try again."

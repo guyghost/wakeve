@@ -1,0 +1,98 @@
+package com.guyghost.wakeve.notification
+
+import android.app.NotificationManager
+import com.guyghost.wakeve.notification.NotificationChannelManager.Companion.ChannelId
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+
+class NotificationChannelManagerContractTest {
+
+    @Test
+    fun getChannelImportance_keepsOnlyExplicitlyImportantChannelHigh() {
+        assertEquals(
+            NotificationManager.IMPORTANCE_HIGH,
+            NotificationChannelManager.getChannelImportance(ChannelId.HIGH_PRIORITY)
+        )
+        assertEquals(
+            NotificationManager.IMPORTANCE_DEFAULT,
+            NotificationChannelManager.getChannelImportance(ChannelId.EVENTS)
+        )
+        assertEquals(
+            NotificationManager.IMPORTANCE_DEFAULT,
+            NotificationChannelManager.getChannelImportance(ChannelId.REMINDERS)
+        )
+        assertEquals(
+            NotificationManager.IMPORTANCE_LOW,
+            NotificationChannelManager.getChannelImportance(ChannelId.PROGRESS)
+        )
+    }
+
+    @Test
+    fun getChannelId_routesRoutineCommentsToNonHeadsUpEventsChannel() {
+        val channelId = NotificationChannelManager.getChannelId(NotificationType.NEW_COMMENT)
+
+        assertEquals(ChannelId.EVENTS, channelId)
+        assertEquals(
+            NotificationManager.IMPORTANCE_DEFAULT,
+            NotificationChannelManager.getChannelImportance(channelId)
+        )
+    }
+
+    @Test
+    fun getChannelId_keepsInvitesOnHighPriorityChannel() {
+        val channelId = NotificationChannelManager.getChannelId(NotificationType.EVENT_INVITE)
+
+        assertEquals(ChannelId.HIGH_PRIORITY, channelId)
+        assertEquals(
+            NotificationManager.IMPORTANCE_HIGH,
+            NotificationChannelManager.getChannelImportance(channelId)
+        )
+    }
+
+    @Test
+    fun notificationChannelCopyUsesLocalizedActionableNames() {
+        assertEquals("Notifications Wakeve", NotificationChannelManager.getChannelName(ChannelId.DEFAULT))
+        assertEquals("Invitations et decisions", NotificationChannelManager.getChannelName(ChannelId.HIGH_PRIORITY))
+        assertEquals("Activite des evenements", NotificationChannelManager.getChannelName(ChannelId.EVENTS))
+        assertEquals("Rappels", NotificationChannelManager.getChannelName(ChannelId.REMINDERS))
+        assertEquals("Synchronisation", NotificationChannelManager.getChannelName(ChannelId.PROGRESS))
+
+        ChannelId.entries.forEach { channelId ->
+            val name = NotificationChannelManager.getChannelName(channelId)
+            val description = NotificationChannelManager.getChannelDescription(channelId)
+
+            assertFalse(name.isBlank())
+            assertFalse(description.isBlank())
+        }
+    }
+
+    @Test
+    fun notificationChannelCopyDoesNotUseEnglishDefaults() {
+        val copy = ChannelId.entries.flatMap { channelId ->
+            listOf(
+                NotificationChannelManager.getChannelName(channelId),
+                NotificationChannelManager.getChannelDescription(channelId)
+            )
+        }
+
+        copy.forEach { label ->
+            listOf(
+                "Wakeve Notifications",
+                "Default notifications",
+                "Important Notifications",
+                "require your attention",
+                "Event Updates",
+                "Updates and activity",
+                "Reminders for upcoming",
+                "Progress Updates",
+                "Ongoing operations"
+            ).forEach { englishCopy ->
+                assertFalse(
+                    label.contains(englishCopy, ignoreCase = true),
+                    "Channel copy should not contain `$englishCopy`: $label"
+                )
+            }
+        }
+    }
+}

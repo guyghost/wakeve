@@ -19,6 +19,7 @@ class AccommodationRepository(private val db: com.guyghost.wakeve.database.Wakev
 
     private val accommodationQueries = db.accommodationQueries
     private val roomAssignmentQueries = db.roomAssignmentQueries
+    private val syncMetadataQueries = db.syncMetadataQueries
 
     // ==================== Accommodation Operations ====================
 
@@ -29,25 +30,26 @@ class AccommodationRepository(private val db: com.guyghost.wakeve.database.Wakev
      * @return Created accommodation
      */
     fun createAccommodation(accommodation: Accommodation): Accommodation {
+        val normalized = AccommodationService.normalizeAccommodation(accommodation).getOrThrow()
         accommodationQueries.insertAccommodation(
-            id = accommodation.id,
-            event_id = accommodation.eventId,
-            name = accommodation.name,
-            type = accommodation.type.name,
-            address = accommodation.address,
-            capacity = accommodation.capacity.toLong(),
-            price_per_night = accommodation.pricePerNight,
-            total_nights = accommodation.totalNights.toLong(),
-            total_cost = accommodation.totalCost,
-            booking_status = accommodation.bookingStatus.name,
-            booking_url = accommodation.bookingUrl,
-            check_in_date = accommodation.checkInDate,
-            check_out_date = accommodation.checkOutDate,
-            notes = accommodation.notes,
-            created_at = accommodation.createdAt,
-            updated_at = accommodation.updatedAt
+            id = normalized.id,
+            event_id = normalized.eventId,
+            name = normalized.name,
+            type = normalized.type.name,
+            address = normalized.address,
+            capacity = normalized.capacity.toLong(),
+            price_per_night = normalized.pricePerNight,
+            total_nights = normalized.totalNights.toLong(),
+            total_cost = normalized.totalCost,
+            booking_status = normalized.bookingStatus.name,
+            booking_url = normalized.bookingUrl,
+            check_in_date = normalized.checkInDate,
+            check_out_date = normalized.checkOutDate,
+            notes = normalized.notes,
+            created_at = normalized.createdAt,
+            updated_at = normalized.updatedAt
         )
-        return accommodation
+        return normalized
     }
 
     /**
@@ -106,23 +108,24 @@ class AccommodationRepository(private val db: com.guyghost.wakeve.database.Wakev
      * @return Updated accommodation
      */
     fun updateAccommodation(accommodation: Accommodation): Accommodation {
+        val normalized = AccommodationService.normalizeAccommodation(accommodation).getOrThrow()
         accommodationQueries.updateAccommodation(
-            name = accommodation.name,
-            type = accommodation.type.name,
-            address = accommodation.address,
-            capacity = accommodation.capacity.toLong(),
-            price_per_night = accommodation.pricePerNight,
-            total_nights = accommodation.totalNights.toLong(),
-            total_cost = accommodation.totalCost,
-            booking_status = accommodation.bookingStatus.name,
-            booking_url = accommodation.bookingUrl,
-            check_in_date = accommodation.checkInDate,
-            check_out_date = accommodation.checkOutDate,
-            notes = accommodation.notes,
-            updated_at = accommodation.updatedAt,
-            id = accommodation.id
+            name = normalized.name,
+            type = normalized.type.name,
+            address = normalized.address,
+            capacity = normalized.capacity.toLong(),
+            price_per_night = normalized.pricePerNight,
+            total_nights = normalized.totalNights.toLong(),
+            total_cost = normalized.totalCost,
+            booking_status = normalized.bookingStatus.name,
+            booking_url = normalized.bookingUrl,
+            check_in_date = normalized.checkInDate,
+            check_out_date = normalized.checkOutDate,
+            notes = normalized.notes,
+            updated_at = normalized.updatedAt,
+            id = normalized.id
         )
-        return accommodation
+        return normalized
     }
 
     /**
@@ -133,11 +136,36 @@ class AccommodationRepository(private val db: com.guyghost.wakeve.database.Wakev
      */
     fun updateBookingStatus(accommodationId: String, status: BookingStatus) {
         val now = AccommodationService.getCurrentUtcIsoString()
-        accommodationQueries.updateBookingStatus(
-            booking_status = status.name,
-            updated_at = now,
-            id = accommodationId
-        )
+        val accommodation = getAccommodationById(accommodationId) ?: return
+        db.transaction {
+            if (status == BookingStatus.CONFIRMED) {
+                getAccommodationsByEventId(accommodation.eventId)
+                    .filter { it.id != accommodationId && it.bookingStatus == BookingStatus.CONFIRMED }
+                    .forEach { competing ->
+                        accommodationQueries.updateBookingStatus(
+                            booking_status = BookingStatus.RESERVED.name,
+                            updated_at = now,
+                            id = competing.id
+                        )
+                    }
+            }
+
+            accommodationQueries.updateBookingStatus(
+                booking_status = status.name,
+                updated_at = now,
+                id = accommodationId
+            )
+
+            if (status == BookingStatus.CONFIRMED) {
+                queueSyncMetadata(
+                    id = "sync_lodging_selection_${accommodation.eventId}",
+                    entityType = "lodging_selection",
+                    entityId = accommodation.eventId,
+                    operation = "CONFLICT_RESOLVED",
+                    timestamp = "${now}_${accommodationId}"
+                )
+            }
+        }
     }
 
     /**
@@ -167,17 +195,18 @@ class AccommodationRepository(private val db: com.guyghost.wakeve.database.Wakev
      * @return Created room assignment
      */
     fun createRoomAssignment(roomAssignment: RoomAssignment): RoomAssignment {
+        val normalized = AccommodationService.normalizeRoomAssignment(roomAssignment).getOrThrow()
         roomAssignmentQueries.insertRoomAssignment(
-            id = roomAssignment.id,
-            accommodation_id = roomAssignment.accommodationId,
-            room_number = roomAssignment.roomNumber,
-            capacity = roomAssignment.capacity.toLong(),
-            assigned_participants = roomAssignment.assignedParticipants.joinToString(","),
-            price_share = roomAssignment.priceShare,
-            created_at = roomAssignment.createdAt,
-            updated_at = roomAssignment.updatedAt
+            id = normalized.id,
+            accommodation_id = normalized.accommodationId,
+            room_number = normalized.roomNumber,
+            capacity = normalized.capacity.toLong(),
+            assigned_participants = normalized.assignedParticipants.joinToString(","),
+            price_share = normalized.priceShare,
+            created_at = normalized.createdAt,
+            updated_at = normalized.updatedAt
         )
-        return roomAssignment
+        return normalized
     }
 
     /**
@@ -236,15 +265,16 @@ class AccommodationRepository(private val db: com.guyghost.wakeve.database.Wakev
      * @return Updated room assignment
      */
     fun updateRoomAssignment(roomAssignment: RoomAssignment): RoomAssignment {
+        val normalized = AccommodationService.normalizeRoomAssignment(roomAssignment).getOrThrow()
         roomAssignmentQueries.updateRoomAssignment(
-            room_number = roomAssignment.roomNumber,
-            capacity = roomAssignment.capacity.toLong(),
-            assigned_participants = roomAssignment.assignedParticipants.joinToString(","),
-            price_share = roomAssignment.priceShare,
-            updated_at = roomAssignment.updatedAt,
-            id = roomAssignment.id
+            room_number = normalized.roomNumber,
+            capacity = normalized.capacity.toLong(),
+            assigned_participants = normalized.assignedParticipants.joinToString(","),
+            price_share = normalized.priceShare,
+            updated_at = normalized.updatedAt,
+            id = normalized.id
         )
-        return roomAssignment
+        return normalized
     }
 
     /**
@@ -255,8 +285,9 @@ class AccommodationRepository(private val db: com.guyghost.wakeve.database.Wakev
      */
     fun updateAssignedParticipants(roomId: String, assignedParticipants: List<String>) {
         val now = AccommodationService.getCurrentUtcIsoString()
+        val normalized = AccommodationService.normalizeRoomParticipantIds(assignedParticipants).getOrThrow()
         roomAssignmentQueries.updateAssignedParticipants(
-            assigned_participants = assignedParticipants.joinToString(","),
+            assigned_participants = normalized.joinToString(","),
             updated_at = now,
             id = roomId
         )
@@ -360,6 +391,34 @@ class AccommodationRepository(private val db: com.guyghost.wakeve.database.Wakev
             priceShare = price_share,
             createdAt = created_at,
             updatedAt = updated_at
+        )
+    }
+
+    private fun queueSyncMetadata(
+        id: String,
+        entityType: String,
+        entityId: String,
+        operation: String,
+        timestamp: String
+    ) {
+        val existingForEntity = syncMetadataQueries.selectByEntity(entityType, entityId).executeAsList()
+        val uniqueId = if (syncMetadataQueries.selectById(id).executeAsOneOrNull() == null) {
+            id
+        } else {
+            "${id}_${existingForEntity.size}"
+        }
+        val uniqueTimestamp = if (existingForEntity.none { it.timestamp == timestamp }) {
+            timestamp
+        } else {
+            "${timestamp}_${existingForEntity.size}"
+        }
+        syncMetadataQueries.insertSyncMetadata(
+            id = uniqueId,
+            entityType = entityType,
+            entityId = entityId,
+            operation = operation,
+            timestamp = uniqueTimestamp,
+            synced = 0
         )
     }
 }

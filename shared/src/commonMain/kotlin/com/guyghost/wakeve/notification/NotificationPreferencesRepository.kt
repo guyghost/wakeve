@@ -67,11 +67,10 @@ class NotificationPreferencesRepository(
 }
 
 private fun Notification_preferences.toNotificationPreferences(): NotificationPreferences {
-    val enabledTypesSet = runCatching {
-        enabled_types?.let { Json.decodeFromString<List<String>>(it) }.orEmpty()
-            .mapNotNull { raw -> runCatching { NotificationType.valueOf(raw) }.getOrNull() }
-            .toSet()
-    }.getOrDefault(emptySet())
+    val enabledTypesSet = parseEnabledNotificationTypes(
+        enabledTypesJson = enabled_types,
+        userId = user_id
+    )
 
     return NotificationPreferences(
         userId = user_id,
@@ -82,4 +81,21 @@ private fun Notification_preferences.toNotificationPreferences(): NotificationPr
         vibrationEnabled = vibration_enabled != 0L,
         updatedAt = Instant.fromEpochMilliseconds(updated_at)
     )
+}
+
+private fun parseEnabledNotificationTypes(enabledTypesJson: String?, userId: String): Set<NotificationType> {
+    val defaultTypes = defaultNotificationPreferences(userId).enabledTypes
+    val rawTypes = enabledTypesJson?.let { json ->
+        runCatching { Json.decodeFromString<List<String>>(json) }.getOrNull()
+    } ?: return defaultTypes
+
+    val parsedTypes = rawTypes
+        .mapNotNull { raw -> runCatching { NotificationType.valueOf(raw) }.getOrNull() }
+        .toSet()
+
+    return if (rawTypes.isNotEmpty() && parsedTypes.isEmpty()) {
+        defaultTypes
+    } else {
+        parsedTypes
+    }
 }

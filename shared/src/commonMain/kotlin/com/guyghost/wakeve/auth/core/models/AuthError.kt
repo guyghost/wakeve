@@ -43,7 +43,9 @@ sealed class AuthError {
      * OAuth provider error (Google, Apple sign-in failed).
      * 
      * @property provider The OAuth provider that failed
-     * @property message The error message from the provider
+     * @property message Provider/debug detail. This is intentionally not exposed
+     * through [userMessage] because provider errors may include implementation
+     * details or sensitive context.
      */
     data class OAuthError(
         val provider: AuthMethod,
@@ -90,7 +92,8 @@ sealed class AuthError {
     /**
      * Unknown error occurred.
      * 
-     * @property message Optional error message
+     * @property message Optional debug detail. This is intentionally not exposed
+     * through [userMessage].
      */
     data class UnknownError(
         val message: String? = null
@@ -111,13 +114,13 @@ sealed class AuthError {
             is OTPExpired -> "Le code a expiré. Veuillez demander un nouveau code."
             is EmailNotRegistered -> "Cette adresse email n'est pas enregistrée."
             is EmailAlreadyRegistered -> "Cette adresse email est déjà utilisée."
-            is OAuthError -> message ?: "Erreur de connexion avec ${provider.displayName}"
+            is OAuthError -> "Erreur de connexion avec ${provider.displayName}"
             is OAuthCancelled -> "Connexion annulée"
             is TokenStorageError -> "Erreur de stockage sécurisé. Veuillez réessayer."
             is AccountLocked -> "Compte verrouillé. Veuillez contacter le support."
             is PermissionDenied -> "Permission requise: $permission"
             is ValidationError -> message
-            is UnknownError -> message ?: "Une erreur est survenue"
+            is UnknownError -> "Une erreur est survenue"
         }
 
     /**

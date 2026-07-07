@@ -11,11 +11,11 @@
 
 | Tâche | Fichier | Statut |
 |--------|---------|--------|
-| [x] Déprécier ModernEventCreationView.swift | iosApp/iosApp/Views/ModernEventCreationView.swift | ✅ Supprimé |
-| [x] Déprécier EventCreationSheet.swift | iosApp/iosApp/Views/EventCreationSheet.swift | ✅ Deprecated |
-| [x] Déprécier AppleInvitesEventCreationView.swift | iosApp/iosApp/Views/AppleInvitesEventCreationView.swift | ✅ Deprecated |
-| [x] Mettre à jour ContentView.swift | iosApp/iosApp/ContentView.swift | ✅ Mis à jour |
-| [x] Mettre à jour EventsTabView.swift | iosApp/iosApp/Views/EventsTabView.swift | ✅ Mis à jour |
+| [x] Déprécier ModernEventCreationView.swift | iosApp/src/Views/ModernEventCreationView.swift | ✅ Supprimé |
+| [x] Déprécier EventCreationSheet.swift | iosApp/src/Views/EventCreationSheet.swift | ✅ Deprecated |
+| [x] Déprécier AppleInvitesEventCreationView.swift | iosApp/src/Views/AppleInvitesEventCreationView.swift | ✅ Deprecated |
+| [x] Mettre à jour ContentView.swift | iosApp/src/ContentView.swift | ✅ Mis à jour |
+| [x] Mettre à jour EventsTabView.swift | iosApp/src/Views/EventsTabView.swift | ✅ Mis à jour |
 | [x] Vérifier que tous les entry points utilisent DraftEventWizardView | - | ✅ Vérifié |
 
 **Rapport:** `iosApp/CLEANUP_REPORT.md`
@@ -28,13 +28,13 @@
 
 | Tâche | Fichier | Statut |
 |--------|---------|--------|
-| [x] Créer l'enum EventFilter | iosApp/iosApp/Views/ModernHomeView.swift | ✅ Créé |
-| [x] Créer EventFilterPicker component | iosApp/iosApp/Views/ModernHomeView.swift | ✅ Créé |
-| [x] Ajouter la logique de filtrage (filteredEvents) | iosApp/iosApp/Views/ModernHomeView.swift | ✅ Implémenté |
-| [x] Ajouter getEventDate helper function | iosApp/iosApp/Views/ModernHomeView.swift | ✅ Créé |
-| [x] Ajouter state selectedFilter | iosApp/iosApp/Views/ModernHomeView.swift | ✅ Ajouté |
-| [x] Modifier le body pour utiliser les filtres | iosApp/iosApp/Views/ModernHomeView.swift | ✅ Modifié |
-| [x] Remplacer AppleInvitesHeader par EventFilterPicker | iosApp/iosApp/Views/ModernHomeView.swift | ✅ Remplacé |
+| [x] Créer l'enum EventFilter | iosApp/src/Views/ModernHomeView.swift | ✅ Créé |
+| [x] Créer EventFilterPicker component | iosApp/src/Views/ModernHomeView.swift | ✅ Créé |
+| [x] Ajouter la logique de filtrage (filteredEvents) | iosApp/src/Views/ModernHomeView.swift | ✅ Implémenté |
+| [x] Ajouter getEventDate helper function | iosApp/src/Views/ModernHomeView.swift | ✅ Créé |
+| [x] Ajouter state selectedFilter | iosApp/src/Views/ModernHomeView.swift | ✅ Ajouté |
+| [x] Modifier le body pour utiliser les filtres | iosApp/src/Views/ModernHomeView.swift | ✅ Modifié |
+| [x] Remplacer AppleInvitesHeader par EventFilterPicker | iosApp/src/Views/ModernHomeView.swift | ✅ Remplacé |
 | [x] Tester chaque filtre (All, Upcoming, Past) | - | ✅ Testé |
 | [x] Vérifier que les résultats correspondent à Android | - | ✅ Vérifié |
 
@@ -48,8 +48,8 @@
 
 | Tâche | Fichier | Statut |
 |--------|---------|--------|
-| [x] Créer PollVotingView.swift | iosApp/iosApp/Views/PollVotingView.swift | ✅ Créé |
-| [x] Modifier ModernEventDetailView pour naviguer vers PollVotingView | iosApp/iosApp/Views/ModernEventDetailView.swift | ✅ Modifié |
+| [x] Créer PollVotingView.swift | iosApp/src/Views/PollVotingView.swift | ✅ Créé |
+| [x] Modifier ModernEventDetailView pour naviguer vers PollVotingView | iosApp/src/Views/ModernEventDetailView.swift | ✅ Modifié |
 | [x] Vérifier PollVotingScreen.kt sur Android | composeApp/src/.../PollVotingScreen.kt | ✅ Vérifié |
 | [x] Tester le workflow de vote sur iOS | - | ✅ Testé |
 | [x] Tester le workflow de vote sur Android | - | ✅ Testé |
@@ -87,10 +87,10 @@
 
 | Tâche | Fichier | Statut |
 |--------|---------|--------|
-| [ ] Créer AppNavigation.swift | iosApp/iosApp/Navigation/AppNavigation.swift | ⏸️ À faire |
-| [ ] Créer ExploreView.swift | iosApp/iosApp/Views/ExploreView.swift | ⏸️ À faire |
-| [ ] Créer MessagesView.swift | iosApp/iosApp/Views/MessagesView.swift | ⏸️ À faire |
-| [ ] Créer MainTabView | iosApp/iosApp/Views/MainTabView.swift | ⏸️ À faire |
+| [ ] Créer AppNavigation.swift | iosApp/src/Navigation/AppNavigation.swift | ⏸️ À faire |
+| [ ] Créer ExploreView.swift | iosApp/src/Views/ExploreView.swift | ⏸️ À faire |
+| [ ] Créer MessagesView.swift | iosApp/src/Views/MessagesView.swift | ⏸️ À faire |
+| [ ] Créer MainTabView | iosApp/src/Views/MainTabView.swift | ⏸️ À faire |
 | [ ] Tester la navigation entre tabs | - | ⏸️ À faire |
 | [ ] Vérifier la cohérence avec Android (Home, Explore, Messages, Profile) | - | ⏸️ À faire |
 
@@ -104,7 +104,7 @@
 
 | Tâche | Fichier | Statut |
 |--------|---------|--------|
-| [x] Créer WorkflowTests.swift | iosApp/iosApp/Tests/WorkflowTests.swift | ✅ Créé |
+| [x] Créer WorkflowTests.swift | iosApp/WakeveTests/WorkflowTests.swift | ✅ Créé |
 | [x] Écrire des tests pour DraftEventWizard | - | ✅ 6 tests |
 | [x] Écrire des tests pour HomeFilters | - | ✅ 6 tests |
 | [x] Écrire des tests pour PollVotingWorkflow | - | ✅ 3 tests |
