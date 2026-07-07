@@ -3,6 +3,10 @@ name = "wakeve-landing"
 compatibility_date = "2025-05-01"
 compatibility_flags = ["nodejs_compat"]
 
+# SvelteKit adapter-cloudflare output: Worker entry + static assets in the same dir.
+main = ".svelte-kit/cloudflare/_worker.js"
+assets = { directory = ".svelte-kit/cloudflare", binding = "ASSETS" }
+
 # The landing/public web app is served at the apex domain wakeve.app.
 # Custom domains and DNS are configured in the Cloudflare dashboard or via:
 #   wrangler zones add wakeve.app
