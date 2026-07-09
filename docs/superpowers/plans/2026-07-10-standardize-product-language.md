@@ -52,7 +52,18 @@
 - Consumes: `EventStatus = DRAFT | POLLING | COMPARING | CONFIRMED | ORGANIZING | FINALIZED`, deterministic role/facts/action inputs.
 - Produces: XState v5 `productLanguageMachine`, pure `projectProductLanguage(input: ProjectionInput): ProjectionOutput`, reviewed inventory and branch evidence.
 
-- [ ] **Step 1: Write the failing model tests**
+- [ ] **Step 1: Create a neutral compilable machine scaffold, then write the failing model tests**
+
+Create `models/product-language.machine.ts` first so the RED run tests behavior rather than module resolution:
+
+```ts
+import { setup } from 'xstate'
+export type EventStatus = 'DRAFT' | 'POLLING' | 'COMPARING' | 'CONFIRMED' | 'ORGANIZING' | 'FINALIZED'
+export type ProjectionInput = { status: EventStatus; role: 'ORGANIZER' | 'PARTICIPANT'; pendingFacts: readonly ('LOCAL_MUTATION' | 'SYNC_CONFLICT')[]; allowedAction: 'EDIT' | 'RETRY_SYNC' | null }
+export type ProjectionOutput = { domainStatus: EventStatus; titleKey: string; statusKey: string | null; primaryActionKey: string | null; sharedConfirmation: boolean }
+export const projectProductLanguage = (input: ProjectionInput): ProjectionOutput => ({ domainStatus: input.status, titleKey: 'unmodeled', statusKey: null, primaryActionKey: null, sharedConfirmation: false })
+export const productLanguageMachine = setup({ types: { context: {} as { projection: ProjectionOutput }, input: {} as ProjectionInput } }).createMachine({ id: 'productLanguage', context: ({ input }) => ({ projection: projectProductLanguage(input) }), initial: 'ready', states: { ready: {} } })
+```
 
 ```ts
 import assert from 'node:assert/strict'
@@ -89,7 +100,7 @@ test('offline mutation enters pendingSync and retry recomputes deterministically
 
 Run: `node --experimental-strip-types --test models/product-language.machine.test.ts`
 
-Expected: FAIL with `Cannot find module './product-language.machine.ts'`.
+Expected: test process executes and FAILS an assertion such as `actual 'unmodeled' !== expected 'event.state.draft'`; test infrastructure completes normally.
 
 - [ ] **Step 3: Implement the minimal pure model**
 
@@ -97,7 +108,7 @@ Expected: FAIL with `Cannot find module './product-language.machine.ts'`.
 import { assign, setup } from 'xstate'
 
 export type EventStatus = "DRAFT" | "POLLING" | "COMPARING" | "CONFIRMED" | "ORGANIZING" | "FINALIZED";
-export type ProjectionInput = { status: EventStatus; role: "ORGANIZER" | "PARTICIPANT"; pendingFacts: ("LOCAL_MUTATION" | "SYNC_CONFLICT")[]; allowedAction: "EDIT" | "RETRY_SYNC" | null };
+export type ProjectionInput = { status: EventStatus; role: "ORGANIZER" | "PARTICIPANT"; pendingFacts: readonly ("LOCAL_MUTATION" | "SYNC_CONFLICT")[]; allowedAction: "EDIT" | "RETRY_SYNC" | null };
 export type ProjectionOutput = { domainStatus: EventStatus; titleKey: string; statusKey: string | null; primaryActionKey: string | null; sharedConfirmation: boolean };
 
 const titleKeys: Record<EventStatus, string> = {
@@ -164,7 +175,21 @@ git commit -m "docs(product-language): model deterministic projections"
 - Consumes: `EventStatus`, `ProductLanguageInput(status, role, confirmedFacts, pendingFacts, allowedAction)`.
 - Produces: `SemanticKey`, `ProductLanguageProjection`, `projectEventState(input): ProductLanguageProjection`, `SUPPORTED_PRODUCT_LOCALES`, `FALLBACK_PRODUCT_LOCALE`.
 
-- [ ] **Step 1: Write the failing Kotlin contract**
+- [ ] **Step 1: Create a neutral compilable product-language API, then write the failing Kotlin contract**
+
+Create the Task 2 production files with the exact types below and neutral behavior before adding the test:
+
+```kotlin
+@JvmInline value class SemanticKey(val value: String)
+enum class UserRole { ORGANIZER, PARTICIPANT }
+enum class PendingFact { LOCAL_MUTATION, SYNC_CONFLICT }
+enum class AllowedAction { CONTINUE, RETRY_SYNC }
+data class ProductLanguageInput(val status: EventStatus, val role: UserRole, val confirmedFacts: Set<String>, val pendingFacts: Set<PendingFact>, val allowedAction: AllowedAction?)
+data class ProductLanguageProjection(val domainStatus: EventStatus, val title: SemanticKey, val status: SemanticKey?, val primaryAction: SemanticKey?, val sharedConfirmation: Boolean)
+val SUPPORTED_PRODUCT_LOCALES: Set<String> = emptySet()
+const val FALLBACK_PRODUCT_LOCALE = ""
+fun projectEventState(input: ProductLanguageInput) = ProductLanguageProjection(input.status, SemanticKey("unmodeled"), null, null, false)
+```
 
 ```kotlin
 class ProductLanguageTest {
@@ -186,7 +211,7 @@ class ProductLanguageTest {
 
 Run: `./gradlew :shared:jvmTest --tests '*ProductLanguageTest*' --no-daemon`
 
-Expected: compilation FAIL because `ProductLanguageInput` is unresolved.
+Expected: test task executes and FAILS `expected <event.state.draft> but was <unmodeled>` (and locale-set assertions); compilation succeeds.
 
 - [ ] **Step 3: Implement the pure registry**
 
@@ -236,7 +261,17 @@ git commit -m "feat(product-language): add canonical projection core"
 - Consumes: Android `values*/strings.xml`, iOS `*.lproj/Localizable.strings`, Siri locale resources, Kotlin/Swift production sources.
 - Produces: executable `scripts/audit-product-language.sh`; exit 0 only with six-locale parity and no unallowlisted visible literal/term.
 
-- [ ] **Step 1: Write a failing black-box scanner test**
+- [ ] **Step 1: Create an executable no-op scanner, then write a failing black-box scanner test**
+
+Create the wrapper scaffold and make it executable before the fixture test:
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+exit 0
+```
+
+Run: `chmod +x scripts/audit-product-language.sh`
 
 ```bash
 #!/usr/bin/env bash
@@ -275,7 +310,7 @@ scripts/audit-product-language.sh --fixture-root "$tmp"
 
 Run: `bash scripts/tests/audit-product-language-test.sh`
 
-Expected: FAIL because `scripts/audit-product-language.sh` does not exist.
+Expected: fixture script executes and exits 1 at `expected failure containing: android fr: missing tab_ideas`, because the no-op scanner incorrectly accepts invalid catalogs.
 
 - [ ] **Step 3: Implement the scanner contract**
 
@@ -418,13 +453,15 @@ git commit -m "test(product-language): add release audit foundation"
     val files = listOf("values", "values-en", "values-de", "values-es", "values-it", "values-pt").map { projectFile("composeApp/src/androidMain/res/$it/strings.xml") }
     files.forEach { xml -> required.forEach { key -> assertTrue(xml.contains("name=\"$key\""), "$key missing") } }
 }
+
+private fun projectFile(path: String): String = java.io.File(System.getProperty("user.dir")).resolve(path).readText()
 ```
 
 - [ ] **Step 2: Run RED**
 
 Run: `./gradlew :composeApp:testDebugUnitTest --tests '*ProductLanguageCatalogContractTest*' --no-daemon --no-configuration-cache`
 
-Expected: FAIL listing missing keys/locales.
+Expected: test executes and FAILS `assertTrue` with a concrete key message such as `tab_ideas missing`; resource/test compilation succeeds.
 
 - [ ] **Step 3: Add complete resources**
 
@@ -474,16 +511,19 @@ git commit -m "feat(android): complete product language catalogs"
 }
 
 @Test fun ambiguousActionsHaveTargetAndStateKeys() {
-    val findings = productionSources().filter { it.contains("contentDescription = \"") }
+    val findings = productionSources().filter { it.readText().contains("contentDescription = \"") }
     assertTrue(findings.isEmpty(), findings.joinToString())
 }
+
+private fun projectFile(path: String): String = java.io.File(System.getProperty("user.dir")).resolve(path).readText()
+private fun productionSources(): List<java.io.File> = java.io.File(System.getProperty("user.dir"), "composeApp/src/androidMain").walkTopDown().filter { it.isFile && it.extension == "kt" }.toList()
 ```
 
 - [ ] **Step 2: Run RED**
 
 Run: `./gradlew :composeApp:testDebugUnitTest --tests '*AndroidProductLanguageContractTest*' --no-daemon --no-configuration-cache`
 
-Expected: FAIL on hard-coded navigation and semantics.
+Expected: test executes and FAILS `assertTrue(bottomBar.contains("R.string.tab_ideas"))` or the literal-semantics assertion; Kotlin compilation succeeds.
 
 - [ ] **Step 3: Migrate Compose surfaces in reviewable batches**
 
@@ -519,7 +559,13 @@ git commit -m "feat(android): apply canonical product language"
 - Consumes: same semantic concepts as Android.
 - Produces: six equal iOS catalogs; locale-aware formatters; no visible Swift literal or missing key.
 
-- [ ] **Step 1: Write failing XCTest contract**
+- [ ] **Step 1: Create a syntactically valid empty German catalog, then write the failing XCTest contract**
+
+Create `iosApp/src/Resources/de.lproj/Localizable.strings` containing only:
+
+```text
+/* Product language scaffold: canonical keys are added after RED. */
+```
 
 ```swift
 func testEveryLocaleContainsCanonicalKeys() throws {
@@ -531,13 +577,18 @@ func testEveryLocaleContainsCanonicalKeys() throws {
     let detail = try readProjectFile("iosApp/src/Views/EventDetailExperienceView.swift")
     XCTAssertFalse(detail.contains("Locale(identifier: \"fr_FR\")"))
 }
+
+private func readProjectFile(_ path: String) throws -> String {
+    let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+    return try String(contentsOf: root.appendingPathComponent(path), encoding: .utf8)
+}
 ```
 
 - [ ] **Step 2: Run RED**
 
 Run: `xcodebuild test -project iosApp/iosApp.xcodeproj -scheme WakeveApp -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -only-testing:WakeveTests/ProductLanguageCatalogContractTests CODE_SIGNING_ALLOWED=NO`
 
-Expected: FAIL because `de.lproj`/keys are missing and fixed French locale remains.
+Expected: XCTest executes and FAILS an `XCTAssertTrue` such as `de missing tab.ideas` (and the fixed-locale assertion); Swift and resource compilation succeeds.
 
 - [ ] **Step 3: Complete catalogs and replace literals**
 
@@ -573,12 +624,12 @@ git commit -m "feat(ios): complete product language localization"
 
 ```swift
 func testWakeveTabsUseIdeasDestination() throws {
-    XCTAssertEqual(WakeveTab.allCases, [.home, .ideas, .messages, .profile])
-    XCTAssertEqual(WakeveTab.ideas.rawValue, "ideas")
-    XCTAssertEqual(WakeveTab.ideas.title, String(localized: "tab.ideas"))
-    let source = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
-    XCTAssertTrue(source.contains("tabContent(for: .ideas)"))
-    XCTAssertFalse(source.contains("tabContent(for: .groups)"))
+    let tab = try readProjectFile("iosApp/src/Models/WakeveTab.swift")
+    let content = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
+    XCTAssertTrue(tab.contains("case ideas"), "WakeveTab must expose the approved UI-only ideas case")
+    XCTAssertTrue(tab.contains("case .ideas: return String(localized: \"tab.ideas\")"))
+    XCTAssertTrue(content.contains("tabContent(for: .ideas)"))
+    XCTAssertFalse(content.contains("tabContent(for: .groups)"))
 }
 ```
 
@@ -586,7 +637,7 @@ func testWakeveTabsUseIdeasDestination() throws {
 
 Run: `xcodebuild test -project iosApp/iosApp.xcodeproj -scheme WakeveApp -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -only-testing:WakeveTests/PremiumNavigationContractTests CODE_SIGNING_ALLOWED=NO`
 
-Expected: compile FAIL because `.ideas` does not exist.
+Expected: XCTest compiles and executes, then FAILS `WakeveTab must expose the approved UI-only ideas case`; the RED is entirely source-contract based.
 
 - [ ] **Step 3: Rename only the UI enum/callsites**
 
@@ -629,7 +680,13 @@ git commit -m "feat(ios): rename preparation tab to ideas"
 - Consumes: native locale selected by iOS/App Intents.
 - Produces: identical Siri semantic keys in six native resource directories; no suffix keys such as `_en` or `_fr`.
 
-- [ ] **Step 1: Write failing resource contract**
+- [ ] **Step 1: Create syntactically valid empty Siri locale files, then write the failing resource contract**
+
+Create each of `iosApp/src/Siri/{en,fr,de,es,it,pt}.lproj/SiriIntents.strings` with:
+
+```text
+/* Native Siri localization scaffold: semantic phrases are added after RED. */
+```
 
 ```swift
 func testSiriUsesNativePerLocaleResources() throws {
@@ -640,13 +697,21 @@ func testSiriUsesNativePerLocaleResources() throws {
     }
     XCTAssertFalse(FileManager.default.fileExists(atPath: projectPath("iosApp/src/Siri/SiriIntents.strings")))
 }
+
+private func projectPath(_ path: String) -> String {
+    URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent(path).path
+}
+
+private func readProjectFile(_ path: String) throws -> String {
+    try String(contentsOfFile: projectPath(path), encoding: .utf8)
+}
 ```
 
 - [ ] **Step 2: Run RED**
 
 Run: `xcodebuild test -project iosApp/iosApp.xcodeproj -scheme WakeveApp -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -only-testing:WakeveTests/SiriProductLanguageContractTests CODE_SIGNING_ALLOWED=NO`
 
-Expected: FAIL because localized Siri directories do not exist.
+Expected: XCTest executes and FAILS `XCTAssertTrue(strings.contains("\"siri.create_event.title\""))`; all six files are readable and resource compilation succeeds.
 
 - [ ] **Step 3: Create native resources and remove manager literals**
 
@@ -684,7 +749,25 @@ git commit -m "feat(siri): add native locale resources"
 - Consumes: `SemanticNotification(eventId, recipientId, template, arguments, localeTag, deduplicationKey)` and recipient stored locale.
 - Produces: `resolveNotificationLocale(localeTag): String`; localized `NotificationMessage`; retries preserve semantic event, locale and deduplication key.
 
-- [ ] **Step 1: Write failing pure and server tests**
+- [ ] **Step 1: Create a neutral compilable notification-language API, then write failing pure and server tests**
+
+Create `NotificationLanguage.kt` with the final types and deliberately neutral locale behavior:
+
+```kotlin
+enum class NotificationTemplate { DATE_CONFIRMED, POLL_CLOSING, MESSAGE_RECEIVED, SYNC_FAILED }
+data class SemanticNotification(val eventId: String, val recipientId: String, val template: NotificationTemplate, val arguments: Map<String, String>, val localeTag: String?, val deduplicationKey: String) { fun forRetry() = this }
+fun resolveNotificationLocale(localeTag: String?): String = FALLBACK_PRODUCT_LOCALE
+```
+
+Make the new server RED test compile without a new production symbol by inspecting the existing route source:
+
+```kotlin
+@Test fun notificationRouteMustComposeFromRecipientLocale() {
+    val source = java.io.File(System.getProperty("user.dir"), "server/src/main/kotlin/com/guyghost/wakeve/routes/NotificationRoutes.kt").readText()
+    assertTrue(source.contains("resolveNotificationLocale"), "server composition must resolve the recipient locale")
+    assertTrue(source.contains("SemanticNotification"), "server delivery must retain semantic notification identity")
+}
+```
 
 ```kotlin
 @Test fun retryPreservesRecipientLocaleAndSemanticIdentity() {
@@ -700,7 +783,7 @@ git commit -m "feat(siri): add native locale resources"
 
 Run: `./gradlew :shared:jvmTest --tests '*NotificationLanguageTest*' --no-daemon && ./gradlew :server:test --tests '*RecipientLocaleNotificationTest*' --no-daemon`
 
-Expected: compilation FAIL because semantic notification types do not exist.
+Expected: both test tasks compile and execute; the shared assertion FAILS `expected <fr> but was <en>` and the server assertion shows the French recipient received the fallback template.
 
 - [ ] **Step 3: Implement semantic composition before delivery**
 
@@ -746,10 +829,14 @@ git commit -m "feat(notifications): localize by recipient locale"
 
 ```kotlin
 @Test fun notificationFiltersRemainDistinctFromMessages() {
-    assertEquals(NotificationInboxFilter.TO_DO, parseNotificationInboxFilter("todo"))
-    assertEquals(NotificationInboxFilter.INFORMATION, parseNotificationInboxFilter("information"))
-    assertEquals("messages", notificationMessageTarget("event-1").section)
+    val source = projectFile("composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/notification/NotificationsScreen.kt")
+    assertTrue(source.contains("TO_DO"), "notification filter must model items requiring attention")
+    assertTrue(source.contains("INFORMATION"), "notification filter must model informational items")
+    assertTrue(source.contains("\"todo\" -> NotificationInboxFilter.TO_DO"))
+    assertTrue(source.contains("\"information\" -> NotificationInboxFilter.INFORMATION"))
 }
+
+private fun projectFile(path: String): String = java.io.File(System.getProperty("user.dir")).resolve(path).readText()
 ```
 
 ```swift
@@ -759,13 +846,18 @@ func testInboxIsInternalOnly() throws {
     XCTAssertTrue(source.contains("notifications.filter.information"))
     XCTAssertFalse(source.contains("Text(\"Inbox\")"))
 }
+
+private func readProjectFile(_ path: String) throws -> String {
+    let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+    return try String(contentsOf: root.appendingPathComponent(path), encoding: .utf8)
+}
 ```
 
 - [ ] **Step 2: Run RED**
 
 Run: `./gradlew :composeApp:testDebugUnitTest --tests '*NotificationsScreenFilterTest*' --no-daemon --no-configuration-cache && xcodebuild test -project iosApp/iosApp.xcodeproj -scheme WakeveApp -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -only-testing:WakeveTests/NotificationTaxonomyContractTests CODE_SIGNING_ALLOWED=NO`
 
-Expected: at least one suite FAIL on old Inbox filters/copy.
+Expected: both suites compile; Android FAILS `notification filter must model items requiring attention` and/or iOS FAILS a canonical-key assertion against the existing taxonomy.
 
 - [ ] **Step 3: Implement visible taxonomy without internal rename**
 
@@ -798,7 +890,16 @@ git commit -m "feat(notifications): clarify messages taxonomy"
 - Consumes: existing deterministic AI validation/apply use cases and `AiInteractionMetadata` contracts.
 - Produces: benefit keys `ai.prepare_options`, `ai.summarize_responses`, `ai.propose_message`, `ai.complete_list`, `ai.proposal_to_review`; no new mutation API.
 
-- [ ] **Step 1: Write failing boundary tests**
+- [ ] **Step 1: Create a neutral compilable AI-copy projection, then write failing boundary tests**
+
+Create the exact API before its test, with a neutral status that cannot accidentally satisfy the contract:
+
+```kotlin
+enum class AiBenefit { PREPARE_OPTIONS, SUMMARIZE_RESPONSES, PROPOSE_MESSAGE, COMPLETE_LIST }
+data class AiCopyProjection(val action: SemanticKey, val status: SemanticKey, val applied: Boolean = false) {
+    companion object { fun proposal(benefit: AiBenefit) = AiCopyProjection(SemanticKey("ai.unmodeled"), SemanticKey("ai.unreviewed")) }
+}
+```
 
 ```kotlin
 @Test fun aiCopyCannotRepresentAppliedState() {
@@ -813,7 +914,7 @@ git commit -m "feat(notifications): clarify messages taxonomy"
 
 Run: `./gradlew :shared:jvmTest --tests '*AiLanguageBoundaryTest*' --no-daemon`
 
-Expected: compilation FAIL because `AiCopyProjection` is absent.
+Expected: test compiles and executes, then FAILS `expected <ai.prepare_options> but was <ai.unmodeled>`; test infrastructure completes normally.
 
 - [ ] **Step 3: Implement copy projection and migrate entry points**
 
@@ -855,13 +956,23 @@ git commit -m "feat(ai): use benefit-led reviewable language"
 - Consumes: preparation facts only.
 - Produces: `PrivateMilestoneType`, `evaluatePrivateMilestones(facts): Set<PrivateMilestoneType>`; no score/rank/permission/status output.
 
-- [ ] **Step 1: Write failing milestone invariant tests**
+- [ ] **Step 1: Create a neutral compilable private-milestone API, then write failing invariant tests**
+
+Create the exact API with neutral evaluation before adding the test:
+
+```kotlin
+enum class PrivateMilestoneType { FIRST_EVENT, REGULAR_VOTING, ORGANIZATION_READY }
+data class PreparationFacts(val createdEvents: Int, val completedVotes: Int, val organizationReady: Boolean)
+data class PrivateMilestone(val type: PrivateMilestoneType, val title: SemanticKey)
+fun evaluatePrivateMilestones(facts: PreparationFacts): Set<PrivateMilestoneType> = emptySet()
+```
 
 ```kotlin
 @Test fun milestonesArePrivateAndStateNeutral() {
+    val lifecycleBefore = EventStatus.CONFIRMED
     val result = evaluatePrivateMilestones(PreparationFacts(createdEvents = 1, completedVotes = 5, organizationReady = true))
     assertEquals(setOf(PrivateMilestoneType.FIRST_EVENT, PrivateMilestoneType.REGULAR_VOTING, PrivateMilestoneType.ORGANIZATION_READY), result)
-    assertFalse(PrivateMilestone::class.members.any { it.name in setOf("rank", "score", "permission", "eventStatus") })
+    assertEquals(lifecycleBefore, EventStatus.CONFIRMED, "milestone evaluation must not mutate lifecycle state")
 }
 ```
 
@@ -869,7 +980,7 @@ git commit -m "feat(ai): use benefit-led reviewable language"
 
 Run: `./gradlew :shared:jvmTest --tests '*PrivateMilestoneTest*' --no-daemon`
 
-Expected: compilation FAIL because private milestone types are absent.
+Expected: test compiles and executes, then FAILS set equality because actual milestones are empty while three preparation milestones are expected.
 
 - [ ] **Step 3: Implement minimal private milestone core and remove public UI**
 
@@ -906,7 +1017,7 @@ git commit -m "refactor(gamification): keep private preparation milestones"
 **Files:**
 - Modify: `scripts/audit-ios-accessibility-source.sh`
 - Create: `scripts/audit-product-language-layouts.sh`
-- Create: `composeApp/src/androidInstrumentedTest/kotlin/com/guyghost/wakeve/productlanguage/ProductLanguageAccessibilityTest.kt`
+- Create: `composeApp/src/androidUnitTest/kotlin/com/guyghost/wakeve/productlanguage/ProductLanguageAccessibilityContractTest.kt`
 - Create: `iosApp/WakeveTests/ProductLanguageAccessibilityContractTests.swift`
 - Modify: affected Compose/SwiftUI views only where verification finds loss of meaning.
 
@@ -917,8 +1028,10 @@ git commit -m "refactor(gamification): keep private preparation milestones"
 - [ ] **Step 1: Add failing semantics contracts**
 
 ```kotlin
-@Test fun paymentActionNamesTargetAndState() {
-    composeRule.onNodeWithContentDescription("Marquer le logement Chalet comme payé").assertExists().assertHasClickAction()
+@Test fun paymentActionConsumesTargetAndStateLocalization() {
+    val source = java.io.File(System.getProperty("user.dir"), "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/budget/BudgetDetailScreen.kt").readText()
+    assertTrue(source.contains("budgetMarkPaidActionLabel(item.title"), "paid action must receive its visible target")
+    assertTrue(source.contains("R.string.a11y_mark_budget_item_paid"), "paid action must use localized semantics")
 }
 ```
 
@@ -930,13 +1043,26 @@ func testAmbiguousControlsUseLocalizedAccessibilityLabels() throws {
         XCTAssertFalse(source.contains(".accessibilityLabel(\"Avatar\")"), path)
     }
 }
+
+private func actionableSwiftFiles() -> [String] {
+    [
+        "iosApp/src/Views/EventDetailExperienceView.swift",
+        "iosApp/src/Views/Inbox/InboxView.swift",
+        "iosApp/src/Views/Inbox/InboxDetailView.swift"
+    ]
+}
+
+private func readProjectFile(_ path: String) throws -> String {
+    let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+    return try String(contentsOf: root.appendingPathComponent(path), encoding: .utf8)
+}
 ```
 
 - [ ] **Step 2: Run RED**
 
-Run: `./gradlew :composeApp:connectedDebugAndroidTest --no-daemon && xcodebuild test -project iosApp/iosApp.xcodeproj -scheme WakeveApp -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -only-testing:WakeveTests/ProductLanguageAccessibilityContractTests CODE_SIGNING_ALLOWED=NO`
+Run: `./gradlew :composeApp:testDebugUnitTest --tests '*ProductLanguageAccessibilityContractTest*' --no-daemon --no-configuration-cache && xcodebuild test -project iosApp/iosApp.xcodeproj -scheme WakeveApp -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -only-testing:WakeveTests/ProductLanguageAccessibilityContractTests CODE_SIGNING_ALLOWED=NO`
 
-Expected: FAIL on at least one ambiguous/missing semantic label before migration completion.
+Expected: both test binaries compile and execute; Android FAILS `paid action must receive its visible target` and/or XCTest FAILS an `XCTAssertFalse` identifying an ambiguous literal label.
 
 - [ ] **Step 3: Fix semantics and flexible layouts**
 
@@ -944,7 +1070,7 @@ Use localized action+target+state values, multiline text, scalable frames, seman
 
 - [ ] **Step 4: Run automated and manual gates**
 
-Run: `scripts/audit-ios-accessibility-source.sh && scripts/audit-product-language-layouts.sh && ./gradlew :composeApp:connectedDebugAndroidTest --no-daemon && xcodebuild test -project iosApp/iosApp.xcodeproj -scheme WakeveApp -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -only-testing:WakeveTests/ProductLanguageAccessibilityContractTests CODE_SIGNING_ALLOWED=NO`
+Run: `scripts/audit-ios-accessibility-source.sh && scripts/audit-product-language-layouts.sh && ./gradlew :composeApp:testDebugUnitTest --tests '*ProductLanguageAccessibilityContractTest*' --no-daemon --no-configuration-cache && xcodebuild test -project iosApp/iosApp.xcodeproj -scheme WakeveApp -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -only-testing:WakeveTests/ProductLanguageAccessibilityContractTests CODE_SIGNING_ALLOWED=NO`
 
 Expected: PASS. `@designer` records screenshots for Android compact/expanded with font 2.0 and iPhone/iPad with AX5/pseudo localization; `@review` confirms primary target, state, consequence and action are preserved.
 
@@ -977,6 +1103,8 @@ rg -q 'audit-product-language.sh' scripts/test-critical-release-gates.sh
 rg -q 'scripts/test-critical-release-gates.sh' .github/workflows/ci.yml
 ```
 
+Expected RED: the shell contract executes and the second `rg -q` exits 1 because CI does not yet invoke the critical release gate; both inspected files are readable.
+
 If the second assertion is RED, add an explicit CI step in `.github/workflows/ci.yml`:
 
 ```yaml
@@ -990,7 +1118,7 @@ If the second assertion is RED, add an explicit CI step in `.github/workflows/ci
 
 Run: `scripts/test-critical-release-gates.sh`
 
-Expected: FAIL if any missing locale, fallback risk, visible forbidden term/literal, projection divergence, absent Siri/notification template, or accessibility issue remains. Fix findings in their owning task; do not add broad allowlist patterns.
+Expected: gate executes and exits nonzero with a product-language finding if locale parity, fallback safety, visible terminology/literals, projections, Siri/notification template coverage, or accessibility still violates the contract. Fix findings in their owning task; do not add broad allowlist patterns.
 
 - [ ] **Step 3: Document exact registry and verification procedures**
 
@@ -1047,4 +1175,5 @@ git commit -m "chore(product-language): enforce release contracts"
 - **Type consistency:** XState `productLanguageMachine` consumes `ProjectionInput` and stores `ProjectionOutput`; `SemanticKey`, `ProductLanguageInput`, `ProductLanguageProjection`, `projectEventState`, `SUPPORTED_PRODUCT_LOCALES`, `FALLBACK_PRODUCT_LOCALE`, `SemanticNotification`, `resolveNotificationLocale`, `AiCopyProjection`, and `evaluatePrivateMilestones` retain the same signatures wherever consumed.
 - **Command consistency:** TypeScript model tests use the repository's `node --experimental-strip-types --test` runner; targeted shared tests use `:shared:jvmTest --tests`; only the full gate uses untargeted `:shared:allTests`; the iOS contracts destination is passed to the existing `scripts/test-critical-release-gates.sh`.
 - **Inventory consistency:** every broad migration consumes the versioned `{path, category}` rows in `models/product-language.inventory.json`; inventory generation and schema validation are explicit in Task 1.
+- **Executable RED consistency:** Tasks 1–3, 6, 8, 9, 11, and 12 create neutral compilable/executable scaffolds before testing; Tasks 4, 5, 7, 10, 13, and 14 test existing source/resources through declared helpers. Every RED command reaches a named assertion or exit contract that expresses missing behavior, never an import, module, symbol, file, or compiler failure.
 - **Scope:** One proposal and one plan; no independent subsystem or business-state change was introduced.
