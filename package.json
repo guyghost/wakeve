@@ -7,6 +7,12 @@
     "check": "pnpm --filter wakeve-landing check && pnpm --filter wakeve-dashboard check",
     "dev:landing": "pnpm --filter wakeve-landing dev",
     "dev:dashboard": "pnpm --filter wakeve-dashboard dev",
-    "dev:proxy": "pnpm --filter wakeve-landing proxy"
+    "dev:proxy": "pnpm --filter wakeve-landing proxy",
+    "test:models": "node --experimental-strip-types --test models/*.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.1",
+    "typescript": "^5.9.3",
+    "xstate": "^5.32.0"
   }
 }

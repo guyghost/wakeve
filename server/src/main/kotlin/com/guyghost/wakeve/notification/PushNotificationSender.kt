@@ -117,18 +117,15 @@ internal fun validateFcmLegacyResponse(responseBody: String): Result<Unit> = run
 class ServerAPNsSender(
     private val apnsKeyId: String? = System.getenv("APNS_KEY_ID"),
     private val apnsTeamId: String? = System.getenv("APNS_TEAM_ID"),
+    private val apnsAuthKey: String? = System.getenv("APNS_AUTH_KEY"),
     private val apnsBundleId: String = System.getenv("APNS_BUNDLE_ID") ?: "com.guyghost.wakeve",
-    private val apnsEnvironment: String = System.getenv("APNS_ENVIRONMENT") ?: "development"
+    private val apnsEnvironment: String? = System.getenv("APNS_ENVIRONMENT"),
+    private val tokenSigner: APNsTokenSigner? = null,
+    private val clock: APNsProviderClock = APNsProviderClock { System.currentTimeMillis() / 1_000 },
+    private val transport: APNsHttp2Transport? = null
 ) : APNsSender {
 
     private val logger = LoggerFactory.getLogger("ServerAPNsSender")
-
-    private val apnsHost: String
-        get() = if (apnsEnvironment == "production") {
-            "https://api.push.apple.com"
-        } else {
-            "https://api.development.push.apple.com"
-        }
 
     override suspend fun sendNotification(
         token: String,
@@ -136,13 +133,43 @@ class ServerAPNsSender(
         body: String,
         data: Map<String, String>
     ): Result<Unit> = runCatching {
-        if (apnsKeyId == null || apnsTeamId == null) {
+        val request = APNsProviderRequest(
+            deliveryKey = DeliveryKey("legacy-unpersisted"),
+            apnsId = "legacy-unpersisted",
+            deviceToken = token,
+            payload = buildJsonObject {
+                putJsonObject("aps") {
+                    putJsonObject("alert") {
+                        put("title", title)
+                        put("body", body)
+                    }
+                }
+                data.forEach { (key, value) -> put(key, value) }
+            }.toString(),
+            expirationEpochSeconds = clock.epochSeconds() + 3_600,
+            priority = 10,
+            pushType = "alert"
+        )
+        sendProvider(request).getOrThrow()
+    }
+
+    suspend fun sendProvider(request: APNsProviderRequest): Result<APNsProviderResult> = runCatching {
+        val configuration = APNsProviderConfig.create(
+            keyId = apnsKeyId,
+            teamId = apnsTeamId,
+            authKey = apnsAuthKey,
+            topic = apnsBundleId,
+            environment = apnsEnvironment
+        )
+        if (configuration.isFailure) {
             logger.warn("APNs credentials not configured; notification delivery failed")
-            error("APNs credentials are not configured")
+            error("APNs credentials are not configured: ${configuration.exceptionOrNull()?.message}")
         }
 
-        // TODO: Implémenter la connexion HTTP/2 avec JWT APNs auth token
-        logger.warn("APNs sender is not implemented for host $apnsHost and bundle $apnsBundleId")
+        // The approved ports are injected, but actual signing, HTTP/2 delivery and success
+        // classification are intentionally deferred to tasks 5.1-5.3.
+        @Suppress("UNUSED_VARIABLE") val approvedSeams = listOf(configuration.getOrThrow(), tokenSigner, clock, transport, request)
+        logger.warn("APNs sender is not implemented")
         error("APNs sender is not implemented")
     }
 }

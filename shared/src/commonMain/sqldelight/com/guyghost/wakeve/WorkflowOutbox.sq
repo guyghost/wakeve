@@ -1,0 +1,15 @@
+CREATE TABLE workflowOutbox (
+    effectKey TEXT PRIMARY KEY NOT NULL,
+    eventId TEXT NOT NULL,
+    type TEXT NOT NULL,
+    finalDate TEXT NOT NULL,
+    operationId TEXT,
+    status TEXT NOT NULL
+);
+
+selectByEventId:
+SELECT * FROM workflowOutbox WHERE eventId = ?;
+
+insertOutbox:
+INSERT INTO workflowOutbox(effectKey, eventId, type, finalDate, operationId, status)
+VALUES (?, ?, ?, ?, ?, ?);

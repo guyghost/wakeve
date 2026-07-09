@@ -6,6 +6,7 @@ import com.guyghost.wakeve.models.EventType
 import com.guyghost.wakeve.models.LocationType
 import com.guyghost.wakeve.models.PotentialLocation
 import com.guyghost.wakeve.models.Vote
+import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 
 /**
@@ -26,6 +27,48 @@ import kotlinx.serialization.Serializable
  * 8. UI listens to sideEffects and performs navigation
  */
 object EventManagementContract {
+
+    @Serializable
+    enum class ConfirmationPhase {
+        REVIEWING_RESULTS,
+        CONFIRM_PROMPT,
+        CONFIRMING,
+        CONFIRMED_PENDING_SYNC,
+        CONFIRMED_SYNCED,
+        FAILED
+    }
+
+    @Serializable
+    enum class ConfirmationFailureCode {
+        EVENT_NOT_FOUND,
+        NOT_ORGANIZER,
+        INVALID_EVENT_STATUS,
+        NO_VOTES,
+        SLOT_NOT_FOUND,
+        SLOT_NOT_CONFIRMABLE,
+        ALREADY_CONFIRMED_DIFFERENT_SLOT,
+        LOCAL_PERSISTENCE_FAILED,
+        REPOSITORY_UNAVAILABLE
+    }
+
+    @Serializable
+    data class ConfirmationFailure(
+        val code: ConfirmationFailureCode,
+        val retryable: Boolean
+    )
+
+    data class ConfirmPollDateCommand(
+        val operationId: String,
+        val eventId: String,
+        val slotId: String,
+        val actorId: String,
+        val requestedAt: Instant
+    )
+
+    sealed interface ConfirmationResult {
+        data class Committed(val operationId: String, val pendingSync: Boolean) : ConfirmationResult
+        data class Failed(val operationId: String, val failure: ConfirmationFailure) : ConfirmationResult
+    }
 
     // ========================================================================
     // STATE
@@ -55,7 +98,13 @@ object EventManagementContract {
         val scenariosUnlocked: Boolean = false,
         val meetingsUnlocked: Boolean = false,
         val potentialLocations: List<PotentialLocation> = emptyList(),
-        val error: String? = null
+        val error: String? = null,
+        val confirmationPhase: ConfirmationPhase = ConfirmationPhase.REVIEWING_RESULTS,
+        val confirmationEventId: String? = null,
+        val confirmationActorId: String? = null,
+        val confirmationSlotId: String? = null,
+        val confirmationOperationId: String? = null,
+        val confirmationFailure: ConfirmationFailure? = null
     ) {
         /**
          * Convenient property to check if there's an error
@@ -193,6 +242,20 @@ object EventManagementContract {
             val slotId: String,
             val userId: String
         ) : Intent
+
+        data class OpenConfirmPrompt(
+            val eventId: String,
+            val slotId: String,
+            val actorId: String
+        ) : Intent
+
+        data object CancelConfirmation : Intent
+
+        data class SubmitConfirmation(val operationId: String) : Intent
+
+        data object RetryConfirmation : Intent
+
+        data object DismissConfirmationFailure : Intent
 
         /**
          * Transition event to organizing phase.

@@ -13,7 +13,6 @@ import com.guyghost.wakeve.presentation.usecase.LoadEventsUseCase
 import com.guyghost.wakeve.repository.EventRepositoryInterface
 import com.guyghost.wakeve.repository.OrderBy
 import com.guyghost.wakeve.workflow.WorkflowOutboxRecord
-import com.guyghost.wakeve.workflow.WorkflowOutboxType
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -26,7 +25,6 @@ import kotlinx.coroutines.withTimeout
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -51,7 +49,7 @@ class EventManagementStateMachinePollingConfirmationTest {
     }
 
     @Test
-    fun `confirm date refuses polling event when poll deadline has passed even with votes`() = runTest {
+    fun `deadline closes votes but still permits organizer confirmation`() = runTest {
         val eventId = "event-deadline-passed"
         val organizerId = "organizer-1"
         val slotId = "slot-1"
@@ -68,17 +66,96 @@ class EventManagementStateMachinePollingConfirmationTest {
         machineScope.advanceUntilIdle()
 
         val event = repository.events.getValue(eventId)
-        assertEquals(EventStatus.POLLING, event.status)
-        assertNull(event.finalDate)
-        assertTrue(
-            stateMachine.state.value.error?.contains("deadline", ignoreCase = true) == true,
-            "ConfirmDate must reject confirmation after the poll deadline has passed"
-        )
-        assertTrue(repository.getWorkflowOutbox(eventId).isEmpty())
+        assertEquals(EventStatus.CONFIRMED, event.status)
+        assertEquals("2026-06-10T09:00:00Z", event.finalDate)
+        assertNull(stateMachine.state.value.error)
     }
 
     @Test
-    fun `confirm date records local-first notification and calendar workflow artifacts`() = runTest {
+    fun `confirmation remains eligible before the injected deadline`() = runTest {
+        assertConfirmationAllowedAtDeadlineBoundary(deadlinePassed = false, eventId = "event-before-deadline")
+    }
+
+    @Test
+    fun `confirmation remains eligible exactly at the injected deadline`() = runTest {
+        assertConfirmationAllowedAtDeadlineBoundary(deadlinePassed = true, eventId = "event-at-deadline")
+    }
+
+    @Test
+    fun `vote mutation is closed exactly at the injected deadline`() = runTest {
+        val eventId = "event-vote-at-deadline"
+        repository.events[eventId] = eventFixture(eventId, "organizer-1", EventStatus.POLLING)
+        repository.polls[eventId] = pollWithYesVote(eventId, "slot-1")
+        repository.deadlinePassed = true
+
+        val result = repository.addVote(eventId, "participant-1", "slot-1", Vote.MAYBE)
+
+        assertTrue(result.isFailure, "Vote mutation must close at now == deadline")
+    }
+
+    @Test
+    fun `opening and cancelling prompt dispatches zero confirmation commands`() = runTest {
+        val eventId = "event-cancel"
+        repository.events[eventId] = eventFixture(eventId, "organizer-1", EventStatus.POLLING)
+        repository.polls[eventId] = pollWithYesVote(eventId, "slot-1")
+
+        stateMachine.dispatch(EventManagementContract.Intent.OpenConfirmPrompt(eventId, "slot-1", "organizer-1"))
+        machineScope.advanceUntilIdle()
+        assertEquals(EventManagementContract.ConfirmationPhase.CONFIRM_PROMPT, stateMachine.state.value.confirmationPhase)
+
+        stateMachine.dispatch(EventManagementContract.Intent.CancelConfirmation)
+        machineScope.advanceUntilIdle()
+
+        assertEquals(EventManagementContract.ConfirmationPhase.REVIEWING_RESULTS, stateMachine.state.value.confirmationPhase)
+        assertNull(stateMachine.state.value.confirmationSlotId)
+        assertEquals(0, repository.confirmCommandCount)
+    }
+
+    @Test
+    fun `submit captures one operation and duplicate submit dispatches one command`() = runTest {
+        val eventId = "event-one-flight"
+        repository.events[eventId] = eventFixture(eventId, "organizer-1", EventStatus.POLLING)
+        repository.polls[eventId] = pollWithYesVote(eventId, "slot-1")
+
+        stateMachine.dispatch(EventManagementContract.Intent.OpenConfirmPrompt(eventId, "slot-1", "organizer-1"))
+        machineScope.advanceUntilIdle()
+        stateMachine.dispatch(EventManagementContract.Intent.SubmitConfirmation("operation-1"))
+        stateMachine.dispatch(EventManagementContract.Intent.SubmitConfirmation("operation-2"))
+        machineScope.advanceUntilIdle()
+
+        assertEquals(1, repository.confirmCommandCount)
+        assertEquals("operation-1", stateMachine.state.value.confirmationOperationId)
+        assertEquals(EventManagementContract.ConfirmationPhase.CONFIRMED_PENDING_SYNC, stateMachine.state.value.confirmationPhase)
+    }
+
+    @Test
+    fun `retry reuses the failed operation id and exposes typed failure`() = runTest {
+        val eventId = "event-retry"
+        repository.events[eventId] = eventFixture(eventId, "organizer-1", EventStatus.POLLING)
+        repository.polls[eventId] = pollWithYesVote(eventId, "slot-1")
+        repository.confirmFailuresRemaining = 1
+
+        stateMachine.dispatch(EventManagementContract.Intent.OpenConfirmPrompt(eventId, "slot-1", "organizer-1"))
+        machineScope.advanceUntilIdle()
+        stateMachine.dispatch(EventManagementContract.Intent.SubmitConfirmation("operation-retry"))
+        machineScope.advanceUntilIdle()
+
+        assertEquals(EventManagementContract.ConfirmationPhase.FAILED, stateMachine.state.value.confirmationPhase)
+        assertEquals(
+            EventManagementContract.ConfirmationFailureCode.LOCAL_PERSISTENCE_FAILED,
+            stateMachine.state.value.confirmationFailure?.code
+        )
+
+        stateMachine.dispatch(EventManagementContract.Intent.RetryConfirmation)
+        machineScope.advanceUntilIdle()
+
+        assertEquals(2, repository.confirmCommandCount)
+        assertEquals("operation-retry", stateMachine.state.value.confirmationOperationId)
+        assertEquals(EventManagementContract.ConfirmationPhase.CONFIRMED_PENDING_SYNC, stateMachine.state.value.confirmationPhase)
+    }
+
+    @Test
+    fun `confirmation queues one domain envelope rather than provider artifacts`() = runTest {
         val eventId = "event-confirmation-artifacts"
         val organizerId = "organizer-1"
         val slotId = "slot-1"
@@ -93,14 +170,73 @@ class EventManagementStateMachinePollingConfirmationTest {
         machineScope.advanceUntilIdle()
 
         val outbox = repository.getWorkflowOutbox(eventId)
-        assertTrue(
-            outbox.any { it.type == WorkflowOutboxType.DATE_CONFIRMATION_NOTIFICATION },
-            "ConfirmDate must queue a local date-confirmation notification artifact"
-        )
-        assertTrue(
-            outbox.any { it.type == WorkflowOutboxType.CALENDAR_INVITATION_ARTIFACT },
-            "ConfirmDate must queue a local calendar invitation artifact"
-        )
+        assertEquals(1, outbox.size, "Local confirmation must persist exactly one domain envelope")
+    }
+
+    @Test
+    fun `non organizer failure is exposed as stable typed code`() = runTest {
+        val eventId = "event-not-organizer"
+        repository.events[eventId] = eventFixture(eventId, "organizer-1", EventStatus.POLLING)
+        repository.polls[eventId] = pollWithYesVote(eventId, "slot-1")
+
+        stateMachine.dispatch(EventManagementContract.Intent.ConfirmDate(eventId, "slot-1", "participant-1"))
+        machineScope.advanceUntilIdle()
+
+        assertEquals(ObservedConfirmationFailure.Typed(ConfirmationFailureCode.NOT_ORGANIZER), observedFailure())
+        assertEquals(0, repository.confirmCommandCount)
+    }
+
+    @Test
+    fun `invalid status failure is exposed as stable typed code`() = runTest {
+        val eventId = "event-invalid-status"
+        repository.events[eventId] = eventFixture(eventId, "organizer-1", EventStatus.DRAFT)
+        repository.polls[eventId] = pollWithYesVote(eventId, "slot-1")
+
+        stateMachine.dispatch(EventManagementContract.Intent.ConfirmDate(eventId, "slot-1", "organizer-1"))
+        machineScope.advanceUntilIdle()
+
+        assertEquals(ObservedConfirmationFailure.Typed(ConfirmationFailureCode.INVALID_EVENT_STATUS), observedFailure())
+        assertEquals(0, repository.confirmCommandCount)
+    }
+
+    @Test
+    fun `no votes failure is exposed as stable typed code`() = runTest {
+        val eventId = "event-no-votes"
+        repository.events[eventId] = eventFixture(eventId, "organizer-1", EventStatus.POLLING)
+        repository.polls[eventId] = Poll("poll-$eventId", eventId, emptyMap())
+
+        stateMachine.dispatch(EventManagementContract.Intent.ConfirmDate(eventId, "slot-1", "organizer-1"))
+        machineScope.advanceUntilIdle()
+
+        assertEquals(ObservedConfirmationFailure.Typed(ConfirmationFailureCode.NO_VOTES), observedFailure())
+        assertEquals(0, repository.confirmCommandCount)
+    }
+
+    @Test
+    fun `invalid slot failure is exposed as stable typed code`() = runTest {
+        val eventId = "event-invalid-slot"
+        repository.events[eventId] = eventFixture(eventId, "organizer-1", EventStatus.POLLING)
+        repository.polls[eventId] = pollWithYesVote(eventId, "slot-1")
+
+        stateMachine.dispatch(EventManagementContract.Intent.ConfirmDate(eventId, "missing", "organizer-1"))
+        machineScope.advanceUntilIdle()
+
+        assertEquals(ObservedConfirmationFailure.Typed(ConfirmationFailureCode.SLOT_NOT_FOUND), observedFailure())
+        assertEquals(0, repository.confirmCommandCount)
+    }
+
+    @Test
+    fun `duplicate dispatch has only one effective command in flight`() = runTest {
+        val eventId = "event-duplicate-dispatch"
+        repository.events[eventId] = eventFixture(eventId, "organizer-1", EventStatus.POLLING)
+        repository.polls[eventId] = pollWithYesVote(eventId, "slot-1")
+
+        stateMachine.dispatch(EventManagementContract.Intent.ConfirmDate(eventId, "slot-1", "organizer-1"))
+        stateMachine.dispatch(EventManagementContract.Intent.ConfirmDate(eventId, "slot-1", "organizer-1"))
+        machineScope.advanceUntilIdle()
+
+        assertEquals(1, repository.confirmCommandCount)
+        assertEquals(1, repository.getWorkflowOutbox(eventId).size)
     }
 
     @Test
@@ -131,19 +267,18 @@ class EventManagementStateMachinePollingConfirmationTest {
                     it.route == "event/$eventId/scenarios"
             }
         )
-        assertNotNull(
-            repository.getWorkflowOutbox(eventId).firstOrNull {
-                it.type == WorkflowOutboxType.DATE_CONFIRMATION_NOTIFICATION
-            },
-            "Happy path must prove the date-confirmation notification is queued locally"
-        )
-        assertNotNull(
-            repository.getWorkflowOutbox(eventId).firstOrNull {
-                it.type == WorkflowOutboxType.CALENDAR_INVITATION_ARTIFACT
-            },
-            "Happy path must prove the calendar artifact is queued locally"
+        assertEquals(
+            1,
+            repository.getWorkflowOutbox(eventId).size,
+            "Happy path must create one confirmation domain envelope and no provider artifacts"
         )
     }
+
+    private fun observedFailure(): ObservedConfirmationFailure =
+        stateMachine.state.value.confirmationFailure?.code?.let {
+            ObservedConfirmationFailure.Typed(ConfirmationFailureCode.valueOf(it.name))
+        } ?: stateMachine.state.value.error?.let(ObservedConfirmationFailure::LegacyUntyped)
+            ?: ObservedConfirmationFailure.None
 
     private fun eventFixture(
         id: String,
@@ -179,6 +314,18 @@ class EventManagementStateMachinePollingConfirmationTest {
             votes = mapOf("participant-1" to mapOf(slotId to Vote.YES))
         )
 
+    private suspend fun assertConfirmationAllowedAtDeadlineBoundary(deadlinePassed: Boolean, eventId: String) {
+        repository.events[eventId] = eventFixture(eventId, "organizer-1", EventStatus.POLLING)
+        repository.polls[eventId] = pollWithYesVote(eventId, "slot-1")
+        repository.deadlinePassed = deadlinePassed
+
+        stateMachine.dispatch(EventManagementContract.Intent.ConfirmDate(eventId, "slot-1", "organizer-1"))
+        machineScope.advanceUntilIdle()
+
+        assertEquals(EventStatus.CONFIRMED, repository.events.getValue(eventId).status)
+        assertEquals(1, repository.confirmCommandCount)
+    }
+
     private suspend fun collectSideEffects(count: Int): List<EventManagementContract.SideEffect> =
         withTimeout(1_000) {
             buildList {
@@ -189,10 +336,25 @@ class EventManagementStateMachinePollingConfirmationTest {
         }
 }
 
+private enum class ConfirmationFailureCode {
+    NOT_ORGANIZER,
+    INVALID_EVENT_STATUS,
+    NO_VOTES,
+    SLOT_NOT_FOUND
+}
+
+private sealed interface ObservedConfirmationFailure {
+    data class Typed(val code: ConfirmationFailureCode) : ObservedConfirmationFailure
+    data class LegacyUntyped(val message: String) : ObservedConfirmationFailure
+    data object None : ObservedConfirmationFailure
+}
+
 private class PollingConfirmationRepository : EventRepositoryInterface {
     val events = mutableMapOf<String, Event>()
     val polls = mutableMapOf<String, Poll>()
     var deadlinePassed = false
+    var confirmCommandCount = 0
+    var confirmFailuresRemaining = 0
     private val workflowOutbox = mutableListOf<WorkflowOutboxRecord>()
 
     override suspend fun createEvent(event: Event): Result<Event> {
@@ -219,6 +381,7 @@ private class PollingConfirmationRepository : EventRepositoryInterface {
         slotId: String,
         vote: Vote
     ): Result<Boolean> {
+        if (deadlinePassed) return Result.failure(IllegalStateException("Voting deadline has passed"))
         val poll = polls[eventId] ?: return Result.failure(IllegalArgumentException("Poll not found"))
         val participantVotes = poll.votes[participantId].orEmpty() + (slotId to vote)
         polls[eventId] = poll.copy(votes = poll.votes + (participantId to participantVotes))
@@ -245,6 +408,11 @@ private class PollingConfirmationRepository : EventRepositoryInterface {
         slotId: String,
         confirmedByOrganizerId: String
     ): Result<Boolean> {
+        confirmCommandCount += 1
+        if (confirmFailuresRemaining > 0) {
+            confirmFailuresRemaining -= 1
+            return Result.failure(IllegalStateException("Injected confirmation failure"))
+        }
         val event = events[eventId] ?: return Result.failure(IllegalArgumentException("Event not found"))
         if (event.organizerId != confirmedByOrganizerId) {
             return Result.failure(IllegalStateException("Only event organizer can confirm dates"))

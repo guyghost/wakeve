@@ -27,7 +27,7 @@ class EventDetailViewModel: StateMachineViewModel<
     // MARK: - Published Properties
 
     /// The currently selected event (filtered from state.events)
-    @Published var selectedEvent: Event_?
+    @Published var selectedEvent: Event?
 
     // MARK: - Private Properties
 
@@ -86,7 +86,7 @@ class EventDetailViewModel: StateMachineViewModel<
     }
 
     /// Update the event
-    func updateEvent(_ event: Event_) {
+    func updateEvent(_ event: Event) {
         dispatch(EventManagementContractIntentUpdateEvent(event: event))
     }
 

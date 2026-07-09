@@ -22,6 +22,8 @@ import com.guyghost.wakeve.organization.EventOrganizationReadinessRepository
 import com.guyghost.wakeve.repository.OrderBy
 import com.guyghost.wakeve.sync.SyncManager
 import com.guyghost.wakeve.workflow.WorkflowOutboxRecord
+import com.guyghost.wakeve.workflow.WorkflowOutboxType
+import com.guyghost.wakeve.workflow.PendingWorkflowStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlin.math.PI
@@ -42,7 +44,8 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
     private val voteQueries = db.voteQueries
     private val confirmedDateQueries = db.confirmedDateQueries
     private val syncMetadataQueries = db.syncMetadataQueries
-    private val workflowOutbox = mutableListOf<WorkflowOutboxRecord>()
+    private val workflowOutboxQueries = db.workflowOutboxQueries
+    private val confirmationReceiptQueries = db.confirmationReceiptQueries
 
     override suspend fun createEvent(event: Event): Result<Event> {
         return try {
@@ -483,6 +486,14 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
         eventId: String,
         slotId: String,
         confirmedByOrganizerId: String
+    ) = confirmEventDateCommand(eventId, slotId, confirmedByOrganizerId, "confirm-$eventId-$slotId", getCurrentUtcIsoString())
+
+    override suspend fun confirmEventDateCommand(
+        eventId: String,
+        slotId: String,
+        confirmedByOrganizerId: String,
+        operationId: String,
+        requestedAt: String
     ): Result<Boolean> {
         val eventRow = eventQueries.selectById(eventId).executeAsOneOrNull()
             ?: return Result.failure(IllegalArgumentException("Event not found"))
@@ -499,10 +510,23 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
             ?: return Result.failure(IllegalStateException("Selected time slot has no confirmed start date"))
 
         return try {
+            val effectiveOperationId = operationId ?: "confirm-$eventId-$slotId"
+            val existing = confirmationReceiptQueries.selectByOperationId(effectiveOperationId).executeAsOneOrNull()
+            if (existing != null) {
+                if (existing.eventId == eventId && existing.slotId == slotId) return Result.success(true)
+                return Result.failure(IllegalStateException("ALREADY_CONFIRMED_DIFFERENT_SLOT"))
+            }
+            val already = confirmationReceiptQueries.selectByEventId(eventId).executeAsOneOrNull()
+            if (already != null) {
+                return if (already.slotId == slotId) Result.success(true)
+                else Result.failure(IllegalStateException("ALREADY_CONFIRMED_DIFFERENT_SLOT"))
+            }
             val now = getCurrentUtcIsoString()
             val confirmedId = "confirmed_${eventId}"
+            val effectKey = "$eventId:confirmation_effect:$effectiveOperationId"
 
             db.transaction {
+                confirmationReceiptQueries.insertReceipt(effectiveOperationId, eventId, slotId, confirmedByOrganizerId, requestedAt ?: now, now)
                 eventQueries.updateEventStatus(
                     status = EventStatus.CONFIRMED.name,
                     updatedAt = now,
@@ -517,6 +541,12 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
                     confirmedAt = now,
                     updatedAt = now
                 )
+                workflowOutboxQueries.insertOutbox(effectKey, eventId, "CONFIRMATION_EFFECT", finalDate, effectiveOperationId, "PENDING_SYNC")
+                syncMetadataQueries.insertSyncMetadata(
+                    id = "sync_confirm_${eventId}_${effectiveOperationId}",
+                    entityType = "event", entityId = eventId, operation = "UPDATE",
+                    timestamp = "${now}_${effectiveOperationId}", synced = 0
+                )
             }
 
             syncManager?.recordLocalChange(
@@ -527,20 +557,6 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
                 userId = confirmedByOrganizerId
             )
 
-            val syncSequence = syncMetadataQueries
-                .selectByEntity("event", eventId)
-                .executeAsList()
-                .size
-            val syncTimestamp = "${now}_${EventStatus.CONFIRMED.name}_${slotId}_$syncSequence"
-            syncMetadataQueries.insertSyncMetadata(
-                id = "sync_confirm_${eventId}_${slotId}_$syncSequence",
-                entityType = "event",
-                entityId = eventId,
-                operation = "UPDATE",
-                timestamp = syncTimestamp,
-                synced = 0
-            )
-
             Result.success(true)
         } catch (e: Exception) {
             Result.failure(e)
@@ -548,12 +564,18 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
     }
 
     override suspend fun queueWorkflowOutbox(record: WorkflowOutboxRecord): Result<Boolean> {
-        workflowOutbox += record
-        return Result.success(true)
+        return try {
+            val key = record.effectKey ?: "${record.eventId}:${record.type.name}:${record.operationId ?: record.finalDate}"
+            workflowOutboxQueries.insertOutbox(key, record.eventId, record.type.name, record.finalDate, record.operationId, record.status.name)
+            Result.success(true)
+        } catch (e: Exception) { Result.failure(e) }
     }
 
     override fun getWorkflowOutbox(eventId: String): List<WorkflowOutboxRecord> =
-        workflowOutbox.filter { it.eventId == eventId }
+        workflowOutboxQueries.selectByEventId(eventId).executeAsList().map {
+            WorkflowOutboxRecord(it.eventId, WorkflowOutboxType.valueOf(it.type), it.finalDate,
+                PendingWorkflowStatus.valueOf(it.status), it.operationId, it.effectKey)
+        }
 
     override fun isDeadlinePassed(deadline: String): Boolean {
         return try {

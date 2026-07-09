@@ -37,6 +37,8 @@ interface EventRepositoryInterface {
         slotId: String,
         confirmedByOrganizerId: String
     ): Result<Boolean> = Result.failure(UnsupportedOperationException("Confirm event date is not supported"))
+    suspend fun confirmEventDateCommand(eventId: String, slotId: String, confirmedByOrganizerId: String, operationId: String, requestedAt: String): Result<Boolean> =
+        confirmEventDate(eventId, slotId, confirmedByOrganizerId)
     suspend fun queueWorkflowOutbox(record: WorkflowOutboxRecord): Result<Boolean> = Result.success(true)
     fun getWorkflowOutbox(eventId: String): List<WorkflowOutboxRecord> = emptyList()
     suspend fun saveEvent(event: Event): Result<Event>
@@ -179,6 +181,11 @@ class EventRepository : EventRepositoryInterface {
         val finalDate = selectedSlot.start
             ?: return Result.failure(IllegalStateException("Selected time slot has no confirmed start date"))
 
+        if (event.status == EventStatus.CONFIRMED) {
+            return if (event.finalDate == finalDate) Result.success(true)
+            else Result.failure(IllegalStateException("ALREADY_CONFIRMED_DIFFERENT_SLOT"))
+        }
+
         events[eventId] = event.copy(
             status = EventStatus.CONFIRMED,
             finalDate = finalDate
@@ -186,8 +193,11 @@ class EventRepository : EventRepositoryInterface {
         return Result.success(true)
     }
 
+    override suspend fun confirmEventDateCommand(eventId: String, slotId: String, confirmedByOrganizerId: String, operationId: String, requestedAt: String): Result<Boolean> =
+        confirmEventDate(eventId, slotId, confirmedByOrganizerId)
+
     override suspend fun queueWorkflowOutbox(record: WorkflowOutboxRecord): Result<Boolean> {
-        workflowOutbox += record
+        if (workflowOutbox.none { it.eventId == record.eventId && it.type == record.type }) workflowOutbox += record
         return Result.success(true)
     }
 
