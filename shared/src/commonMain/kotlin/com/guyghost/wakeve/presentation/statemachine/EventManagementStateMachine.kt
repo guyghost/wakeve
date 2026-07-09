@@ -14,6 +14,15 @@ import com.guyghost.wakeve.workflow.WorkflowOutboxRecord
 import com.guyghost.wakeve.workflow.WorkflowOutboxType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+
+fun interface ConfirmationClock {
+    fun now(): Instant
+}
+
+object SystemConfirmationClock : ConfirmationClock {
+    override fun now(): Instant = Clock.System.now()
+}
 
 /**
  * Functional interface for seeding sample event data.
@@ -104,6 +113,7 @@ class EventManagementStateMachine(
     private val createEventUseCase: CreateEventUseCase,
     private val eventRepository: com.guyghost.wakeve.repository.EventRepositoryInterface?,
     private val sampleEventSeeder: SampleEventSeeder? = null,
+    private val confirmationClock: ConfirmationClock = SystemConfirmationClock,
     scope: CoroutineScope
 ) : StateMachine<EventManagementContract.State, EventManagementContract.Intent, EventManagementContract.SideEffect>(
     initialState = EventManagementContract.State(),
@@ -122,6 +132,15 @@ class EventManagementStateMachine(
             is EventManagementContract.Intent.LoadPollResults -> loadPollResults(intent.eventId)
             is EventManagementContract.Intent.StartPoll -> startPoll(intent.eventId, intent.userId)
             is EventManagementContract.Intent.ConfirmDate -> confirmDate(intent.eventId, intent.slotId, intent.userId)
+            is EventManagementContract.Intent.OpenConfirmPrompt -> openConfirmPrompt(
+                intent.eventId,
+                intent.slotId,
+                intent.actorId
+            )
+            is EventManagementContract.Intent.CancelConfirmation -> cancelConfirmation()
+            is EventManagementContract.Intent.SubmitConfirmation -> submitConfirmation(intent.operationId)
+            is EventManagementContract.Intent.RetryConfirmation -> retryConfirmation()
+            is EventManagementContract.Intent.DismissConfirmationFailure -> dismissConfirmationFailure()
             is EventManagementContract.Intent.TransitionToOrganizing -> transitionToOrganizing(intent.eventId, intent.userId)
             is EventManagementContract.Intent.MarkAsFinalized -> markAsFinalized(intent.eventId, intent.userId)
             is EventManagementContract.Intent.ClearError -> clearError()
@@ -776,9 +795,109 @@ class EventManagementStateMachine(
      * @param userId The ID of the user attempting to confirm (must be organizer)
      */
     private suspend fun confirmDate(eventId: String, slotId: String, userId: String) {
+        openConfirmPrompt(eventId, slotId, userId)
+        if (currentState.confirmationPhase == EventManagementContract.ConfirmationPhase.CONFIRM_PROMPT) {
+            submitConfirmation("legacy-$eventId-$slotId")
+        }
+    }
+
+    private fun openConfirmPrompt(eventId: String, slotId: String, actorId: String) {
+        if (currentState.confirmationPhase != EventManagementContract.ConfirmationPhase.REVIEWING_RESULTS) return
+        updateState {
+            it.copy(
+                confirmationPhase = EventManagementContract.ConfirmationPhase.CONFIRM_PROMPT,
+                confirmationEventId = eventId,
+                confirmationActorId = actorId,
+                confirmationSlotId = slotId,
+                confirmationOperationId = null,
+                confirmationFailure = null,
+                error = null
+            )
+        }
+    }
+
+    private fun cancelConfirmation() {
+        if (currentState.confirmationPhase != EventManagementContract.ConfirmationPhase.CONFIRM_PROMPT) return
+        clearConfirmationAttempt()
+    }
+
+    private suspend fun submitConfirmation(operationId: String) {
+        if (currentState.confirmationPhase != EventManagementContract.ConfirmationPhase.CONFIRM_PROMPT) return
+        val eventId = currentState.confirmationEventId ?: return
+        val slotId = currentState.confirmationSlotId ?: return
+        val actorId = currentState.confirmationActorId ?: return
+        val command = EventManagementContract.ConfirmPollDateCommand(
+            operationId = operationId,
+            eventId = eventId,
+            slotId = slotId,
+            actorId = actorId,
+            requestedAt = confirmationClock.now()
+        )
+        updateState {
+            it.copy(
+                confirmationPhase = EventManagementContract.ConfirmationPhase.CONFIRMING,
+                confirmationOperationId = operationId,
+                confirmationFailure = null,
+                error = null
+            )
+        }
+        executeConfirmation(command)
+    }
+
+    private suspend fun retryConfirmation() {
+        val state = currentState
+        if (state.confirmationPhase != EventManagementContract.ConfirmationPhase.FAILED ||
+            state.confirmationFailure?.retryable != true
+        ) return
+        val operationId = state.confirmationOperationId ?: return
+        val eventId = state.confirmationEventId ?: return
+        val slotId = state.confirmationSlotId ?: return
+        val actorId = state.confirmationActorId ?: return
+        updateState {
+            it.copy(
+                confirmationPhase = EventManagementContract.ConfirmationPhase.CONFIRMING,
+                confirmationFailure = null,
+                error = null
+            )
+        }
+        executeConfirmation(
+            EventManagementContract.ConfirmPollDateCommand(
+                operationId = operationId,
+                eventId = eventId,
+                slotId = slotId,
+                actorId = actorId,
+                requestedAt = confirmationClock.now()
+            )
+        )
+    }
+
+    private fun dismissConfirmationFailure() {
+        if (currentState.confirmationPhase == EventManagementContract.ConfirmationPhase.FAILED) {
+            clearConfirmationAttempt()
+        }
+    }
+
+    private fun clearConfirmationAttempt() {
+        updateState {
+            it.copy(
+                confirmationPhase = EventManagementContract.ConfirmationPhase.REVIEWING_RESULTS,
+                confirmationEventId = null,
+                confirmationActorId = null,
+                confirmationSlotId = null,
+                confirmationOperationId = null,
+                confirmationFailure = null,
+                error = null,
+                isLoading = false
+            )
+        }
+    }
+
+    private suspend fun executeConfirmation(command: EventManagementContract.ConfirmPollDateCommand) {
+        val eventId = command.eventId
+        val slotId = command.slotId
+        val userId = command.actorId
         if (eventRepository == null) {
-            updateState { it.copy(error = "Repository not available") }
-            emitSideEffect(EventManagementContract.SideEffect.ShowToast("Repository not available"))
+            failConfirmation(EventManagementContract.ConfirmationFailureCode.REPOSITORY_UNAVAILABLE, true)
             return
         }
 
@@ -788,98 +907,102 @@ class EventManagementStateMachine(
 
         // Guard: Event must exist
         if (event == null) {
-            updateState { it.copy(isLoading = false, error = "Event not found") }
-            emitSideEffect(EventManagementContract.SideEffect.ShowToast("Event not found"))
+            failConfirmation(EventManagementContract.ConfirmationFailureCode.EVENT_NOT_FOUND, false)
             return
         }
 
         // Guard: Only organizer can confirm dates
         if (!validateOrganizerPermission(event, userId)) {
-            emitUnauthorizedError("Only event organizer can confirm dates")
+            failConfirmation(EventManagementContract.ConfirmationFailureCode.NOT_ORGANIZER, false)
             return
         }
 
         // Validate status
         if (event.status != com.guyghost.wakeve.models.EventStatus.POLLING) {
-            val errorMsg = "Cannot confirm date: Event is not in POLLING status"
-            updateState { it.copy(isLoading = false, error = errorMsg) }
-            emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMsg))
-            return
-        }
-
-        if (eventRepository.isDeadlinePassed(event.deadline)) {
-            val errorMsg = "Cannot confirm date: Poll deadline has passed"
-            updateState { it.copy(isLoading = false, error = errorMsg) }
-            emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMsg))
+            failConfirmation(EventManagementContract.ConfirmationFailureCode.INVALID_EVENT_STATUS, false)
             return
         }
 
         // Validate at least one vote exists
         val poll = eventRepository.getPoll(eventId)
         if (poll == null || poll.votes.isEmpty()) {
-            val errorMsg = "Cannot confirm date: No votes have been submitted"
-            updateState { it.copy(isLoading = false, error = errorMsg) }
-            emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMsg))
+            failConfirmation(EventManagementContract.ConfirmationFailureCode.NO_VOTES, false)
             return
         }
 
         // Find the selected time slot
         val selectedSlot = event.proposedSlots.find { it.id == slotId }
         if (selectedSlot == null) {
-            val errorMsg = "Selected time slot not found"
-            updateState { it.copy(isLoading = false, error = errorMsg) }
-            emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMsg))
+            failConfirmation(EventManagementContract.ConfirmationFailureCode.SLOT_NOT_FOUND, false)
             return
         }
 
         val finalDate = selectedSlot.start
         if (finalDate == null) {
-            val errorMsg = "Selected time slot has no confirmed start date"
-            updateState { it.copy(isLoading = false, error = errorMsg) }
-            emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMsg))
+            failConfirmation(EventManagementContract.ConfirmationFailureCode.SLOT_NOT_CONFIRMABLE, false)
             return
         }
 
-        val result = eventRepository.confirmEventDate(
+        val result = eventRepository.confirmEventDateCommand(
             eventId = eventId,
             slotId = slotId,
-            confirmedByOrganizerId = userId
+            confirmedByOrganizerId = userId,
+            operationId = command.operationId,
+            requestedAt = command.requestedAt.toString()
         )
 
         if (result.isFailure) {
-            val errorMessage = eventDateConfirmationFailureMessage()
-            updateState { it.copy(isLoading = false, error = errorMessage) }
-            emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
-            return
-        }
-
-        val notificationResult = eventRepository.queueWorkflowOutbox(
-            WorkflowOutboxRecord(
-                eventId = eventId,
-                type = WorkflowOutboxType.DATE_CONFIRMATION_NOTIFICATION,
-                finalDate = finalDate
-            )
-        )
-        val calendarResult = eventRepository.queueWorkflowOutbox(
-            WorkflowOutboxRecord(
-                eventId = eventId,
-                type = WorkflowOutboxType.CALENDAR_INVITATION_ARTIFACT,
-                finalDate = finalDate
-            )
-        )
-        val outboxError = notificationResult.exceptionOrNull() ?: calendarResult.exceptionOrNull()
-        if (outboxError != null) {
-            val errorMessage = eventConfirmationWorkflowQueueFailureMessage()
-            updateState { it.copy(isLoading = false, error = errorMessage) }
-            emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
+            if (result.exceptionOrNull()?.message == "ALREADY_CONFIRMED_DIFFERENT_SLOT") {
+                failConfirmation(EventManagementContract.ConfirmationFailureCode.ALREADY_CONFIRMED_DIFFERENT_SLOT, false)
+                return
+            }
+            failConfirmation(EventManagementContract.ConfirmationFailureCode.LOCAL_PERSISTENCE_FAILED, true)
             return
         }
 
         // Reload events to get updated status
         loadEvents()
-        updateState { it.copy(scenariosUnlocked = true) }
+        updateState {
+            it.copy(
+                scenariosUnlocked = true,
+                confirmationPhase = EventManagementContract.ConfirmationPhase.CONFIRMED_PENDING_SYNC,
+                confirmationFailure = null
+            )
+        }
         emitSideEffect(EventManagementContract.SideEffect.ShowToast("Date confirmed successfully"))
         emitSideEffect(EventManagementContract.SideEffect.NavigateTo("event/$eventId/scenarios"))
+    }
+
+    private suspend fun failConfirmation(
+        code: EventManagementContract.ConfirmationFailureCode,
+        retryable: Boolean
+    ) {
+        val message = when (code) {
+            EventManagementContract.ConfirmationFailureCode.EVENT_NOT_FOUND -> "Event not found"
+            EventManagementContract.ConfirmationFailureCode.NOT_ORGANIZER ->
+                "Only event organizer can confirm dates"
+            EventManagementContract.ConfirmationFailureCode.INVALID_EVENT_STATUS ->
+                "Cannot confirm date: Event is not in POLLING status"
+            EventManagementContract.ConfirmationFailureCode.NO_VOTES ->
+                "Cannot confirm date: No votes have been submitted"
+            EventManagementContract.ConfirmationFailureCode.SLOT_NOT_FOUND -> "Selected time slot not found"
+            EventManagementContract.ConfirmationFailureCode.SLOT_NOT_CONFIRMABLE ->
+                "Selected time slot has no confirmed start date"
+            EventManagementContract.ConfirmationFailureCode.ALREADY_CONFIRMED_DIFFERENT_SLOT ->
+                "Event is already confirmed with a different time slot"
+            EventManagementContract.ConfirmationFailureCode.LOCAL_PERSISTENCE_FAILED ->
+                eventDateConfirmationFailureMessage()
+            EventManagementContract.ConfirmationFailureCode.REPOSITORY_UNAVAILABLE -> "Repository not available"
+        }
+        updateState {
+            it.copy(
+                isLoading = false,
+                confirmationPhase = EventManagementContract.ConfirmationPhase.FAILED,
+                confirmationFailure = EventManagementContract.ConfirmationFailure(code, retryable),
+                error = message
+            )
+        }
+        emitSideEffect(EventManagementContract.SideEffect.ShowToast(message))
     }
 
     /**

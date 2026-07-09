@@ -11,10 +11,13 @@ data class WorkflowOutboxRecord(
     val eventId: String,
     val type: WorkflowOutboxType,
     val finalDate: String,
-    val status: PendingWorkflowStatus = PendingWorkflowStatus.PENDING_SYNC
+    val status: PendingWorkflowStatus = PendingWorkflowStatus.PENDING_SYNC,
+    val operationId: String? = null,
+    val effectKey: String? = null
 )
 
 enum class WorkflowOutboxType {
+    CONFIRMATION_EFFECT,
     DATE_CONFIRMATION_NOTIFICATION,
     CALENDAR_INVITATION_ARTIFACT
 }

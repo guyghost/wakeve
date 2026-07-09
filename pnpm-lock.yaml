@@ -9,7 +9,17 @@ overrides:
 
 importers:
 
-  .: {}
+  .:
+    devDependencies:
+      '@types/node':
+        specifier: ^24.13.1
+        version: 24.13.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      xstate:
+        specifier: ^5.32.0
+        version: 5.32.0
 
   apps/dashboard:
     dependencies:

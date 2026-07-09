@@ -1,0 +1,18 @@
+CREATE TABLE confirmationReceipt (
+    operationId TEXT PRIMARY KEY NOT NULL,
+    eventId TEXT NOT NULL UNIQUE,
+    slotId TEXT NOT NULL,
+    actorId TEXT NOT NULL,
+    requestedAt TEXT NOT NULL,
+    committedAt TEXT NOT NULL
+);
+
+selectByOperationId:
+SELECT * FROM confirmationReceipt WHERE operationId = ?;
+
+selectByEventId:
+SELECT * FROM confirmationReceipt WHERE eventId = ?;
+
+insertReceipt:
+INSERT INTO confirmationReceipt(operationId, eventId, slotId, actorId, requestedAt, committedAt)
+VALUES (?, ?, ?, ?, ?, ?);

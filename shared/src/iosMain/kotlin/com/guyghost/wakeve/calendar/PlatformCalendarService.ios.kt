@@ -5,10 +5,11 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 import kotlinx.coroutines.runBlocking
 import platform.EventKit.EKAuthorizationStatus
-import platform.EventKit.EKAuthorizationStatusAuthorized
 import platform.EventKit.EKAuthorizationStatusDenied
+import platform.EventKit.EKAuthorizationStatusFullAccess
 import platform.EventKit.EKAuthorizationStatusNotDetermined
 import platform.EventKit.EKAuthorizationStatusRestricted
+import platform.EventKit.EKAuthorizationStatusWriteOnly
 import platform.EventKit.EKEntityType
 import platform.EventKit.EKEvent
 import platform.EventKit.EKEventStore
@@ -24,38 +25,46 @@ class PlatformCalendarServiceImpl : PlatformCalendarService {
 
     /**
      * Vérifie et demande l'autorisation d'accès au calendrier
-     * Retourne true si l'accès est autorisé, false sinon
+     * Retourne un succès uniquement quand EventKit confirme l'accès complet
      */
     private fun ensureCalendarAuthorization(): Result<Unit> {
         val status = EKEventStore.authorizationStatusForEntityType(EKEntityType.EKEntityTypeEvent)
 
         return when (status) {
-            EKAuthorizationStatusAuthorized -> Result.success(Unit)
+            EKAuthorizationStatusFullAccess -> Result.success(Unit)
 
             EKAuthorizationStatusNotDetermined -> {
-                // Demander l'accès de manière synchrone via runBlocking
-                val granted = runBlocking {
-                    suspendCoroutine<Boolean> { continuation ->
-                        store.requestAccessToEntityType(EKEntityType.EKEntityTypeEvent) { granted, _ ->
-                            continuation.resume(granted)
+                runBlocking {
+                    suspendCoroutine<Result<Unit>> { continuation ->
+                        store.requestFullAccessToEventsWithCompletion { _, error ->
+                            if (error != null) {
+                                continuation.resume(
+                                    Result.failure(
+                                        CalendarAuthorizationRequestException(error.localizedDescription)
+                                    )
+                                )
+                            } else {
+                                val updatedStatus = EKEventStore.authorizationStatusForEntityType(
+                                    EKEntityType.EKEntityTypeEvent
+                                )
+                                continuation.resume(authorizationResult(updatedStatus))
+                            }
                         }
                     }
                 }
-                if (granted) {
-                    Result.success(Unit)
-                } else {
-                    Result.failure(CalendarPermissionDeniedException())
-                }
             }
 
-            EKAuthorizationStatusDenied ->
-                Result.failure(CalendarPermissionDeniedException())
-
-            EKAuthorizationStatusRestricted ->
-                Result.failure(CalendarPermissionRestrictedException())
-
-            else -> Result.failure(CalendarPermissionDeniedException())
+            else -> authorizationResult(status)
         }
+    }
+
+    private fun authorizationResult(status: EKAuthorizationStatus): Result<Unit> = when (status) {
+        EKAuthorizationStatusFullAccess -> Result.success(Unit)
+        EKAuthorizationStatusRestricted -> Result.failure(CalendarPermissionRestrictedException())
+        EKAuthorizationStatusWriteOnly -> Result.failure(CalendarFullAccessRequiredException())
+        EKAuthorizationStatusDenied,
+        EKAuthorizationStatusNotDetermined -> Result.failure(CalendarPermissionDeniedException())
+        else -> Result.failure(CalendarPermissionDeniedException())
     }
 
     override fun addEvent(event: EnhancedCalendarEvent): Result<Unit> {
@@ -154,3 +163,5 @@ class PlatformCalendarServiceImpl : PlatformCalendarService {
 class CalendarEventNotFoundException(eventId: String) : Exception("Calendar event not found: $eventId")
 class CalendarPermissionDeniedException : Exception("L'accès au calendrier a été refusé. Veuillez autoriser l'accès dans les Réglages.")
 class CalendarPermissionRestrictedException : Exception("L'accès au calendrier est restreint sur cet appareil.")
+class CalendarFullAccessRequiredException : Exception("Wakeve a besoin d'un accès complet au calendrier pour lire, modifier ou supprimer vos événements.")
+class CalendarAuthorizationRequestException(message: String) : Exception(message)

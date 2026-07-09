@@ -6204,6 +6204,7 @@ validate_ios_plist() {
     echo -e "${BLUE}📄 iOS Info.plist${NC}"
 
     local plist="$PROJECT_DIR/iosApp/src/Info.plist"
+    local target_settings_file=""
     if [ ! -f "$plist" ]; then
         error "Info.plist: Missing at iosApp/src/Info.plist"
         return 1
@@ -6216,7 +6217,45 @@ validate_ios_plist() {
         return 1
     fi
 
-    if plutil -extract ITSAppUsesNonExemptEncryption raw -o - "$plist" 2>/dev/null | grep -qx "false"; then
+    if command -v xcodebuild >/dev/null 2>&1; then
+        target_settings_file=$(mktemp)
+        if ! xcodebuild \
+            -project "$PROJECT_DIR/iosApp/iosApp.xcodeproj" \
+            -scheme WakeveApp \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -showBuildSettings \
+            -json >"$target_settings_file" 2>/dev/null; then
+            rm -f "$target_settings_file"
+            target_settings_file=""
+        fi
+    fi
+
+    effective_plist_key_value() {
+        local key="$1"
+
+        if plutil -extract "$key" raw -o - "$plist" >/dev/null 2>&1; then
+            plutil -extract "$key" raw -o - "$plist" 2>/dev/null
+            return
+        fi
+
+        [ -n "$target_settings_file" ] || return 1
+        ruby -rjson -e '
+            data = JSON.parse(File.read(ARGV.fetch(0)))
+            target = data.find { |entry| entry["target"] == "WakeveApp" } || data.fetch(0)
+            value = target.fetch("buildSettings")["INFOPLIST_KEY_#{ARGV.fetch(1)}"]
+            exit 1 if value.nil? || value.to_s.empty?
+            puts value
+        ' "$target_settings_file" "$key"
+    }
+
+    effective_plist_key_exists() {
+        effective_plist_key_value "$1" >/dev/null
+    }
+
+    local encryption_declaration
+    encryption_declaration=$(effective_plist_key_value ITSAppUsesNonExemptEncryption 2>/dev/null || true)
+    if [ "$encryption_declaration" = "false" ] || [ "$encryption_declaration" = "NO" ]; then
         pass "Info.plist: ITSAppUsesNonExemptEncryption=false"
     else
         warning "Info.plist: ITSAppUsesNonExemptEncryption is not false"
@@ -6247,64 +6286,85 @@ validate_ios_plist() {
     fi
 
     if grep -R "INPreferences.requestSiriAuthorization" "$PROJECT_DIR/iosApp/src" >/dev/null 2>&1 || plutil -extract INIntentsSupported raw -o - "$plist" >/dev/null 2>&1; then
-        if plutil -extract NSSiriUsageDescription raw -o - "$plist" >/dev/null 2>&1; then
-            pass "Info.plist: Declares NSSiriUsageDescription for Siri authorization"
+        if effective_plist_key_exists NSSiriUsageDescription; then
+            pass "Info.plist: Configures NSSiriUsageDescription for Siri authorization"
         else
             error "Info.plist: Missing NSSiriUsageDescription while Siri authorization/intents are present"
         fi
     fi
 
     if grep -R "SFSpeechRecognizer" "$PROJECT_DIR/iosApp/src" >/dev/null 2>&1; then
-        if plutil -extract NSSpeechRecognitionUsageDescription raw -o - "$plist" >/dev/null 2>&1; then
-            pass "Info.plist: Declares NSSpeechRecognitionUsageDescription for speech recognition"
+        if effective_plist_key_exists NSSpeechRecognitionUsageDescription; then
+            pass "Info.plist: Configures NSSpeechRecognitionUsageDescription for speech recognition"
         else
             error "Info.plist: Missing NSSpeechRecognitionUsageDescription while speech recognition is present"
         fi
     fi
 
     if grep -RE "AVAudioEngine|AVAudioSession|requestRecordPermission" "$PROJECT_DIR/iosApp/src" "$PROJECT_DIR/shared/src/iosMain" >/dev/null 2>&1; then
-        if plutil -extract NSMicrophoneUsageDescription raw -o - "$plist" >/dev/null 2>&1; then
-            pass "Info.plist: Declares NSMicrophoneUsageDescription for microphone capture"
+        if effective_plist_key_exists NSMicrophoneUsageDescription; then
+            pass "Info.plist: Configures NSMicrophoneUsageDescription for microphone capture"
         else
             error "Info.plist: Missing NSMicrophoneUsageDescription while microphone capture APIs are present"
         fi
     fi
 
     if grep -R "CLLocationManager" "$PROJECT_DIR/iosApp/src" >/dev/null 2>&1; then
-        if plutil -extract NSLocationWhenInUseUsageDescription raw -o - "$plist" >/dev/null 2>&1; then
-            pass "Info.plist: Declares NSLocationWhenInUseUsageDescription for location access"
+        if effective_plist_key_exists NSLocationWhenInUseUsageDescription; then
+            pass "Info.plist: Configures NSLocationWhenInUseUsageDescription for location access"
         else
             error "Info.plist: Missing NSLocationWhenInUseUsageDescription while CLLocationManager is present"
         fi
     fi
 
     if grep -RE "EventKit|EKEventStore|EKEntityType" "$PROJECT_DIR/iosApp/src" "$PROJECT_DIR/shared/src/iosMain" >/dev/null 2>&1; then
-        if plutil -extract NSCalendarsUsageDescription raw -o - "$plist" >/dev/null 2>&1; then
-            pass "Info.plist: Declares NSCalendarsUsageDescription for calendar access"
+        if effective_plist_key_exists NSCalendarsUsageDescription; then
+            pass "Info.plist: Configures NSCalendarsUsageDescription for calendar access"
         else
             error "Info.plist: Missing NSCalendarsUsageDescription while EventKit is present"
+        fi
+
+        local deployment_target=""
+        if [ -n "$target_settings_file" ]; then
+            deployment_target=$(ruby -rjson -e '
+                data = JSON.parse(File.read(ARGV.fetch(0)))
+                target = data.find { |entry| entry["target"] == "WakeveApp" } || data.fetch(0)
+                print target.fetch("buildSettings")["IPHONEOS_DEPLOYMENT_TARGET"].to_s
+            ' "$target_settings_file")
+        fi
+
+        local deployment_major="${deployment_target%%.*}"
+        if [[ "$deployment_major" =~ ^[0-9]+$ ]] \
+            && [ "$deployment_major" -ge 17 ] \
+            && grep -RE "eventsMatchingPredicate|eventWithIdentifier|calendarItemWithIdentifier|removeEvent" \
+                "$PROJECT_DIR/iosApp/src" "$PROJECT_DIR/shared/src/iosMain" >/dev/null 2>&1; then
+            if effective_plist_key_exists NSCalendarsFullAccessUsageDescription; then
+                pass "Info.plist: Configures NSCalendarsFullAccessUsageDescription for iOS 17+ calendar read/update/delete access"
+            else
+                error "Info.plist: Missing NSCalendarsFullAccessUsageDescription while iOS 17+ EventKit read/update/delete APIs are present"
+            fi
         fi
     fi
 
     if grep -RE "PhotosPicker|PHPickerViewController|UIImagePickerController" "$PROJECT_DIR/iosApp/src" "$PROJECT_DIR/shared/src/iosMain" >/dev/null 2>&1; then
-        if plutil -extract NSPhotoLibraryUsageDescription raw -o - "$plist" >/dev/null 2>&1; then
-            pass "Info.plist: Declares NSPhotoLibraryUsageDescription for photo selection"
+        if effective_plist_key_exists NSPhotoLibraryUsageDescription; then
+            pass "Info.plist: Configures NSPhotoLibraryUsageDescription for photo selection"
         else
             error "Info.plist: Missing NSPhotoLibraryUsageDescription while photo selection is present"
         fi
     fi
 
     if grep -RE "PHPhotoLibrary|UIImageWriteToSavedPhotosAlbum" "$PROJECT_DIR/iosApp/src" "$PROJECT_DIR/shared/src/iosMain" >/dev/null 2>&1; then
-        if plutil -extract NSPhotoLibraryAddUsageDescription raw -o - "$plist" >/dev/null 2>&1; then
-            pass "Info.plist: Declares NSPhotoLibraryAddUsageDescription for photo library write access"
+        if effective_plist_key_exists NSPhotoLibraryAddUsageDescription; then
+            pass "Info.plist: Configures NSPhotoLibraryAddUsageDescription for photo library write access"
         else
             error "Info.plist: Missing NSPhotoLibraryAddUsageDescription while photo library write APIs are present"
         fi
     fi
 
     if grep -RE "sourceType[[:space:]]*=[[:space:]]*\\.camera|UIImagePickerController\\.SourceType\\.camera" "$PROJECT_DIR/iosApp/src" >/dev/null 2>&1; then
-        if plutil -extract NSCameraUsageDescription raw -o - "$plist" >/dev/null 2>&1; then
-            pass "Info.plist: Declares NSCameraUsageDescription for camera capture"
+        if effective_plist_key_exists NSCameraUsageDescription; then
+            pass "Info.plist: Configures NSCameraUsageDescription for camera capture"
         else
             error "Info.plist: Missing NSCameraUsageDescription while camera capture is present"
         fi
@@ -6317,6 +6377,8 @@ validate_ios_plist() {
             warning "Info.plist: Push notification code is present without remote-notification background mode"
         fi
     fi
+
+    [ -z "$target_settings_file" ] || rm -f "$target_settings_file"
 }
 
 validate_ios_source_network_configuration() {

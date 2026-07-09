@@ -83,8 +83,9 @@ class PushNotificationSenderTest {
         val result = ServerAPNsSender(
             apnsKeyId = "key-id",
             apnsTeamId = "team-id",
+            apnsAuthKey = "p8-content",
             apnsBundleId = "com.guyghost.wakeve",
-            apnsEnvironment = "development"
+            apnsEnvironment = "sandbox"
         ).sendNotification(
             token = "device-token",
             title = "Invitation",

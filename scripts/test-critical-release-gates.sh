@@ -856,6 +856,14 @@ run openspec validate --all --strict
 
 run ./scripts/test-app-store-ugc-gates.sh
 
+run ./scripts/test-ios-kmp-event-export-contract.sh
+
+run ./scripts/test-ios-calendar-permission-contract.sh
+
+run ./scripts/test-ios-release-signing-team-contract.sh
+
+run ./scripts/test-ios-poll-confirmation-architecture.sh
+
 assert_no_sensitive_server_logs
 assert_no_android_release_local_backend_defaults
 assert_android_compose_hygiene

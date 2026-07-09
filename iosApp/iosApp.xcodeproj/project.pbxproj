@@ -298,7 +298,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"src/Preview Content\"";
-				DEVELOPMENT_TEAM = F5ECSA4MA3;
+				DEVELOPMENT_TEAM = "${TEAM_ID}";
 				ENABLE_PREVIEWS = YES;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -316,6 +316,7 @@
 				INFOPLIST_KEY_CFBundleVersion = "$(CURRENT_PROJECT_VERSION)";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Wakeve needs full calendar access to add confirmed events and find, update, or remove calendar entries you manage in Wakeve. Calendar data is not shared.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Wakeve needs access to your calendar to add confirmed events and send you reminders. No existing calendar data is read or shared.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Wakeve uses the camera only when you choose to take a photo for an event background.";
 				INFOPLIST_KEY_NSContactsUsageDescription = "Wakeve utilise vos contacts uniquement lorsque vous choisissez des participants à inviter. Seules les adresses email sélectionnées sont ajoutées à l'événement.";
@@ -341,7 +342,7 @@
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 				WRAPPER_NAME = "$(PRODUCT_NAME).app";
 			};
 			name = Release;
@@ -504,6 +505,7 @@
 				INFOPLIST_KEY_CFBundleVersion = "$(CURRENT_PROJECT_VERSION)";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Wakeve needs full calendar access to add confirmed events and find, update, or remove calendar entries you manage in Wakeve. Calendar data is not shared.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "Wakeve needs access to your calendar to add confirmed events and send you reminders. No existing calendar data is read or shared.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Wakeve uses the camera only when you choose to take a photo for an event background.";
 				INFOPLIST_KEY_NSContactsUsageDescription = "Wakeve utilise vos contacts uniquement lorsque vous choisissez des participants à inviter. Seules les adresses email sélectionnées sont ajoutées à l'événement.";
@@ -529,7 +531,7 @@
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 				WRAPPER_NAME = "$(PRODUCT_NAME).app";
 			};
 			name = Debug;

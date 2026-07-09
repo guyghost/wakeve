@@ -2,7 +2,7 @@ import SwiftUI
 import Shared
 
 struct EventDetailExperienceView: View {
-    let event: Event_
+    let event: Event
     let repository: EventRepositoryInterface
     let onBack: () -> Void
     let onOpenParticipants: () -> Void
@@ -43,12 +43,13 @@ struct EventDetailExperienceView: View {
                     .background(Color(.tertiarySystemFill))
                     .clipShape(Circle())
             }
+            .accessibilityLabel(String(localized: "common.back"))
 
             Spacer()
 
             Text(event.title)
                 .font(.system(size: 20, weight: .bold))
-                .lineLimit(1)
+                .multilineTextAlignment(.center)
 
             Spacer()
 
@@ -163,6 +164,7 @@ struct EventDetailExperienceView: View {
                     .background(Color.wakevePrimary)
                     .clipShape(Circle())
             }
+            .accessibilityLabel(String(localized: "event.detail.messages_title"))
         }
         .padding(12)
         .glassCard(cornerRadius: 20)
@@ -220,7 +222,7 @@ struct EventDetailExperienceView: View {
 }
 
 struct TransportPlanView: View {
-    let event: Event_
+    let event: Event
     let repository: EventRepositoryInterface
     let onBack: () -> Void
 
@@ -241,6 +243,7 @@ struct TransportPlanView: View {
                             .background(Color(.tertiarySystemFill))
                             .clipShape(Circle())
                     }
+                    .accessibilityLabel(String(localized: "common.back"))
 
                     Spacer()
 
