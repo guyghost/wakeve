@@ -29,7 +29,7 @@ struct MealFormSheet: View {
     }
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 // Basic info section
                 Section(String(localized: "meal.form.info")) {
@@ -263,7 +263,7 @@ struct AutoGenerateMealsSheet: View {
     ]
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 Section(String(localized: "meal.auto.period")) {
                     DatePicker(String(localized: "meal.auto.start_date"), selection: $startDate, displayedComponents: .date)
@@ -453,7 +453,7 @@ struct DietaryRestrictionsSheet: View {
     @State private var restrictionToDelete: DietaryRestrictionModel?
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 if restrictions.isEmpty {
                     emptyStateView
@@ -624,7 +624,7 @@ struct AddDietaryRestrictionSheet: View {
     ]
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 Section(String(localized: "meal.dietary.participant")) {
                     Picker(String(localized: "meal.dietary.select"), selection: $selectedParticipantId) {

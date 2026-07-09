@@ -57,7 +57,7 @@ struct LiquidGlassAnimations {
 extension View {
     /// Apply standard Liquid Glass spring animation
     func liquidGlassAnimation() -> some View {
-        self.animation(LiquidGlassAnimations.spring, value: UUID())
+        modifier(LiquidGlassAnimationModifier())
     }
     
     /// Apply animation with custom value trigger
@@ -67,16 +67,37 @@ extension View {
     
     /// Apply spring animation with delay based on index
     func staggerAnimation(for index: Int, baseDelay: Double = 0.1) -> some View {
-        self.animation(
-            LiquidGlassAnimations.spring.delay(Double(index) * baseDelay),
-            value: UUID()
-        )
+        modifier(StaggerAnimationModifier(index: index, baseDelay: baseDelay))
     }
     
     /// Apply smooth scale effect on press
     func scaleOnPress(scale: CGFloat = 0.95) -> some View {
         self.scaleEffect(scale)
             .animation(LiquidGlassAnimations.scale, value: scale)
+    }
+}
+
+private struct LiquidGlassAnimationModifier: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content.transaction { transaction in
+            transaction.animation = reduceMotion ? nil : LiquidGlassAnimations.spring
+        }
+    }
+}
+
+private struct StaggerAnimationModifier: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    let index: Int
+    let baseDelay: Double
+
+    func body(content: Content) -> some View {
+        content.transaction { transaction in
+            transaction.animation = reduceMotion
+                ? nil
+                : LiquidGlassAnimations.spring.delay(Double(index) * baseDelay)
+        }
     }
 }
 
@@ -87,6 +108,7 @@ extension View {
 
 struct PulseEffect: ViewModifier {
     @State private var isPulsing = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var scale: CGFloat = 1.05
     var duration: Double = 1.0
     
@@ -95,11 +117,11 @@ struct PulseEffect: ViewModifier {
             .scaleEffect(isPulsing ? scale : 1.0)
             .opacity(isPulsing ? 0.8 : 1.0)
             .animation(
-                .easeInOut(duration: duration).repeatForever(autoreverses: true),
+                reduceMotion ? nil : .easeInOut(duration: duration).repeatForever(autoreverses: true),
                 value: isPulsing
             )
             .onAppear {
-                isPulsing = true
+                isPulsing = !reduceMotion
             }
     }
 }
@@ -121,6 +143,7 @@ extension View {
 
 struct ShimmerEffect: ViewModifier {
     @State private var phase: CGFloat = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     
     func body(content: Content) -> some View {
         content
@@ -141,7 +164,7 @@ struct ShimmerEffect: ViewModifier {
             )
             .mask(content)
             .onAppear {
-                withAnimation(.linear(duration: 1.5).repeatForever(autoreverses: false)) {
+                withAnimation(reduceMotion ? nil : .linear(duration: 1.5).repeatForever(autoreverses: false)) {
                     phase = 1
                 }
             }

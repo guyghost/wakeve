@@ -15,6 +15,7 @@ struct OnboardingStepView: View {
     @State private var isAnimating = false
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var visibleFeatures: [String] {
         dynamicTypeSize.isAccessibilitySize ? Array(step.features.prefix(1)) : step.features
@@ -36,14 +37,14 @@ struct OnboardingStepView: View {
                         .foregroundColor(WakeveTheme.ColorToken.permissionBlue)
                         .scaleEffect(isAnimating ? 1.1 : 1.0)
                         .animation(
-                            Animation.spring(response: 1.0, dampingFraction: 0.7)
+                            reduceMotion ? nil : Animation.spring(response: 1.0, dampingFraction: 0.7)
                                 .repeatForever(autoreverses: true),
                             value: isAnimating
                         )
                 }
                 .clipShape(Circle())
                 .shadow(color: WakeveTheme.ColorToken.permissionBlue.opacity(0.22), radius: 22, x: 0, y: 10)
-                .onAppear { isAnimating = true }
+                .onAppear { isAnimating = !reduceMotion }
                 
                 Text(step.title)
                     .font(dynamicTypeSize.isAccessibilitySize ? WakeveTheme.Typography.title : WakeveTheme.Typography.largeTitle)

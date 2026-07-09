@@ -58,7 +58,7 @@ struct LocationSelectionSheet: View {
     // MARK: - Body
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     // Search Bar
@@ -90,6 +90,7 @@ struct LocationSelectionSheet: View {
                                     .fill(isValid ? Color.blue : Color.gray)
                             )
                     }
+                    .frame(minWidth: 44, minHeight: 44)
                     .disabled(!isValid)
                     .accessibilityLabel(String(localized: "common.confirm"))
                     .accessibilityHint(String(localized: "location.validate_selection"))
@@ -205,6 +206,7 @@ struct LocationSelectionSheet: View {
                         .font(.system(size: 20))
                         .foregroundColor(.secondary)
                 }
+                .frame(minWidth: 44, minHeight: 44)
                 .accessibilityLabel(String(localized: "location.clear_search"))
             }
             
