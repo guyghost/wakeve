@@ -45,6 +45,10 @@ export interface ConfirmationReceipt {
 
 export type RepositoryProjection =
   | { kind: 'reviewing'; eventId: string }
+  /** A historical confirmation that predates the durable outbox contract. */
+  | { kind: 'legacyApplied'; eventId: string; slotId: string; receiptId: string }
+  /** Historical data that cannot safely be represented as a confirmation. */
+  | { kind: 'quarantined'; eventId: string; reason: string }
   | {
       kind: 'confirmed'; eventId: string; slotId: string; receiptId: string
       decisionSyncStatus: DecisionSyncStatus
@@ -69,6 +73,7 @@ interface PollConfirmationContext {
   confirmationReceiptId: string | null
   decisionSyncStatus: DecisionSyncStatus | null
   effectDispatchStatus: EffectDispatchStatus | null
+  diagnosticReason: string | null
   failure: ConfirmationFailure | null
   effects: WorkflowEffect[]
 }
@@ -78,6 +83,11 @@ export type PollConfirmationEvent =
   | { type: 'CANCEL_CONFIRMATION' }
   | { type: 'SUBMIT_CONFIRMATION'; operationId: string }
   | { type: 'CONFIRMATION_COMMITTED'; receipt: ConfirmationReceipt }
+  | {
+      type: 'CONFIRMATION_READ_ONLY'
+      operationId: string
+      projection: Extract<RepositoryProjection, { kind: 'legacyApplied' | 'quarantined' }>
+    }
   | { type: 'CONFIRMATION_FAILED'; operationId: string; error: ConfirmationFailure }
   | { type: 'CONFIRMATION_CONFLICT'; operationId: string; code: 'ALREADY_CONFIRMED_DIFFERENT_SLOT' }
   | { type: 'RETRY_CONFIRMATION' }
@@ -104,7 +114,11 @@ const validationFailure = (context: PollConfirmationContext): ConfirmationFailur
     context.eligibility.eventStatus === 'CONFIRMED' &&
     context.eligibility.confirmedSlotId === selected
   )) return { code: 'INVALID_EVENT_STATUS', retryable: false }
-  if (!context.eligibility.pollHasVotes) return { code: 'NO_VOTES', retryable: false }
+  const replayingConfirmedSlot = context.eligibility.eventStatus === 'CONFIRMED' &&
+    context.eligibility.confirmedSlotId === selected
+  if (!replayingConfirmedSlot && !context.eligibility.pollHasVotes) {
+    return { code: 'NO_VOTES', retryable: false }
+  }
   if (!selected || !context.eligibility.validSlotIds.includes(selected)) {
     return { code: 'SLOT_NOT_FOUND', retryable: false }
   }
@@ -165,6 +179,7 @@ export const pollConfirmationInvariants = [
   'Exactly one local confirmation effect envelope exists; it has one domainEventId and one effectKey.',
   'Notification recipients, provider deliveries, and calendar artifacts are backend projections, not local rows.',
   'Rehydration never redispatches confirmation or replays navigation.',
+  'Legacy classifications are read-only and never create pending sync or delivery work.',
   'Voting closes at the deadline; organizer confirmation remains eligible.',
 ] as const
 
@@ -184,6 +199,13 @@ export const pollConfirmationWorkflowMachine = setup({
     },
     receiptMatchesOperation: ({ context, event }) => event.type === 'CONFIRMATION_COMMITTED' &&
       receiptMatchesContext(context, event.receipt),
+    readOnlyMatchesOperation: ({ context, event }) => event.type === 'CONFIRMATION_READ_ONLY' &&
+      event.operationId === context.operationId && event.projection.eventId === context.eventId,
+    readOnlyLegacyAppliedMatchesOperation: ({ context, event }) =>
+      event.type === 'CONFIRMATION_READ_ONLY' &&
+      event.operationId === context.operationId &&
+      event.projection.eventId === context.eventId &&
+      event.projection.kind === 'legacyApplied',
     receiptMatchesAndIsServerAcknowledged: ({ context, event }) =>
       event.type === 'CONFIRMATION_COMMITTED' &&
       receiptMatchesContext(context, event.receipt) &&
@@ -204,6 +226,10 @@ export const pollConfirmationWorkflowMachine = setup({
       event.projection.decisionSyncStatus === 'localPending',
     rehydratesReviewing: ({ context, event }) => event.type === 'REHYDRATE' &&
       event.projection.eventId === context.eventId && event.projection.kind === 'reviewing',
+    rehydratesLegacyApplied: ({ context, event }) => event.type === 'REHYDRATE' &&
+      event.projection.eventId === context.eventId && event.projection.kind === 'legacyApplied',
+    rehydratesQuarantined: ({ context, event }) => event.type === 'REHYDRATE' &&
+      event.projection.eventId === context.eventId && event.projection.kind === 'quarantined',
   },
   actions: {
     stageSlot: assign({ selectedSlotId: ({ event }) => event.type === 'OPEN_CONFIRM_PROMPT' ? event.slotId : null }),
@@ -231,7 +257,46 @@ export const pollConfirmationWorkflowMachine = setup({
       confirmationReceiptId: ({ event }) => event.type === 'REHYDRATE' && event.projection.kind === 'confirmed' ? event.projection.receiptId : null,
       decisionSyncStatus: ({ event }) => event.type === 'REHYDRATE' && event.projection.kind === 'confirmed' ? event.projection.decisionSyncStatus : null,
       effectDispatchStatus: ({ event }) => event.type === 'REHYDRATE' && event.projection.kind === 'confirmed' ? event.projection.effectDispatchStatus : null,
-      operationId: null, failure: null,
+      operationId: null, diagnosticReason: null, failure: null,
+    }),
+    captureLegacyAppliedProjection: assign({
+      selectedSlotId: ({ event }) => event.type === 'REHYDRATE' && event.projection.kind === 'legacyApplied' ? event.projection.slotId : null,
+      confirmationReceiptId: ({ event }) => event.type === 'REHYDRATE' && event.projection.kind === 'legacyApplied' ? event.projection.receiptId : null,
+      decisionSyncStatus: null,
+      effectDispatchStatus: null,
+      operationId: null,
+      diagnosticReason: null,
+      failure: null,
+    }),
+    captureQuarantinedProjection: assign({
+      selectedSlotId: null,
+      confirmationReceiptId: null,
+      decisionSyncStatus: null,
+      effectDispatchStatus: null,
+      operationId: null,
+      diagnosticReason: ({ event }) => event.type === 'REHYDRATE' && event.projection.kind === 'quarantined' ? event.projection.reason : null,
+      failure: null,
+    }),
+    captureReadOnlyLegacyApplied: assign({
+      selectedSlotId: ({ event }) => event.type === 'CONFIRMATION_READ_ONLY' && event.projection.kind === 'legacyApplied'
+        ? event.projection.slotId : null,
+      confirmationReceiptId: ({ event }) => event.type === 'CONFIRMATION_READ_ONLY' && event.projection.kind === 'legacyApplied'
+        ? event.projection.receiptId : null,
+      decisionSyncStatus: null,
+      effectDispatchStatus: null,
+      operationId: null,
+      diagnosticReason: null,
+      failure: null,
+    }),
+    captureReadOnlyQuarantined: assign({
+      selectedSlotId: null,
+      confirmationReceiptId: null,
+      decisionSyncStatus: null,
+      effectDispatchStatus: null,
+      operationId: null,
+      diagnosticReason: ({ event }) => event.type === 'CONFIRMATION_READ_ONLY' && event.projection.kind === 'quarantined'
+        ? event.projection.reason : null,
+      failure: null,
     }),
     markServerAcknowledged: assign({ decisionSyncStatus: 'serverAcknowledged' }),
     presentPrompt: assign({ effects: ({ context }) => [...context.effects, 'presentConfirmPrompt'] }),
@@ -246,12 +311,14 @@ export const pollConfirmationWorkflowMachine = setup({
   context: ({ input }) => ({
     eventId: input.eventId, actorId: input.actorId, eligibility: input.eligibility,
     selectedSlotId: null, operationId: null, confirmationReceiptId: null,
-    decisionSyncStatus: null, effectDispatchStatus: null, failure: null, effects: [],
+    decisionSyncStatus: null, effectDispatchStatus: null, diagnosticReason: null, failure: null, effects: [],
   }),
   on: {
     REHYDRATE: [
       { guard: 'rehydratesConfirmedSynced', target: '.confirmed.synced', actions: 'captureProjection' },
       { guard: 'rehydratesConfirmedPending', target: '.confirmed.pendingSync', actions: 'captureProjection' },
+      { guard: 'rehydratesLegacyApplied', target: '.confirmed.legacyApplied', actions: 'captureLegacyAppliedProjection' },
+      { guard: 'rehydratesQuarantined', target: '.quarantined', actions: 'captureQuarantinedProjection' },
       { guard: 'rehydratesReviewing', target: '.reviewingResults', actions: 'captureProjection' },
     ],
   },
@@ -268,6 +335,11 @@ export const pollConfirmationWorkflowMachine = setup({
     } },
     confirming: { on: {
       SUBMIT_CONFIRMATION: {},
+      CONFIRMATION_READ_ONLY: [
+        { guard: 'readOnlyLegacyAppliedMatchesOperation', target: 'confirmed.legacyApplied',
+          actions: 'captureReadOnlyLegacyApplied' },
+        { guard: 'readOnlyMatchesOperation', target: 'quarantined', actions: 'captureReadOnlyQuarantined' },
+      ],
       CONFIRMATION_COMMITTED: [
         { guard: 'receiptMatchesAndIsServerAcknowledged', target: 'confirmed.synced',
           actions: ['captureReceipt', 'successFeedback', 'navigationEligible'],
@@ -288,6 +360,8 @@ export const pollConfirmationWorkflowMachine = setup({
         SYNC_FAILED: { guard: 'receiptMatchesConfirmation' },
       } },
       synced: {},
+      legacyApplied: {},
     } },
+    quarantined: {},
   },
 })

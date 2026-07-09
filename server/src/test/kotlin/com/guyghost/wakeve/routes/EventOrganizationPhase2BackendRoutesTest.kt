@@ -33,6 +33,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class EventOrganizationPhase2BackendRoutesTest {
@@ -125,7 +126,7 @@ class EventOrganizationPhase2BackendRoutesTest {
     }
 
     @Test
-    fun `organizer can confirm an existing voted slot`() = testApplication {
+    fun `legacy status route rejects confirmation so it cannot split decision writes or fan out directly`() = testApplication {
         val fixture = createFixture("confirm-allowed", status = EventStatus.POLLING, seedVote = true)
         val organizerToken = createTestJwt(fixture.organizerId)
         val client = createJsonClient()
@@ -140,15 +141,18 @@ class EventOrganizationPhase2BackendRoutesTest {
             setBody(confirmSlotBody(fixture, fixture.secondSlotId))
         }
 
-        assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals(
+            HttpStatusCode.Conflict,
+            response.status,
+            "The legacy status endpoint must not independently confirm a poll date; the modeled command owns the atomic decision"
+        )
+        assertEquals(EventStatus.POLLING, fixture.eventRepository.getEvent(fixture.eventId)?.status)
         val confirmed = fixture.database.confirmedDateQueries
             .selectByEventId(fixture.eventId)
             .executeAsOneOrNull()
-        assertNotNull(confirmed)
-        assertEquals(
-            fixture.secondSlotId,
-            confirmed.timeslotId,
-            "Date confirmation must retain the organizer-selected existing slot, not an implicit first slot"
+        assertNull(
+            confirmed,
+            "A rejected legacy confirmation must not leave a separately persisted confirmed-date record"
         )
     }
 

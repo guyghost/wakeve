@@ -1,6 +1,9 @@
 package com.guyghost.wakeve.repository
 
 import com.guyghost.wakeve.access.ParticipantRepositoryRecord
+import com.guyghost.wakeve.confirmation.ConfirmationClock
+import com.guyghost.wakeve.confirmation.SystemConfirmationClock
+import com.guyghost.wakeve.confirmation.confirmationEffectKeys
 import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.repository.EventRepositoryInterface
 import com.guyghost.wakeve.models.Event
@@ -19,6 +22,7 @@ import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.models.TrendingEventsResponse
 import com.guyghost.wakeve.models.Vote
 import com.guyghost.wakeve.organization.EventOrganizationReadinessRepository
+import com.guyghost.wakeve.presentation.state.EventManagementContract
 import com.guyghost.wakeve.repository.OrderBy
 import com.guyghost.wakeve.sync.SyncManager
 import com.guyghost.wakeve.workflow.WorkflowOutboxRecord
@@ -26,6 +30,9 @@ import com.guyghost.wakeve.workflow.WorkflowOutboxType
 import com.guyghost.wakeve.workflow.PendingWorkflowStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.datetime.Instant
 import kotlin.math.PI
 import kotlin.math.asin
 import kotlin.math.cos
@@ -37,7 +44,19 @@ import kotlin.math.sqrt
  * Database-backed event repository using SQLDelight for persistence.
  * Mirrors the EventRepository interface but stores data in SQLite.
  */
-class DatabaseEventRepository(private val db: WakeveDb, private val syncManager: SyncManager? = null) : EventRepositoryInterface, com.guyghost.wakeve.presentation.statemachine.SampleEventSeeder {
+class DatabaseEventRepository private constructor(
+    private val db: WakeveDb,
+    private val syncManager: SyncManager?,
+    private val confirmationClock: ConfirmationClock
+) : EventRepositoryInterface, com.guyghost.wakeve.presentation.statemachine.SampleEventSeeder {
+    /** Public Kotlin/Swift surface retained for application composition. */
+    constructor(db: WakeveDb, syncManager: SyncManager? = null) :
+        this(db, syncManager, SystemConfirmationClock)
+
+    /** Internal test seam; confirmation time remains owned by this repository. */
+    internal constructor(db: WakeveDb, confirmationClock: ConfirmationClock) :
+        this(db, null, confirmationClock)
+
     private val eventQueries = db.eventQueries
     private val timeSlotQueries = db.timeSlotQueries
     private val participantQueries = db.participantQueries
@@ -46,6 +65,9 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
     private val syncMetadataQueries = db.syncMetadataQueries
     private val workflowOutboxQueries = db.workflowOutboxQueries
     private val confirmationReceiptQueries = db.confirmationReceiptQueries
+    private val confirmationEffectOutboxQueries = db.confirmationEffectOutboxQueries
+    private val confirmationLegacyClassificationQueries = db.confirmationLegacyClassificationQueries
+    private val confirmationMutex = Mutex()
 
     override suspend fun createEvent(event: Event): Result<Event> {
         return try {
@@ -486,7 +508,14 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
         eventId: String,
         slotId: String,
         confirmedByOrganizerId: String
-    ) = confirmEventDateCommand(eventId, slotId, confirmedByOrganizerId, "confirm-$eventId-$slotId", getCurrentUtcIsoString())
+    ): Result<Boolean> = confirmEventDateCommand(
+        eventId = eventId,
+        slotId = slotId,
+        confirmedByOrganizerId = confirmedByOrganizerId,
+        operationId = "confirm-$eventId-$slotId",
+        // The typed command captures the only persisted confirmation instant.
+        requestedAt = "1970-01-01T00:00:00Z"
+    )
 
     override suspend fun confirmEventDateCommand(
         eventId: String,
@@ -495,74 +524,364 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
         operationId: String,
         requestedAt: String
     ): Result<Boolean> {
-        val eventRow = eventQueries.selectById(eventId).executeAsOneOrNull()
-            ?: return Result.failure(IllegalArgumentException("Event not found"))
-        if (eventRow.organizerId != confirmedByOrganizerId) {
-            return Result.failure(IllegalStateException("Only event organizer can confirm dates"))
-        }
-
-        val selectedSlot = timeSlotQueries.selectById(slotId).executeAsOneOrNull()
-            ?: return Result.failure(IllegalArgumentException("Selected time slot not found"))
-        if (selectedSlot.eventId != eventId) {
-            return Result.failure(IllegalArgumentException("Selected time slot does not belong to event"))
-        }
-        val finalDate = selectedSlot.startTime
-            ?: return Result.failure(IllegalStateException("Selected time slot has no confirmed start date"))
-
-        return try {
-            val effectiveOperationId = operationId ?: "confirm-$eventId-$slotId"
-            val existing = confirmationReceiptQueries.selectByOperationId(effectiveOperationId).executeAsOneOrNull()
-            if (existing != null) {
-                if (existing.eventId == eventId && existing.slotId == slotId) return Result.success(true)
-                return Result.failure(IllegalStateException("ALREADY_CONFIRMED_DIFFERENT_SLOT"))
-            }
-            val already = confirmationReceiptQueries.selectByEventId(eventId).executeAsOneOrNull()
-            if (already != null) {
-                return if (already.slotId == slotId) Result.success(true)
-                else Result.failure(IllegalStateException("ALREADY_CONFIRMED_DIFFERENT_SLOT"))
-            }
-            val now = getCurrentUtcIsoString()
-            val confirmedId = "confirmed_${eventId}"
-            val effectKey = "$eventId:confirmation_effect:$effectiveOperationId"
-
-            db.transaction {
-                confirmationReceiptQueries.insertReceipt(effectiveOperationId, eventId, slotId, confirmedByOrganizerId, requestedAt ?: now, now)
-                eventQueries.updateEventStatus(
-                    status = EventStatus.CONFIRMED.name,
-                    updatedAt = now,
-                    id = eventId
-                )
-                confirmedDateQueries.deleteByEventId(eventId)
-                confirmedDateQueries.insertConfirmedDate(
-                    id = confirmedId,
-                    eventId = eventId,
-                    timeslotId = slotId,
-                    confirmedByOrganizerId = confirmedByOrganizerId,
-                    confirmedAt = now,
-                    updatedAt = now
-                )
-                workflowOutboxQueries.insertOutbox(effectKey, eventId, "CONFIRMATION_EFFECT", finalDate, effectiveOperationId, "PENDING_SYNC")
-                syncMetadataQueries.insertSyncMetadata(
-                    id = "sync_confirm_${eventId}_${effectiveOperationId}",
-                    entityType = "event", entityId = eventId, operation = "UPDATE",
-                    timestamp = "${now}_${effectiveOperationId}", synced = 0
-                )
-            }
-
-            syncManager?.recordLocalChange(
-                table = "events",
-                operation = SyncOperation.UPDATE,
-                recordId = eventId,
-                data = """{"id":"$eventId","status":"${EventStatus.CONFIRMED.name}","confirmedSlotId":"$slotId","finalDate":"$finalDate"}""",
-                userId = confirmedByOrganizerId
+        val command = try {
+            EventManagementContract.ConfirmPollDateCommand(
+                operationId = operationId,
+                eventId = eventId,
+                slotId = slotId,
+                actorId = confirmedByOrganizerId,
+                requestedAt = Instant.parse(requestedAt)
             )
+        } catch (error: Exception) {
+            return Result.failure(error)
+        }
+        return confirmPollDate(command).toLegacyResult()
+    }
 
-            Result.success(true)
-        } catch (e: Exception) {
-            Result.failure(e)
+    override suspend fun confirmPollDate(
+    command: EventManagementContract.ConfirmPollDateCommand
+    ): EventManagementContract.ConfirmationResult = confirmationMutex.withLock {
+        val capturedAt = confirmationClock.now().toString()
+        val result = try {
+            db.transactionWithResult {
+                confirmPollDateInTransaction(command, capturedAt)
+            }
+        } catch (_: Exception) {
+            runCatching { resolveConcurrentConfirmation(command) }.getOrNull() ?: confirmationFailure(
+                operationId = command.operationId,
+                code = EventManagementContract.ConfirmationFailureCode.LOCAL_PERSISTENCE_FAILED,
+                retryable = true
+            )
+        }
+
+        result
+    }
+
+    private fun confirmPollDateInTransaction(
+        command: EventManagementContract.ConfirmPollDateCommand,
+        now: String
+    ): EventManagementContract.ConfirmationResult {
+        val event = eventQueries.selectById(command.eventId).executeAsOneOrNull()
+            ?: return confirmationFailure(
+                command.operationId,
+                EventManagementContract.ConfirmationFailureCode.EVENT_NOT_FOUND,
+                retryable = false
+            )
+        if (event.organizerId != command.actorId) {
+            return confirmationFailure(
+                command.operationId,
+                EventManagementContract.ConfirmationFailureCode.NOT_ORGANIZER,
+                retryable = false
+            )
+        }
+
+        readOnlyConfirmationProjection(command.eventId)?.let { projection ->
+            return EventManagementContract.ConfirmationResult.ReadOnly(command.operationId, projection)
+        }
+
+        confirmationReceiptQueries.selectByOperationId(command.operationId).executeAsOneOrNull()?.let { receipt ->
+            return receiptOutcome(
+                command,
+                receipt.operationId,
+                receipt.eventId,
+                receipt.slotId,
+                receipt.actorId,
+                receipt.committedAt
+            )
+        }
+        confirmationReceiptQueries.selectByEventId(command.eventId).executeAsOneOrNull()?.let { receipt ->
+            return receiptOutcome(
+                command,
+                receipt.operationId,
+                receipt.eventId,
+                receipt.slotId,
+                receipt.actorId,
+                receipt.committedAt
+            )
+        }
+
+        if (event.status != EventStatus.POLLING.name) {
+            return confirmationFailure(
+                command.operationId,
+                EventManagementContract.ConfirmationFailureCode.INVALID_EVENT_STATUS,
+                retryable = false
+            )
+        }
+        if (voteQueries.selectByEventId(command.eventId).executeAsList().isEmpty()) {
+            return confirmationFailure(
+                command.operationId,
+                EventManagementContract.ConfirmationFailureCode.NO_VOTES,
+                retryable = false
+            )
+        }
+
+        val slot = timeSlotQueries.selectById(command.slotId).executeAsOneOrNull()
+            ?: return confirmationFailure(
+                command.operationId,
+                EventManagementContract.ConfirmationFailureCode.SLOT_NOT_FOUND,
+                retryable = false
+            )
+        if (slot.eventId != command.eventId) {
+            return confirmationFailure(
+                command.operationId,
+                EventManagementContract.ConfirmationFailureCode.SLOT_NOT_FOUND,
+                retryable = false
+            )
+        }
+        val finalDate = slot.startTime ?: return confirmationFailure(
+            command.operationId,
+            EventManagementContract.ConfirmationFailureCode.SLOT_NOT_CONFIRMABLE,
+            retryable = false
+        )
+
+        val effectKeys = confirmationEffectKeys(command.eventId, command.slotId)
+        confirmationReceiptQueries.insertReceipt(
+            operationId = command.operationId,
+            eventId = command.eventId,
+            slotId = command.slotId,
+            actorId = command.actorId,
+            requestedAt = now,
+            committedAt = now
+        )
+        eventQueries.updateEventStatus(
+            status = EventStatus.CONFIRMED.name,
+            updatedAt = now,
+            id = command.eventId
+        )
+        confirmedDateQueries.insertConfirmedDate(
+            id = "confirmed_${command.eventId}",
+            eventId = command.eventId,
+            timeslotId = command.slotId,
+            confirmedByOrganizerId = command.actorId,
+            confirmedAt = now,
+            updatedAt = now
+        )
+        confirmationEffectOutboxQueries.insertEnvelope(
+            domainEventId = effectKeys.domainEventId,
+            effectKey = effectKeys.effectKey,
+            eventId = command.eventId,
+            slotId = command.slotId,
+            operationId = command.operationId,
+            status = "QUEUED",
+            createdAt = now
+        )
+        syncMetadataQueries.insertSyncMetadata(
+            id = "sync_confirm_${command.eventId}",
+            entityType = "event",
+            entityId = command.eventId,
+            operation = "UPDATE",
+            timestamp = now,
+            synced = 0
+        )
+        return EventManagementContract.ConfirmationResult.Committed(
+            receipt = confirmationReceipt(command, now),
+            projection = confirmationProjection(command, command.operationId)
+        )
+    }
+
+    private fun resolveConcurrentConfirmation(
+        command: EventManagementContract.ConfirmPollDateCommand
+    ): EventManagementContract.ConfirmationResult? {
+        readOnlyConfirmationProjection(command.eventId)?.let { projection ->
+            return EventManagementContract.ConfirmationResult.ReadOnly(command.operationId, projection)
+        }
+        val receipt = confirmationReceiptQueries.selectByOperationId(command.operationId).executeAsOneOrNull()
+            ?: confirmationReceiptQueries.selectByEventId(command.eventId).executeAsOneOrNull()
+            ?: return null
+        return receiptOutcome(
+            command,
+            receipt.operationId,
+            receipt.eventId,
+            receipt.slotId,
+            receipt.actorId,
+            receipt.committedAt
+        )
+    }
+
+    private fun receiptOutcome(
+        command: EventManagementContract.ConfirmPollDateCommand,
+        receiptOperationId: String,
+        receiptEventId: String,
+        receiptSlotId: String,
+        receiptActorId: String,
+        committedAt: String
+    ): EventManagementContract.ConfirmationResult =
+        if (receiptEventId == command.eventId && receiptSlotId == command.slotId) {
+            EventManagementContract.ConfirmationResult.AlreadyCommitted(
+                receipt = confirmationReceipt(command, committedAt, receiptActorId, receiptOperationId),
+                projection = confirmationProjection(command, receiptOperationId)
+            )
+        } else {
+            EventManagementContract.ConfirmationResult.Conflict(
+                operationId = command.operationId,
+                failure = EventManagementContract.ConfirmationFailure(
+                    EventManagementContract.ConfirmationFailureCode.ALREADY_CONFIRMED_DIFFERENT_SLOT,
+                    retryable = false
+                )
+            )
+        }
+
+    private fun confirmationReceipt(
+        command: EventManagementContract.ConfirmPollDateCommand,
+        committedAt: String,
+        actorId: String = command.actorId,
+        receiptOperationId: String = command.operationId
+    ): EventManagementContract.ConfirmationReceipt {
+        val statuses = confirmationStatuses(command.eventId)
+        return EventManagementContract.ConfirmationReceipt(
+        receiptId = receiptOperationId,
+        operationId = receiptOperationId,
+        eventId = command.eventId,
+        slotId = command.slotId,
+        actorId = actorId,
+        committedAt = committedAt,
+        nextNavigationTarget = "event/${command.eventId}/scenarios",
+        decisionSyncStatus = statuses.decisionSyncStatus,
+        effectDispatchStatus = statuses.effectDispatchStatus,
+        effectOutbox = confirmationEffectKeys(command.eventId, command.slotId).let {
+            EventManagementContract.ConfirmationEffectOutbox(it.domainEventId, it.effectKey)
+        }
+        )
+    }
+
+    private fun confirmationProjection(
+        command: EventManagementContract.ConfirmPollDateCommand,
+        receiptId: String
+    ): EventManagementContract.ConfirmationProjection.Confirmed {
+        val statuses = confirmationStatuses(command.eventId)
+        return EventManagementContract.ConfirmationProjection.Confirmed(
+            eventId = command.eventId,
+            slotId = command.slotId,
+            receiptId = receiptId,
+            decisionSyncStatus = statuses.decisionSyncStatus,
+            effectDispatchStatus = statuses.effectDispatchStatus
+        )
+    }
+
+    override suspend fun markConfirmationSynced(
+        receiptId: String
+    ): EventManagementContract.ConfirmationProjection? = confirmationMutex.withLock {
+        try {
+            db.transactionWithResult {
+                val receipt = confirmationReceiptQueries.selectByOperationId(receiptId).executeAsOneOrNull()
+                    ?: return@transactionWithResult null
+                readOnlyConfirmationProjection(receipt.eventId)?.let { projection ->
+                    return@transactionWithResult projection
+                }
+                syncMetadataQueries.markSynced("sync_confirm_${receipt.eventId}")
+                confirmationProjection(
+                    command = EventManagementContract.ConfirmPollDateCommand(
+                        operationId = receipt.operationId,
+                        eventId = receipt.eventId,
+                        slotId = receipt.slotId,
+                        actorId = receipt.actorId,
+                        requestedAt = Instant.parse(receipt.requestedAt)
+                    ),
+                    receiptId = receipt.operationId
+                )
+            }
+        } catch (_: Exception) {
+            null
         }
     }
 
+    override fun loadConfirmationProjection(
+        eventId: String
+    ): EventManagementContract.ConfirmationProjection {
+        return try {
+            readOnlyConfirmationProjection(eventId)?.let { return it }
+            val receipt = confirmationReceiptQueries.selectByEventId(eventId).executeAsOneOrNull()
+                ?: return EventManagementContract.ConfirmationProjection.Reviewing(eventId)
+            EventManagementContract.ConfirmationProjection.Confirmed(
+                eventId = receipt.eventId,
+                slotId = receipt.slotId,
+                receiptId = receipt.operationId,
+                decisionSyncStatus = confirmationStatuses(receipt.eventId).decisionSyncStatus,
+                effectDispatchStatus = confirmationStatuses(receipt.eventId).effectDispatchStatus
+            )
+        } catch (_: Exception) {
+            EventManagementContract.ConfirmationProjection.Reviewing(eventId)
+        }
+    }
+
+    private fun readOnlyConfirmationProjection(
+        eventId: String
+    ): EventManagementContract.ConfirmationProjection.ReadOnly? {
+        val legacy = confirmationLegacyClassificationQueries.selectByEventId(eventId).executeAsOneOrNull()
+            ?: return null
+        return when (legacy.classification) {
+            "legacyApplied" -> {
+                val receipt = confirmationReceiptQueries.selectByEventId(eventId).executeAsOneOrNull()
+                if (receipt == null) {
+                    EventManagementContract.ConfirmationProjection.Quarantined(
+                        eventId = eventId,
+                        reason = "legacy-applied-receipt-missing"
+                    )
+                } else {
+                    EventManagementContract.ConfirmationProjection.LegacyApplied(
+                        eventId = receipt.eventId,
+                        slotId = receipt.slotId,
+                        receiptId = receipt.operationId
+                    )
+                }
+            }
+            "quarantined" -> EventManagementContract.ConfirmationProjection.Quarantined(
+                eventId = legacy.eventId,
+                reason = legacy.reason
+            )
+            else -> EventManagementContract.ConfirmationProjection.Quarantined(
+                eventId = legacy.eventId,
+                reason = "unknown-legacy-classification"
+            )
+        }
+    }
+
+    private data class ConfirmationStatuses(
+        val decisionSyncStatus: EventManagementContract.DecisionSyncStatus,
+        val effectDispatchStatus: EventManagementContract.EffectDispatchStatus
+    )
+
+    private fun confirmationStatuses(eventId: String): ConfirmationStatuses {
+        val decisionSyncStatus = when (
+            syncMetadataQueries.selectById("sync_confirm_$eventId").executeAsOneOrNull()?.synced
+        ) {
+            1L -> EventManagementContract.DecisionSyncStatus.SERVER_ACKNOWLEDGED
+            else -> EventManagementContract.DecisionSyncStatus.LOCAL_PENDING
+        }
+        val effectDispatchStatus = when (
+            confirmationEffectOutboxQueries.selectByEventId(eventId).executeAsOneOrNull()?.status
+        ) {
+            EventManagementContract.EffectDispatchStatus.PARTIALLY_PROCESSED.name ->
+                EventManagementContract.EffectDispatchStatus.PARTIALLY_PROCESSED
+            EventManagementContract.EffectDispatchStatus.TERMINAL_WITH_FAILURES.name ->
+                EventManagementContract.EffectDispatchStatus.TERMINAL_WITH_FAILURES
+            else -> EventManagementContract.EffectDispatchStatus.QUEUED
+        }
+        return ConfirmationStatuses(decisionSyncStatus, effectDispatchStatus)
+    }
+
+    private fun confirmationFailure(
+        operationId: String,
+        code: EventManagementContract.ConfirmationFailureCode,
+        retryable: Boolean
+    ) = EventManagementContract.ConfirmationResult.Failed(
+        operationId,
+        EventManagementContract.ConfirmationFailure(code, retryable)
+    )
+
+    private fun EventManagementContract.ConfirmationResult.toLegacyResult(): Result<Boolean> = when (this) {
+        is EventManagementContract.ConfirmationResult.Committed,
+        is EventManagementContract.ConfirmationResult.AlreadyCommitted -> Result.success(true)
+        is EventManagementContract.ConfirmationResult.ReadOnly -> Result.failure(
+            IllegalStateException("CONFIRMATION_READ_ONLY")
+        )
+        is EventManagementContract.ConfirmationResult.Conflict -> Result.failure(
+            IllegalStateException(failure.code.name)
+        )
+        is EventManagementContract.ConfirmationResult.Failed -> Result.failure(
+            IllegalStateException(failure.code.name)
+        )
+    }
     override suspend fun queueWorkflowOutbox(record: WorkflowOutboxRecord): Result<Boolean> {
         return try {
             val key = record.effectKey ?: "${record.eventId}:${record.type.name}:${record.operationId ?: record.finalDate}"

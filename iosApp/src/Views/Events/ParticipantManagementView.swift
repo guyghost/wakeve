@@ -11,10 +11,13 @@ struct ParticipantManagementView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     let event: Event
+    let userId: String
     let repository: EventRepositoryInterface?
     let previewParticipants: [String]?
     let onParticipantsUpdated: () -> Void
     let onBack: () -> Void
+
+    @StateObject private var pollStartController: EventPollStartController
 
     @State private var newParticipantEmail = ""
     @State private var participantRows: [ParticipantPresentationRow] = []
@@ -35,15 +38,24 @@ struct ParticipantManagementView: View {
 
     init(
         event: Event,
+        userId: String,
         repository: EventRepositoryInterface,
         onParticipantsUpdated: @escaping () -> Void,
         onBack: @escaping () -> Void
     ) {
         self.event = event
+        self.userId = userId
         self.repository = repository
         self.previewParticipants = nil
         self.onParticipantsUpdated = onParticipantsUpdated
         self.onBack = onBack
+        _pollStartController = StateObject(
+            wrappedValue: EventPollStartController(
+                eventId: event.id,
+                userId: userId,
+                repository: repository
+            )
+        )
     }
 
 #if DEBUG
@@ -54,10 +66,18 @@ struct ParticipantManagementView: View {
         onBack: @escaping () -> Void = {}
     ) {
         self.event = event
+        self.userId = event.organizerId
         self.repository = nil
         self.previewParticipants = previewParticipants
         self.onParticipantsUpdated = onParticipantsUpdated
         self.onBack = onBack
+        _pollStartController = StateObject(
+            wrappedValue: EventPollStartController(
+                eventId: event.id,
+                userId: event.organizerId,
+                repository: nil
+            )
+        )
     }
 #endif
 
@@ -1115,38 +1135,19 @@ struct ParticipantManagementView: View {
 
         isLoading = true
 
-        guard let repository else {
-            isLoading = false
-            WakeveHaptics.success()
-            showSuccess = true
-            onParticipantsUpdated()
-            return
-        }
-
-        do {
-            _ = try await repository.updateEventStatus(
-                id: event.id,
-                status: EventStatus.polling,
-                finalDate: nil
-            )
-            let updatedEvent = repository.getEvent(id: event.id)
-
-            if updatedEvent?.status == EventStatus.polling {
+        pollStartController.start { outcome in
+            switch outcome {
+            case .started:
                 isLoading = false
                 WakeveHaptics.success()
                 showSuccess = true
                 onParticipantsUpdated()
-            } else {
+            case .failed(let message):
                 isLoading = false
                 WakeveHaptics.warning()
-                errorMessage = String(localized: "participants.error.start_poll_failed")
+                errorMessage = message
                 showError = true
             }
-        } catch {
-            isLoading = false
-            WakeveHaptics.warning()
-            errorMessage = error.localizedDescription
-            showError = true
         }
     }
 }

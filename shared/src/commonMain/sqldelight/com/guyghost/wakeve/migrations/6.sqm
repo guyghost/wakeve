@@ -1,0 +1,32 @@
+-- Migration 6: durable local poll-confirmation persistence for installations
+-- that had already applied migration 5 before confirmation was introduced.
+
+CREATE TABLE IF NOT EXISTS confirmationReceipt (
+    operationId TEXT PRIMARY KEY NOT NULL,
+    eventId TEXT NOT NULL UNIQUE,
+    slotId TEXT NOT NULL,
+    actorId TEXT NOT NULL,
+    requestedAt TEXT NOT NULL,
+    committedAt TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS workflowOutbox (
+    effectKey TEXT PRIMARY KEY NOT NULL,
+    eventId TEXT NOT NULL,
+    type TEXT NOT NULL,
+    finalDate TEXT NOT NULL,
+    operationId TEXT,
+    status TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS confirmation_effect_outbox (
+    domainEventId TEXT PRIMARY KEY NOT NULL,
+    effectKey TEXT NOT NULL UNIQUE,
+    eventId TEXT NOT NULL,
+    slotId TEXT NOT NULL,
+    operationId TEXT NOT NULL,
+    status TEXT NOT NULL,
+    createdAt TEXT NOT NULL,
+    FOREIGN KEY (eventId) REFERENCES event(id) ON DELETE CASCADE,
+    FOREIGN KEY (slotId) REFERENCES timeSlot(id) ON DELETE CASCADE
+);

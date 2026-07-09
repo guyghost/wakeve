@@ -131,8 +131,12 @@ test('deadline closes votes but never rejects an eligible confirmation', () => {
   assert.equal(actor.getSnapshot().matches('confirming'), true)
 })
 
-test('same-slot replay remains eligible while a different slot conflicts', () => {
-  const actor = actorFor(input({ eventStatus: 'CONFIRMED', confirmedSlotId: 'slot-1' }))
+test('same-slot replay remains eligible without requiring mutable poll votes', () => {
+  const actor = actorFor(input({
+    eventStatus: 'CONFIRMED',
+    confirmedSlotId: 'slot-1',
+    pollHasVotes: false,
+  }))
   openAndSubmit(actor)
   assert.equal(actor.getSnapshot().matches('confirming'), true)
 })
@@ -241,6 +245,65 @@ test('rehydration from failed attempt returns to unchanged review state', () => 
   actor.send({ type: 'REHYDRATE', projection: { kind: 'reviewing', eventId: 'event-1' } })
   assert.equal(actor.getSnapshot().matches('reviewingResults'), true)
   assert.equal(actor.getSnapshot().context.failure, null)
+})
+
+test('legacyApplied rehydrates without pending sync, delivery, haptic, or navigation effects', () => {
+  const actor = actorFor()
+  actor.send({
+    type: 'REHYDRATE',
+    projection: {
+      kind: 'legacyApplied',
+      eventId: 'event-1',
+      slotId: 'slot-1',
+      receiptId: 'legacy-confirmation:event-1',
+    },
+  })
+
+  assert.equal(actor.getSnapshot().matches({ confirmed: 'legacyApplied' }), true)
+  assert.equal(actor.getSnapshot().context.decisionSyncStatus, null)
+  assert.equal(actor.getSnapshot().context.effectDispatchStatus, null)
+  assert.equal(actor.getSnapshot().context.diagnosticReason, null)
+  assert.deepEqual(actor.getSnapshot().context.effects, [])
+})
+
+test('read-only legacy replay never becomes pending or emits completion effects', () => {
+  const actor = actorFor()
+  openAndSubmit(actor)
+  actor.send({
+    type: 'CONFIRMATION_READ_ONLY',
+    operationId: 'operation-1',
+    projection: {
+      kind: 'legacyApplied',
+      eventId: 'event-1',
+      slotId: 'slot-1',
+      receiptId: 'legacy-confirmation:event-1',
+    },
+  })
+
+  assert.equal(actor.getSnapshot().matches({ confirmed: 'legacyApplied' }), true)
+  assert.equal(actor.getSnapshot().context.decisionSyncStatus, null)
+  assert.equal(actor.getSnapshot().context.effectDispatchStatus, null)
+  assert.equal(actor.getSnapshot().context.effects.includes('successFeedback'), false)
+  assert.equal(actor.getSnapshot().context.effects.includes('navigationEligible'), false)
+})
+
+test('quarantined legacy confirmation remains diagnostics-only and refuses confirmation effects', () => {
+  const actor = actorFor()
+  actor.send({
+    type: 'REHYDRATE',
+    projection: {
+      kind: 'quarantined',
+      eventId: 'event-1',
+      reason: 'missing-or-invalid-confirmed-date',
+    },
+  })
+  actor.send({ type: 'OPEN_CONFIRM_PROMPT', slotId: 'slot-1' })
+
+  assert.equal(actor.getSnapshot().matches('quarantined'), true)
+  assert.equal(actor.getSnapshot().context.decisionSyncStatus, null)
+  assert.equal(actor.getSnapshot().context.effectDispatchStatus, null)
+  assert.equal(actor.getSnapshot().context.diagnosticReason, 'missing-or-invalid-confirmed-date')
+  assert.deepEqual(actor.getSnapshot().context.effects, [])
 })
 
 test('confirmed decision rejects cancellation, retry and a different confirmation', () => {

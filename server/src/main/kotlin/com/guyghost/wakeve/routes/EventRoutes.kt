@@ -451,6 +451,26 @@ fun io.ktor.server.routing.Route.eventRoutes(
                     )
                 }
 
+                if (status == EventStatus.CONFIRMED) {
+                    val slotId = request.slotId ?: return@put call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "slotId is required when confirming an event")
+                    )
+                    val selectedSlot = database?.timeSlotQueries?.selectById(slotId)?.executeAsOneOrNull()
+                    if (selectedSlot == null || selectedSlot.eventId != eventId) {
+                        return@put call.respond(
+                            HttpStatusCode.BadRequest,
+                            mapOf("error" to "Selected slot does not belong to this event")
+                        )
+                    }
+                    return@put call.respond(
+                        HttpStatusCode.Conflict,
+                        mapOf(
+                            "error" to "Poll date confirmation must use the modeled confirmation command"
+                        )
+                    )
+                }
+
                 if (!isAllowedEventStatusTransition(event.status, status)) {
                     return@put call.respond(
                         HttpStatusCode.Conflict,
@@ -458,43 +478,8 @@ fun io.ktor.server.routing.Route.eventRoutes(
                     )
                 }
 
-                val notificationFinalDate: String?
-                val result = if (status == EventStatus.CONFIRMED) {
-                    val slotId = request.slotId ?: return@put call.respond(
-                        HttpStatusCode.BadRequest,
-                        mapOf("error" to "slotId is required when confirming an event")
-                    )
-                    val db = database ?: return@put call.respond(
-                        HttpStatusCode.InternalServerError,
-                        mapOf("error" to "Database access is required to confirm a selected slot")
-                    )
-                    val selectedSlot = db.timeSlotQueries.selectById(slotId).executeAsOneOrNull()
-                    if (selectedSlot == null || selectedSlot.eventId != eventId) {
-                        return@put call.respond(
-                            HttpStatusCode.BadRequest,
-                            mapOf("error" to "Selected slot does not belong to this event")
-                        )
-                    }
-
-                    notificationFinalDate = selectedSlot.startTime ?: request.finalDate
-                    repository.updateEventStatus(eventId, status, null).also { updateResult ->
-                        if (updateResult.isSuccess) {
-                            val now = java.time.Instant.now().toString()
-                            db.confirmedDateQueries.deleteByEventId(eventId)
-                            db.confirmedDateQueries.insertConfirmedDate(
-                                id = "confirmed_$eventId",
-                                eventId = eventId,
-                                timeslotId = slotId,
-                                confirmedByOrganizerId = principal.userId,
-                                confirmedAt = now,
-                                updatedAt = now
-                            )
-                        }
-                    }
-                } else {
-                    notificationFinalDate = request.finalDate
-                    repository.updateEventStatus(eventId, status, request.finalDate)
-                }
+                val notificationFinalDate = request.finalDate
+                val result = repository.updateEventStatus(eventId, status, request.finalDate)
 
                 if (result.isSuccess) {
                     // Trigger notification for status change (async, non-blocking)

@@ -1,15 +1,38 @@
 package com.guyghost.wakeve.notification
 
 import kotlinx.coroutines.runBlocking
+import java.nio.file.Files
 import java.util.ServiceLoader
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /** RED persistence contracts require a production implementation registered through the production factory port. */
 class BackendNotificationPersistenceRedTest {
+    @Test
+    fun productionStoreFailsClosedWhenNoDurableStorageIsConfigured() {
+        val previous = System.getProperty(DELIVERY_STORE_PROPERTY)
+        try {
+            System.clearProperty(DELIVERY_STORE_PROPERTY)
+            assertTrue(
+                System.getenv(DELIVERY_STORE_ENVIRONMENT).isNullOrBlank(),
+                "This contract requires the test process to omit delivery-store configuration"
+            )
+
+            assertFailsWith<IllegalStateException>(
+                "The production factory must reject the old process-local temporary database fallback"
+            ) {
+                SqliteBackendNotificationDeliveryStoreFactory().open()
+            }
+        } finally {
+            restoreDeliveryStoreProperty(previous)
+        }
+    }
+
     @Test
     fun missingInstallationPersistsPendingTargetThenFansOutAfterRegistration() = runBlocking {
         val store = productionStore()
@@ -64,6 +87,62 @@ class BackendNotificationPersistenceRedTest {
         assertFalse(restartedWorker.isEligible(delivery.deliveryKey, 1_000))
     }
 
+    @Test
+    fun configuredStorePersistsRecipientUpsertAuthorityAndZeroTargetResolutionAcrossInstances() = runBlocking {
+        val databasePath = Files.createTempDirectory("wakeve-delivery-store-contract-")
+            .resolve("delivery.sqlite")
+        val previous = System.getProperty(DELIVERY_STORE_PROPERTY)
+        try {
+            System.setProperty(DELIVERY_STORE_PROPERTY, databasePath.toString())
+            val recipient = BackendNotificationRecipient(
+                recipientKey = RecipientKey("zero-target-recipient"),
+                effectKey = EffectKey("confirmation-effect"),
+                status = BackendRecipientStatus.PENDING_TARGET,
+                installationIds = emptySet(),
+                expiresAtEpochSeconds = 1_000
+            )
+            val firstStore = productionStore()
+
+            assertTrue(firstStore.persistPendingRecipient(recipient))
+            assertFalse(firstStore.persistPendingRecipient(recipient), "recipient upsert must not create a second logical target")
+            assertTrue(firstStore.acquireDeliveryAuthority("confirmation-delivery", DeliveryAuthority("worker-a")))
+
+            val restartedStore = productionStore()
+            assertFalse(
+                restartedStore.acquireDeliveryAuthority("confirmation-delivery", DeliveryAuthority("worker-b")),
+                "A second worker must never become a second durable delivery authority"
+            )
+            assertEquals(
+                BackendRecipientStatus.PENDING_TARGET,
+                restartedStore.resolvePendingRecipient(recipient.recipientKey, nowEpochSeconds = 999)
+            )
+            assertEquals(
+                BackendRecipientStatus.EXPIRED,
+                restartedStore.resolvePendingRecipient(recipient.recipientKey, nowEpochSeconds = 1_000)
+            )
+            assertTrue(
+                restartedStore.recordRecipientTerminalAcknowledgement(
+                    BackendRecipientTerminalAcknowledgement(
+                        recipient.recipientKey,
+                        BackendRecipientTerminalReason.EXPIRED_WITHOUT_TARGET,
+                        acknowledgedAtEpochSeconds = 1_000
+                    )
+                )
+            )
+
+            val afterRestart = productionStore()
+            assertEquals(BackendRecipientStatus.EXPIRED, afterRestart.recipient(recipient.recipientKey)?.status)
+            assertNull(
+                afterRestart.delivery(DeliveryKey("confirmation-effect:zero-target-recipient:apns")),
+                "Zero-target resolution must remain a recipient acknowledgement and must not create a provider delivery"
+            )
+        } finally {
+            restoreDeliveryStoreProperty(previous)
+            Files.deleteIfExists(databasePath)
+            Files.deleteIfExists(databasePath.parent)
+        }
+    }
+
     private fun productionStore(): BackendNotificationDeliveryStore {
         val factory = ServiceLoader.load(BackendNotificationDeliveryStoreFactory::class.java).firstOrNull()
         return assertNotNull(factory, "backend production delivery store is not implemented").open()
@@ -73,4 +152,17 @@ class BackendNotificationPersistenceRedTest {
         key, RecipientKey("recipient-1"), "installation-a", "apns", BackendDeliveryStatus.QUEUED,
         attempt = 0, nextAttemptAtEpochSeconds = null, expiresAtEpochSeconds = expiresAt
     )
+
+    private fun restoreDeliveryStoreProperty(previous: String?) {
+        if (previous == null) {
+            System.clearProperty(DELIVERY_STORE_PROPERTY)
+        } else {
+            System.setProperty(DELIVERY_STORE_PROPERTY, previous)
+        }
+    }
+
+    private companion object {
+        const val DELIVERY_STORE_PROPERTY = "wakeve.notification.delivery.db.path"
+        const val DELIVERY_STORE_ENVIRONMENT = "WAKEVE_NOTIFICATION_DELIVERY_DB_PATH"
+    }
 }

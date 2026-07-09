@@ -1,6 +1,8 @@
 package com.guyghost.wakeve.presentation.statemachine
 
 import com.guyghost.wakeve.access.ParticipantAccessMapper
+import com.guyghost.wakeve.confirmation.ConfirmationClock
+import com.guyghost.wakeve.confirmation.SystemConfirmationClock
 import com.guyghost.wakeve.models.Coordinates
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.EventType
@@ -15,14 +17,6 @@ import com.guyghost.wakeve.workflow.WorkflowOutboxType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
-
-fun interface ConfirmationClock {
-    fun now(): Instant
-}
-
-object SystemConfirmationClock : ConfirmationClock {
-    override fun now(): Instant = Clock.System.now()
-}
 
 /**
  * Functional interface for seeding sample event data.
@@ -141,6 +135,9 @@ class EventManagementStateMachine(
             is EventManagementContract.Intent.SubmitConfirmation -> submitConfirmation(intent.operationId)
             is EventManagementContract.Intent.RetryConfirmation -> retryConfirmation()
             is EventManagementContract.Intent.DismissConfirmationFailure -> dismissConfirmationFailure()
+            is EventManagementContract.Intent.SyncCompleted -> markConfirmationSynced(intent.receiptId)
+            is EventManagementContract.Intent.SyncFailed -> retainPendingConfirmation(intent.receiptId)
+            is EventManagementContract.Intent.RehydrateConfirmation -> rehydrateConfirmation(intent.projection)
             is EventManagementContract.Intent.TransitionToOrganizing -> transitionToOrganizing(intent.eventId, intent.userId)
             is EventManagementContract.Intent.MarkAsFinalized -> markAsFinalized(intent.eventId, intent.userId)
             is EventManagementContract.Intent.ClearError -> clearError()
@@ -810,6 +807,10 @@ class EventManagementStateMachine(
                 confirmationActorId = actorId,
                 confirmationSlotId = slotId,
                 confirmationOperationId = null,
+                confirmationReceiptId = null,
+                confirmationDecisionSyncStatus = null,
+                confirmationEffectDispatchStatus = null,
+                confirmationDiagnosticReason = null,
                 confirmationFailure = null,
                 error = null
             )
@@ -837,6 +838,7 @@ class EventManagementStateMachine(
             it.copy(
                 confirmationPhase = EventManagementContract.ConfirmationPhase.CONFIRMING,
                 confirmationOperationId = operationId,
+                confirmationDiagnosticReason = null,
                 confirmationFailure = null,
                 error = null
             )
@@ -856,6 +858,7 @@ class EventManagementStateMachine(
         updateState {
             it.copy(
                 confirmationPhase = EventManagementContract.ConfirmationPhase.CONFIRMING,
+                confirmationDiagnosticReason = null,
                 confirmationFailure = null,
                 error = null
             )
@@ -885,6 +888,10 @@ class EventManagementStateMachine(
                 confirmationActorId = null,
                 confirmationSlotId = null,
                 confirmationOperationId = null,
+                confirmationReceiptId = null,
+                confirmationDecisionSyncStatus = null,
+                confirmationEffectDispatchStatus = null,
+                confirmationDiagnosticReason = null,
                 confirmationFailure = null,
                 error = null,
                 isLoading = false
@@ -917,19 +924,6 @@ class EventManagementStateMachine(
             return
         }
 
-        // Validate status
-        if (event.status != com.guyghost.wakeve.models.EventStatus.POLLING) {
-            failConfirmation(EventManagementContract.ConfirmationFailureCode.INVALID_EVENT_STATUS, false)
-            return
-        }
-
-        // Validate at least one vote exists
-        val poll = eventRepository.getPoll(eventId)
-        if (poll == null || poll.votes.isEmpty()) {
-            failConfirmation(EventManagementContract.ConfirmationFailureCode.NO_VOTES, false)
-            return
-        }
-
         // Find the selected time slot
         val selectedSlot = event.proposedSlots.find { it.id == slotId }
         if (selectedSlot == null) {
@@ -943,34 +937,163 @@ class EventManagementStateMachine(
             return
         }
 
-        val result = eventRepository.confirmEventDateCommand(
-            eventId = eventId,
-            slotId = slotId,
-            confirmedByOrganizerId = userId,
-            operationId = command.operationId,
-            requestedAt = command.requestedAt.toString()
-        )
-
-        if (result.isFailure) {
-            if (result.exceptionOrNull()?.message == "ALREADY_CONFIRMED_DIFFERENT_SLOT") {
-                failConfirmation(EventManagementContract.ConfirmationFailureCode.ALREADY_CONFIRMED_DIFFERENT_SLOT, false)
-                return
-            }
-            failConfirmation(EventManagementContract.ConfirmationFailureCode.LOCAL_PERSISTENCE_FAILED, true)
+        val replayingSameConfirmedSlot = event.status == com.guyghost.wakeve.models.EventStatus.CONFIRMED &&
+            event.finalDate == finalDate
+        if (event.status != com.guyghost.wakeve.models.EventStatus.POLLING && !replayingSameConfirmedSlot) {
+            failConfirmation(EventManagementContract.ConfirmationFailureCode.INVALID_EVENT_STATUS, false)
             return
         }
 
-        // Reload events to get updated status
+        // A receipt replay is already locally committed; only new POLLING confirmations require votes.
+        if (!replayingSameConfirmedSlot) {
+            val poll = eventRepository.getPoll(eventId)
+            if (poll == null || poll.votes.isEmpty()) {
+                failConfirmation(EventManagementContract.ConfirmationFailureCode.NO_VOTES, false)
+                return
+            }
+        }
+
+        when (val result = eventRepository.confirmPollDate(command)) {
+            is EventManagementContract.ConfirmationResult.Committed -> applyCommittedConfirmation(result.receipt)
+            is EventManagementContract.ConfirmationResult.AlreadyCommitted -> applyCommittedConfirmation(result.receipt)
+            is EventManagementContract.ConfirmationResult.ReadOnly ->
+                applyReadOnlyConfirmation(result.projection)
+            is EventManagementContract.ConfirmationResult.Conflict ->
+                failConfirmation(result.failure.code, result.failure.retryable)
+            is EventManagementContract.ConfirmationResult.Failed ->
+                failConfirmation(result.failure.code, result.failure.retryable)
+        }
+    }
+
+    private suspend fun applyCommittedConfirmation(receipt: EventManagementContract.ConfirmationReceipt) {
+        // The durable receipt is the sole eligibility source for success feedback and navigation.
         loadEvents()
         updateState {
             it.copy(
                 scenariosUnlocked = true,
-                confirmationPhase = EventManagementContract.ConfirmationPhase.CONFIRMED_PENDING_SYNC,
-                confirmationFailure = null
+                confirmationPhase = when (receipt.decisionSyncStatus) {
+                    EventManagementContract.DecisionSyncStatus.LOCAL_PENDING ->
+                        EventManagementContract.ConfirmationPhase.CONFIRMED_PENDING_SYNC
+                    EventManagementContract.DecisionSyncStatus.SERVER_ACKNOWLEDGED ->
+                        EventManagementContract.ConfirmationPhase.CONFIRMED_SYNCED
+                },
+                confirmationReceiptId = receipt.receiptId,
+                confirmationDecisionSyncStatus = receipt.decisionSyncStatus,
+                confirmationEffectDispatchStatus = receipt.effectDispatchStatus,
+                confirmationDiagnosticReason = null,
+                confirmationFailure = null,
+                isLoading = false
             )
         }
         emitSideEffect(EventManagementContract.SideEffect.ShowToast("Date confirmed successfully"))
-        emitSideEffect(EventManagementContract.SideEffect.NavigateTo("event/$eventId/scenarios"))
+        emitSideEffect(EventManagementContract.SideEffect.NavigateTo(receipt.nextNavigationTarget))
+    }
+
+    private fun applyReadOnlyConfirmation(
+        projection: EventManagementContract.ConfirmationProjection.ReadOnly
+    ) {
+        // A recovered historical classification only changes render state. It has no completion effect.
+        rehydrateConfirmation(projection)
+    }
+
+    private suspend fun markConfirmationSynced(receiptId: String) {
+        val state = currentState
+        if (state.confirmationPhase != EventManagementContract.ConfirmationPhase.CONFIRMED_PENDING_SYNC ||
+            state.confirmationReceiptId != receiptId
+        ) return
+        val projection = eventRepository?.markConfirmationSynced(receiptId)
+            as? EventManagementContract.ConfirmationProjection.Confirmed
+            ?: return
+        if (projection.receiptId != receiptId ||
+            projection.decisionSyncStatus != EventManagementContract.DecisionSyncStatus.SERVER_ACKNOWLEDGED
+        ) return
+        updateState {
+            it.copy(
+                confirmationPhase = EventManagementContract.ConfirmationPhase.CONFIRMED_SYNCED,
+                confirmationDecisionSyncStatus = projection.decisionSyncStatus,
+                confirmationEffectDispatchStatus = projection.effectDispatchStatus
+            )
+        }
+    }
+
+    private fun retainPendingConfirmation(receiptId: String) {
+        if (currentState.confirmationPhase != EventManagementContract.ConfirmationPhase.CONFIRMED_PENDING_SYNC ||
+            currentState.confirmationReceiptId != receiptId
+        ) return
+        // A delivery/sync failure never rolls back the local date decision.
+    }
+
+    private fun rehydrateConfirmation(projection: EventManagementContract.ConfirmationProjection) {
+        when (projection) {
+            is EventManagementContract.ConfirmationProjection.Reviewing -> updateState {
+                it.copy(
+                    isLoading = false,
+                    confirmationPhase = EventManagementContract.ConfirmationPhase.REVIEWING_RESULTS,
+                    confirmationEventId = projection.eventId,
+                    confirmationSlotId = null,
+                    confirmationOperationId = null,
+                    confirmationReceiptId = null,
+                    confirmationDecisionSyncStatus = null,
+                    confirmationEffectDispatchStatus = null,
+                    confirmationDiagnosticReason = null,
+                    confirmationFailure = null,
+                    error = null
+                )
+            }
+            is EventManagementContract.ConfirmationProjection.Confirmed -> updateState {
+                it.copy(
+                    isLoading = false,
+                    scenariosUnlocked = true,
+                    confirmationPhase = when (projection.decisionSyncStatus) {
+                        EventManagementContract.DecisionSyncStatus.LOCAL_PENDING ->
+                            EventManagementContract.ConfirmationPhase.CONFIRMED_PENDING_SYNC
+                        EventManagementContract.DecisionSyncStatus.SERVER_ACKNOWLEDGED ->
+                            EventManagementContract.ConfirmationPhase.CONFIRMED_SYNCED
+                    },
+                    confirmationEventId = projection.eventId,
+                    confirmationSlotId = projection.slotId,
+                    confirmationOperationId = null,
+                    confirmationReceiptId = projection.receiptId,
+                    confirmationDecisionSyncStatus = projection.decisionSyncStatus,
+                    confirmationEffectDispatchStatus = projection.effectDispatchStatus,
+                    confirmationDiagnosticReason = null,
+                    confirmationFailure = null,
+                    error = null
+                )
+            }
+            is EventManagementContract.ConfirmationProjection.LegacyApplied -> updateState {
+                it.copy(
+                    isLoading = false,
+                    scenariosUnlocked = true,
+                    confirmationPhase = EventManagementContract.ConfirmationPhase.LEGACY_APPLIED,
+                    confirmationEventId = projection.eventId,
+                    confirmationSlotId = projection.slotId,
+                    confirmationOperationId = null,
+                    confirmationReceiptId = projection.receiptId,
+                    confirmationDecisionSyncStatus = null,
+                    confirmationEffectDispatchStatus = null,
+                    confirmationDiagnosticReason = null,
+                    confirmationFailure = null,
+                    error = null
+                )
+            }
+            is EventManagementContract.ConfirmationProjection.Quarantined -> updateState {
+                it.copy(
+                    isLoading = false,
+                    scenariosUnlocked = false,
+                    confirmationPhase = EventManagementContract.ConfirmationPhase.QUARANTINED,
+                    confirmationEventId = projection.eventId,
+                    confirmationSlotId = null,
+                    confirmationOperationId = null,
+                    confirmationReceiptId = null,
+                    confirmationDecisionSyncStatus = null,
+                    confirmationEffectDispatchStatus = null,
+                    confirmationDiagnosticReason = projection.reason,
+                    confirmationFailure = null,
+                    error = null
+                )
+            }
+        }
     }
 
     private suspend fun failConfirmation(
@@ -998,6 +1121,7 @@ class EventManagementStateMachine(
             it.copy(
                 isLoading = false,
                 confirmationPhase = EventManagementContract.ConfirmationPhase.FAILED,
+                confirmationDiagnosticReason = null,
                 confirmationFailure = EventManagementContract.ConfirmationFailure(code, retryable),
                 error = message
             )

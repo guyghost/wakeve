@@ -330,6 +330,26 @@
 "poll.results.confirm_dialog_message" = "Cette date deviendra la date finale de l'événement. Les détails d'organisation pourront être ouverts aux participants confirmés.";
 "poll.results.error.organizer_only" = "Seul l'organisateur peut confirmer la date.";
 "poll.results.error.confirm_failed" = "Impossible de confirmer cette date pour le moment.";
+"poll.results.confirmation.progress" = "Enregistrement de la date…";
+"poll.results.confirmation.retry" = "Réessayer";
+"poll.results.confirmation.pending_sync.title" = "Date enregistrée sur cet appareil";
+"poll.results.confirmation.pending_sync.message" = "Cette décision sera synchronisée lorsqu’une connexion sera disponible.";
+"poll.results.confirmation.synced.title" = "Décision synchronisée";
+"poll.results.confirmation.synced.message" = "Cette décision est à jour.";
+"poll.results.confirmation.accessibility.synced" = "Synchronisation de la décision terminée";
+"poll.results.confirmation.synced.accessibility.synced" = "Synchronisation de la décision terminée";
+"poll.results.confirmation.accessibility.confirm" = "Confirmer la date sélectionnée";
+"poll.results.confirmation.accessibility.cancel" = "Annuler la confirmation de date";
+"poll.results.confirmation.accessibility.progress" = "Enregistrement de la date sélectionnée";
+"poll.results.confirmation.accessibility.error" = "Erreur de confirmation de date";
+"poll.results.confirmation.accessibility.retry" = "Réessayer la confirmation de date";
+"poll.results.confirmation.accessibility.pending_sync" = "Date enregistrée localement en attente de synchronisation";
+"poll.results.confirmation.legacy_applied.title" = "Date confirmée précédemment";
+"poll.results.confirmation.legacy_applied.message" = "Cette confirmation historique est en lecture seule et ne sera pas synchronisée à nouveau.";
+"poll.results.confirmation.quarantined.title" = "La confirmation de date doit être vérifiée";
+"poll.results.confirmation.quarantined.message" = "Cette confirmation historique est incomplète. Elle reste en lecture seule et ne sera pas synchronisée.";
+"poll.results.confirmation.accessibility.legacy_applied" = "Date confirmée précédemment, en lecture seule";
+"poll.results.confirmation.accessibility.quarantined" = "La confirmation historique de la date doit être vérifiée et est en lecture seule";
 
 // MARK: - Poll Voting
 "poll.voting.title" = "Vote";
