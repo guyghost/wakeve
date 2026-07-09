@@ -5,6 +5,7 @@ import com.guyghost.wakeve.repository.UserRepository
 import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.getCurrentTimeMillis
 import com.guyghost.wakeve.models.Event
+import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.SyncChange
 import com.guyghost.wakeve.models.SyncConflict
 import com.guyghost.wakeve.models.SyncEventData
@@ -30,6 +31,7 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.Instant
 import kotlinx.datetime.minus
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 /**
@@ -118,6 +120,7 @@ class SyncManager(
      */
     suspend fun hasPendingChanges(): Boolean {
         return userRepository.getPendingSyncChanges().isNotEmpty() ||
+            pendingConfirmationDecisionSyncs().isNotEmpty() ||
             pendingSideEffectReplayers.any { it.hasPending() }
     }
 
@@ -125,7 +128,7 @@ class SyncManager(
      * Get all pending changes ready for sync
      */
     suspend fun getPendingChangesForSync(): List<SyncChange> {
-        return userRepository.getPendingSyncChanges().map { metadata ->
+        val genericChanges = userRepository.getPendingSyncChanges().map { metadata ->
             // Get the actual data for this change
             val data = getChangeData(metadata.tableName, metadata.recordId)
             SyncChange(
@@ -138,6 +141,7 @@ class SyncManager(
                 userId = metadata.userId
             )
         }
+        return genericChanges + pendingConfirmationDecisionSyncs()
     }
 
     /**
@@ -157,13 +161,20 @@ class SyncManager(
             "events" -> {
                 val event = eventRepository.getEvent(recordId)
                 if (event != null) {
+                    val confirmedSlotId = database.confirmedDateQueries
+                        .selectByEventId(recordId)
+                        .executeAsOneOrNull()
+                        ?.timeslotId
                     json.encodeToString(SyncEventData.serializer(), SyncEventData(
                         id = event.id,
                         title = event.title,
                         description = event.description,
                         organizerId = event.organizerId,
                         deadline = event.deadline,
-                        timezone = event.proposedSlots.firstOrNull()?.timezone ?: "UTC"
+                        timezone = event.proposedSlots.firstOrNull()?.timezone ?: "UTC",
+                        status = event.status.name,
+                        confirmedSlotId = confirmedSlotId,
+                        finalDate = event.finalDate
                     ))
                 } else {
                     "{}" // Fallback for deleted items
@@ -181,6 +192,94 @@ class SyncManager(
             }
             else -> "{}"
         }
+    }
+
+    /**
+     * Confirmation metadata is written atomically with the local decision, but is intentionally
+     * separate from the legacy user sync queue. Build an ordered server batch from that durable
+     * record: the confirmed event decision first, then the one domain-effect envelope.
+     */
+    private suspend fun pendingConfirmationDecisionSyncs(): List<SyncChange> {
+        val changes = mutableListOf<SyncChange>()
+        val pendingMetadata = database.syncMetadataQueries.selectPending().executeAsList()
+
+        pendingMetadata.forEach { metadata ->
+            if (!metadata.id.startsWith(CONFIRMATION_SYNC_METADATA_PREFIX) ||
+                metadata.entityType != CONFIRMATION_EVENT_ENTITY_TYPE ||
+                metadata.operation != SyncOperation.UPDATE.name
+            ) {
+                return@forEach
+            }
+
+            val event = eventRepository.getEvent(metadata.entityId) ?: return@forEach
+            val receipt = database.confirmationReceiptQueries
+                .selectByEventId(event.id)
+                .executeAsOneOrNull()
+                ?: return@forEach
+            val envelope = database.confirmationEffectOutboxQueries
+                .selectByEventId(event.id)
+                .executeAsOneOrNull()
+                ?: return@forEach
+            val confirmedDate = database.confirmedDateQueries
+                .selectByEventId(event.id)
+                .executeAsOneOrNull()
+                ?: return@forEach
+            val selectedSlot = event.proposedSlots.firstOrNull { it.id == confirmedDate.timeslotId }
+                ?: return@forEach
+            val finalDate = selectedSlot.start ?: return@forEach
+
+            if (event.status != EventStatus.CONFIRMED ||
+                receipt.slotId != selectedSlot.id ||
+                envelope.slotId != selectedSlot.id ||
+                receipt.operationId != envelope.operationId
+            ) {
+                return@forEach
+            }
+
+            changes += SyncChange(
+                id = metadata.id,
+                table = "events",
+                operation = SyncOperation.UPDATE.name,
+                recordId = event.id,
+                data = json.encodeToString(
+                    SyncEventData.serializer(),
+                    SyncEventData(
+                        id = event.id,
+                        title = event.title,
+                        description = event.description,
+                        organizerId = event.organizerId,
+                        deadline = event.deadline,
+                        timezone = selectedSlot.timezone,
+                        status = EventStatus.CONFIRMED.name,
+                        confirmedSlotId = selectedSlot.id,
+                        finalDate = finalDate
+                    )
+                ),
+                timestamp = metadata.timestamp,
+                userId = receipt.actorId
+            )
+            changes += SyncChange(
+                id = "confirmation-envelope-${envelope.domainEventId}",
+                table = CONFIRMATION_EFFECT_OUTBOX_TABLE,
+                operation = SyncOperation.CREATE.name,
+                recordId = envelope.domainEventId,
+                data = json.encodeToString(
+                    ConfirmationEnvelopeSyncPayload.serializer(),
+                    ConfirmationEnvelopeSyncPayload(
+                        domainEventId = envelope.domainEventId,
+                        effectKey = envelope.effectKey,
+                        eventId = envelope.eventId,
+                        slotId = envelope.slotId,
+                        operationId = envelope.operationId,
+                        createdAt = envelope.createdAt
+                    )
+                ),
+                timestamp = metadata.timestamp,
+                userId = receipt.actorId
+            )
+        }
+
+        return changes
     }
 
     /**
@@ -368,6 +467,42 @@ class SyncManager(
                     error = null
                 )
             }
+            markAcknowledgedConfirmationsSynced(response)
+        }
+    }
+
+    /**
+     * Generic batch success does not acknowledge a confirmation. The acknowledgement has to
+     * name the durable local envelope and its operation, and a conflict for that envelope
+     * leaves the local decision retryable.
+     */
+    private suspend fun markAcknowledgedConfirmationsSynced(response: SyncResponse) {
+        val conflictingEnvelopeIds = response.conflicts
+            .asSequence()
+            .filter { it.table == CONFIRMATION_EFFECT_OUTBOX_TABLE }
+            .map { it.recordId }
+            .toSet()
+
+        response.confirmationAcknowledgements.forEach { acknowledgement ->
+            if (acknowledgement.domainEventId in conflictingEnvelopeIds || acknowledgement.receiptId.isBlank()) {
+                return@forEach
+            }
+            val envelope = database.confirmationEffectOutboxQueries
+                .selectByDomainEventId(acknowledgement.domainEventId)
+                .executeAsOneOrNull()
+                ?: return@forEach
+            if (envelope.effectKey != acknowledgement.effectKey ||
+                envelope.operationId != acknowledgement.operationId
+            ) {
+                return@forEach
+            }
+            val receipt = database.confirmationReceiptQueries
+                .selectByOperationId(acknowledgement.operationId)
+                .executeAsOneOrNull()
+                ?: return@forEach
+            if (receipt.eventId != envelope.eventId || receipt.slotId != envelope.slotId) return@forEach
+
+            eventRepository.markConfirmationSynced(receipt.operationId)
         }
     }
 
@@ -539,6 +674,20 @@ class SyncManager(
         scope.cancel()
     }
 }
+
+@Serializable
+private data class ConfirmationEnvelopeSyncPayload(
+    val domainEventId: String,
+    val effectKey: String,
+    val eventId: String,
+    val slotId: String,
+    val operationId: String,
+    val createdAt: String
+)
+
+private const val CONFIRMATION_EFFECT_OUTBOX_TABLE = "confirmation_effect_outbox"
+private const val CONFIRMATION_EVENT_ENTITY_TYPE = "event"
+private const val CONFIRMATION_SYNC_METADATA_PREFIX = "sync_confirm_"
 
 internal fun syncFailureMessage(): String =
     "Sync failed. Please retry when your connection is stable."

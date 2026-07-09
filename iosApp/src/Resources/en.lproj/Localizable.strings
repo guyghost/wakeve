@@ -330,6 +330,26 @@
 "poll.results.confirm_dialog_message" = "This date will become the final event date. Organization details can then open for confirmed participants.";
 "poll.results.error.organizer_only" = "Only the organizer can confirm the date.";
 "poll.results.error.confirm_failed" = "Unable to confirm this date right now.";
+"poll.results.confirmation.progress" = "Saving the date…";
+"poll.results.confirmation.retry" = "Try again";
+"poll.results.confirmation.pending_sync.title" = "Date saved on this device";
+"poll.results.confirmation.pending_sync.message" = "We’ll sync this decision when a connection is available.";
+"poll.results.confirmation.synced.title" = "Decision synced";
+"poll.results.confirmation.synced.message" = "This decision is up to date.";
+"poll.results.confirmation.accessibility.synced" = "Decision sync complete";
+"poll.results.confirmation.synced.accessibility.synced" = "Decision sync complete";
+"poll.results.confirmation.accessibility.confirm" = "Confirm selected date";
+"poll.results.confirmation.accessibility.cancel" = "Cancel date confirmation";
+"poll.results.confirmation.accessibility.progress" = "Saving selected date";
+"poll.results.confirmation.accessibility.error" = "Date confirmation error";
+"poll.results.confirmation.accessibility.retry" = "Retry date confirmation";
+"poll.results.confirmation.accessibility.pending_sync" = "Date saved locally and waiting to sync";
+"poll.results.confirmation.legacy_applied.title" = "Date confirmed previously";
+"poll.results.confirmation.legacy_applied.message" = "This historical confirmation is read-only and will not be synchronized again.";
+"poll.results.confirmation.quarantined.title" = "Date confirmation needs review";
+"poll.results.confirmation.quarantined.message" = "This historical confirmation is incomplete. It remains read-only and will not be synchronized.";
+"poll.results.confirmation.accessibility.legacy_applied" = "Previously confirmed date, read-only";
+"poll.results.confirmation.accessibility.quarantined" = "Historical date confirmation needs review and is read-only";
 
 // MARK: - Poll Voting
 "poll.voting.title" = "Vote";

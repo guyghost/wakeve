@@ -116,12 +116,28 @@ object IosFactory {
              EventManagementContract.State,
              EventManagementContract.Intent,
              EventManagementContract.SideEffect
-     > {
+     > = createEventStateMachine(
+         database = database,
+         eventRepository = DatabaseEventRepository(database)
+     )
+
+    /**
+     * Creates an Event Management state machine with the repository owned by
+     * the iOS application composition root.  This keeps a workflow and the
+     * sync-aware repository on the same durable persistence boundary.
+     */
+    fun createEventStateMachine(
+        database: WakeveDb,
+        eventRepository: EventRepositoryInterface
+    ): ObservableStateMachine<
+            EventManagementContract.State,
+            EventManagementContract.Intent,
+            EventManagementContract.SideEffect
+    > {
         // Create scope with Main dispatcher for iOS
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
-        // Create dependencies
-        val eventRepository: EventRepositoryInterface = DatabaseEventRepository(database)
+        // Create dependencies from the application-scoped repository.
         val loadEventsUseCase = LoadEventsUseCase(eventRepository)
         val createEventUseCase = CreateEventUseCase(eventRepository)
 

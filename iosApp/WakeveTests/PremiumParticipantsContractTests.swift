@@ -94,16 +94,23 @@ final class PremiumParticipantsContractTests: XCTestCase {
 
     func testParticipantsErrorCopyUsesLocalizationKeys() throws {
         let source = try readProjectFile("iosApp/src/Views/Events/ParticipantManagementView.swift")
-        let requiredKeys = [
+        let pollStartController = try readProjectFile("iosApp/src/ViewModels/EventPollStartController.swift")
+        let viewErrorKeys = [
             "participants.error.invalid_email",
             "participants.error.add_failed",
-            "participants.error.add_selected_failed_format",
+            "participants.error.add_selected_failed_format"
+        ]
+        let requiredKeys = viewErrorKeys + [
             "participants.error.start_poll_failed"
         ]
 
-        for key in requiredKeys {
+        for key in viewErrorKeys {
             XCTAssertTrue(source.contains("String(localized: \"\(key)\")"), "Participant management must use localized key \(key).")
         }
+        XCTAssertTrue(
+            pollStartController.contains("String(localized: \"participants.error.start_poll_failed\")"),
+            "The typed poll-start controller must own its localized failure copy."
+        )
 
         XCTAssertFalse(source.contains("Saisissez une adresse email valide"))
         XCTAssertFalse(source.contains("Impossible d’ajouter ce participant"))
@@ -126,16 +133,24 @@ final class PremiumParticipantsContractTests: XCTestCase {
 
     func testParticipantsPreserveRepositoryBoundary() throws {
         let source = try readProjectFile("iosApp/src/Views/Events/ParticipantManagementView.swift")
+        let controller = try readProjectFile("iosApp/src/ViewModels/EventPollStartController.swift")
         let content = slice(source, from: "struct ParticipantManagementView", to: "private struct ParticipantPresentationRow")
+        let startPoll = slice(source, from: "private func startPoll() async", to: "private struct ParticipantPresentationRow")
 
         XCTAssertTrue(content.contains("repository?.getParticipantRecords"))
         XCTAssertTrue(content.contains("repository.addParticipant"))
-        XCTAssertTrue(content.contains("repository.updateEventStatus"))
         XCTAssertTrue(content.contains("!event.proposedSlots.isEmpty"))
+        XCTAssertTrue(content.contains("@StateObject private var pollStartController: EventPollStartController"))
+        XCTAssertTrue(content.contains("EventPollStartController("))
+        XCTAssertTrue(startPoll.contains("pollStartController.start"))
+        XCTAssertFalse(content.contains("repository.updateEventStatus"))
         XCTAssertFalse(
             content.contains("StateMachine("),
-            "Participants should remain a SwiftUI presentation shell around repository calls."
+            "Participants should remain a SwiftUI presentation shell around typed workflow callbacks."
         )
+        XCTAssertTrue(controller.contains("IosFactory.shared.createEventStateMachine"))
+        XCTAssertTrue(controller.contains("EventManagementContractIntentStartPoll(eventId: eventId, userId: userId)"))
+        XCTAssertTrue(controller.contains("stateMachine.dispatch("))
     }
 
     func testParticipantPollStartUsesDecisionHaptics() throws {

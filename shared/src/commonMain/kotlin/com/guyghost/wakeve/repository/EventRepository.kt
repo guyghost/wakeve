@@ -1,11 +1,15 @@
 package com.guyghost.wakeve.repository
 
 import com.guyghost.wakeve.access.ParticipantRepositoryRecord
+import com.guyghost.wakeve.confirmation.confirmationEffectKeys
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.Poll
 import com.guyghost.wakeve.models.Vote
+import com.guyghost.wakeve.presentation.state.EventManagementContract
 import com.guyghost.wakeve.workflow.WorkflowOutboxRecord
+import com.guyghost.wakeve.workflow.WorkflowOutboxType
+import com.guyghost.wakeve.workflow.PendingWorkflowStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 
@@ -39,6 +43,31 @@ interface EventRepositoryInterface {
     ): Result<Boolean> = Result.failure(UnsupportedOperationException("Confirm event date is not supported"))
     suspend fun confirmEventDateCommand(eventId: String, slotId: String, confirmedByOrganizerId: String, operationId: String, requestedAt: String): Result<Boolean> =
         confirmEventDate(eventId, slotId, confirmedByOrganizerId)
+    suspend fun confirmPollDate(
+        command: EventManagementContract.ConfirmPollDateCommand
+    ): EventManagementContract.ConfirmationResult =
+        EventManagementContract.ConfirmationResult.Failed(
+            operationId = command.operationId,
+            failure = EventManagementContract.ConfirmationFailure(
+                code = EventManagementContract.ConfirmationFailureCode.REPOSITORY_UNAVAILABLE,
+                retryable = true
+            )
+        )
+    /**
+     * Persists the server acknowledgement for a locally committed decision.
+     * A non-durable repository cannot truthfully report a synced confirmation.
+     */
+    suspend fun markConfirmationSynced(
+        receiptId: String
+    ): EventManagementContract.ConfirmationProjection? = null
+    /**
+     * Reads the durable confirmation state for composition-time rehydration.
+     * Implementations without durable confirmation storage are reviewing-only.
+     */
+    fun loadConfirmationProjection(
+        eventId: String
+    ): EventManagementContract.ConfirmationProjection =
+        EventManagementContract.ConfirmationProjection.Reviewing(eventId)
     suspend fun queueWorkflowOutbox(record: WorkflowOutboxRecord): Result<Boolean> = Result.success(true)
     fun getWorkflowOutbox(eventId: String): List<WorkflowOutboxRecord> = emptyList()
     suspend fun saveEvent(event: Event): Result<Event>

@@ -141,8 +141,28 @@ data class APNsSanitizedDiagnostic(
 @JvmInline value class EffectKey(val value: String)
 @JvmInline value class RecipientKey(val value: String)
 @JvmInline value class DeliveryKey(val value: String)
+@JvmInline value class CalendarArtifactKey(val value: String)
+data class DeliveryAuthority(val value: String)
+
+/**
+ * The confirmation envelope is accepted before any participant effect can be sent.
+ *
+ * `DISABLED` is the production default: the backend may persist and acknowledge an
+ * envelope, but it must not resolve recipients, create calendar artifacts, or invoke a
+ * provider. Later rollout stages can shadow-write projections before enabling sends.
+ */
+enum class ConfirmationFanOutReadiness {
+    DISABLED,
+    SHADOW_WRITE,
+    ENABLED
+}
 
 enum class BackendRecipientStatus { PENDING_TARGET, TARGETED, EXPIRED }
+
+enum class BackendRecipientTerminalReason {
+    EXPIRED_WITHOUT_TARGET,
+    RETRY_EXHAUSTED
+}
 
 enum class BackendDeliveryStatus {
     QUEUED, LEASED, RETRY, UNKNOWN_OUTCOME, ACCEPTED_BY_APNS, INVALID_TOKEN,
@@ -172,6 +192,12 @@ data class BackendNotificationDelivery(
 
 data class BackendEnqueueResult(val delivery: BackendNotificationDelivery, val created: Boolean)
 
+data class BackendRecipientTerminalAcknowledgement(
+    val recipientKey: RecipientKey,
+    val reason: BackendRecipientTerminalReason,
+    val acknowledgedAtEpochSeconds: Long
+)
+
 /** Backend-owned persistence port. Local SQLDelight is intentionally not an implementation of this port. */
 interface BackendNotificationDeliveryStore {
     suspend fun persistPendingRecipient(recipient: BackendNotificationRecipient): Boolean
@@ -183,7 +209,35 @@ interface BackendNotificationDeliveryStore {
     suspend fun acquireLease(deliveryKey: DeliveryKey, owner: String, nowEpochSeconds: Long, leaseUntilEpochSeconds: Long): Boolean
     suspend fun recordRetry(deliveryKey: DeliveryKey, attempt: Int, nextAttemptAtEpochSeconds: Long): Boolean
     suspend fun isEligible(deliveryKey: DeliveryKey, nowEpochSeconds: Long): Boolean
+
+    /**
+     * A delivery authority is durable and unique. It is intentionally separate from the
+     * short-lived worker lease so a restart or a lease expiry cannot authorize two senders.
+     */
+    suspend fun acquireDeliveryAuthority(deliveryKey: String, authority: DeliveryAuthority): Boolean
+
+    /**
+     * Resolves a recipient that may have no registered installations yet. This does not
+     * enqueue a provider delivery; rollout readiness owns that separate decision.
+     */
+    suspend fun resolvePendingRecipient(recipientKey: String, nowEpochSeconds: Long): BackendRecipientStatus?
+
+    /** Persists a terminal zero-target/retry acknowledgement without creating a delivery. */
+    suspend fun recordRecipientTerminalAcknowledgement(
+        acknowledgement: BackendRecipientTerminalAcknowledgement
+    ): Boolean
 }
+
+/** Type-safe Kotlin conveniences while keeping the backend port inspectable from Java tooling. */
+suspend fun BackendNotificationDeliveryStore.acquireDeliveryAuthority(
+    deliveryKey: DeliveryKey,
+    authority: DeliveryAuthority
+): Boolean = acquireDeliveryAuthority(deliveryKey.value, authority)
+
+suspend fun BackendNotificationDeliveryStore.resolvePendingRecipient(
+    recipientKey: RecipientKey,
+    nowEpochSeconds: Long
+): BackendRecipientStatus? = resolvePendingRecipient(recipientKey.value, nowEpochSeconds)
 
 fun interface BackendNotificationDeliveryStoreFactory {
     fun open(): BackendNotificationDeliveryStore

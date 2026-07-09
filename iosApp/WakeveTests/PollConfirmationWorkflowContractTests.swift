@@ -4,6 +4,7 @@ import XCTest
 final class PollConfirmationWorkflowContractTests: XCTestCase {
     private let viewPath = "iosApp/src/Views/Polls/PollResultsView.swift"
     private let viewModelPath = "iosApp/src/ViewModels/PollConfirmationViewModel.swift"
+    private let actionButtonPath = "iosApp/src/Components/DesignSystem/WakeveDesignSystemComponents.swift"
 
     func testViewModelExposesEveryReviewedRenderState() throws {
         let source = readProjectFileIfPresent(viewModelPath)
@@ -79,6 +80,58 @@ final class PollConfirmationWorkflowContractTests: XCTestCase {
         )
     }
 
+    func testStartupRehydratesDurableConfirmationWithoutReplayingConfirmationEffects() throws {
+        let source = readProjectFileIfPresent(viewModelPath)
+        let initialization = slice(source, from: "init(", to: "deinit")
+        let rehydration = slice(source, from: "private func rehydrateConfirmation()", to: "private func ")
+
+        XCTAssertTrue(
+            initialization.contains("rehydrateConfirmation()"),
+            "Composition must load durable confirmation state when PollConfirmationViewModel starts."
+        )
+        XCTAssertTrue(
+            rehydration.contains("repository.loadConfirmationProjection(eventId: event.id)"),
+            "Startup must obtain the durable projection from the application-scoped repository."
+        )
+        XCTAssertTrue(
+            rehydration.contains("EventManagementContractIntentRehydrateConfirmation"),
+            "Startup must dispatch the typed RehydrateConfirmation intent."
+        )
+
+        for forbiddenEffect in [
+            "confirmEventDate(",
+            "confirmPollDate(",
+            "submitConfirmation(",
+            "WakeveHaptics.success()",
+            "onDateConfirmed(event.id)",
+            "navigate("
+        ] {
+            XCTAssertFalse(
+                rehydration.contains(forbiddenEffect),
+                "Rehydration must restore render state without replaying \(forbiddenEffect)."
+            )
+        }
+    }
+
+    func testRestoredReceiptRemainsHandledWhenSyncLaterCompletes() throws {
+        let source = readProjectFileIfPresent(viewModelPath)
+        let rehydration = slice(source, from: "private func rehydrateConfirmation()", to: "private func ")
+        let confirmedState = slice(
+            source,
+            from: "else if phase == EventManagementContract.ConfirmationPhase.confirmedPendingSync",
+            to: "private func handle"
+        )
+
+        XCTAssertTrue(
+            rehydration.contains("navigatedReceiptId = confirmed.receiptId"),
+            "A restored receipt must be marked handled before RehydrateConfirmation can emit later state updates."
+        )
+        XCTAssertTrue(
+            confirmedState.contains("navigatedReceiptId != receiptId"),
+            "A pending-to-synced update for the restored receipt must remain ineligible for haptic or navigation replay."
+        )
+    }
+
     func testPendingSyncCopyDoesNotClaimRemoteSuccessOrParticipantDelivery() throws {
         let view = readProjectFileIfPresent(viewPath)
 
@@ -105,6 +158,63 @@ final class PollConfirmationWorkflowContractTests: XCTestCase {
                 )
             }
         }
+    }
+
+    func testSyncedStateHasVisibleVoiceOverCopyWithoutDeliveryClaims() throws {
+        let view = readProjectFileIfPresent(viewPath)
+        let synced = slice(view, from: "case .synced:", to: "case ")
+
+        XCTAssertFalse(synced.contains("EmptyView()"), "Synced confirmation must remain visibly distinct from pending sync.")
+        XCTAssertTrue(synced.contains("poll.results.confirmation.synced.title"))
+        XCTAssertTrue(synced.contains("poll.results.confirmation.synced.message"))
+        XCTAssertTrue(synced.contains("pollConfirmationSyncedStatus"))
+        XCTAssertTrue(synced.contains("poll.results.confirmation.accessibility.synced"))
+
+        for locale in ["en", "fr", "es", "it", "pt"] {
+            let strings = readProjectFileIfPresent("iosApp/src/Resources/\(locale).lproj/Localizable.strings")
+            let syncedLines = strings
+                .split(separator: "\n")
+                .filter { $0.contains("poll.results.confirmation.synced") }
+                .joined(separator: " ")
+                .lowercased()
+
+            XCTAssertTrue(syncedLines.contains("synced.title"), "\(locale) is missing synced title copy.")
+            XCTAssertTrue(syncedLines.contains("synced.message"), "\(locale) is missing synced detail copy.")
+            XCTAssertTrue(syncedLines.contains("accessibility.synced"), "\(locale) is missing synced VoiceOver copy.")
+            for forbiddenClaim in ["participant", "calendar", "notifi", "particip", "calend", "notific"] {
+                XCTAssertFalse(
+                    syncedLines.contains(forbiddenClaim),
+                    "Synced copy may acknowledge only the decision sync, never participant notification or calendar delivery."
+                )
+            }
+        }
+    }
+
+    func testConfirmationDecisionSurfaceUsesDynamicTypeCompatibleTypography() throws {
+        let view = readProjectFileIfPresent(viewPath)
+        let actionButton = readProjectFileIfPresent(actionButtonPath)
+        let decisionHeader = slice(view, from: "// Header", to: "ScrollView")
+        let bestSlot = slice(view, from: "struct BestSlotCard", to: "// MARK: - Confirmed Date Card")
+        let confirmedDate = slice(view, from: "struct ConfirmedDateCard", to: "// MARK: - Poll Decision Announcement")
+        let status = slice(view, from: "private var confirmationStatus", to: "// MARK: - Poll Results Content View")
+
+        XCTAssertFalse(
+            decisionHeader.contains(".font(.system(size:"),
+            "The confirmation decision title must use Dynamic-Type-compatible typography."
+        )
+        XCTAssertFalse(
+            bestSlot.contains(".font(.system(size:"),
+            "The selected decision date must use Dynamic-Type-compatible typography."
+        )
+        XCTAssertFalse(
+            confirmedDate.contains(".font(.system(size:"),
+            "The confirmed decision date must use Dynamic-Type-compatible typography."
+        )
+        XCTAssertTrue(status.contains(".font(.callout") || status.contains(".font(.body"))
+        XCTAssertTrue(
+            actionButton.contains(".font(WakeveTheme.Typography.bodySemibold)"),
+            "The confirm action must use the shared Dynamic-Type-compatible text style."
+        )
     }
 
     func testEveryInteractiveAndStatusStateHasAnAccessibilityLabel() throws {

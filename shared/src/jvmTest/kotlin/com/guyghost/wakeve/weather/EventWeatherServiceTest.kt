@@ -8,6 +8,7 @@ import com.guyghost.wakeve.models.LocationType
 import com.guyghost.wakeve.models.Scenario
 import com.guyghost.wakeve.models.ScenarioStatus
 import com.guyghost.wakeve.models.TimeSlot
+import com.guyghost.wakeve.models.Vote
 import com.guyghost.wakeve.repository.DatabaseEventRepository
 import com.guyghost.wakeve.repository.ScenarioRepository
 import kotlinx.coroutines.runBlocking
@@ -308,12 +309,13 @@ class EventWeatherServiceTest {
                 organizerId = "organizer",
                 participants = listOf("organizer", "alice"),
                 proposedSlots = listOf(slot),
-                deadline = "2026-06-20T12:00:00Z",
-                status = EventStatus.DRAFT,
+                deadline = "9999-12-31T23:59:59Z",
+                status = EventStatus.POLLING,
                 createdAt = "2026-06-01T08:00:00Z",
                 updatedAt = "2026-06-01T08:00:00Z"
             )
         ).getOrThrow()
+        eventRepository.addVote("event-weather-1", "organizer", "slot-weather-1", Vote.YES).getOrThrow()
         eventRepository.confirmEventDate("event-weather-1", "slot-weather-1", "organizer").getOrThrow()
     }
 

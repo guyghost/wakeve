@@ -1,0 +1,72 @@
+-- Migration 7: classify legacy confirmed events after confirmation persistence
+-- has been provisioned by migration 6. This never creates retroactive effects.
+
+CREATE TABLE IF NOT EXISTS confirmationLegacyClassification (
+    eventId TEXT PRIMARY KEY NOT NULL,
+    classification TEXT NOT NULL,
+    slotId TEXT,
+    reason TEXT NOT NULL,
+    classifiedAt TEXT NOT NULL,
+    FOREIGN KEY (eventId) REFERENCES event(id) ON DELETE CASCADE
+);
+
+INSERT OR IGNORE INTO confirmationLegacyClassification(
+    eventId,
+    classification,
+    slotId,
+    reason,
+    classifiedAt
+)
+SELECT
+    event.id,
+    CASE
+        WHEN confirmedDate.eventId IS NOT NULL
+            AND timeSlot.id IS NOT NULL
+            AND timeSlot.eventId = event.id
+            AND timeSlot.startTime IS NOT NULL
+        THEN 'legacyApplied'
+        ELSE 'quarantined'
+    END,
+    CASE
+        WHEN confirmedDate.eventId IS NOT NULL
+            AND timeSlot.id IS NOT NULL
+            AND timeSlot.eventId = event.id
+            AND timeSlot.startTime IS NOT NULL
+        THEN confirmedDate.timeslotId
+        ELSE NULL
+    END,
+    CASE
+        WHEN confirmedDate.eventId IS NOT NULL
+            AND timeSlot.id IS NOT NULL
+            AND timeSlot.eventId = event.id
+            AND timeSlot.startTime IS NOT NULL
+        THEN 'unambiguous-confirmed-date'
+        ELSE 'missing-or-invalid-confirmed-date'
+    END,
+    COALESCE(confirmedDate.confirmedAt, event.updatedAt)
+FROM event
+LEFT JOIN confirmedDate ON confirmedDate.eventId = event.id
+LEFT JOIN timeSlot ON timeSlot.id = confirmedDate.timeslotId
+WHERE event.status = 'CONFIRMED'
+  AND NOT EXISTS (
+      SELECT 1 FROM confirmationReceipt WHERE confirmationReceipt.eventId = event.id
+  );
+
+INSERT OR IGNORE INTO confirmationReceipt(
+    operationId,
+    eventId,
+    slotId,
+    actorId,
+    requestedAt,
+    committedAt
+)
+SELECT
+    'legacy-confirmation:' || confirmationLegacyClassification.eventId,
+    confirmationLegacyClassification.eventId,
+    confirmedDate.timeslotId,
+    confirmedDate.confirmedByOrganizerId,
+    confirmedDate.confirmedAt,
+    confirmedDate.confirmedAt
+FROM confirmationLegacyClassification
+JOIN confirmedDate ON confirmedDate.eventId = confirmationLegacyClassification.eventId
+WHERE confirmationLegacyClassification.classification = 'legacyApplied';

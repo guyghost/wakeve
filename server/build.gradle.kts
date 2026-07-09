@@ -17,6 +17,16 @@ tasks.withType<Test> {
         "JWT_ISSUER" to jwtIssuer,
         "JWT_AUDIENCE" to jwtAudience
     )
+    // Production storage fails closed without an explicit path. Tests inject an isolated
+    // durable SQLite path so a newly opened store can model a worker restart.
+    doFirst {
+        temporaryDir.deleteRecursively()
+        temporaryDir.mkdirs()
+        systemProperty(
+            "wakeve.notification.delivery.db.path",
+            temporaryDir.resolve("notification-delivery.sqlite").absolutePath
+        )
+    }
 }
 
 kotlin {

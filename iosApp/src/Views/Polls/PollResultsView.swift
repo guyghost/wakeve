@@ -8,108 +8,161 @@ import UIKit
 /// Features: Clean results visualization, progress indicators, clear winner highlighting
 struct PollResultsView: View {
     let event: Event
-    let repository: EventRepositoryInterface
     let userId: String
     let onDateConfirmed: (String) -> Void
     let onBack: () -> Void
 
-    @State private var poll: Poll?
-    @State private var slotScores: [PollLogic.SlotScore] = []
-    @State private var bestSlot: TimeSlot?
-    @State private var isLoading = false
-    @State private var errorMessage = ""
-    @State private var showError = false
-    @State private var showSuccess = false
-    @State private var showConfirmDateDialog = false
+    @StateObject private var confirmationViewModel: PollConfirmationViewModel
+
+    init(
+        event: Event,
+        userId: String,
+        onDateConfirmed: @escaping (String) -> Void,
+        onBack: @escaping () -> Void
+    ) {
+        self.event = event
+        self.userId = userId
+        self.onDateConfirmed = onDateConfirmed
+        self.onBack = onBack
+        _confirmationViewModel = StateObject(
+            wrappedValue: PollConfirmationViewModel(
+                event: event,
+                actorId: userId,
+                onDateConfirmed: onDateConfirmed
+            )
+        )
+    }
 
     var body: some View {
         PollResultsContentView(
             event: event,
-            slotScores: slotScores,
-            bestSlot: bestSlot,
-            canConfirmDate: repository.isOrganizer(eventId: event.id, userId: userId),
-            isLoading: isLoading,
+            slotScores: confirmationViewModel.slotScores,
+            bestSlot: confirmationViewModel.bestSlot,
+            canConfirmDate: confirmationViewModel.canConfirmDate,
+            isLoading: confirmationViewModel.isConfirmActionDisabled,
             onConfirmDate: {
                 WakeveHaptics.selection()
-                showConfirmDateDialog = true
+                guard let slotId = confirmationViewModel.bestSlot?.id else { return }
+                confirmationViewModel.requestConfirmation(for: slotId)
             },
             onBack: onBack
         )
-        .onAppear {
-            loadPollResults()
-        }
-        .alert(String(localized: "common.error"), isPresented: $showError) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(errorMessage)
-        }
-        .alert(String(localized: "common.success"), isPresented: $showSuccess) {
-            Button("OK", role: .cancel) {
-                onDateConfirmed(event.id)
-            }
-        } message: {
-            Text(String(localized: "poll.results.date_confirmed"))
-        }
         .confirmationDialog(
             String(localized: "poll.results.confirm_dialog_title"),
-            isPresented: $showConfirmDateDialog,
+            isPresented: Binding(
+                get: { confirmationViewModel.state == .confirmPrompt },
+                set: { isPresented in
+                    if !isPresented {
+                        confirmationViewModel.cancelConfirmation()
+                    }
+                }
+            ),
             titleVisibility: .visible
         ) {
             Button(String(localized: "poll.results.confirm_date")) {
-                Task { await confirmDate() }
+                confirmationViewModel.submitConfirmation()
             }
-            Button(String(localized: "common.cancel"), role: .cancel) {}
+            .accessibilityIdentifier("pollConfirmationConfirmButton")
+            .accessibilityLabel(String(localized: "poll.results.confirmation.accessibility.confirm"))
+
+            Button(String(localized: "common.cancel"), role: .cancel) {
+                confirmationViewModel.cancelConfirmation()
+            }
+            .accessibilityIdentifier("pollConfirmationCancelButton")
+            .accessibilityLabel(String(localized: "poll.results.confirmation.accessibility.cancel"))
         } message: {
             Text(String(localized: "poll.results.confirm_dialog_message"))
         }
-    }
-
-    private func loadPollResults() {
-        poll = repository.getPoll(eventId: event.id)
-
-        if let poll = poll {
-            slotScores = PollLogic.shared.getSlotScores(poll: poll, slots: event.proposedSlots)
-
-            if let bestResult = PollLogic.shared.getBestSlotWithScore(poll: poll, slots: event.proposedSlots) {
-                bestSlot = bestResult.first
-            }
+        .overlay(alignment: .bottom) {
+            confirmationStatus
         }
     }
 
-    private func confirmDate() async {
-        guard let bestSlot = bestSlot else { return }
-
-        guard repository.isOrganizer(eventId: event.id, userId: userId) else {
-            errorMessage = String(localized: "poll.results.error.organizer_only")
-            showError = true
-            return
-        }
-
-        isLoading = true
-
-        do {
-            _ = try await repository.updateEventStatus(
-                id: event.id,
-                status: EventStatus.confirmed,
-                finalDate: bestSlot.id
-            )
-            let updatedEvent = repository.getEvent(id: event.id)
-
-            if updatedEvent?.status == EventStatus.confirmed {
-                isLoading = false
-                WakeveHaptics.success()
-                showSuccess = true
-            } else {
-                isLoading = false
-                WakeveHaptics.warning()
-                errorMessage = String(localized: "poll.results.error.confirm_failed")
-                showError = true
+    @ViewBuilder
+    private var confirmationStatus: some View {
+        switch confirmationViewModel.state {
+        case .confirming:
+            HStack(spacing: 10) {
+                ProgressView()
+                    .accessibilityIdentifier("pollConfirmationProgress")
+                    .accessibilityLabel(String(localized: "poll.results.confirmation.accessibility.progress"))
+                Text(String(localized: "poll.results.confirmation.progress"))
+                    .font(.callout.weight(.semibold))
             }
-        } catch {
-            isLoading = false
-            WakeveHaptics.warning()
-            errorMessage = error.localizedDescription
-            showError = true
+            .padding(14)
+            .background(.regularMaterial, in: Capsule())
+            .padding()
+
+        case .failed:
+            VStack(alignment: .leading, spacing: 10) {
+                Text(confirmationViewModel.failureMessage ?? String(localized: "poll.results.error.confirm_failed"))
+                    .font(.callout)
+                Button(String(localized: "poll.results.confirmation.retry")) {
+                    confirmationViewModel.retryConfirmation()
+                }
+                .accessibilityIdentifier("pollConfirmationRetryButton")
+                .accessibilityLabel(String(localized: "poll.results.confirmation.accessibility.retry"))
+            }
+            .padding(16)
+            .background(Color.red.opacity(0.14), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .accessibilityIdentifier("pollConfirmationError")
+            .accessibilityLabel(String(localized: "poll.results.confirmation.accessibility.error"))
+            .padding()
+
+        case .pendingSync:
+            VStack(alignment: .leading, spacing: 6) {
+                Text(String(localized: "poll.results.confirmation.pending_sync.title"))
+                    .font(.callout.weight(.semibold))
+                Text(String(localized: "poll.results.confirmation.pending_sync.message"))
+                    .font(.caption)
+            }
+            .padding(16)
+            .background(Color.orange.opacity(0.14), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .accessibilityIdentifier("pollConfirmationPendingSyncStatus")
+            .accessibilityLabel(String(localized: "poll.results.confirmation.accessibility.pending_sync"))
+            .padding()
+
+        case .synced:
+            VStack(alignment: .leading, spacing: 6) {
+                Text(String(localized: "poll.results.confirmation.synced.title"))
+                    .font(.callout.weight(.semibold))
+                Text(String(localized: "poll.results.confirmation.synced.message"))
+                    .font(.caption)
+            }
+            .padding(16)
+            .background(Color.green.opacity(0.14), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .accessibilityIdentifier("pollConfirmationSyncedStatus")
+            .accessibilityLabel(String(localized: "poll.results.confirmation.accessibility.synced"))
+            .padding()
+
+        case .legacyApplied:
+            VStack(alignment: .leading, spacing: 6) {
+                Text(String(localized: "poll.results.confirmation.legacy_applied.title"))
+                    .font(.callout.weight(.semibold))
+                Text(String(localized: "poll.results.confirmation.legacy_applied.message"))
+                    .font(.caption)
+            }
+            .padding(16)
+            .background(Color.secondary.opacity(0.12), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .accessibilityIdentifier("pollConfirmationLegacyAppliedStatus")
+            .accessibilityLabel(String(localized: "poll.results.confirmation.accessibility.legacy_applied"))
+            .padding()
+
+        case .quarantined:
+            VStack(alignment: .leading, spacing: 6) {
+                Text(String(localized: "poll.results.confirmation.quarantined.title"))
+                    .font(.callout.weight(.semibold))
+                Text(String(localized: "poll.results.confirmation.quarantined.message"))
+                    .font(.caption)
+            }
+            .padding(16)
+            .background(Color.orange.opacity(0.14), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .accessibilityIdentifier("pollConfirmationQuarantinedStatus")
+            .accessibilityLabel(String(localized: "poll.results.confirmation.accessibility.quarantined"))
+            .padding()
+
+        case .reviewingResults, .confirmPrompt:
+            EmptyView()
         }
     }
 }
@@ -148,12 +201,12 @@ struct PollResultsContentView: View {
 
                     VStack(spacing: 8) {
                         Text(String(localized: "poll.results.title"))
-                            .font(.system(size: 34, weight: .bold))
+                            .font(WakeveTheme.Typography.display)
                             .foregroundColor(.primary)
                             .frame(maxWidth: .infinity, alignment: .leading)
 
                         Text(event.title)
-                            .font(.system(size: 20, weight: .medium))
+                            .font(WakeveTheme.Typography.title2)
                             .foregroundColor(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
@@ -254,16 +307,18 @@ struct PollResultsContentView: View {
 
 struct BestSlotCard: View {
     let slot: TimeSlot
+    @ScaledMetric(relativeTo: .title2) private var starSize: CGFloat = 20
     
     var body: some View {
         VStack(spacing: 16) {
             HStack {
                 Image(systemName: "star.fill")
-                    .font(.system(size: 20))
+                    .font(.title2)
                     .foregroundColor(.yellow)
+                    .frame(width: starSize, height: starSize)
                 
                 Text(String(localized: "poll.results.best_time"))
-                    .font(.system(size: 20, weight: .bold))
+                    .font(WakeveTheme.Typography.section)
                     .foregroundColor(.primary)
                 
                 Spacer()
@@ -271,16 +326,16 @@ struct BestSlotCard: View {
             
             VStack(spacing: 8) {
                 Text(formatDate(slot.start ?? "", timezone: slot.timezone))
-                    .font(.system(size: 24, weight: .bold))
+                    .font(WakeveTheme.Typography.title)
                     .foregroundColor(.primary)
                 
                 HStack(spacing: 6) {
                     Image(systemName: "clock")
-                        .font(.system(size: 14))
+                        .font(.callout)
                         .foregroundColor(.secondary)
                     
                     Text("\(formatTime(slot.start ?? "", timezone: slot.timezone)) - \(formatTime(slot.end ?? "", timezone: slot.timezone))")
-                        .font(.system(size: 17))
+                        .font(WakeveTheme.Typography.body)
                         .foregroundColor(.secondary)
                 }
 
@@ -353,6 +408,7 @@ struct BestSlotCard: View {
 struct ConfirmedDateCard: View {
     let event: Event
     let finalSlot: TimeSlot?
+    @ScaledMetric(relativeTo: .largeTitle) private var confirmationIconSize: CGFloat = 64
     
     var body: some View {
         VStack(spacing: 20) {
@@ -360,21 +416,21 @@ struct ConfirmedDateCard: View {
             ZStack {
                 Circle()
                     .fill(Color.green.opacity(0.15))
-                    .frame(width: 64, height: 64)
+                    .frame(width: confirmationIconSize, height: confirmationIconSize)
                 
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 40))
+                    .font(.largeTitle)
                     .foregroundColor(.green)
             }
             
             // Title
             VStack(spacing: 8) {
                 Text(String(localized: "poll.results.confirmed_title"))
-                    .font(.system(size: 24, weight: .bold))
+                    .font(WakeveTheme.Typography.title)
                     .foregroundColor(.primary)
                 
                 Text(String(localized: "poll.results.confirmed_subtitle"))
-                    .font(.system(size: 15))
+                    .font(WakeveTheme.Typography.callout)
                     .foregroundColor(.secondary)
             }
             
@@ -382,16 +438,16 @@ struct ConfirmedDateCard: View {
             if let slot = finalSlot {
                 VStack(spacing: 8) {
                     Text(formatDate(slot.start ?? "", timezone: slot.timezone))
-                        .font(.system(size: 20, weight: .semibold))
+                        .font(WakeveTheme.Typography.section)
                         .foregroundColor(.primary)
                     
                     HStack(spacing: 6) {
                         Image(systemName: "clock")
-                            .font(.system(size: 14))
+                            .font(.caption)
                             .foregroundColor(.secondary)
                         
                         Text("\(formatTime(slot.start ?? "", timezone: slot.timezone)) - \(formatTime(slot.end ?? "", timezone: slot.timezone))")
-                            .font(.system(size: 15))
+                            .font(WakeveTheme.Typography.callout)
                             .foregroundColor(.secondary)
                     }
 
@@ -460,6 +516,7 @@ struct ConfirmedDateCard: View {
     }
 }
 
+// MARK: - Poll Decision Announcement
 // MARK: - Decision Announcement Card
 
 struct PollDecisionAnnouncementCard: View {

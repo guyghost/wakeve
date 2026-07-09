@@ -13,6 +13,7 @@ import com.guyghost.wakeve.presentation.state.EventManagementContract
 import com.guyghost.wakeve.presentation.usecase.CreateEventUseCase
 import com.guyghost.wakeve.presentation.usecase.LoadEventsUseCase
 import com.guyghost.wakeve.repository.EventRepositoryInterface
+import com.guyghost.wakeve.test.TypedConfirmationTestRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -193,6 +194,7 @@ class MockCreateEventUseCase {
 class EventManagementStateMachineEdgeCasesTest {
 
     private lateinit var mockRepository: MockEventRepository
+    private lateinit var confirmationRepository: TypedConfirmationTestRepository
     private lateinit var mockLoadUseCase: MockLoadEventsUseCase
     private lateinit var mockCreateUseCase: MockCreateEventUseCase
     private lateinit var testScope: TestScope
@@ -202,6 +204,7 @@ class EventManagementStateMachineEdgeCasesTest {
     @BeforeTest
     fun setup() {
         mockRepository = MockEventRepository()
+        confirmationRepository = TypedConfirmationTestRepository(mockRepository)
         mockLoadUseCase = MockLoadEventsUseCase()
         mockCreateUseCase = MockCreateEventUseCase()
         testScope = TestScope(testDispatcher)
@@ -211,9 +214,9 @@ class EventManagementStateMachineEdgeCasesTest {
     
     private fun createStateMachine() {
         stateMachine = EventManagementStateMachine(
-            loadEventsUseCase = LoadEventsUseCase(mockRepository),
-            createEventUseCase = CreateEventUseCase(mockRepository),
-            eventRepository = mockRepository,
+            loadEventsUseCase = LoadEventsUseCase(confirmationRepository),
+            createEventUseCase = CreateEventUseCase(confirmationRepository),
+            eventRepository = confirmationRepository,
             scope = testScope
         )
     }

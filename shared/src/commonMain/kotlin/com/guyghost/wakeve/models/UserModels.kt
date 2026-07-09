@@ -169,7 +169,22 @@ data class SyncResponse(
     val appliedChanges: Int,
     val conflicts: List<SyncConflict> = emptyList(),
     val serverTimestamp: String,
-    val message: String? = null
+    val message: String? = null,
+    /**
+     * Per-envelope receipts are additive so older clients may safely ignore them while
+     * confirmation producers can correlate one accepted decision without inferring that
+     * other changes in the batch were acknowledged.
+     */
+    val confirmationAcknowledgements: List<ConfirmationEnvelopeAcknowledgement> = emptyList()
+)
+
+/** Durable backend acknowledgement for one locally committed confirmation envelope. */
+@Serializable
+data class ConfirmationEnvelopeAcknowledgement(
+    val domainEventId: String,
+    val effectKey: String,
+    val operationId: String,
+    val receiptId: String
 )
 
 /**
@@ -210,7 +225,11 @@ data class SyncEventData(
     val description: String,
     val organizerId: String,
     val deadline: String,
-    val timezone: String
+    val timezone: String,
+    /** Optional decision payload; absent for ordinary event sync to preserve compatibility. */
+    val status: String? = null,
+    val confirmedSlotId: String? = null,
+    val finalDate: String? = null
 )
 
 @Serializable

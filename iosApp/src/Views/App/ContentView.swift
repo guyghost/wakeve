@@ -395,6 +395,7 @@ struct AuthenticatedView: View {
             if let event = selectedEvent {
                 ParticipantManagementView(
                     event: event,
+                    userId: userId,
                     repository: repository,
                     onParticipantsUpdated: {
                         // Refresh the event data
@@ -427,7 +428,6 @@ struct AuthenticatedView: View {
             if let event = selectedEvent {
                 PollResultsView(
                     event: event,
-                    repository: repository,
                     userId: userId,
                     onDateConfirmed: { _ in
                         currentView = .eventDetail

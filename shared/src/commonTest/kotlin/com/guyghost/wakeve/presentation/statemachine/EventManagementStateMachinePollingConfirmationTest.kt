@@ -1,5 +1,6 @@
 package com.guyghost.wakeve.presentation.statemachine
 
+import com.guyghost.wakeve.confirmation.confirmationEffectKeys
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.EventType
@@ -17,6 +18,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -129,6 +131,174 @@ class EventManagementStateMachinePollingConfirmationTest {
     }
 
     @Test
+    fun `retry reuses its original operation id`() = runTest {
+        val eventId = "event-stable-retry"
+        repository.events[eventId] = eventFixture(eventId, "organizer-1", EventStatus.POLLING)
+        repository.polls[eventId] = pollWithYesVote(eventId, "slot-1")
+        repository.confirmFailuresRemaining = 1
+
+        stateMachine.dispatch(EventManagementContract.Intent.OpenConfirmPrompt(eventId, "slot-1", "organizer-1"))
+        stateMachine.dispatch(EventManagementContract.Intent.SubmitConfirmation("stable-operation"))
+        machineScope.advanceUntilIdle()
+        stateMachine.dispatch(EventManagementContract.Intent.RetryConfirmation)
+        machineScope.advanceUntilIdle()
+
+        assertEquals(listOf("stable-operation", "stable-operation"), repository.confirmOperationIds)
+    }
+
+    @Test
+    fun `sync completion moves only the matching pending receipt to confirmed synced`() = runTest {
+        val eventId = "event-sync-completed"
+        repository.events[eventId] = eventFixture(eventId, "organizer-1", EventStatus.POLLING)
+        repository.polls[eventId] = pollWithYesVote(eventId, "slot-1")
+
+        stateMachine.dispatch(EventManagementContract.Intent.ConfirmDate(eventId, "slot-1", "organizer-1"))
+        machineScope.advanceUntilIdle()
+        val receiptId = stateMachine.state.value.confirmationReceiptId!!
+        assertEquals(EventManagementContract.ConfirmationPhase.CONFIRMED_PENDING_SYNC, stateMachine.state.value.confirmationPhase)
+
+        stateMachine.dispatch(EventManagementContract.Intent.SyncCompleted(receiptId))
+        machineScope.advanceUntilIdle()
+
+        assertEquals(EventManagementContract.ConfirmationPhase.CONFIRMED_SYNCED, stateMachine.state.value.confirmationPhase)
+        assertEquals(EventManagementContract.DecisionSyncStatus.SERVER_ACKNOWLEDGED, stateMachine.state.value.confirmationDecisionSyncStatus)
+    }
+
+    @Test
+    fun `rehydrate confirmed projection restores state without command or navigation`() = runTest {
+        val sideEffects = mutableListOf<EventManagementContract.SideEffect>()
+        val collector = machineScope.launch {
+            stateMachine.sideEffect.collect { sideEffects += it }
+        }
+        machineScope.advanceUntilIdle()
+        val projection = EventManagementContract.ConfirmationProjection.Confirmed(
+            eventId = "event-rehydrate",
+            slotId = "slot-1",
+            receiptId = "receipt-rehydrate",
+            decisionSyncStatus = EventManagementContract.DecisionSyncStatus.LOCAL_PENDING,
+            effectDispatchStatus = EventManagementContract.EffectDispatchStatus.QUEUED
+        )
+
+        stateMachine.dispatch(EventManagementContract.Intent.RehydrateConfirmation(projection))
+        machineScope.advanceUntilIdle()
+
+        assertEquals(EventManagementContract.ConfirmationPhase.CONFIRMED_PENDING_SYNC, stateMachine.state.value.confirmationPhase)
+        assertEquals("receipt-rehydrate", stateMachine.state.value.confirmationReceiptId)
+        assertEquals(0, repository.confirmCommandCount)
+        assertTrue(sideEffects.isEmpty(), "rehydration must not replay navigation or success feedback")
+        collector.cancel()
+    }
+
+    @Test
+    fun `rehydrate legacy projections are read only and emit no confirmation effects`() = runTest {
+        val sideEffects = mutableListOf<EventManagementContract.SideEffect>()
+        val collector = machineScope.launch {
+            stateMachine.sideEffect.collect { sideEffects += it }
+        }
+        machineScope.advanceUntilIdle()
+
+        stateMachine.dispatch(
+            EventManagementContract.Intent.RehydrateConfirmation(
+                EventManagementContract.ConfirmationProjection.LegacyApplied(
+                    eventId = "event-legacy-applied",
+                    slotId = "slot-legacy-applied",
+                    receiptId = "legacy-confirmation:event-legacy-applied"
+                )
+            )
+        )
+        machineScope.advanceUntilIdle()
+
+        assertEquals(EventManagementContract.ConfirmationPhase.LEGACY_APPLIED, stateMachine.state.value.confirmationPhase)
+        assertEquals(null, stateMachine.state.value.confirmationDecisionSyncStatus)
+        assertEquals(null, stateMachine.state.value.confirmationEffectDispatchStatus)
+        stateMachine.dispatch(
+            EventManagementContract.Intent.OpenConfirmPrompt(
+                "event-legacy-applied",
+                "slot-legacy-applied",
+                "organizer-1"
+            )
+        )
+        machineScope.advanceUntilIdle()
+        assertEquals(EventManagementContract.ConfirmationPhase.LEGACY_APPLIED, stateMachine.state.value.confirmationPhase)
+
+        stateMachine.dispatch(
+            EventManagementContract.Intent.ConfirmDate(
+                "event-legacy-applied",
+                "slot-legacy-applied",
+                "organizer-1"
+            )
+        )
+        machineScope.advanceUntilIdle()
+        assertEquals(EventManagementContract.ConfirmationPhase.LEGACY_APPLIED, stateMachine.state.value.confirmationPhase)
+
+        stateMachine.dispatch(
+            EventManagementContract.Intent.RehydrateConfirmation(
+                EventManagementContract.ConfirmationProjection.Quarantined(
+                    eventId = "event-legacy-quarantined",
+                    reason = "missing-or-invalid-confirmed-date"
+                )
+            )
+        )
+        machineScope.advanceUntilIdle()
+
+        assertEquals(EventManagementContract.ConfirmationPhase.QUARANTINED, stateMachine.state.value.confirmationPhase)
+        assertEquals("missing-or-invalid-confirmed-date", stateMachine.state.value.confirmationDiagnosticReason)
+        assertEquals(null, stateMachine.state.value.confirmationDecisionSyncStatus)
+        assertEquals(null, stateMachine.state.value.confirmationEffectDispatchStatus)
+        stateMachine.dispatch(
+            EventManagementContract.Intent.OpenConfirmPrompt(
+                "event-legacy-quarantined",
+                "slot-1",
+                "organizer-1"
+            )
+        )
+        machineScope.advanceUntilIdle()
+
+        assertEquals(EventManagementContract.ConfirmationPhase.QUARANTINED, stateMachine.state.value.confirmationPhase)
+        stateMachine.dispatch(
+            EventManagementContract.Intent.ConfirmDate(
+                "event-legacy-quarantined",
+                "slot-1",
+                "organizer-1"
+            )
+        )
+        machineScope.advanceUntilIdle()
+        assertEquals(EventManagementContract.ConfirmationPhase.QUARANTINED, stateMachine.state.value.confirmationPhase)
+        assertEquals(0, repository.confirmCommandCount)
+        assertTrue(sideEffects.isEmpty(), "legacy rehydration must not emit navigation or success feedback")
+        collector.cancel()
+    }
+
+    @Test
+    fun `read only replay result updates history state without toast or navigation`() = runTest {
+        val sideEffects = mutableListOf<EventManagementContract.SideEffect>()
+        val collector = machineScope.launch {
+            stateMachine.sideEffect.collect { sideEffects += it }
+        }
+        machineScope.advanceUntilIdle()
+        val eventId = "event-read-only-replay"
+        repository.events[eventId] = eventFixture(eventId, "organizer-1", EventStatus.POLLING)
+        repository.polls[eventId] = pollWithYesVote(eventId, "slot-1")
+        repository.readOnlyReplayProjection = EventManagementContract.ConfirmationProjection.LegacyApplied(
+            eventId = eventId,
+            slotId = "slot-1",
+            receiptId = "legacy-confirmation:$eventId"
+        )
+
+        stateMachine.dispatch(EventManagementContract.Intent.OpenConfirmPrompt(eventId, "slot-1", "organizer-1"))
+        machineScope.advanceUntilIdle()
+        stateMachine.dispatch(EventManagementContract.Intent.SubmitConfirmation("operation-read-only-replay"))
+        machineScope.advanceUntilIdle()
+
+        assertEquals(EventManagementContract.ConfirmationPhase.LEGACY_APPLIED, stateMachine.state.value.confirmationPhase)
+        assertEquals(null, stateMachine.state.value.confirmationDecisionSyncStatus)
+        assertEquals(null, stateMachine.state.value.confirmationEffectDispatchStatus)
+        assertEquals(0, repository.confirmCommandCount)
+        assertTrue(sideEffects.isEmpty(), "read-only recovery must not emit toast or navigation")
+        collector.cancel()
+    }
+
+    @Test
     fun `retry reuses the failed operation id and exposes typed failure`() = runTest {
         val eventId = "event-retry"
         repository.events[eventId] = eventFixture(eventId, "organizer-1", EventStatus.POLLING)
@@ -169,8 +339,11 @@ class EventManagementStateMachinePollingConfirmationTest {
         stateMachine.dispatch(EventManagementContract.Intent.ConfirmDate(eventId, slotId, organizerId))
         machineScope.advanceUntilIdle()
 
-        val outbox = repository.getWorkflowOutbox(eventId)
-        assertEquals(1, outbox.size, "Local confirmation must persist exactly one domain envelope")
+        assertEquals(
+            0,
+            repository.getWorkflowOutbox(eventId).size,
+            "The legacy workflow outbox must not stand in for the dedicated confirmation envelope"
+        )
     }
 
     @Test
@@ -236,7 +409,7 @@ class EventManagementStateMachinePollingConfirmationTest {
         machineScope.advanceUntilIdle()
 
         assertEquals(1, repository.confirmCommandCount)
-        assertEquals(1, repository.getWorkflowOutbox(eventId).size)
+        assertEquals(0, repository.getWorkflowOutbox(eventId).size)
     }
 
     @Test
@@ -268,9 +441,9 @@ class EventManagementStateMachinePollingConfirmationTest {
             }
         )
         assertEquals(
-            1,
+            0,
             repository.getWorkflowOutbox(eventId).size,
-            "Happy path must create one confirmation domain envelope and no provider artifacts"
+            "The state machine must not create a second, generic outbox envelope"
         )
     }
 
@@ -354,8 +527,12 @@ private class PollingConfirmationRepository : EventRepositoryInterface {
     val polls = mutableMapOf<String, Poll>()
     var deadlinePassed = false
     var confirmCommandCount = 0
+    val confirmOperationIds = mutableListOf<String>()
     var confirmFailuresRemaining = 0
+    var readOnlyReplayProjection: EventManagementContract.ConfirmationProjection.ReadOnly? = null
     private val workflowOutbox = mutableListOf<WorkflowOutboxRecord>()
+    private val confirmationReceipts = mutableMapOf<String, EventManagementContract.ConfirmationReceipt>()
+    private val confirmationSyncStatuses = mutableMapOf<String, EventManagementContract.DecisionSyncStatus>()
 
     override suspend fun createEvent(event: Event): Result<Event> {
         events[event.id] = event
@@ -424,6 +601,97 @@ private class PollingConfirmationRepository : EventRepositoryInterface {
         events[eventId] = event.copy(status = EventStatus.CONFIRMED, finalDate = finalDate)
         return Result.success(true)
     }
+
+    override suspend fun confirmPollDate(
+        command: EventManagementContract.ConfirmPollDateCommand
+    ): EventManagementContract.ConfirmationResult {
+        confirmOperationIds += command.operationId
+        readOnlyReplayProjection?.let { projection ->
+            return EventManagementContract.ConfirmationResult.ReadOnly(command.operationId, projection)
+        }
+        confirmationReceipts[command.operationId]?.let { receipt ->
+            return EventManagementContract.ConfirmationResult.AlreadyCommitted(
+                receipt = receipt,
+                projection = confirmationProjection(receipt)
+            )
+        }
+        confirmationReceipts.values.firstOrNull { it.eventId == command.eventId }?.let { receipt ->
+            return if (receipt.slotId == command.slotId) {
+                EventManagementContract.ConfirmationResult.AlreadyCommitted(
+                    receipt = receipt,
+                    projection = confirmationProjection(receipt)
+                )
+            } else {
+                EventManagementContract.ConfirmationResult.Conflict(
+                    operationId = command.operationId,
+                    failure = EventManagementContract.ConfirmationFailure(
+                        EventManagementContract.ConfirmationFailureCode.ALREADY_CONFIRMED_DIFFERENT_SLOT,
+                        retryable = false
+                    )
+                )
+            }
+        }
+        val legacyResult = confirmEventDate(
+            eventId = command.eventId,
+            slotId = command.slotId,
+            confirmedByOrganizerId = command.actorId
+        )
+        return legacyResult.fold(
+            onSuccess = {
+                val effectKeys = confirmationEffectKeys(command.eventId, command.slotId)
+                val receipt = EventManagementContract.ConfirmationReceipt(
+                    receiptId = command.operationId,
+                    operationId = command.operationId,
+                    eventId = command.eventId,
+                    slotId = command.slotId,
+                    actorId = command.actorId,
+                    committedAt = command.requestedAt.toString(),
+                    nextNavigationTarget = "event/${command.eventId}/scenarios",
+                    decisionSyncStatus = EventManagementContract.DecisionSyncStatus.LOCAL_PENDING,
+                    effectDispatchStatus = EventManagementContract.EffectDispatchStatus.QUEUED,
+                    effectOutbox = EventManagementContract.ConfirmationEffectOutbox(
+                        effectKeys.domainEventId,
+                        effectKeys.effectKey
+                    )
+                )
+                confirmationReceipts[command.operationId] = receipt
+                confirmationSyncStatuses[receipt.receiptId] = receipt.decisionSyncStatus
+                EventManagementContract.ConfirmationResult.Committed(
+                    receipt = receipt,
+                    projection = confirmationProjection(receipt)
+                )
+            },
+            onFailure = {
+                EventManagementContract.ConfirmationResult.Failed(
+                    operationId = command.operationId,
+                    failure = EventManagementContract.ConfirmationFailure(
+                        EventManagementContract.ConfirmationFailureCode.LOCAL_PERSISTENCE_FAILED,
+                        retryable = true
+                    )
+                )
+            }
+        )
+    }
+
+    override suspend fun markConfirmationSynced(
+        receiptId: String
+    ): EventManagementContract.ConfirmationProjection? {
+        val receipt = confirmationReceipts[receiptId] ?: return null
+        confirmationSyncStatuses[receiptId] = EventManagementContract.DecisionSyncStatus.SERVER_ACKNOWLEDGED
+        return confirmationProjection(receipt)
+    }
+
+    private fun confirmationProjection(
+        receipt: EventManagementContract.ConfirmationReceipt
+    ): EventManagementContract.ConfirmationProjection.Confirmed =
+        EventManagementContract.ConfirmationProjection.Confirmed(
+            eventId = receipt.eventId,
+            slotId = receipt.slotId,
+            receiptId = receipt.receiptId,
+            decisionSyncStatus = confirmationSyncStatuses[receipt.receiptId]
+                ?: receipt.decisionSyncStatus,
+            effectDispatchStatus = receipt.effectDispatchStatus
+        )
 
     override suspend fun saveEvent(event: Event): Result<Event> {
         events[event.id] = event

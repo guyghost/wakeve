@@ -35,6 +35,8 @@ object EventManagementContract {
         CONFIRMING,
         CONFIRMED_PENDING_SYNC,
         CONFIRMED_SYNCED,
+        LEGACY_APPLIED,
+        QUARANTINED,
         FAILED
     }
 
@@ -57,6 +59,75 @@ object EventManagementContract {
         val retryable: Boolean
     )
 
+    @Serializable
+    enum class DecisionSyncStatus {
+        LOCAL_PENDING,
+        SERVER_ACKNOWLEDGED
+    }
+
+    @Serializable
+    enum class EffectDispatchStatus {
+        QUEUED,
+        PARTIALLY_PROCESSED,
+        TERMINAL_WITH_FAILURES
+    }
+
+    @Serializable
+    data class ConfirmationEffectOutbox(
+        val domainEventId: String,
+        val effectKey: String
+    )
+
+    @Serializable
+    data class ConfirmationReceipt(
+        val receiptId: String,
+        val operationId: String,
+        val eventId: String,
+        val slotId: String,
+        val actorId: String,
+        val committedAt: String,
+        val nextNavigationTarget: String,
+        val decisionSyncStatus: DecisionSyncStatus,
+        val effectDispatchStatus: EffectDispatchStatus,
+        val effectOutbox: ConfirmationEffectOutbox
+    )
+
+    @Serializable
+    sealed interface ConfirmationProjection {
+        /** A projection that can be displayed but must never resume confirmation work. */
+        sealed interface ReadOnly : ConfirmationProjection
+
+        @Serializable
+        data class Reviewing(val eventId: String) : ConfirmationProjection
+
+        @Serializable
+        data class Confirmed(
+            val eventId: String,
+            val slotId: String,
+            val receiptId: String,
+            val decisionSyncStatus: DecisionSyncStatus,
+            val effectDispatchStatus: EffectDispatchStatus
+        ) : ConfirmationProjection
+
+        /**
+         * A confirmation migrated from before durable sync and effect envelopes existed.
+         * It is read-only: it must not be represented as pending current work.
+         */
+        @Serializable
+        data class LegacyApplied(
+            val eventId: String,
+            val slotId: String,
+            val receiptId: String
+        ) : ReadOnly
+
+        /** Historical confirmation data that requires diagnostics instead of a decision replay. */
+        @Serializable
+        data class Quarantined(
+            val eventId: String,
+            val reason: String
+        ) : ReadOnly
+    }
+
     data class ConfirmPollDateCommand(
         val operationId: String,
         val eventId: String,
@@ -66,7 +137,27 @@ object EventManagementContract {
     )
 
     sealed interface ConfirmationResult {
-        data class Committed(val operationId: String, val pendingSync: Boolean) : ConfirmationResult
+        /** A historical record was found; it must not be resumed as active confirmation work. */
+        data class ReadOnly(
+            val operationId: String,
+            val projection: ConfirmationProjection.ReadOnly
+        ) : ConfirmationResult
+
+        data class Committed(
+            val receipt: ConfirmationReceipt,
+            val projection: ConfirmationProjection
+        ) : ConfirmationResult
+
+        data class AlreadyCommitted(
+            val receipt: ConfirmationReceipt,
+            val projection: ConfirmationProjection
+        ) : ConfirmationResult
+
+        data class Conflict(
+            val operationId: String,
+            val failure: ConfirmationFailure
+        ) : ConfirmationResult
+
         data class Failed(val operationId: String, val failure: ConfirmationFailure) : ConfirmationResult
     }
 
@@ -104,6 +195,10 @@ object EventManagementContract {
         val confirmationActorId: String? = null,
         val confirmationSlotId: String? = null,
         val confirmationOperationId: String? = null,
+        val confirmationReceiptId: String? = null,
+        val confirmationDecisionSyncStatus: DecisionSyncStatus? = null,
+        val confirmationEffectDispatchStatus: EffectDispatchStatus? = null,
+        val confirmationDiagnosticReason: String? = null,
         val confirmationFailure: ConfirmationFailure? = null
     ) {
         /**
@@ -256,6 +351,12 @@ object EventManagementContract {
         data object RetryConfirmation : Intent
 
         data object DismissConfirmationFailure : Intent
+
+        data class SyncCompleted(val receiptId: String) : Intent
+
+        data class SyncFailed(val receiptId: String) : Intent
+
+        data class RehydrateConfirmation(val projection: ConfirmationProjection) : Intent
 
         /**
          * Transition event to organizing phase.

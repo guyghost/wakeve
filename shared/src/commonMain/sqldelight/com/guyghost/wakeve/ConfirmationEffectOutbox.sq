@@ -1,0 +1,29 @@
+CREATE TABLE confirmation_effect_outbox (
+    domainEventId TEXT PRIMARY KEY NOT NULL,
+    effectKey TEXT NOT NULL UNIQUE,
+    eventId TEXT NOT NULL,
+    slotId TEXT NOT NULL,
+    operationId TEXT NOT NULL,
+    status TEXT NOT NULL,
+    createdAt TEXT NOT NULL,
+    FOREIGN KEY (eventId) REFERENCES event(id) ON DELETE CASCADE,
+    FOREIGN KEY (slotId) REFERENCES timeSlot(id) ON DELETE CASCADE
+);
+
+selectByEventId:
+SELECT * FROM confirmation_effect_outbox WHERE eventId = ?;
+
+selectByDomainEventId:
+SELECT * FROM confirmation_effect_outbox WHERE domainEventId = ?;
+
+insertEnvelope:
+INSERT INTO confirmation_effect_outbox(
+    domainEventId,
+    effectKey,
+    eventId,
+    slotId,
+    operationId,
+    status,
+    createdAt
+)
+VALUES (?, ?, ?, ?, ?, ?, ?);

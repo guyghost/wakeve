@@ -4,14 +4,17 @@ import com.guyghost.wakeve.repository.DatabaseEventRepository
 import com.guyghost.wakeve.repository.UserRepository
 import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.SyncChange
+import com.guyghost.wakeve.models.ConfirmationEnvelopeAcknowledgement
 import com.guyghost.wakeve.models.SyncConflict
 import com.guyghost.wakeve.models.SyncEventData
 import com.guyghost.wakeve.models.SyncOperation
 import com.guyghost.wakeve.models.SyncParticipantData
 import com.guyghost.wakeve.models.SyncRequest
 import com.guyghost.wakeve.models.SyncResponse
+import com.guyghost.wakeve.notification.ConfirmationFanOutReadiness
 import com.guyghost.wakeve.models.SyncVoteData
 import kotlinx.datetime.Clock
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 /**
@@ -25,6 +28,12 @@ class SyncService(private val db: WakeveDb) {
 
     private val participantQueries = db.participantQueries
     private val voteQueries = db.voteQueries
+    private val confirmationEnvelopeIngestor = ConfirmationEnvelopeIngestor(
+        db = db,
+        eventRepository = eventRepository,
+        json = json,
+        fanOutReadiness = ConfirmationFanOutReadiness.DISABLED
+    )
 
     /**
      * Process a batch of sync changes from client
@@ -32,6 +41,7 @@ class SyncService(private val db: WakeveDb) {
     suspend fun processSyncChanges(request: SyncRequest, userId: String): SyncResponse {
         val conflicts = mutableListOf<SyncConflict>()
         var appliedChanges = 0
+        val confirmationAcknowledgements = mutableListOf<ConfirmationEnvelopeAcknowledgement>()
 
         try {
             for (change in request.changes) {
@@ -51,6 +61,7 @@ class SyncService(private val db: WakeveDb) {
                 val result = applySyncChange(change)
                 if (result.isSuccess) {
                     appliedChanges++
+                    result.getOrNull()?.confirmationAcknowledgement?.let(confirmationAcknowledgements::add)
                 } else {
                     // Handle conflict
                     val serverData = getServerData(change.table, change.recordId)
@@ -72,7 +83,11 @@ class SyncService(private val db: WakeveDb) {
                 appliedChanges = appliedChanges,
                 conflicts = conflicts,
                 serverTimestamp = serverTimestamp,
-                message = if (conflicts.isEmpty()) "All changes applied successfully" else "${conflicts.size} conflicts detected"
+                message = syncMessage(
+                    conflicts = conflicts,
+                    acknowledgedConfirmationEnvelope = confirmationAcknowledgements.isNotEmpty()
+                ),
+                confirmationAcknowledgements = confirmationAcknowledgements
             )
 
         } catch (e: Exception) {
@@ -81,7 +96,8 @@ class SyncService(private val db: WakeveDb) {
                 appliedChanges = appliedChanges,
                 conflicts = conflicts,
                 serverTimestamp = getCurrentUtcIsoString(),
-                message = serverSyncFailureMessage()
+                message = serverSyncFailureMessage(),
+                confirmationAcknowledgements = confirmationAcknowledgements
             )
         }
     }
@@ -89,11 +105,21 @@ class SyncService(private val db: WakeveDb) {
     /**
      * Apply a single sync change
      */
-    private suspend fun applySyncChange(change: SyncChange): Result<Unit> = runCatching {
+    private suspend fun applySyncChange(change: SyncChange): Result<SyncChangeDisposition> = runCatching {
         when (change.table) {
-            "events" -> applyEventChange(change)
-            "participants" -> applyParticipantChange(change)
-            "votes" -> applyVoteChange(change)
+            "events" -> {
+                applyEventChange(change)
+                SyncChangeDisposition.STANDARD
+            }
+            "participants" -> {
+                applyParticipantChange(change)
+                SyncChangeDisposition.STANDARD
+            }
+            "votes" -> {
+                applyVoteChange(change)
+                SyncChangeDisposition.STANDARD
+            }
+            "confirmation_effect_outbox" -> confirmationEnvelopeIngestor.acknowledge(change)
             else -> throw IllegalArgumentException("Unknown table: ${change.table}")
         }
     }
@@ -133,6 +159,11 @@ class SyncService(private val db: WakeveDb) {
                     throw IllegalArgumentException("Only the event organizer can sync event updates")
                 }
 
+                if (eventData.status == com.guyghost.wakeve.models.EventStatus.CONFIRMED.name) {
+                    applyConfirmedEventDecision(change, eventData)
+                    return
+                }
+
                 // Conflit : si la version serveur est plus recente, le serveur gagne
                 if (existing.updatedAt > change.timestamp) {
                     throw IllegalStateException("Server version is newer for event ${change.recordId}")
@@ -158,6 +189,54 @@ class SyncService(private val db: WakeveDb) {
                     eventRepository.deleteEvent(change.recordId)
                 }
                 // Deja supprime : rien a faire
+            }
+        }
+    }
+
+    /**
+     * Applies the server-side part of an already committed local confirmation before the
+     * dependent envelope is ingested. This is a single-server transaction only; it does not
+     * claim an atomic transaction with the mobile database or any fan-out provider.
+     */
+    private fun applyConfirmedEventDecision(change: SyncChange, eventData: SyncEventData) {
+        val slotId = eventData.confirmedSlotId
+            ?: throw IllegalArgumentException("Confirmed event sync requires confirmedSlotId")
+        val finalDate = eventData.finalDate
+            ?: throw IllegalArgumentException("Confirmed event sync requires finalDate")
+
+        db.transaction {
+            val event = db.eventQueries.selectById(change.recordId).executeAsOneOrNull()
+                ?: throw IllegalArgumentException("Event not found: ${change.recordId}")
+            if (event.organizerId != change.userId) {
+                throw IllegalArgumentException("Only the event organizer can sync confirmation")
+            }
+            val slot = db.timeSlotQueries.selectById(slotId).executeAsOneOrNull()
+                ?: throw IllegalArgumentException("Confirmed event sync slot was not found")
+            if (slot.eventId != change.recordId || slot.startTime != finalDate) {
+                throw IllegalArgumentException("Confirmed event sync does not match the selected slot")
+            }
+
+            val confirmedDate = db.confirmedDateQueries.selectByEventId(change.recordId).executeAsOneOrNull()
+            when {
+                confirmedDate == null && event.status == com.guyghost.wakeve.models.EventStatus.POLLING.name -> {
+                    val now = getCurrentUtcIsoString()
+                    db.eventQueries.updateEventStatus(
+                        status = com.guyghost.wakeve.models.EventStatus.CONFIRMED.name,
+                        updatedAt = now,
+                        id = change.recordId
+                    )
+                    db.confirmedDateQueries.insertConfirmedDate(
+                        id = "confirmed_${change.recordId}",
+                        eventId = change.recordId,
+                        timeslotId = slotId,
+                        confirmedByOrganizerId = change.userId,
+                        confirmedAt = change.timestamp,
+                        updatedAt = now
+                    )
+                }
+                confirmedDate?.timeslotId == slotId &&
+                    event.status == com.guyghost.wakeve.models.EventStatus.CONFIRMED.name -> Unit
+                else -> throw IllegalStateException("Confirmed event sync conflicts with the durable server decision")
             }
         }
     }
@@ -312,6 +391,141 @@ class SyncService(private val db: WakeveDb) {
      */
     private fun getCurrentUtcIsoString(): String {
         return Clock.System.now().toString()
+    }
+
+    private fun syncMessage(
+        conflicts: List<SyncConflict>,
+        acknowledgedConfirmationEnvelope: Boolean
+    ): String = when {
+        acknowledgedConfirmationEnvelope && conflicts.isEmpty() -> CONFIRMATION_ENVELOPE_ACKNOWLEDGED_PENDING_DISPATCH
+        conflicts.isEmpty() -> "All changes applied successfully"
+        else -> "${conflicts.size} conflicts detected"
+    }
+}
+
+/**
+ * The sync response remains deliberately generic for regular data changes. A confirmation
+ * envelope gets a narrow acknowledgement that means only server-side persistence succeeded;
+ * participant notification and calendar work are independent later stages.
+ */
+private const val CONFIRMATION_ENVELOPE_ACKNOWLEDGED_PENDING_DISPATCH =
+    "confirmation-envelope-acknowledged; effect-dispatch-pending; fan-out-disabled"
+
+private data class SyncChangeDisposition(
+    val confirmationAcknowledgement: ConfirmationEnvelopeAcknowledgement? = null
+) {
+    companion object {
+        val STANDARD = SyncChangeDisposition()
+    }
+}
+
+@Serializable
+private data class ConfirmationEffectEnvelopePayload(
+    val domainEventId: String,
+    val effectKey: String,
+    val eventId: String,
+    val slotId: String,
+    val operationId: String,
+    val createdAt: String
+)
+
+/**
+ * Server-side acknowledgement boundary for a locally committed confirmation envelope.
+ *
+ * The local database and the server database are distinct. This component never implies a
+ * cross-database transaction and never invokes recipient, calendar, or provider fan-out.
+ */
+private class ConfirmationEnvelopeIngestor(
+    private val db: WakeveDb,
+    private val eventRepository: DatabaseEventRepository,
+    private val json: Json,
+    private val fanOutReadiness: ConfirmationFanOutReadiness
+) {
+    fun acknowledge(change: SyncChange): SyncChangeDisposition {
+        require(SyncOperation.valueOf(change.operation) == SyncOperation.CREATE) {
+            "Confirmation envelope acknowledgement only accepts CREATE"
+        }
+        val envelope = json.decodeFromString<ConfirmationEffectEnvelopePayload>(change.data)
+        require(envelope.domainEventId == change.recordId) {
+            "Confirmation envelope record identity does not match its domain event identity"
+        }
+        require(envelope.effectKey == "${envelope.domainEventId}:confirmation") {
+            "Confirmation envelope effect identity is invalid"
+        }
+        require(envelope.domainEventId == "poll-date-confirmed:${envelope.eventId}:${envelope.slotId}:v1") {
+            "Confirmation envelope domain identity is invalid"
+        }
+        require(envelope.operationId.isNotBlank() && envelope.createdAt.isNotBlank()) {
+            "Confirmation envelope requires operation and creation timestamps"
+        }
+
+        val event = eventRepository.getEvent(envelope.eventId)
+            ?: error("Confirmation envelope event was not found")
+        require(event.organizerId == change.userId) {
+            "Only the event organizer can acknowledge a confirmation envelope"
+        }
+        require(event.status == com.guyghost.wakeve.models.EventStatus.CONFIRMED) {
+            "Confirmation envelope event is not confirmed"
+        }
+        val slot = db.timeSlotQueries.selectById(envelope.slotId).executeAsOneOrNull()
+            ?: error("Confirmation envelope slot was not found")
+        require(slot.eventId == envelope.eventId) {
+            "Confirmation envelope slot does not belong to its event"
+        }
+        val confirmedDate = db.confirmedDateQueries
+            .selectByEventId(envelope.eventId)
+            .executeAsOneOrNull()
+            ?: error("Confirmation envelope event does not have a durable confirmed date")
+        require(confirmedDate.timeslotId == envelope.slotId) {
+            "Confirmation envelope slot does not match the durable confirmed date"
+        }
+        db.transaction {
+            val existing = db.confirmationEffectOutboxQueries
+                .selectByDomainEventId(envelope.domainEventId)
+                .executeAsOneOrNull()
+            if (existing == null) {
+                db.confirmationEffectOutboxQueries.insertEnvelope(
+                    domainEventId = envelope.domainEventId,
+                    effectKey = envelope.effectKey,
+                    eventId = envelope.eventId,
+                    slotId = envelope.slotId,
+                    operationId = envelope.operationId,
+                    status = ACKNOWLEDGED_PENDING_DISPATCH_STATUS,
+                    createdAt = envelope.createdAt
+                )
+            } else {
+                require(
+                    existing.effectKey == envelope.effectKey &&
+                        existing.eventId == envelope.eventId &&
+                        existing.slotId == envelope.slotId &&
+                        existing.operationId == envelope.operationId
+                ) {
+                    "Confirmation envelope conflicts with a prior acknowledgement"
+                }
+            }
+        }
+
+        // The readiness value is deliberately consumed here rather than inferred from a
+        // configuration string. Until a future rollout uses SHADOW_WRITE/ENABLED, no effect
+        // dispatcher is reachable from this acknowledgement path.
+        check(fanOutReadiness == ConfirmationFanOutReadiness.DISABLED) {
+            "Confirmation fan-out readiness must be explicitly implemented before dispatch"
+        }
+        return SyncChangeDisposition(
+            confirmationAcknowledgement = ConfirmationEnvelopeAcknowledgement(
+                domainEventId = envelope.domainEventId,
+                effectKey = envelope.effectKey,
+                operationId = envelope.operationId,
+                receiptId = acknowledgementReceiptId(envelope.domainEventId)
+            )
+        )
+    }
+
+    private companion object {
+        const val ACKNOWLEDGED_PENDING_DISPATCH_STATUS = "ACKNOWLEDGED_PENDING_DISPATCH"
+
+        fun acknowledgementReceiptId(domainEventId: String): String =
+            "confirmation-envelope-ack:$domainEventId"
     }
 }
 

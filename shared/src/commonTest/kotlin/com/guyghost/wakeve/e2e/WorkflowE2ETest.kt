@@ -2,6 +2,7 @@ package com.guyghost.wakeve.e2e
 
 import com.guyghost.wakeve.repository.EventRepository
 import com.guyghost.wakeve.repository.EventRepositoryInterface
+import com.guyghost.wakeve.test.TypedConfirmationTestRepository
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.EventType
@@ -86,7 +87,7 @@ class MockNotificationServiceForE2E {
 @OptIn(ExperimentalCoroutinesApi::class)
 class WorkflowE2ETest {
 
-    private lateinit var repository: EventRepository
+    private lateinit var repository: TypedConfirmationTestRepository
     private lateinit var notificationService: MockNotificationServiceForE2E
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var testScope: TestScope
@@ -95,7 +96,7 @@ class WorkflowE2ETest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         testScope = TestScope(testDispatcher)
-        repository = EventRepository()
+        repository = TypedConfirmationTestRepository(EventRepository())
         notificationService = MockNotificationServiceForE2E()
     }
 
@@ -339,7 +340,7 @@ class WorkflowE2ETest {
         // Given: An offline-capable repository wrapper
         val eventId = "e2e-event-3"
         val organizerId = "organizer-3"
-        val offlineRepository = OfflineCapableRepository(EventRepository())
+        val offlineRepository = OfflineCapableRepository(TypedConfirmationTestRepository(EventRepository()))
         
         val event = createTestEvent(eventId, organizerId, status = EventStatus.DRAFT)
         offlineRepository.createEvent(event)
@@ -472,14 +473,14 @@ class WorkflowE2ETest {
  * Stores changes locally when offline and syncs when online.
  */
 class OfflineCapableRepository(
-    private val underlying: EventRepository
+    private val underlying: EventRepositoryInterface
 ) : EventRepositoryInterface by underlying {
     
     private var offline = false
     private val pendingOperations = mutableListOf<PendingOperation>()
     
     enum class PendingOperationType {
-        UPDATE_STATUS, ADD_VOTE, ADD_PARTICIPANT, UPDATE_EVENT
+        UPDATE_STATUS, ADD_VOTE, ADD_PARTICIPANT, UPDATE_EVENT, CONFIRM_POLL_DATE
     }
     
     data class PendingOperation(
@@ -549,5 +550,21 @@ class OfflineCapableRepository(
         } else {
             underlying.addVote(eventId, participantId, slotId, vote)
         }
+    }
+
+    override suspend fun confirmPollDate(
+        command: EventManagementContract.ConfirmPollDateCommand
+    ): EventManagementContract.ConfirmationResult {
+        val result = underlying.confirmPollDate(command)
+        if (offline && result is EventManagementContract.ConfirmationResult.Committed) {
+            pendingOperations.add(
+                PendingOperation(
+                    PendingOperationType.CONFIRM_POLL_DATE,
+                    command.eventId,
+                    mapOf("operationId" to command.operationId, "slotId" to command.slotId)
+                )
+            )
+        }
+        return result
     }
 }
