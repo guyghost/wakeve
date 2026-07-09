@@ -3,247 +3,247 @@
   "files": [
     {
       "path": "composeApp/src/androidMain/AndroidManifest.xml",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/App.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/deeplink/DeepLinkHandler.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/di/PlatformModule.android.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ExploreTabScreen.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/gamification/BadgeDismissReceiver.kt",
-      "category": "ai-entry-point"
+      "category": "gamification-or-profile"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/InboxScreenWrapper.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/LoginScreen.android.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/LoginScreen.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/MainActivity.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/AuthCallbacks.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/Screen.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/ScreenWrappers.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/WakeveAdaptiveNavigationScaffold.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/WakeveBottomBar.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/WakeveNavHost.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/WakeveNavKey.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/notification/NotificationChannelManager.kt",
-      "category": "ai-entry-point"
+      "category": "delivery-or-siri"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/notification/NotificationClickTarget.kt",
-      "category": "ai-entry-point"
+      "category": "delivery-or-siri"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/notification/RichNotificationManager.kt",
-      "category": "ai-entry-point"
+      "category": "delivery-or-siri"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/preview/factories/InboxItemFactory.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ProfileTabScreen.kt",
-      "category": "ai-entry-point"
+      "category": "gamification-or-profile"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/security/AndroidSecureTokenStorage.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/service/FCMService.kt",
-      "category": "ai-entry-point"
+      "category": "delivery-or-siri"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/SyncStatusIndicator.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/accommodation/AccommodationScreen.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/activity/ActivityDialogs.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/activity/ActivityPlanningScreen.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/auth/GetStartedScreen.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/budget/BudgetDetailScreen.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/budget/BudgetOverviewScreen.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/collaboration/CommentInput.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/collaboration/CommentItem.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/collaboration/CommentListScreen.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/comment/CommentFab.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/comment/CommentsScreen.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/components/TimeSlotInputAndroid.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/components/WakeveAsyncImage.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/components/WakeveAsyncImagePreview.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/equipment/EquipmentChecklistScreen.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/equipment/EquipmentDialogs.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/event/CalendarIntegrationCard.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/event/DraftEventWizard.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/event/ModernEventDetailView.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/inbox/InboxScreenPreview.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/invitation/InvitationShareScreen.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/meal/MealDialogs.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/meal/MealPlanningScreen.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/notification/NotificationPreferencesScreen.kt",
-      "category": "ai-entry-point"
+      "category": "delivery-or-siri"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/notification/NotificationsScreen.kt",
-      "category": "ai-entry-point"
+      "category": "delivery-or-siri"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/screens/AlbumsScreen.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/screens/SettingsScreen.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/sync/ConflictResolutionDialog.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/WakeveApplication.kt",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/res/values-de/strings.xml",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/res/values-en/strings.xml",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/res/values-es/strings.xml",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/res/values-it/strings.xml",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/res/values-pt/strings.xml",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/res/values/strings.xml",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "composeApp/src/androidMain/res/xml/shortcuts.xml",
-      "category": "ai-entry-point"
+      "category": "android-ui"
     },
     {
       "path": "iosApp/src/Components/AddToCalendarButton.swift",
@@ -251,7 +251,7 @@
     },
     {
       "path": "iosApp/src/Components/AIBadgeView.swift",
-      "category": "ai-entry-point"
+      "category": "gamification-or-profile"
     },
     {
       "path": "iosApp/src/Components/BackgroundPickerSheet.swift",
@@ -367,7 +367,7 @@
     },
     {
       "path": "iosApp/src/Services/IosNotificationRegistrationAdapter.swift",
-      "category": "ios-ui"
+      "category": "delivery-or-siri"
     },
     {
       "path": "iosApp/src/Services/ModerationService.swift",
@@ -379,7 +379,7 @@
     },
     {
       "path": "iosApp/src/Siri/WakeveSiriManager.swift",
-      "category": "ios-ui"
+      "category": "delivery-or-siri"
     },
     {
       "path": "iosApp/src/Theme/DesignSystem.swift",
@@ -403,7 +403,7 @@
     },
     {
       "path": "iosApp/src/ViewModels/EventDetailViewModel.swift",
-      "category": "ai-entry-point"
+      "category": "ios-ui"
     },
     {
       "path": "iosApp/src/ViewModels/EventPollStartController.swift",
@@ -419,7 +419,7 @@
     },
     {
       "path": "iosApp/src/ViewModels/MeetingDetailViewModel.swift",
-      "category": "ai-entry-point"
+      "category": "ios-ui"
     },
     {
       "path": "iosApp/src/ViewModels/MeetingListViewModel.swift",
@@ -427,7 +427,7 @@
     },
     {
       "path": "iosApp/src/ViewModels/NotificationPreferencesViewModel.swift",
-      "category": "ios-ui"
+      "category": "delivery-or-siri"
     },
     {
       "path": "iosApp/src/ViewModels/PollConfirmationViewModel.swift",
@@ -439,7 +439,7 @@
     },
     {
       "path": "iosApp/src/ViewModels/ScenarioDetailViewModel.swift",
-      "category": "ai-entry-point"
+      "category": "ios-ui"
     },
     {
       "path": "iosApp/src/ViewModels/ScenarioListViewModel.swift",
@@ -467,7 +467,7 @@
     },
     {
       "path": "iosApp/src/Views/Budget/BudgetDetailView.swift",
-      "category": "ai-entry-point"
+      "category": "ios-ui"
     },
     {
       "path": "iosApp/src/Views/Budget/BudgetItemRow.swift",
@@ -487,7 +487,7 @@
     },
     {
       "path": "iosApp/src/Views/EventDetailExperienceView.swift",
-      "category": "ai-entry-point"
+      "category": "ios-ui"
     },
     {
       "path": "iosApp/src/Views/Events/CreateEventSheet.swift",
@@ -519,7 +519,7 @@
     },
     {
       "path": "iosApp/src/Views/Explore/ExploreScenarioDetailView.swift",
-      "category": "ai-entry-point"
+      "category": "ios-ui"
     },
     {
       "path": "iosApp/src/Views/Explore/ExploreTabView.swift",
@@ -531,7 +531,7 @@
     },
     {
       "path": "iosApp/src/Views/Inbox/InboxDetailView.swift",
-      "category": "ai-entry-point"
+      "category": "ios-ui"
     },
     {
       "path": "iosApp/src/Views/Inbox/InboxView.swift",
@@ -539,7 +539,7 @@
     },
     {
       "path": "iosApp/src/Views/Meeting/MeetingDetailView.swift",
-      "category": "ai-entry-point"
+      "category": "ios-ui"
     },
     {
       "path": "iosApp/src/Views/Meeting/MeetingGenerateLinkSheet.swift",
@@ -555,7 +555,7 @@
     },
     {
       "path": "iosApp/src/Views/Notifications/NotificationPreferencesView.swift",
-      "category": "ios-ui"
+      "category": "delivery-or-siri"
     },
     {
       "path": "iosApp/src/Views/Polls/PollResultsView.swift",
@@ -579,123 +579,123 @@
     },
     {
       "path": "server/src/main/kotlin/com/guyghost/wakeve/Application.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "server/src/main/kotlin/com/guyghost/wakeve/auth/AuthenticationService.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "server/src/main/kotlin/com/guyghost/wakeve/i18n/ServerLocalization.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "server/src/main/kotlin/com/guyghost/wakeve/models/EquipmentDTOs.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "server/src/main/kotlin/com/guyghost/wakeve/notification/APNsProductionContracts.kt",
-      "category": "ai-entry-point"
+      "category": "delivery-or-siri"
     },
     {
       "path": "server/src/main/kotlin/com/guyghost/wakeve/notification/EventNotificationTrigger.kt",
-      "category": "ai-entry-point"
+      "category": "delivery-or-siri"
     },
     {
       "path": "server/src/main/kotlin/com/guyghost/wakeve/notification/NotificationScheduler.kt",
-      "category": "ai-entry-point"
+      "category": "delivery-or-siri"
     },
     {
       "path": "server/src/main/kotlin/com/guyghost/wakeve/notification/PushNotificationSender.kt",
-      "category": "ai-entry-point"
+      "category": "delivery-or-siri"
     },
     {
       "path": "server/src/main/kotlin/com/guyghost/wakeve/notification/SqliteBackendNotificationDeliveryStore.kt",
-      "category": "ai-entry-point"
+      "category": "delivery-or-siri"
     },
     {
       "path": "server/src/main/kotlin/com/guyghost/wakeve/routes/AnalyticsRoutes.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "server/src/main/kotlin/com/guyghost/wakeve/routes/AuthRoutes.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "server/src/main/kotlin/com/guyghost/wakeve/routes/BudgetRoutes.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "server/src/main/kotlin/com/guyghost/wakeve/routes/CalendarRoutes.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "server/src/main/kotlin/com/guyghost/wakeve/routes/CommentRoutes.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "server/src/main/kotlin/com/guyghost/wakeve/routes/EquipmentRoutes.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "server/src/main/kotlin/com/guyghost/wakeve/routes/EventRoutes.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "server/src/main/kotlin/com/guyghost/wakeve/routes/InvitationRoutes.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "server/src/main/kotlin/com/guyghost/wakeve/routes/MealRoutes.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "server/src/main/kotlin/com/guyghost/wakeve/routes/ModerationRouteGuards.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "server/src/main/kotlin/com/guyghost/wakeve/routes/NotificationRoutes.kt",
-      "category": "ai-entry-point"
+      "category": "delivery-or-siri"
     },
     {
       "path": "server/src/main/kotlin/com/guyghost/wakeve/routes/ParticipantRoutes.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "server/src/main/kotlin/com/guyghost/wakeve/routes/PotentialLocationRoutes.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "server/src/main/kotlin/com/guyghost/wakeve/routes/ScenarioRoutes.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "server/src/main/kotlin/com/guyghost/wakeve/routes/TransportRoutes.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "server/src/main/kotlin/com/guyghost/wakeve/routes/VoteRoutes.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "server/src/main/kotlin/com/guyghost/wakeve/routing/ChatService.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "server/src/main/kotlin/com/guyghost/wakeve/routing/ChatWebSocket.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "server/src/main/resources/META-INF/services/com.guyghost.wakeve.notification.BackendNotificationDeliveryStoreFactory",
-      "category": "ai-entry-point"
+      "category": "delivery-or-siri"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/activity/ActivityManager.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/activity/ActivityRepository.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/ai/AiInteractionMetadata.kt",
@@ -707,91 +707,91 @@
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/analytics/AnalyticsEvent.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/analytics/AnalyticsQueue.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/auth/AuthStateManager.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/auth/core/logic/validateOTP.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/auth/core/validation/AuthValidators.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/auth/SessionManager.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/auth/SessionRepository.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/auth/shell/services/EmailAuthService.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/auth/shell/services/GuestModeService.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/budget/BudgetCalculator.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/budget/BudgetRepository.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/collaboration/MentionParser.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/comment/CommentNotificationRetryService.kt",
-      "category": "ai-entry-point"
+      "category": "delivery-or-siri"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/comment/CommentNotificationService.kt",
-      "category": "ai-entry-point"
+      "category": "delivery-or-siri"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/comment/CommentRepository.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/deeplink/DeepLink.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/deeplink/DeepLinkFactory.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/equipment/EquipmentManager.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/gamification/BadgeAssets.kt",
-      "category": "ai-entry-point"
+      "category": "gamification-or-profile"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/gamification/BadgeNotificationService.kt",
-      "category": "ai-entry-point"
+      "category": "gamification-or-profile"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/meal/MealPlanner.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/meeting/MeetingService.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/ml/DefaultSharingSuggestionService.kt",
@@ -799,203 +799,203 @@
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/models/Album.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/models/AlbumModels.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/models/ApiModels.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/models/BadgeModels.kt",
-      "category": "ai-entry-point"
+      "category": "gamification-or-profile"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/models/CommentModels.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/models/EquipmentModels.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/models/InboxModels.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/models/NotificationModels.kt",
-      "category": "ai-entry-point"
+      "category": "delivery-or-siri"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/models/ScenarioModels.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/models/TransportModels.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/models/UserModels.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/AdvancedNotificationScheduler.kt",
-      "category": "ai-entry-point"
+      "category": "delivery-or-siri"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/NotificationCategory.kt",
-      "category": "ai-entry-point"
+      "category": "delivery-or-siri"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/NotificationDeepLinkIntegration.kt",
-      "category": "ai-entry-point"
+      "category": "delivery-or-siri"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/NotificationDeliveryPolicy.kt",
-      "category": "ai-entry-point"
+      "category": "delivery-or-siri"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/NotificationPreferences.kt",
-      "category": "ai-entry-point"
+      "category": "delivery-or-siri"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/NotificationPreferencesRepository.kt",
-      "category": "ai-entry-point"
+      "category": "delivery-or-siri"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/NotificationPriority.kt",
-      "category": "ai-entry-point"
+      "category": "delivery-or-siri"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/NotificationRequest.kt",
-      "category": "ai-entry-point"
+      "category": "delivery-or-siri"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/NotificationScheduler.kt",
-      "category": "ai-entry-point"
+      "category": "delivery-or-siri"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/NotificationScheduleValidation.kt",
-      "category": "ai-entry-point"
+      "category": "delivery-or-siri"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/NotificationService.kt",
-      "category": "ai-entry-point"
+      "category": "delivery-or-siri"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/NotificationServiceInterface.kt",
-      "category": "ai-entry-point"
+      "category": "delivery-or-siri"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/NotificationTypes.kt",
-      "category": "ai-entry-point"
+      "category": "delivery-or-siri"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/RichNotification.kt",
-      "category": "ai-entry-point"
+      "category": "delivery-or-siri"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/RichNotificationService.kt",
-      "category": "ai-entry-point"
+      "category": "delivery-or-siri"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/organization/EventOrganizationReadinessRepository.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/Platform.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/state/EventManagementContract.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/state/MeetingManagementContract.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/state/ScenarioManagementContract.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/statemachine/MeetingServiceStateMachine.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/statemachine/ScenarioManagementStateMachine.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/usecase/CreateScenarioUseCase.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/usecase/DeleteScenarioUseCase.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/usecase/GenerateMeetingLinkUseCase.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/usecase/LoadScenariosUseCase.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/usecase/UpdateScenarioUseCase.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/usecase/VoteScenarioUseCase.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/repository/AlbumRepository.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/repository/DatabaseEventRepository.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/repository/EventRepository.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/repository/ScenarioRepository.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/repository/UserPreferencesRepository.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/repository/UserRepository.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/sample/SampleEventFactory.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/scenario/ScenarioMatrixGenerationService.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/services/PhotoRecognitionService.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/services/SmartSharingService.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/services/VoiceAssistantServiceImpl.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/suggestions/DatabaseSuggestionPreferencesRepository.kt",
@@ -1007,51 +1007,51 @@
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/transport/TransportRepository.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/voice/handlers/VoiceActionHandlers.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/weather/EventWeatherModels.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/weather/EventWeatherService.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/weather/ScenarioEventWeatherRepository.kt",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/resources/README.md",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/sqldelight/com/guyghost/wakeve/Activity.sq",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/sqldelight/com/guyghost/wakeve/Album.sq",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/sqldelight/com/guyghost/wakeve/Notification.sq",
-      "category": "ai-entry-point"
+      "category": "delivery-or-siri"
     },
     {
       "path": "shared/src/commonMain/sqldelight/com/guyghost/wakeve/Scenario.sq",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/sqldelight/com/guyghost/wakeve/ScenarioVote.sq",
-      "category": "ai-entry-point"
+      "category": "shared"
     },
     {
       "path": "shared/src/commonMain/sqldelight/com/guyghost/wakeve/User.sq",
-      "category": "ai-entry-point"
+      "category": "shared"
     }
   ]
 }
