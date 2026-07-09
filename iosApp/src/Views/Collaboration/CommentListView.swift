@@ -57,7 +57,7 @@ struct CommentListView: View {
     @State private var moderationTarget: ModerationActionTarget?
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 VStack(spacing: 0) {
                     // Header

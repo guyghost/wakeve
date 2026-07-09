@@ -252,6 +252,66 @@ final class PremiumDesignSystemContractTests: XCTestCase {
         XCTAssertFalse(budgetRow.contains("List {"), "Budget row previews should not reintroduce native List chrome.")
     }
 
+    func testLiquidGlassContinuousMotionHonorsReduceMotion() throws {
+        let animations = try readProjectFile("iosApp/src/Components/LiquidGlassAnimations.swift")
+        let onboarding = try readProjectFile("iosApp/src/Views/Auth/OnboardingView.swift")
+
+        XCTAssertTrue(
+            animations.contains("@Environment(\\.accessibilityReduceMotion)"),
+            "Liquid Glass modifiers with continuous motion must observe Reduce Motion."
+        )
+        XCTAssertTrue(
+            animations.contains("reduceMotion ? nil :"),
+            "Liquid Glass animations must disable non-essential animation when Reduce Motion is enabled."
+        )
+        XCTAssertFalse(
+            animations.contains("value: UUID()"),
+            "Animation identity must be stable; a fresh UUID causes animation on every render."
+        )
+        XCTAssertTrue(
+            onboarding.contains("@Environment(\\.accessibilityReduceMotion)"),
+            "Onboarding must observe Reduce Motion before starting its perpetual icon animation."
+        )
+        XCTAssertTrue(
+            onboarding.contains("reduceMotion ? nil :"),
+            "Onboarding repeatForever animation must be disabled under Reduce Motion."
+        )
+    }
+
+    func testCompactSheetControlsExposeMinimumTouchTargets() throws {
+        let eventInfo = try readProjectFile("iosApp/src/Components/EventInfoSheet.swift")
+        let backgroundPicker = try readProjectFile("iosApp/src/Components/BackgroundPickerSheet.swift")
+        let locationPicker = try readProjectFile("iosApp/src/Components/LocationSelectionSheet.swift")
+        let minimumHitFrame = ".frame(minWidth: 44, minHeight: 44)"
+
+        XCTAssertGreaterThanOrEqual(
+            eventInfo.components(separatedBy: minimumHitFrame).count - 1,
+            1,
+            "EventInfoSheet confirmation control needs a minimum 44pt hit frame."
+        )
+        XCTAssertGreaterThanOrEqual(
+            backgroundPicker.components(separatedBy: minimumHitFrame).count - 1,
+            1,
+            "BackgroundPickerSheet close control needs a minimum 44pt hit frame."
+        )
+        XCTAssertGreaterThanOrEqual(
+            locationPicker.components(separatedBy: minimumHitFrame).count - 1,
+            2,
+            "LocationSelectionSheet confirmation and search-clear controls need minimum 44pt hit frames."
+        )
+    }
+
+    func testRootErrorViewUsesSemanticSurfacesAndSharedAction() throws {
+        let source = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
+        let errorView = slice(source, from: "struct ErrorView: View", to: "// MARK: - Authenticated Content View")
+
+        XCTAssertTrue(errorView.contains("SemanticColor."), "ErrorView colors must come from semantic brand tokens.")
+        XCTAssertTrue(errorView.contains("WakeveActionButton("), "ErrorView recovery must use the shared action component.")
+        XCTAssertFalse(errorView.contains("Color.blue"), "ErrorView must not hard-code a generic blue brand color.")
+        XCTAssertFalse(errorView.contains("Color.purple"), "ErrorView must not hard-code a generic purple brand color.")
+        XCTAssertFalse(errorView.contains("Color.pink"), "ErrorView must not hard-code a generic pink brand color.")
+    }
+
     private func readProjectFile(_ relativePath: String) throws -> String {
         let fileURL = URL(fileURLWithPath: #filePath)
         let testsDir = fileURL.deletingLastPathComponent()

@@ -16,7 +16,7 @@ struct EventInfoSheet: View {
     private let characterLimit = 1000
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     // Description Section
@@ -48,6 +48,7 @@ struct EventInfoSheet: View {
                                     .fill(Color.blue)
                             )
                     }
+                    .frame(minWidth: 44, minHeight: 44)
                     .accessibilityLabel(String(localized: "common.confirm"))
                 }
             }

@@ -71,6 +71,23 @@ final class PremiumNavigationContractTests: XCTestCase {
         XCTAssertFalse(errorView.contains("Text(\"Try Again\")"))
     }
 
+    func testLegacySheetsUseNavigationStack() throws {
+        let sheetPaths = [
+            "iosApp/src/Components/EventInfoSheet.swift",
+            "iosApp/src/Components/InvitationShareSheet.swift",
+            "iosApp/src/Components/LocationSelectionSheet.swift",
+            "iosApp/src/Views/Collaboration/CommentListView.swift",
+            "iosApp/src/Views/Events/MealPlanningSheets.swift"
+        ]
+
+        for path in sheetPaths {
+            let source = try readProjectFile(path)
+
+            XCTAssertTrue(source.contains("NavigationStack"), "\(path) must use the modern NavigationStack container.")
+            XCTAssertFalse(source.contains("NavigationView"), "\(path) must not retain legacy NavigationView containers.")
+        }
+    }
+
     private func readProjectFile(_ relativePath: String) throws -> String {
         let fileURL = URL(fileURLWithPath: #filePath)
         let testsDir = fileURL.deletingLastPathComponent()

@@ -143,46 +143,38 @@ private struct AuthLaunchLoadingView: View {
 struct ErrorView: View {
     let message: String
     let onRetry: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color.blue.opacity(0.1),
-                    Color.purple.opacity(0.1),
-                    Color.pink.opacity(0.1)
-                ]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            SemanticColor.appBackground(for: colorScheme)
+                .ignoresSafeArea()
 
             VStack(spacing: 24) {
                 Image(systemName: "exclamationmark.triangle")
                     .font(.system(size: 60))
-                    .foregroundColor(.red.opacity(0.8))
+                    .foregroundColor(SemanticColor.warning(for: colorScheme))
 
                 Text(String(localized: "common.error_generic"))
                     .font(.title2)
                     .fontWeight(.semibold)
-                    .foregroundColor(.primary)
+                    .foregroundColor(SemanticColor.primaryText(for: colorScheme))
 
                 Text(message)
                     .font(.body)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(SemanticColor.secondaryText(for: colorScheme))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
 
-                Button(action: onRetry) {
-                    Text(String(localized: "common.try_again"))
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 32)
-                        .padding(.vertical, 16)
-                        .background(Color.blue)
-                        .cornerRadius(12)
-                }
+                WakeveActionButton(
+                    String(localized: "common.try_again"),
+                    systemImage: "arrow.clockwise",
+                    variant: .primary,
+                    action: onRetry
+                )
+                .frame(maxWidth: 280)
             }
+            .padding(WakeveTheme.Spacing.page)
         }
     }
 }
