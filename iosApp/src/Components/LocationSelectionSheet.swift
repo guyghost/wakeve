@@ -27,6 +27,7 @@ import Combine
 /// ```
 struct LocationSelectionSheet: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var onDismiss: () -> Void
     var onConfirm: (Shared.PotentialLocation_) -> Void
@@ -245,7 +246,7 @@ struct LocationSelectionSheet: View {
             
             // Current Location Button
             Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
+                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) {
                     useCurrentLocation.toggle()
                     if useCurrentLocation {
                         customLocationName = ""
@@ -345,7 +346,7 @@ struct LocationSelectionSheet: View {
                 )
                 .onChange(of: customLocationName) { _, newValue in
                     if !newValue.isEmpty {
-                        withAnimation(.easeInOut(duration: 0.2)) {
+                        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) {
                             useCurrentLocation = false
                             currentAddress = nil
                         }

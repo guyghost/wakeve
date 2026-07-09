@@ -169,14 +169,14 @@ struct LoginView: View {
     private var welcomeTextView: some View {
         VStack(spacing: 12) {
             Text(String(localized: "auth.sign_in"))
-                .font(.system(size: 42, weight: .bold))
+                .font(WakeveTheme.Typography.display)
                 .foregroundColor(primaryTextColor)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
                 .shadow(color: .black.opacity(colorScheme == .dark ? 0.18 : 0.04), radius: 4, x: 0, y: 2)
             
             Text(String(localized: "auth.sign_in_subtitle"))
-                .font(.system(size: 17))
+                .font(WakeveTheme.Typography.body)
                 .foregroundColor(secondaryTextColor)
                 .multilineTextAlignment(.center)
                 .lineLimit(3)
@@ -204,7 +204,7 @@ struct LoginView: View {
                 .accessibilityLabel(String(localized: "auth.signing_in"))
             
             Text(String(localized: "auth.signing_in"))
-                .font(.system(size: 17, weight: .medium))
+                .font(WakeveTheme.Typography.bodySemibold)
                 .foregroundColor(secondaryTextColor)
         }
         .padding(.bottom, 80)
@@ -289,7 +289,7 @@ struct LoginView: View {
     private var privacyTermsView: some View {
         VStack(spacing: 6) {
             Text(String(localized: "auth.privacy_agree"))
-                .font(.system(size: 13))
+                .font(WakeveTheme.Typography.caption)
                 .foregroundColor(secondaryTextColor)
             
             VStack(spacing: 6) {
@@ -297,24 +297,26 @@ struct LoginView: View {
                     openLegalURL("https://wakeve.app/privacy")
                 } label: {
                     Text(String(localized: "auth.privacy_policy"))
-                        .font(.system(size: 13, weight: .medium))
+                        .font(WakeveTheme.Typography.caption)
                         .foregroundColor(primaryTextColor)
                         .multilineTextAlignment(.center)
                 }
+                .frame(minHeight: 44)
                 .accessibilityLabel(Text(String(localized: "auth.read_privacy_policy_accessibility_label")))
                 
                 Text(String(localized: "auth.and"))
-                    .font(.system(size: 13))
+                    .font(WakeveTheme.Typography.caption)
                     .foregroundColor(secondaryTextColor)
                 
                 Button {
                     openLegalURL("https://wakeve.app/terms")
                 } label: {
                     Text(String(localized: "auth.terms_of_service"))
-                        .font(.system(size: 13, weight: .medium))
+                        .font(WakeveTheme.Typography.caption)
                         .foregroundColor(primaryTextColor)
                         .multilineTextAlignment(.center)
                 }
+                .frame(minHeight: 44)
                 .accessibilityLabel(Text(String(localized: "auth.read_terms_accessibility_label")))
             }
         }

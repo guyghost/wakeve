@@ -595,7 +595,7 @@ struct BottomSheet<Content: View>: View {
                 .liquidGlass(cornerRadius: WakeveTheme.Glass.bottomSheetRadius)
             }
             .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
-            .animation(reduceMotion ? .easeInOut(duration: WakeveTheme.Motion.quick) : WakeveTheme.Motion.sheetSpring, value: isPresented)
+            .animation(reduceMotion ? nil : WakeveTheme.Motion.sheetSpring, value: isPresented)
         }
     }
 }

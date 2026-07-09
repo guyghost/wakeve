@@ -501,6 +501,129 @@ final class PremiumDesignSystemContractTests: XCTestCase {
         )
     }
 
+    func testSecondaryScreensStayWithinFixedTypographyBudgets() throws {
+        let budgets = [
+            ("iosApp/src/Views/Auth/LoginView.swift", 4),
+            ("iosApp/src/Views/Events/HomeView.swift", 7),
+            ("iosApp/src/Views/Events/ParticipantManagementView.swift", 4),
+            ("iosApp/src/Views/Profile/ProfileTabView.swift", 5),
+            ("iosApp/src/Views/Explore/ExploreScenarioDetailView.swift", 1),
+            ("iosApp/src/Components/BackgroundPickerSheet.swift", 4)
+        ]
+
+        for (path, budget) in budgets {
+            let source = try readProjectFile(path)
+            XCTAssertLessThanOrEqual(
+                occurrenceCount(of: ".font(.system(size:", in: source),
+                budget,
+                "\(path) exceeds its fixed-font decorative/icon budget of \(budget)."
+            )
+        }
+
+        let explore = try readProjectFile("iosApp/src/Views/Explore/ExploreScenarioDetailView.swift")
+        let backgroundPicker = try readProjectFile("iosApp/src/Components/BackgroundPickerSheet.swift")
+        XCTAssertTrue(explore.contains("WakeveTheme.Typography"), "Explore scenario text must use shared typography roles.")
+        XCTAssertTrue(backgroundPicker.contains("WakeveTheme.Typography"), "Background picker text must use shared typography roles.")
+    }
+
+    func testSecondaryMotionAndLegalControlsHonorAccessibilitySettings() throws {
+        let login = try readProjectFile("iosApp/src/Views/Auth/LoginView.swift")
+        let legal = slice(login, from: "private var privacyTermsView", to: "// MARK: - Actions")
+        XCTAssertGreaterThanOrEqual(occurrenceCount(of: ".frame(minHeight: 44)", in: legal), 2, "Privacy and terms links each need a 44pt minimum target.")
+
+        for path in [
+            "iosApp/src/Views/Events/HomeView.swift",
+            "iosApp/src/Views/Events/ParticipantManagementView.swift",
+            "iosApp/src/Views/Explore/LeaderboardView.swift",
+            "iosApp/src/Components/LocationSelectionSheet.swift"
+        ] {
+            let source = try readProjectFile(path)
+            XCTAssertTrue(source.contains("@Environment(\\.accessibilityReduceMotion)"), "\(path) must observe Reduce Motion.")
+            XCTAssertTrue(source.contains("reduceMotion ? nil"), "\(path) must disable non-essential animation under Reduce Motion.")
+        }
+
+        let premium = try readProjectFile("iosApp/src/Components/DesignSystem/PremiumLiquidGlassComponents.swift")
+        let bottomSheet = slice(premium, from: "struct BottomSheet", to: "struct EmptyState")
+        XCTAssertTrue(bottomSheet.contains(".animation(reduceMotion ? nil :"), "BottomSheet must fully remove animation under Reduce Motion.")
+    }
+
+    func testParticipantStatusAndSelectionColorsAreSemantic() throws {
+        let source = try readProjectFile("iosApp/src/Views/Events/ParticipantManagementView.swift")
+
+        for rawColor in [".foregroundColor(.orange)", ".foregroundColor(.blue)", ".foregroundColor(.green)", "? .orange", "? .blue", "? .green"] {
+            XCTAssertFalse(source.contains(rawColor), "Participant management must replace direct state color \(rawColor).")
+        }
+        for token in ["SemanticColor.warning", "SemanticColor.accent", "SemanticColor.confirmation"] {
+            XCTAssertTrue(source.contains(token), "Participant management must expose \(token) for status/selection meaning.")
+        }
+    }
+
+    func testLiquidGlassTextFieldUsesSemanticErrorsAndAccessibleIconButtons() throws {
+        let source = try readProjectFile("iosApp/src/Components/LiquidGlassTextField.swift")
+
+        XCTAssertFalse(source.contains(".foregroundColor(.red)"), "Text-field errors must use a semantic destructive color.")
+        XCTAssertTrue(source.contains("SemanticColor.destructive"), "Text-field errors must use SemanticColor.destructive.")
+        XCTAssertGreaterThanOrEqual(
+            occurrenceCount(of: ".frame(minWidth: 44, minHeight: 44)", in: source),
+            2,
+            "Left and right text-field icon buttons each need a minimum 44pt hit target."
+        )
+    }
+
+    func testBudgetInteractionTargetsAndStateColorsAreSemantic() throws {
+        let itemRow = try readProjectFile("iosApp/src/Views/Budget/BudgetItemRow.swift")
+        let detail = try readProjectFile("iosApp/src/Views/Budget/BudgetDetailView.swift")
+        let overview = try readProjectFile("iosApp/src/Views/Budget/BudgetOverviewView.swift")
+        let addSheet = try readProjectFile("iosApp/src/Views/Budget/AddBudgetItemSheet.swift")
+        let paidControl = slice(itemRow, from: "// Paid indicator", to: "VStack(alignment: .leading")
+        let detailMenu = slice(detail, from: "private struct BudgetDetailItemRow", to: "// MARK: - BudgetSummaryRow")
+
+        XCTAssertTrue(paidControl.contains("Button"), "The paid toggle must be a semantic Button, not an onTapGesture image.")
+        XCTAssertTrue(paidControl.contains(".frame(minWidth: 44, minHeight: 44)"), "The paid toggle needs a minimum 44pt hit target.")
+        XCTAssertTrue(detailMenu.contains(".frame(minWidth: 44, minHeight: 44)"), "The budget item menu needs a minimum 44pt hit target.")
+
+        let budgetSources = itemRow + detail + overview + addSheet
+        for rawColor in ["Color.blue", "Color.red", "Color.green", "Color.orange", "Color.yellow", ".foregroundStyle(.blue)", ".foregroundStyle(.red)", ".foregroundStyle(.green)", ".foregroundStyle(.orange)", ".foregroundStyle(.yellow)"] {
+            XCTAssertFalse(budgetSources.contains(rawColor), "Budget state colors must replace \(rawColor) with semantic tokens.")
+        }
+        XCTAssertTrue(budgetSources.contains("SemanticColor."), "Budget views must use semantic state colors.")
+    }
+
+    func testMealAndMeetingStateColorsUseSemanticTokens() throws {
+        let meals = try readProjectFile("iosApp/src/Views/Events/MealPlanningSheets.swift")
+        let meeting = try readProjectFile("iosApp/src/Views/Meeting/MeetingDetailView.swift")
+
+        for rawColor in [".foregroundColor(.blue)", ".foregroundColor(.red)", ".foregroundColor(.green)", "Color.blue", "Color.red", "Color.green"] {
+            XCTAssertFalse(meals.contains(rawColor), "Meal planning actions/statuses must replace \(rawColor) with a semantic token.")
+        }
+        XCTAssertTrue(meals.contains("SemanticColor."), "Meal planning must use semantic action/status colors.")
+
+        for rawState in [".foregroundStyle(.orange)", ".foregroundStyle(.green)"] {
+            XCTAssertFalse(meeting.contains(rawState), "Meeting detail states must replace \(rawState) with semantic tokens.")
+        }
+        XCTAssertTrue(meeting.contains("SemanticColor."), "Meeting detail must use semantic state colors.")
+    }
+
+    func testRemainingHomeAndPollHighlightsUseSemanticColors() throws {
+        let home = try readProjectFile("iosApp/src/Views/Events/HomeView.swift")
+        let blockedAction = slice(home, from: "private struct HomeNextActionCard", to: "private struct HomeDraftResumeCard")
+        let pollResults = try readProjectFile("iosApp/src/Views/Polls/PollResultsView.swift")
+
+        XCTAssertFalse(blockedAction.contains("Color.orange"), "The blocked home action must not hard-code orange.")
+        XCTAssertTrue(
+            blockedAction.contains("SemanticColor.warning"),
+            "The blocked home action must communicate its status with SemanticColor.warning."
+        )
+
+        for rawHighlight in [".foregroundColor(.yellow)", "Color.yellow"] {
+            XCTAssertFalse(pollResults.contains(rawHighlight), "Poll result highlights must replace \(rawHighlight) with semantic colors.")
+        }
+        XCTAssertTrue(
+            pollResults.contains("SemanticColor.warning") || pollResults.contains("SemanticColor.accent"),
+            "Poll result highlights must use a semantic warning or accent token."
+        )
+    }
+
     private func readProjectFile(_ relativePath: String) throws -> String {
         let fileURL = URL(fileURLWithPath: #filePath)
         let testsDir = fileURL.deletingLastPathComponent()
