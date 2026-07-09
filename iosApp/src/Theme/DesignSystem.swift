@@ -412,31 +412,31 @@ extension Color {
 /// Modern mobile typography
 public struct Typography {
     /// Large titles (navigation headers)
-    public static let largeTitle = Font.system(size: 34, weight: .bold, design: .default)
+    public static let largeTitle = Font.largeTitle.weight(.bold)
     
     /// Navigation title
-    public static let navigationTitle = Font.system(size: 17, weight: .semibold, design: .default)
+    public static let navigationTitle = Font.headline
     
     /// Section headers
-    public static let sectionHeader = Font.system(size: 13, weight: .semibold, design: .default)
+    public static let sectionHeader = Font.subheadline.weight(.semibold)
     
     /// Body text
-    public static let body = Font.system(size: 16, weight: .regular, design: .default)
+    public static let body = Font.body
     
     /// Body medium
-    public static let bodyMedium = Font.system(size: 16, weight: .medium, design: .default)
+    public static let bodyMedium = Font.body.weight(.medium)
     
     /// Secondary text
-    public static let secondary = Font.system(size: 14, weight: .regular, design: .default)
+    public static let secondary = Font.subheadline
     
     /// Caption (tab labels)
-    public static let caption = Font.system(size: 10, weight: .medium, design: .default)
+    public static let caption = Font.caption.weight(.medium)
     
     /// Caption semibold (selected tab)
-    public static let captionSemibold = Font.system(size: 10, weight: .semibold, design: .default)
+    public static let captionSemibold = Font.caption.weight(.semibold)
     
     /// Small text (timestamps, metadata)
-    public static let small = Font.system(size: 12, weight: .regular, design: .default)
+    public static let small = Font.caption
 }
 
 // MARK: - Spacing

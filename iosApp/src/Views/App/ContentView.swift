@@ -68,6 +68,7 @@ struct ContentView: View {
     @AppStorage(UserDefaultsKeys.appearanceMode) private var appearanceModeRaw = WakeveAppearancePreference.system.rawValue
     @AppStorage(UserDefaultsKeys.legacyDarkMode) private var legacyDarkMode = false
     @AppStorage(UserDefaultsKeys.appearanceModeMigrated) private var appearanceModeMigrated = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hasOnboarded = false
 
     var body: some View {
@@ -118,7 +119,7 @@ struct ContentView: View {
     private func completeOnboarding() {
         markOnboardingComplete()
 
-        withAnimation(.easeInOut(duration: 0.25)) {
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.25)) {
             hasOnboarded = true
         }
     }
@@ -2018,7 +2019,7 @@ struct EventListView: View {
                     .foregroundColor(.primary)
                 
                 Text(String(localized: "events.legacy_list.subtitle"))
-                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .font(WakeveTheme.Typography.metadata)
                     .foregroundColor(.secondary)
             }
             .padding(.top, 60)
@@ -2031,14 +2032,14 @@ struct EventListView: View {
                             VStack(spacing: 16) {
                                 Image(systemName: "plus.circle.fill")
                                     .font(.system(size: 48))
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(.wakevePrimary)
                                 
                                 Text(String(localized: "events.legacy_list.create_title"))
-                                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+                                    .font(WakeveTheme.Typography.bodySemibold)
                                     .foregroundColor(.primary)
                                 
                                 Text(String(localized: "events.legacy_list.create_subtitle"))
-                                    .font(.system(size: 14, design: .rounded))
+                                    .font(WakeveTheme.Typography.callout)
                                     .foregroundColor(.secondary)
                                     .multilineTextAlignment(.center)
                             }
@@ -2057,7 +2058,7 @@ struct EventListView: View {
                                 .accessibilityLabel(String(localized: "common.loading"))
                             
                             Text(String(localized: "home.loading"))
-                                .font(.system(size: 14, design: .rounded))
+                                .font(WakeveTheme.Typography.callout)
                                 .foregroundColor(.secondary)
                         }
                         .padding(.vertical, 40)
@@ -2065,15 +2066,15 @@ struct EventListView: View {
                         VStack(spacing: 16) {
                             Image(systemName: "calendar.badge.exclamationmark")
                                 .font(.system(size: 48))
-                                .foregroundColor(Color(.tertiaryLabel))
+                                .foregroundColor(AdaptiveColors.textTertiary)
                             
                             Text(String(localized: "events.empty.title"))
-                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .font(WakeveTheme.Typography.metadata)
                                 .foregroundColor(.secondary)
                             
                             Text(String(localized: "events.empty.subtitle"))
-                                .font(.system(size: 14, design: .rounded))
-                                .foregroundColor(Color(.tertiaryLabel))
+                                .font(WakeveTheme.Typography.callout)
+                                .foregroundColor(AdaptiveColors.textTertiary)
                                 .multilineTextAlignment(.center)
                         }
                         .padding(.vertical, 40)
@@ -2117,12 +2118,12 @@ struct EventCard: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(event.title)
-                            .font(.system(size: 18, weight: .semibold, design: .rounded))
+                            .font(WakeveTheme.Typography.bodySemibold)
                             .foregroundColor(.primary)
                         
                         if !event.description.isEmpty {
                             Text(event.description)
-                                .font(.system(size: 14, design: .rounded))
+                                .font(WakeveTheme.Typography.callout)
                                 .foregroundColor(.secondary)
                                 .lineLimit(2)
                         }
@@ -2132,7 +2133,7 @@ struct EventCard: View {
                     
                     VStack(alignment: .trailing, spacing: 4) {
                         Text(statusText)
-                            .font(.system(size: 12, weight: .medium, design: .rounded))
+                            .font(WakeveTheme.Typography.tiny)
                             .foregroundColor(statusColor)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
@@ -2140,28 +2141,28 @@ struct EventCard: View {
                             .cornerRadius(8)
                         
                         Text(participantCountText)
-                            .font(.system(size: 12, design: .rounded))
-                            .foregroundColor(Color(.tertiaryLabel))
+                            .font(WakeveTheme.Typography.tiny)
+                            .foregroundColor(AdaptiveColors.textTertiary)
                     }
                 }
                 
                 HStack {
                     Image(systemName: "calendar")
-                        .font(.system(size: 14))
-                        .foregroundColor(Color(.tertiaryLabel))
+                        .font(WakeveTheme.Typography.callout)
+                        .foregroundColor(AdaptiveColors.textTertiary)
                     
                     Text(slotOptionsText)
-                        .font(.system(size: 14, design: .rounded))
+                        .font(WakeveTheme.Typography.callout)
                         .foregroundColor(.secondary)
                     
                     Spacer()
                     
                     Image(systemName: "clock")
-                        .font(.system(size: 14))
-                        .foregroundColor(Color(.tertiaryLabel))
+                        .font(WakeveTheme.Typography.callout)
+                        .foregroundColor(AdaptiveColors.textTertiary)
                     
                     Text(formatDeadline(event.deadline))
-                        .font(.system(size: 14, design: .rounded))
+                        .font(WakeveTheme.Typography.callout)
                         .foregroundColor(.secondary)
                 }
             }
@@ -2444,7 +2445,7 @@ struct EventDetailView: View {
                 .minimumScaleFactor(0.82)
 
             Text(subtitleText)
-                .font(.system(size: 15, weight: .medium))
+                .font(WakeveTheme.Typography.metadata)
                 .foregroundColor(secondaryText)
                 .lineLimit(2)
         }
@@ -2646,6 +2647,7 @@ struct EventDetailView: View {
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
+                    .frame(minHeight: 44)
                     .disabled(isGeneratingEventAI)
                     .accessibilityLabel(String(localized: "ai.prepare_suggestions_accessibility"))
                 }
@@ -2867,7 +2869,7 @@ struct EventDetailView: View {
     private var statusBadge: some View {
         HStack(spacing: 6) {
             Image(systemName: statusIcon)
-                .font(.system(size: 13, weight: .bold))
+                .font(WakeveTheme.Typography.caption.weight(.bold))
             Text(statusText)
                 .font(WakeveTheme.Typography.caption)
         }
@@ -4015,6 +4017,7 @@ private struct EventAIInvitationBlock: View {
                             .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
+                    .frame(minHeight: 44)
                 }
             }
 
@@ -4107,6 +4110,7 @@ private struct EventAIActionButton: View {
                 .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
                 .frame(maxWidth: .infinity)
                 .frame(height: 36)
+                .frame(minHeight: 44)
                 .background(WakeveTheme.ColorToken.pageBackground(for: colorScheme).opacity(0.72))
                 .clipShape(Capsule())
         }
@@ -4221,10 +4225,10 @@ private struct EventDetailNextActionCard: View {
                         if blockedReason != nil {
                             Text(String(localized: "events.next_action.blocked_label"))
                                 .font(WakeveTheme.Typography.tiny)
-                                .foregroundColor(.orange)
+                                .foregroundColor(SemanticColor.warning(for: colorScheme))
                                 .padding(.horizontal, WakeveTheme.Spacing.xs)
                                 .padding(.vertical, 2)
-                                .background(Color.orange.opacity(0.14))
+                                .background(SemanticColor.warning(for: colorScheme).opacity(0.14))
                                 .clipShape(Capsule())
                         }
                     }
@@ -4248,6 +4252,7 @@ private struct EventDetailNextActionCard: View {
                         .font(.headline.weight(.bold))
                         .foregroundColor(colorScheme == .dark ? WakeveTheme.ColorToken.midnight : .white)
                         .frame(width: 42, height: 42)
+                        .frame(minWidth: 44, minHeight: 44)
                         .background(colorScheme == .dark ? Color.white.opacity(0.9) : WakeveTheme.ColorToken.accent(for: colorScheme))
                         .clipShape(Circle())
                 }
@@ -4429,10 +4434,10 @@ private struct OrganizerChip: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.system(size: 14, weight: .bold))
+                        .font(WakeveTheme.Typography.caption.weight(.bold))
                         .foregroundColor(primaryText)
                     Text(subtitle)
-                        .font(.system(size: 12, weight: .medium))
+                        .font(WakeveTheme.Typography.tiny)
                         .foregroundColor(secondaryText)
                         .lineLimit(1)
                         .minimumScaleFactor(0.75)
@@ -4490,11 +4495,11 @@ private struct EventPreviewDetailRow: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(label)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(WakeveTheme.Typography.caption)
                         .foregroundColor(secondaryText)
 
                     Text(value)
-                        .font(.system(size: 17, weight: .bold))
+                        .font(WakeveTheme.Typography.bodySemibold)
                         .foregroundColor(primaryText)
                         .lineLimit(1)
                         .minimumScaleFactor(0.78)

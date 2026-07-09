@@ -41,6 +41,11 @@ public enum SemanticColor {
         BrandColor.primaryAccent(for: colorScheme)
     }
 
+    /// Brand accent for informative highlights that are not selection state.
+    public static func accent(for colorScheme: ColorScheme) -> Color {
+        BrandColor.primaryAccent(for: colorScheme)
+    }
+
     public static func badge(for colorScheme: ColorScheme) -> Color {
         colorScheme == .dark ? BrandColor.blueGrey.opacity(0.32) : BrandColor.blueGrey.opacity(0.16)
     }

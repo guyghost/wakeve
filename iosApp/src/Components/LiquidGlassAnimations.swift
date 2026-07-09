@@ -42,13 +42,21 @@ struct LiquidGlassAnimations {
     // MARK: - Convenience Methods
     
     /// Get animation with custom delay
-    static func withDelay(_ delay: Double, animation: Animation = spring) -> Animation {
-        animation.delay(delay)
+    static func withDelay(
+        _ delay: Double,
+        animation: Animation = spring,
+        reduceMotion: Bool = false
+    ) -> Animation? {
+        reduceMotion ? nil : animation.delay(delay)
     }
     
     /// Get animation with repeat configuration
-    static func repeating(_ animation: Animation = spring, autoreverses: Bool = true) -> Animation {
-        animation.repeatForever(autoreverses: autoreverses)
+    static func repeating(
+        _ animation: Animation = spring,
+        autoreverses: Bool = true,
+        reduceMotion: Bool = false
+    ) -> Animation? {
+        reduceMotion ? nil : animation.repeatForever(autoreverses: autoreverses)
     }
 }
 
@@ -62,7 +70,12 @@ extension View {
     
     /// Apply animation with custom value trigger
     func liquidGlassAnimation<Value: Equatable>(_ value: Value) -> some View {
-        self.animation(LiquidGlassAnimations.spring, value: value)
+        modifier(
+            ReduceMotionAnimationModifier(
+                animation: LiquidGlassAnimations.spring,
+                value: value
+            )
+        )
     }
     
     /// Apply spring animation with delay based on index
@@ -73,7 +86,22 @@ extension View {
     /// Apply smooth scale effect on press
     func scaleOnPress(scale: CGFloat = 0.95) -> some View {
         self.scaleEffect(scale)
-            .animation(LiquidGlassAnimations.scale, value: scale)
+            .modifier(
+                ReduceMotionAnimationModifier(
+                    animation: LiquidGlassAnimations.scale,
+                    value: scale
+                )
+            )
+    }
+}
+
+private struct ReduceMotionAnimationModifier<Value: Equatable>: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    let animation: Animation
+    let value: Value
+
+    func body(content: Content) -> some View {
+        content.animation(reduceMotion ? nil : animation, value: value)
     }
 }
 
@@ -215,6 +243,7 @@ struct AnimatedBadgeModifier: ViewModifier {
     let showPulse: Bool
     
     @State private var hasAppeared = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     
     @ViewBuilder
     func body(content: Content) -> some View {
@@ -223,7 +252,7 @@ struct AnimatedBadgeModifier: ViewModifier {
                 .opacity(hasAppeared ? 1 : 0)
                 .scaleEffect(hasAppeared ? 1 : 0.8)
                 .animation(
-                    LiquidGlassAnimations.spring,
+                    reduceMotion ? nil : LiquidGlassAnimations.spring,
                     value: hasAppeared
                 )
                 .pulseEffect(scale: 1.02, duration: 2.0)
@@ -235,7 +264,7 @@ struct AnimatedBadgeModifier: ViewModifier {
                 .opacity(hasAppeared ? 1 : 0)
                 .scaleEffect(hasAppeared ? 1 : 0.8)
                 .animation(
-                    LiquidGlassAnimations.spring,
+                    reduceMotion ? nil : LiquidGlassAnimations.spring,
                     value: hasAppeared
                 )
                 .onAppear {

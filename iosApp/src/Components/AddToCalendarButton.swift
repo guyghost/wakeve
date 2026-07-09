@@ -4,6 +4,8 @@ import Shared
 /// Reusable button component for adding events to calendar
 /// Can be used standalone or as part of a larger UI
 struct AddToCalendarButton: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let event: Event
     let isLoading: Bool
     let isEnabled: Bool
@@ -31,7 +33,7 @@ struct AddToCalendarButton: View {
             }
             .frame(height: 48)
             .frame(maxWidth: .infinity)
-            .background(Color.blue)
+            .background(SemanticColor.accent(for: colorScheme))
             .continuousCornerRadius(12)
         }
         .disabled(!isEnabled || isLoading)
