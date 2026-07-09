@@ -9,6 +9,7 @@ import UIKit
 /// Features: Clean list design, easy participant management, clear status indicators
 struct ParticipantManagementView: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     let event: Event
     let userId: String
@@ -223,13 +224,13 @@ struct ParticipantManagementView: View {
                 statusBadge
 
                 Text(String(localized: "participants.title"))
-                    .font(.system(size: 42, weight: .bold))
+                    .font(WakeveTheme.Typography.display)
                     .foregroundColor(.white)
                     .lineLimit(2)
                     .minimumScaleFactor(0.74)
 
                 Text(event.title)
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(WakeveTheme.Typography.title2)
                     .foregroundColor(.white.opacity(0.72))
                     .lineLimit(2)
             }
@@ -441,7 +442,7 @@ struct ParticipantManagementView: View {
 
                 HStack(spacing: 12) {
                     TextField(String(localized: "participants.email_placeholder"), text: $newParticipantEmail)
-                        .font(.system(size: 17, weight: .medium))
+                        .font(WakeveTheme.Typography.bodySemibold)
                         .textFieldStyle(.plain)
                         .padding(.horizontal, 16)
                         .frame(height: 54)
@@ -470,7 +471,7 @@ struct ParticipantManagementView: View {
                                 .font(.system(size: 24, weight: .bold))
                                 .foregroundColor(.white)
                                 .frame(width: 52, height: 52)
-                                .background(newParticipantEmail.isEmpty ? Color.gray.opacity(0.35) : SemanticColor.selectedState(for: colorScheme))
+                                .background(newParticipantEmail.isEmpty ? SemanticColor.badge(for: colorScheme) : SemanticColor.accent(for: colorScheme))
                                 .clipShape(Circle())
                         }
                     }
@@ -624,7 +625,7 @@ struct ParticipantManagementView: View {
             Image(systemName: statusIcon)
                 .font(.system(size: 13, weight: .bold))
             Text(statusTitle)
-                .font(.system(size: 14, weight: .bold))
+                .font(WakeveTheme.Typography.caption)
         }
         .foregroundColor(.white)
         .padding(.horizontal, 12)
@@ -635,10 +636,10 @@ struct ParticipantManagementView: View {
 
     private var statusColor: Color {
         switch event.status {
-        case .draft: return .orange
-        case .polling: return .blue
-        case .confirmed: return .green
-        default: return .gray
+        case .draft: return SemanticColor.warning(for: colorScheme)
+        case .polling: return SemanticColor.accent(for: colorScheme)
+        case .confirmed: return SemanticColor.confirmation(for: colorScheme)
+        default: return SemanticColor.tertiaryText(for: colorScheme)
         }
     }
 
@@ -801,12 +802,12 @@ struct ParticipantManagementView: View {
 
         WakeveHaptics.success()
 
-        withAnimation(.easeInOut(duration: 0.2)) {
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) {
             showCopiedInvitationMessage = true
         }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            withAnimation(.easeInOut(duration: 0.2)) {
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) {
                 showCopiedInvitationMessage = false
             }
         }

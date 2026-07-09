@@ -3,6 +3,7 @@ import SwiftUI
 // MARK: - BudgetItemRow
 
 struct BudgetItemRow: View {
+    @Environment(\.colorScheme) private var colorScheme
     let item: BudgetItemModel
     let onMarkAsPaid: () -> Void
 
@@ -14,12 +15,16 @@ struct BudgetItemRow: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .top) {
                 // Paid indicator
-                Image(systemName: item.isPaid ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(item.isPaid ? .green : .secondary)
-                    .font(.system(size: 18))
-                    .onTapGesture {
+                Button {
                         if !item.isPaid { onMarkAsPaid() }
+                } label: {
+                    Image(systemName: item.isPaid ? "checkmark.circle.fill" : "circle")
+                        .foregroundStyle(item.isPaid ? SemanticColor.confirmation(for: colorScheme) : SemanticColor.secondaryText(for: colorScheme))
+                        .font(.system(size: 18))
                     }
+                .buttonStyle(.plain)
+                .frame(minWidth: 44, minHeight: 44)
+                .disabled(item.isPaid)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.name)
@@ -43,7 +48,7 @@ struct BudgetItemRow: View {
                     if item.isPaid && item.actualCost > 0 {
                         Text(String(format: "%.2f €", item.actualCost))
                             .font(.subheadline.bold())
-                            .foregroundStyle(.green)
+                            .foregroundStyle(SemanticColor.confirmation(for: colorScheme))
                         Text(String(localized: "budget.item.paid"))
                             .font(.caption2)
                             .foregroundStyle(.secondary)

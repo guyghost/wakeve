@@ -4,6 +4,7 @@ import Shared
 // MARK: - MeetingDetailView
 
 struct MeetingDetailView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let meetingId: String
     let eventId: String
     let currentUserId: String
@@ -184,7 +185,7 @@ struct MeetingDetailView: View {
             VStack(spacing: WakeveTheme.Spacing.md) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.largeTitle)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(SemanticColor.warning(for: colorScheme))
                 Text(String(localized: "meetings.not_found"))
                     .font(WakeveTheme.Typography.title2)
                 Text(String(localized: "meetings.not_found_subtitle"))
@@ -315,7 +316,7 @@ struct MeetingDetailView: View {
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
                 HStack {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
+                        .foregroundStyle(SemanticColor.confirmation(for: colorScheme))
                     Text(String(localized: "meetings.generated_link"))
                         .font(WakeveTheme.Typography.bodySemibold)
                     Spacer()
@@ -426,11 +427,11 @@ struct MeetingDetailView: View {
     private func statusBadge(_ status: MeetingStatus_) -> some View {
         let (label, color): (String, Color) = {
             switch status {
-            case .scheduled:  return (String(localized: "meetings.scheduled"), .blue)
-            case .started:    return (String(localized: "meetings.started"), .green)
-            case .ended:      return (String(localized: "meetings.ended"), .secondary)
-            case .cancelled:  return (String(localized: "meetings.cancelled"), .red)
-            default:          return (String(localized: "meetings.status_unknown"), .gray)
+            case .scheduled:  return (String(localized: "meetings.scheduled"), SemanticColor.accent(for: colorScheme))
+            case .started:    return (String(localized: "meetings.started"), SemanticColor.confirmation(for: colorScheme))
+            case .ended:      return (String(localized: "meetings.ended"), SemanticColor.secondaryText(for: colorScheme))
+            case .cancelled:  return (String(localized: "meetings.cancelled"), SemanticColor.destructive(for: colorScheme))
+            default:          return (String(localized: "meetings.status_unknown"), SemanticColor.tertiaryText(for: colorScheme))
             }
         }()
         return Text(label)

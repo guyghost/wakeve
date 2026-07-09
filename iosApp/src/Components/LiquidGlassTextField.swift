@@ -51,6 +51,7 @@ import SwiftUI
 /// ```
 
 struct LiquidGlassTextField: View {
+    @Environment(\.colorScheme) private var colorScheme
     let title: String?
     let placeholder: String
     @Binding var text: String
@@ -117,6 +118,7 @@ struct LiquidGlassTextField: View {
                             .foregroundColor(isDisabled == true ? .secondary : .primary)
                     }
                     .disabled(leftIconAction == nil)
+                    .frame(minWidth: 44, minHeight: 44)
                     .accessibilityLabel(leftIconAccessibilityLabel ?? title ?? placeholder)
                     .accessibilityHidden(leftIconAction == nil)
                     .buttonStyle(.plain)
@@ -166,6 +168,7 @@ struct LiquidGlassTextField: View {
                             .foregroundColor(isDisabled == true ? .secondary : .primary)
                     }
                     .disabled(rightIconAction == nil)
+                    .frame(minWidth: 44, minHeight: 44)
                     .accessibilityLabel(rightIconAccessibilityLabel ?? title ?? placeholder)
                     .accessibilityHidden(rightIconAction == nil)
                     .buttonStyle(.plain)
@@ -180,11 +183,11 @@ struct LiquidGlassTextField: View {
                 HStack(spacing: 4) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.system(size: 12))
-                        .foregroundColor(.red)
+                        .foregroundColor(SemanticColor.destructive(for: colorScheme))
                     
                     Text(errorMessage)
                         .font(.caption)
-                        .foregroundColor(.red)
+                        .foregroundColor(SemanticColor.destructive(for: colorScheme))
                         .lineLimit(2)
                 }
                 .padding(.top, 4)

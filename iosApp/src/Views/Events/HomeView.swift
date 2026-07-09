@@ -534,7 +534,7 @@ private struct HomeNextActionCard: View {
                         .font(.headline.weight(.bold))
                         .foregroundColor(.white)
                         .frame(width: 44, height: 44)
-                        .background(action.isBlocked ? Color.orange.opacity(0.86) : WakeveTheme.ColorToken.progress(for: colorScheme))
+                        .background(action.isBlocked ? SemanticColor.warning(for: colorScheme).opacity(0.86) : WakeveTheme.ColorToken.progress(for: colorScheme))
                         .clipShape(Circle())
 
                     VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
@@ -854,7 +854,7 @@ struct VisualEventCard: View {
                                 Image(systemName: "crown.fill")
                                     .font(.system(size: 16))
                                 Text(String(localized: "home.organized_by_me_badge"))
-                                    .font(.system(size: 16, weight: .semibold))
+                                    .font(WakeveTheme.Typography.bodySemibold)
                             }
                             .foregroundColor(.white)
                             .padding(.horizontal, 16)
@@ -874,7 +874,7 @@ struct VisualEventCard: View {
                     
                     // Event title - large at bottom
                     Text(event.title)
-                        .font(.system(size: 42, weight: .bold))
+                        .font(WakeveTheme.Typography.display)
                         .foregroundColor(.white)
                         .lineLimit(3)
                         .minimumScaleFactor(0.8)
@@ -972,6 +972,7 @@ struct FilterDropdownMenu: View {
     let draftCount: Int
 
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     
     var body: some View {
         VStack {
@@ -979,7 +980,7 @@ struct FilterDropdownMenu: View {
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(Array(HomeEventFilter.allCases.enumerated()), id: \.element.id) { index, filter in
                         Button(action: {
-                            withAnimation(.spring(response: 0.3)) {
+                            withAnimation(reduceMotion ? nil : .spring(response: 0.3)) {
                                 selectedFilter = filter
                                 isShowing = false
                             }
@@ -1040,7 +1041,7 @@ struct FilterDropdownMenu: View {
         }
         .background(Color.black.opacity(0.001))
         .onTapGesture {
-            withAnimation(.spring(response: 0.3)) {
+            withAnimation(reduceMotion ? nil : .spring(response: 0.3)) {
                 isShowing = false
             }
         }

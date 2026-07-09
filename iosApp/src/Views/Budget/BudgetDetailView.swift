@@ -237,6 +237,7 @@ struct BudgetDetailView: View {
 }
 
 private struct BudgetSectionHeader: View {
+    @Environment(\.colorScheme) private var colorScheme
     let category: BudgetCategoryUI
     let itemCount: Int
 
@@ -244,9 +245,9 @@ private struct BudgetSectionHeader: View {
         HStack(spacing: 10) {
             Image(systemName: category.iconName)
                 .font(.callout.weight(.bold))
-                .foregroundStyle(.blue)
+                .foregroundStyle(SemanticColor.accent(for: colorScheme))
                 .frame(width: 30, height: 30)
-                .background(Color.blue.opacity(0.12), in: Circle())
+                .background(SemanticColor.accent(for: colorScheme).opacity(0.12), in: Circle())
 
             Text(category.displayName)
                 .font(.headline)
@@ -294,6 +295,7 @@ private struct BudgetDetailItemRow: View {
                     .foregroundStyle(.secondary)
                     .frame(width: 36, height: 36)
             }
+            .frame(minWidth: 44, minHeight: 44)
             .accessibilityLabel(String(localized: "budget.expense_actions_accessibility"))
         }
     }
@@ -302,6 +304,7 @@ private struct BudgetDetailItemRow: View {
 // MARK: - BudgetSummaryRow
 
 struct BudgetSummaryRow: View {
+    @Environment(\.colorScheme) private var colorScheme
     let totalEstimated: Double
     let totalActual: Double
     let isOverBudget: Bool
@@ -315,7 +318,7 @@ struct BudgetSummaryRow: View {
                         .foregroundStyle(.secondary)
                     Text(String(format: "%.2f €", totalActual))
                         .font(.title3.bold())
-                        .foregroundStyle(isOverBudget ? .red : .primary)
+                        .foregroundStyle(isOverBudget ? SemanticColor.destructive(for: colorScheme) : SemanticColor.primaryText(for: colorScheme))
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
@@ -328,7 +331,7 @@ struct BudgetSummaryRow: View {
                 }
             }
             ProgressView(value: totalEstimated > 0 ? min(totalActual / totalEstimated, 1.0) : 0)
-                .tint(isOverBudget ? .red : .blue)
+                .tint(isOverBudget ? SemanticColor.destructive(for: colorScheme) : SemanticColor.accent(for: colorScheme))
         }
         .padding(.vertical, 4)
     }

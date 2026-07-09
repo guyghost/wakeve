@@ -7,6 +7,7 @@ import SwiftUI
 struct LeaderboardView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var selectedFilter: LeaderboardFilter = .global
     @State private var entries: [LeaderboardEntryData]
@@ -112,7 +113,7 @@ struct LeaderboardView: View {
             HStack(spacing: 8) {
                 ForEach(LeaderboardFilter.allCases) { filter in
                     Button(action: {
-                        withAnimation(.easeInOut(duration: 0.2)) {
+                        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) {
                             selectedFilter = filter
                         }
                     }) {

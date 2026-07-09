@@ -59,14 +59,14 @@ struct ExploreScenarioDetailView: View {
                     .frame(width: 44, height: 46, alignment: .leading)
 
                 Text(scenario.title)
-                    .font(.system(size: 30, weight: .bold))
+                    .font(WakeveTheme.Typography.largeTitle)
                     .foregroundColor(.white)
                     .lineSpacing(2)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Text(scenario.subtitle)
-                    .font(.system(size: 16, weight: .medium))
+                    .font(WakeveTheme.Typography.bodySemibold)
                     .foregroundColor(.white.opacity(0.86))
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -81,14 +81,14 @@ struct ExploreScenarioDetailView: View {
     private var scenarioContent: some View {
         VStack(alignment: .leading, spacing: 26) {
             Text(scenario.description)
-                .font(.system(size: 17, weight: .regular))
+                .font(WakeveTheme.Typography.body)
                 .foregroundColor(.secondary)
                 .lineSpacing(4)
                 .fixedSize(horizontal: false, vertical: true)
 
             VStack(alignment: .leading, spacing: 18) {
                 Text(String(localized: "scenario.checklist_title"))
-                    .font(.system(size: 20, weight: .bold))
+                    .font(WakeveTheme.Typography.section)
                     .foregroundColor(.primary)
 
                 VStack(alignment: .leading, spacing: 14) {
@@ -110,12 +110,12 @@ struct ExploreScenarioDetailView: View {
                     .frame(width: 24, height: 24)
 
                 Text("\(index + 1)")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(WakeveTheme.Typography.metadata.weight(.bold))
                     .foregroundColor(.white)
             }
 
             Text(item)
-                .font(.system(size: 17, weight: .regular))
+                .font(WakeveTheme.Typography.body)
                 .foregroundColor(.primary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.82)

@@ -3,6 +3,7 @@ import SwiftUI
 // MARK: - Meal Form Sheet
 
 struct MealFormSheet: View {
+    @Environment(\.colorScheme) private var colorScheme
     let eventId: String
     let meal: MealModel?
     let participants: [ParticipantModel]
@@ -86,7 +87,7 @@ struct MealFormSheet: View {
                                 Spacer()
                                 if selectedParticipantIds.contains(participant.id) {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.blue)
+                                        .foregroundColor(SemanticColor.accent(for: colorScheme))
                                 } else {
                                     Image(systemName: "circle")
                                         .foregroundColor(.gray)
@@ -240,6 +241,7 @@ struct MealFormSheet: View {
 // MARK: - Auto Generate Meals Sheet
 
 struct AutoGenerateMealsSheet: View {
+    @Environment(\.colorScheme) private var colorScheme
     let eventId: String
     let participantCount: Int
     let onGenerate: ([MealModel]) -> Void
@@ -277,13 +279,13 @@ struct AutoGenerateMealsSheet: View {
                          } label: {
                              HStack {
                                  Image(systemName: type.2)
-                                     .foregroundColor(.blue)
+                                     .foregroundColor(SemanticColor.accent(for: colorScheme))
                                  Text(type.1)
                                      .foregroundColor(.primary)
                                  Spacer()
                                  if selectedMealTypes.contains(type.0) {
                                      Image(systemName: "checkmark.circle.fill")
-                                         .foregroundColor(.blue)
+                                         .foregroundColor(SemanticColor.accent(for: colorScheme))
                                  } else {
                                      Image(systemName: "circle")
                                          .foregroundColor(.gray)
@@ -442,6 +444,7 @@ struct AutoGenerateMealsSheet: View {
 // MARK: - Dietary Restrictions Sheet
 
 struct DietaryRestrictionsSheet: View {
+    @Environment(\.colorScheme) private var colorScheme
     let eventId: String
     let participants: [ParticipantModel]
     @Binding var restrictions: [DietaryRestrictionModel]
@@ -526,7 +529,7 @@ struct DietaryRestrictionsSheet: View {
                                 showDeleteAlert = true
                             } label: {
                                 Image(systemName: "trash")
-                                    .foregroundColor(.red)
+                                    .foregroundColor(SemanticColor.destructive(for: colorScheme))
                             }
                             .accessibilityLabel(String(localized: "common.delete"))
                         }
@@ -534,7 +537,7 @@ struct DietaryRestrictionsSheet: View {
                 } header: {
                     HStack {
                         Image(systemName: "leaf.circle.fill")
-                            .foregroundColor(.green)
+                            .foregroundColor(SemanticColor.confirmation(for: colorScheme))
                         Text(formatRestriction(group.restriction))
                         Text("(\(group.items.count))")
                             .foregroundColor(.secondary)
@@ -548,7 +551,7 @@ struct DietaryRestrictionsSheet: View {
         VStack(spacing: 20) {
             Image(systemName: "leaf.circle")
                 .font(.system(size: 64))
-                .foregroundColor(.green)
+                .foregroundColor(SemanticColor.confirmation(for: colorScheme))
             
             Text(String(localized: "meal.dietary.empty_title"))
                 .font(.title2)
@@ -568,7 +571,7 @@ struct DietaryRestrictionsSheet: View {
                     .foregroundColor(.white)
                     .padding(.horizontal, 24)
                     .padding(.vertical, 12)
-                    .background(Color.green)
+                    .background(SemanticColor.confirmation(for: colorScheme))
                     .continuousCornerRadius(12)
             }
         }

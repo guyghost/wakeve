@@ -249,11 +249,11 @@ struct BudgetOverviewView: View {
             ForEach(participantBalances) { balance in
                 HStack {
                     Circle()
-                        .fill(balance.owesMore ? Color.orange.opacity(0.2) : Color.green.opacity(0.2))
+                        .fill(balance.owesMore ? SemanticColor.warning(for: colorScheme).opacity(0.2) : SemanticColor.confirmation(for: colorScheme).opacity(0.2))
                         .frame(width: 36, height: 36)
                         .overlay {
                             Image(systemName: balance.owesMore ? "arrow.up.circle.fill" : "arrow.down.circle.fill")
-                                .foregroundStyle(balance.owesMore ? .orange : .green)
+                                .foregroundStyle(balance.owesMore ? SemanticColor.warning(for: colorScheme) : SemanticColor.confirmation(for: colorScheme))
                         }
                     Text(balance.name)
                         .font(.subheadline)
@@ -261,7 +261,7 @@ struct BudgetOverviewView: View {
                     VStack(alignment: .trailing, spacing: 2) {
                         Text(formatAmount(abs(balance.balance)))
                             .font(.subheadline.bold())
-                            .foregroundStyle(balance.owesMore ? .orange : .green)
+                            .foregroundStyle(balance.owesMore ? SemanticColor.warning(for: colorScheme) : SemanticColor.confirmation(for: colorScheme))
                         Text(balance.owesMore ? String(localized: "budget.overview.owes") : String(localized: "budget.overview.to_receive"))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
@@ -348,6 +348,7 @@ struct BudgetOverviewView: View {
 }
 
 struct BudgetSyncBanner: View {
+    @Environment(\.colorScheme) private var colorScheme
     let pendingSync: Bool
     let isOnline: Bool
 
@@ -360,7 +361,7 @@ struct BudgetSyncBanner: View {
             .font(.footnote.weight(.semibold))
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.yellow.opacity(0.16), in: RoundedRectangle(cornerRadius: 12))
+            .background(SemanticColor.warning(for: colorScheme).opacity(0.16), in: RoundedRectangle(cornerRadius: 12))
         }
     }
 }
@@ -368,13 +369,14 @@ struct BudgetSyncBanner: View {
 // MARK: - BudgetCategoryRow
 
 struct BudgetCategoryRow: View {
+    @Environment(\.colorScheme) private var colorScheme
     let model: BudgetCategoryModel
 
     var body: some View {
         VStack(spacing: 6) {
             HStack {
                 Image(systemName: model.iconName)
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(SemanticColor.accent(for: colorScheme))
                     .frame(width: 20)
                 Text(model.displayName)
                     .font(.subheadline)
@@ -382,14 +384,14 @@ struct BudgetCategoryRow: View {
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(String(format: "%.2f €", model.actual))
                         .font(.subheadline.bold())
-                        .foregroundStyle(model.isOverBudget ? .red : .primary)
+                        .foregroundStyle(model.isOverBudget ? SemanticColor.destructive(for: colorScheme) : SemanticColor.primaryText(for: colorScheme))
                     Text("/ \(String(format: "%.2f €", model.estimated))")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
             }
             ProgressView(value: model.usagePercentage)
-                .tint(model.isOverBudget ? .red : .blue)
+                .tint(model.isOverBudget ? SemanticColor.destructive(for: colorScheme) : SemanticColor.accent(for: colorScheme))
         }
     }
 }

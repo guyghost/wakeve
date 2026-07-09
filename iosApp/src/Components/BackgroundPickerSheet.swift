@@ -176,7 +176,7 @@ struct BackgroundPickerSheet: View {
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text(String(localized: "events.add_background"))
-                        .font(.system(size: 17, weight: .semibold))
+                        .font(WakeveTheme.Typography.bodySemibold)
                         .foregroundColor(primaryTextColor)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
@@ -243,7 +243,7 @@ struct BackgroundPickerSheet: View {
                 .clipShape(RoundedRectangle(cornerRadius: 16))
             
             Text(label)
-                .font(.system(size: 13, weight: .medium))
+                .font(WakeveTheme.Typography.metadata)
                 .foregroundColor(secondaryTextColor)
         }
     }
@@ -253,7 +253,7 @@ struct BackgroundPickerSheet: View {
     private func backgroundSection(title: String, backgrounds: [PresetBackground]) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title)
-                .font(.system(size: 20, weight: .bold))
+                .font(WakeveTheme.Typography.section)
                 .foregroundColor(primaryTextColor)
             
             LazyVGrid(columns: [

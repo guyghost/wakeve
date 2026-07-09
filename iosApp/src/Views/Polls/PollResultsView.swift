@@ -308,6 +308,7 @@ struct PollResultsContentView: View {
 
 struct BestSlotCard: View {
     let slot: TimeSlot
+    @Environment(\.colorScheme) private var colorScheme
     @ScaledMetric(relativeTo: .title2) private var starSize: CGFloat = 20
     
     var body: some View {
@@ -315,7 +316,7 @@ struct BestSlotCard: View {
             HStack {
                 Image(systemName: "star.fill")
                     .font(.title2)
-                    .foregroundColor(.yellow)
+                    .foregroundColor(SemanticColor.warning(for: colorScheme))
                     .frame(width: starSize, height: starSize)
                 
                 Text(String(localized: "poll.results.best_time"))
@@ -352,7 +353,7 @@ struct BestSlotCard: View {
         .glassCard(cornerRadius: 20)
         .overlay(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(Color.yellow.opacity(0.3), lineWidth: 2)
+                .stroke(SemanticColor.warning(for: colorScheme).opacity(0.3), lineWidth: 2)
         )
     }
     
@@ -847,7 +848,7 @@ struct SlotResultCard: View {
                 HStack {
                     Image(systemName: "star.fill")
                         .font(.system(size: 12))
-                        .foregroundColor(.yellow)
+                        .foregroundColor(SemanticColor.warning(for: colorScheme))
 
                     Text(String(localized: "poll.results.most_popular"))
                         .font(WakeveTheme.Typography.caption)
@@ -857,7 +858,7 @@ struct SlotResultCard: View {
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(Color.yellow.opacity(0.15))
+                .background(SemanticColor.warning(for: colorScheme).opacity(0.15))
                 .continuousCornerRadius(8)
             }
         }
