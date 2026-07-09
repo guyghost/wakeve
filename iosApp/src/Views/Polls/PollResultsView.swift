@@ -13,6 +13,7 @@ struct PollResultsView: View {
     let onBack: () -> Void
 
     @StateObject private var confirmationViewModel: PollConfirmationViewModel
+    @Environment(\.colorScheme) private var colorScheme
 
     init(
         event: Event,
@@ -104,7 +105,7 @@ struct PollResultsView: View {
                 .accessibilityLabel(String(localized: "poll.results.confirmation.accessibility.retry"))
             }
             .padding(16)
-            .background(Color.red.opacity(0.14), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .background(SemanticColor.destructive(for: colorScheme).opacity(0.14), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .accessibilityIdentifier("pollConfirmationError")
             .accessibilityLabel(String(localized: "poll.results.confirmation.accessibility.error"))
             .padding()
@@ -117,7 +118,7 @@ struct PollResultsView: View {
                     .font(.caption)
             }
             .padding(16)
-            .background(Color.orange.opacity(0.14), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .background(SemanticColor.warning(for: colorScheme).opacity(0.14), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .accessibilityIdentifier("pollConfirmationPendingSyncStatus")
             .accessibilityLabel(String(localized: "poll.results.confirmation.accessibility.pending_sync"))
             .padding()
@@ -130,7 +131,7 @@ struct PollResultsView: View {
                     .font(.caption)
             }
             .padding(16)
-            .background(Color.green.opacity(0.14), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .background(SemanticColor.confirmation(for: colorScheme).opacity(0.14), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .accessibilityIdentifier("pollConfirmationSyncedStatus")
             .accessibilityLabel(String(localized: "poll.results.confirmation.accessibility.synced"))
             .padding()
@@ -156,7 +157,7 @@ struct PollResultsView: View {
                     .font(.caption)
             }
             .padding(16)
-            .background(Color.orange.opacity(0.14), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .background(SemanticColor.warning(for: colorScheme).opacity(0.14), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .accessibilityIdentifier("pollConfirmationQuarantinedStatus")
             .accessibilityLabel(String(localized: "poll.results.confirmation.accessibility.quarantined"))
             .padding()
@@ -237,7 +238,7 @@ struct PollResultsContentView: View {
                                 // Results List
                                 VStack(alignment: .leading, spacing: 12) {
                                     Text(String(localized: "poll.results.all_options"))
-                                        .font(.system(size: 20, weight: .semibold))
+                                        .font(WakeveTheme.Typography.section)
                                         .foregroundColor(.primary)
                                         .padding(.horizontal, 4)
 
@@ -275,13 +276,13 @@ struct PollResultsContentView: View {
                                         Text(event.proposedSlots.isEmpty
                                              ? String(localized: "poll.results.no_slots_title")
                                              : String(localized: "poll.results.no_votes_title"))
-                                            .font(.system(size: 24, weight: .bold))
+                                            .font(WakeveTheme.Typography.title2)
                                             .foregroundColor(.primary)
 
                                         Text(event.proposedSlots.isEmpty
                                              ? String(localized: "poll.results.no_slots_subtitle")
                                              : String(localized: "poll.results.no_votes_subtitle"))
-                                            .font(.system(size: 17))
+                                            .font(WakeveTheme.Typography.body)
                                             .foregroundColor(.secondary)
                                             .multilineTextAlignment(.center)
                                     }
@@ -409,18 +410,19 @@ struct ConfirmedDateCard: View {
     let event: Event
     let finalSlot: TimeSlot?
     @ScaledMetric(relativeTo: .largeTitle) private var confirmationIconSize: CGFloat = 64
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         VStack(spacing: 20) {
             // Success Icon
             ZStack {
                 Circle()
-                    .fill(Color.green.opacity(0.15))
+                    .fill(SemanticColor.confirmation(for: colorScheme).opacity(0.15))
                     .frame(width: confirmationIconSize, height: confirmationIconSize)
                 
                 Image(systemName: "checkmark.circle.fill")
                     .font(.largeTitle)
-                    .foregroundColor(.green)
+                    .foregroundColor(SemanticColor.confirmation(for: colorScheme))
             }
             
             // Title
@@ -524,6 +526,7 @@ struct PollDecisionAnnouncementCard: View {
     let slot: TimeSlot
     let isConfirmed: Bool
     @State private var showCopiedAnnouncementMessage = false
+    @Environment(\.colorScheme) private var colorScheme
 
     private var announcementMessage: String {
         let date = formatDate(slot.start ?? "", timezone: slot.timezone)
@@ -541,18 +544,18 @@ struct PollDecisionAnnouncementCard: View {
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: isConfirmed ? "megaphone.fill" : "text.bubble.fill")
                     .font(.system(size: 22, weight: .bold))
-                    .foregroundColor(.blue)
+                    .foregroundColor(SemanticColor.accent(for: colorScheme))
                     .frame(width: 36, height: 36)
-                    .background(Color.blue.opacity(0.12))
+                    .background(SemanticColor.accent(for: colorScheme).opacity(0.12))
                     .clipShape(Circle())
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(isConfirmed ? String(localized: "poll.results.announcement.confirmed_title") : String(localized: "poll.results.announcement.pending_title"))
-                        .font(.system(size: 19, weight: .semibold))
+                        .font(WakeveTheme.Typography.section)
                         .foregroundColor(.primary)
 
                     Text(announcementMessage)
-                        .font(.system(size: 15))
+                        .font(WakeveTheme.Typography.callout)
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -561,7 +564,7 @@ struct PollDecisionAnnouncementCard: View {
             HStack(spacing: 10) {
                 ShareLink(item: announcementMessage) {
                     Label(String(localized: "poll.results.announcement.share_action"), systemImage: "square.and.arrow.up")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(WakeveTheme.Typography.bodySemibold)
                         .lineLimit(1)
                         .minimumScaleFactor(0.76)
                         .frame(maxWidth: .infinity)
@@ -577,7 +580,7 @@ struct PollDecisionAnnouncementCard: View {
                     copyAnnouncementMessage()
                 } label: {
                     Label(String(localized: "poll.results.announcement.copy_action"), systemImage: showCopiedAnnouncementMessage ? "checkmark" : "doc.on.doc.fill")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(WakeveTheme.Typography.bodySemibold)
                         .labelStyle(.iconOnly)
                         .frame(width: 46, height: 46)
                 }
@@ -587,13 +590,13 @@ struct PollDecisionAnnouncementCard: View {
             }
 
             Text(String(localized: "poll.results.announcement.share_hint"))
-                .font(.system(size: 13))
+                .font(WakeveTheme.Typography.caption)
                 .foregroundColor(.secondary)
 
             if showCopiedAnnouncementMessage {
                 Label(String(localized: "poll.results.announcement.copied"), systemImage: "checkmark.circle.fill")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.green)
+                    .font(WakeveTheme.Typography.caption)
+                    .foregroundColor(SemanticColor.confirmation(for: colorScheme))
                     .transition(.opacity.combined(with: .move(edge: .top)))
                     .accessibilityIdentifier("pollDecisionAnnouncementCopiedFeedback")
             }
@@ -710,11 +713,11 @@ struct PollResolutionNextStepsCard: View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 6) {
                 Label(String(localized: "poll.results.next_steps.title"), systemImage: "sparkles")
-                    .font(.system(size: 19, weight: .semibold))
+                    .font(WakeveTheme.Typography.section)
                     .foregroundColor(.primary)
 
                 Text(String(localized: "poll.results.next_steps.subtitle"))
-                    .font(.system(size: 15))
+                    .font(WakeveTheme.Typography.callout)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -741,23 +744,24 @@ private struct PollResolutionStep: Identifiable {
 
 private struct PollResolutionStepRow: View {
     let step: PollResolutionStep
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: step.icon)
                 .font(.system(size: 15, weight: .bold))
-                .foregroundColor(.blue)
+                .foregroundColor(SemanticColor.accent(for: colorScheme))
                 .frame(width: 34, height: 34)
-                .background(Color.blue.opacity(0.12))
+                .background(SemanticColor.accent(for: colorScheme).opacity(0.12))
                 .clipShape(Circle())
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(String(localized: step.titleKey))
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(WakeveTheme.Typography.bodySemibold)
                     .foregroundColor(.primary)
 
                 Text(String(localized: step.detailKey))
-                    .font(.system(size: 13))
+                    .font(WakeveTheme.Typography.caption)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -776,13 +780,14 @@ struct SlotResultCard: View {
     let slot: TimeSlot
     let score: PollLogic.SlotScore
     let isBest: Bool
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         VStack(spacing: 16) {
             // Date and Time
             VStack(spacing: 6) {
                 Text(formatDate(slot.start ?? "", timezone: slot.timezone))
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(WakeveTheme.Typography.bodySemibold)
                     .foregroundColor(.primary)
 
                 HStack(spacing: 6) {
@@ -791,7 +796,7 @@ struct SlotResultCard: View {
                         .foregroundColor(.secondary)
 
                     Text("\(formatTime(slot.start ?? "", timezone: slot.timezone)) - \(formatTime(slot.end ?? "", timezone: slot.timezone))")
-                        .font(.system(size: 15))
+                        .font(WakeveTheme.Typography.callout)
                         .foregroundColor(.secondary)
                 }
 
@@ -807,19 +812,19 @@ struct SlotResultCard: View {
                 VoteCountBadge(
                     label: String(localized: "poll.results.vote.yes"),
                     count: Int(score.yesCount),
-                    color: .green
+                    color: SemanticColor.confirmation(for: colorScheme)
                 )
 
                 VoteCountBadge(
                     label: String(localized: "poll.results.vote.maybe"),
                     count: Int(score.maybeCount),
-                    color: .orange
+                    color: SemanticColor.warning(for: colorScheme)
                 )
 
                 VoteCountBadge(
                     label: String(localized: "poll.results.vote.no"),
                     count: Int(score.noCount),
-                    color: .red
+                    color: SemanticColor.destructive(for: colorScheme)
                 )
 
                 Spacer()
@@ -827,13 +832,13 @@ struct SlotResultCard: View {
                 // Total Score
                 VStack(spacing: 4) {
                     Text(String(localized: "poll.results.score"))
-                        .font(.system(size: 11, weight: .medium))
+                        .font(WakeveTheme.Typography.tiny)
                         .foregroundColor(.secondary)
                         .textCase(.uppercase)
 
                     Text("\(score.totalScore)")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(isBest ? .blue : .primary)
+                        .font(WakeveTheme.Typography.title2)
+                        .foregroundColor(isBest ? SemanticColor.accent(for: colorScheme) : .primary)
                 }
             }
 
@@ -845,7 +850,7 @@ struct SlotResultCard: View {
                         .foregroundColor(.yellow)
 
                     Text(String(localized: "poll.results.most_popular"))
-                        .font(.system(size: 13, weight: .medium))
+                        .font(WakeveTheme.Typography.caption)
                         .foregroundColor(.primary)
 
                     Spacer()
@@ -860,7 +865,7 @@ struct SlotResultCard: View {
         .glassCard(cornerRadius: 20)
         .overlay(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(isBest ? Color.blue.opacity(0.3) : Color.clear, lineWidth: 2)
+                .stroke(isBest ? SemanticColor.accent(for: colorScheme).opacity(0.3) : Color.clear, lineWidth: 2)
         )
     }
 
@@ -922,11 +927,11 @@ struct VoteCountBadge: View {
     var body: some View {
         VStack(spacing: 4) {
             Text("\(count)")
-                .font(.system(size: 18, weight: .semibold))
+                .font(WakeveTheme.Typography.bodySemibold)
                 .foregroundColor(color)
 
             Text(label)
-                .font(.system(size: 10, weight: .medium))
+                .font(WakeveTheme.Typography.tiny)
                 .foregroundColor(.secondary)
                 .textCase(.uppercase)
         }

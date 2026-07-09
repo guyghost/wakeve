@@ -26,6 +26,8 @@ import Combine
 /// }
 /// ```
 struct LocationSelectionSheet: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     var onDismiss: () -> Void
     var onConfirm: (Shared.PotentialLocation_) -> Void
     
@@ -87,7 +89,7 @@ struct LocationSelectionSheet: View {
                             .frame(width: 32, height: 32)
                             .background(
                                 Circle()
-                                    .fill(isValid ? Color.blue : Color.gray)
+                                    .fill(isValid ? SemanticColor.accent(for: colorScheme) : SemanticColor.tertiaryText(for: colorScheme))
                             )
                     }
                     .frame(minWidth: 44, minHeight: 44)
@@ -256,7 +258,7 @@ struct LocationSelectionSheet: View {
                 HStack(spacing: 12) {
                     ZStack {
                         Circle()
-                            .fill(Color.blue.opacity(0.15))
+                            .fill(SemanticColor.accent(for: colorScheme).opacity(0.15))
                             .frame(width: 36, height: 36)
                         
                         if isLoadingLocation {
@@ -267,7 +269,7 @@ struct LocationSelectionSheet: View {
                         } else {
                             Image(systemName: "location.fill")
                                 .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.blue)
+                                .foregroundColor(SemanticColor.accent(for: colorScheme))
                         }
                     }
                     
@@ -290,7 +292,7 @@ struct LocationSelectionSheet: View {
                     if useCurrentLocation {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 22))
-                            .foregroundColor(.blue)
+                            .foregroundColor(SemanticColor.accent(for: colorScheme))
                             .transition(.scale.combined(with: .opacity))
                     }
                 }
@@ -298,13 +300,13 @@ struct LocationSelectionSheet: View {
                 .background(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .fill(useCurrentLocation 
-                            ? Color.blue.opacity(0.08)
+                            ? SemanticColor.accent(for: colorScheme).opacity(0.08)
                             : Color(.secondarySystemBackground))
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .stroke(useCurrentLocation 
-                            ? Color.blue.opacity(0.3)
+                            ? SemanticColor.accent(for: colorScheme).opacity(0.3)
                             : Color.primary.opacity(0.06), lineWidth: 1)
                 )
             }

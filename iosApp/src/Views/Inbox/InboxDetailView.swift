@@ -11,6 +11,8 @@ struct InboxDetailView: View {
     var conversationItems: [InboxItemModel] = []
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
     @State private var moderationTarget: ModerationActionTarget?
     @State private var showCopiedHandoffMessage = false
 
@@ -54,9 +56,9 @@ struct InboxDetailView: View {
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(WakeveTheme.Typography.bodySemibold)
                         Text(String(localized: "common.back"))
-                            .font(.system(size: 17))
+                            .font(WakeveTheme.Typography.body)
                     }
                     .foregroundColor(.wakevePrimary)
                 }
@@ -200,15 +202,15 @@ struct InboxDetailView: View {
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(item.title)
-                        .font(.system(size: 17, weight: .semibold))
+                        .font(WakeveTheme.Typography.bodySemibold)
                         .foregroundColor(.primary)
 
                     Text(item.message)
-                        .font(.system(size: 15))
+                        .font(WakeveTheme.Typography.body)
                         .foregroundColor(.secondary)
 
                     Text(item.timeAgo)
-                        .font(.system(size: 13))
+                        .font(WakeveTheme.Typography.caption)
                         .foregroundColor(.secondary)
                 }
 
@@ -241,11 +243,11 @@ struct InboxDetailView: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Image(systemName: "chart.bar.fill")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(WakeveTheme.Typography.bodySemibold)
                     .foregroundColor(.wakevePrimary)
 
                 Text(String(localized: "inbox.detail.poll_trends"))
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(WakeveTheme.Typography.section)
                     .foregroundColor(.primary)
             }
 
@@ -264,11 +266,11 @@ struct InboxDetailView: View {
         VStack(spacing: 16) {
             HStack {
                 Image(systemName: "envelope.open.fill")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(WakeveTheme.Typography.bodySemibold)
                     .foregroundColor(.wakevePrimary)
 
                 Text(String(localized: "inbox.detail.invited_title"))
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(WakeveTheme.Typography.section)
                     .foregroundColor(.primary)
 
                 Spacer()
@@ -279,7 +281,7 @@ struct InboxDetailView: View {
                     Image(systemName: "calendar")
                         .foregroundColor(.secondary)
                     Text(item.eventName ?? String(localized: "inbox.detail.event_fallback"))
-                        .font(.system(size: 15))
+                        .font(WakeveTheme.Typography.body)
                         .foregroundColor(.primary)
                 }
 
@@ -287,7 +289,7 @@ struct InboxDetailView: View {
                     Image(systemName: "person.2.fill")
                         .foregroundColor(.secondary)
                     Text(String(format: String(localized: "inbox.detail.participants_invited_format"), 6))
-                        .font(.system(size: 15))
+                        .font(WakeveTheme.Typography.body)
                         .foregroundColor(.secondary)
                 }
             }
@@ -309,11 +311,11 @@ struct InboxDetailView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "bubble.left.fill")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(WakeveTheme.Typography.bodySemibold)
                     .foregroundColor(.wakeveSuccess)
 
                 Text(String(localized: "inbox.detail.new_comment"))
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(WakeveTheme.Typography.section)
                     .foregroundColor(.primary)
             }
 
@@ -321,17 +323,17 @@ struct InboxDetailView: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 8) {
                     Text("GR")
-                        .font(.system(size: 13, weight: .bold))
+                        .font(WakeveTheme.Typography.caption.weight(.bold))
                         .foregroundColor(.white)
                         .frame(width: 32, height: 32)
                         .background(Circle().fill(Color.wakevePrimary))
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(String(localized: "inbox.author.group"))
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(WakeveTheme.Typography.bodySemibold)
                             .foregroundColor(.primary)
                         Text(item.timeAgo)
-                            .font(.system(size: 12))
+                            .font(WakeveTheme.Typography.tiny)
                             .foregroundColor(.secondary)
                     }
 
@@ -345,7 +347,7 @@ struct InboxDetailView: View {
                 }
 
                 Text(item.message)
-                    .font(.system(size: 15))
+                    .font(WakeveTheme.Typography.body)
                     .foregroundColor(.primary)
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -363,11 +365,11 @@ struct InboxDetailView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "calendar.badge.clock")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(WakeveTheme.Typography.bodySemibold)
                     .foregroundColor(.wakeveWarning)
 
                 Text(String(localized: "inbox.detail.event_update"))
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(WakeveTheme.Typography.section)
                     .foregroundColor(.primary)
             }
 
@@ -387,11 +389,11 @@ struct InboxDetailView: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Image(systemName: "list.bullet")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(WakeveTheme.Typography.bodySemibold)
                     .foregroundColor(.wakevePrimary)
 
                 Text(String(localized: "inbox.detail.event_progress"))
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(WakeveTheme.Typography.section)
                     .foregroundColor(.primary)
             }
 
@@ -404,12 +406,12 @@ struct InboxDetailView: View {
                                 Circle()
                                     .fill(step.state == .completed ? Color.wakevePrimary :
                                           step.state == .current ? Color.wakevePrimary :
-                                          Color(.systemGray4))
+                                          WakeveTheme.ColorToken.controlFill(for: colorScheme))
                                     .frame(width: 24, height: 24)
 
                                 if step.state == .completed {
                                     Image(systemName: "checkmark")
-                                        .font(.system(size: 12, weight: .bold))
+                                        .font(WakeveTheme.Typography.tiny.weight(.bold))
                                         .foregroundColor(.white)
                                 } else if step.state == .current {
                                     Circle()
@@ -421,7 +423,7 @@ struct InboxDetailView: View {
                             // Connecting line
                             if index < eventSteps.count - 1 {
                                 Rectangle()
-                                    .fill(step.state == .completed ? Color.wakevePrimary : Color(.systemGray4))
+                                    .fill(step.state == .completed ? Color.wakevePrimary : WakeveTheme.ColorToken.separator(for: colorScheme))
                                     .frame(width: 2, height: 32)
                             }
                         }
@@ -434,7 +436,7 @@ struct InboxDetailView: View {
 
                             if step.state == .current {
                                 Text(String(localized: "inbox.current_step"))
-                                    .font(.system(size: 12))
+                                    .font(WakeveTheme.Typography.tiny)
                                     .foregroundColor(.wakevePrimary)
                             }
                         }
@@ -456,7 +458,7 @@ struct InboxDetailView: View {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .top, spacing: 12) {
                     Image(systemName: "checkmark.seal.fill")
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(WakeveTheme.Typography.bodySemibold)
                         .foregroundColor(.wakevePrimary)
                         .frame(width: 36, height: 36)
                         .background(Color.wakevePrimary.opacity(0.12))
@@ -464,11 +466,11 @@ struct InboxDetailView: View {
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text(String(localized: "inbox.decision.title"))
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(WakeveTheme.Typography.bodySemibold)
                             .foregroundColor(.primary)
 
                         Text(String(localized: "inbox.decision.subtitle"))
-                            .font(.system(size: 14))
+                            .font(WakeveTheme.Typography.callout)
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -483,7 +485,7 @@ struct InboxDetailView: View {
                 HStack(spacing: 8) {
                     ForEach(Array(timelineItems.prefix(3))) { signal in
                         Label(signal.type.shortLabel, systemImage: signal.icon)
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(WakeveTheme.Typography.tiny)
                             .foregroundColor(signal.iconColor)
                             .lineLimit(1)
                             .minimumScaleFactor(0.74)
@@ -506,7 +508,7 @@ struct InboxDetailView: View {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .top, spacing: 12) {
                     Image(systemName: "paperplane.fill")
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(WakeveTheme.Typography.bodySemibold)
                         .foregroundColor(.wakevePrimary)
                         .frame(width: 36, height: 36)
                         .background(Color.wakevePrimary.opacity(0.12))
@@ -514,18 +516,18 @@ struct InboxDetailView: View {
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text(String(localized: "inbox.handoff.title"))
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(WakeveTheme.Typography.bodySemibold)
                             .foregroundColor(.primary)
 
                         Text(String(localized: "inbox.handoff.subtitle"))
-                            .font(.system(size: 14))
+                            .font(WakeveTheme.Typography.callout)
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
 
                 Text(groupHandoffMessage)
-                    .font(.system(size: 14))
+                    .font(WakeveTheme.Typography.callout)
                     .foregroundColor(.primary)
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -536,7 +538,7 @@ struct InboxDetailView: View {
                 HStack(spacing: 10) {
                     ShareLink(item: groupHandoffMessage) {
                         Label(String(localized: "inbox.handoff.share_action"), systemImage: "square.and.arrow.up")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(WakeveTheme.Typography.bodySemibold)
                             .foregroundColor(.white)
                             .lineLimit(1)
                             .minimumScaleFactor(0.76)
@@ -545,6 +547,7 @@ struct InboxDetailView: View {
                             .background(Color.wakevePrimary)
                             .continuousCornerRadius(14)
                     }
+                    .frame(minHeight: 44)
                     .simultaneousGesture(TapGesture().onEnded {
                         WakeveHaptics.selection()
                     })
@@ -554,7 +557,7 @@ struct InboxDetailView: View {
                         copyGroupHandoffMessage()
                     } label: {
                         Label(String(localized: "inbox.handoff.copy_action"), systemImage: "doc.on.doc.fill")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(WakeveTheme.Typography.bodySemibold)
                             .foregroundColor(.wakevePrimary)
                             .lineLimit(1)
                             .minimumScaleFactor(0.76)
@@ -564,12 +567,13 @@ struct InboxDetailView: View {
                             .continuousCornerRadius(14)
                     }
                     .buttonStyle(.plain)
+                    .frame(minHeight: 44)
                     .accessibilityIdentifier("groupHandoffCopyButton")
                 }
 
                 if showCopiedHandoffMessage {
                     Label(String(localized: "inbox.handoff.copied"), systemImage: "checkmark.circle.fill")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(WakeveTheme.Typography.caption)
                         .foregroundColor(.wakeveSuccess)
                         .transition(.opacity.combined(with: .move(edge: .top)))
                 }
@@ -582,7 +586,7 @@ struct InboxDetailView: View {
         UIPasteboard.general.string = groupHandoffMessage
         #endif
         WakeveHaptics.success()
-        withAnimation(.easeInOut(duration: 0.18)) {
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.18)) {
             showCopiedHandoffMessage = true
         }
     }
@@ -593,21 +597,21 @@ struct InboxDetailView: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Image(systemName: "bubble.left.and.bubble.right.fill")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(WakeveTheme.Typography.bodySemibold)
                     .foregroundColor(.wakevePrimary)
 
                 Text(String(localized: "inbox.detail.conversations"))
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(WakeveTheme.Typography.section)
                     .foregroundColor(.primary)
 
                 Spacer()
 
                 Text("\(timelineItems.count)")
-                    .font(.system(size: 13, weight: .medium))
+                    .font(WakeveTheme.Typography.caption)
                     .foregroundColor(.secondary)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 2)
-                    .background(Color(.systemGray5))
+                    .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
                     .continuousCornerRadius(10)
             }
 
@@ -668,6 +672,7 @@ struct InboxDetailView: View {
         } label: {
             Image(systemName: "ellipsis.circle")
                 .foregroundColor(.secondary)
+                .frame(minWidth: 44, minHeight: 44)
         }
     }
 }
@@ -687,7 +692,7 @@ private struct InboxDecisionSnapshotRowView: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: row.icon)
-                .font(.system(size: 14, weight: .semibold))
+                .font(WakeveTheme.Typography.caption)
                 .foregroundColor(.wakevePrimary)
                 .frame(width: 30, height: 30)
                 .background(Color.wakevePrimary.opacity(0.12))
@@ -695,12 +700,12 @@ private struct InboxDecisionSnapshotRowView: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(row.title)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(WakeveTheme.Typography.tiny)
                     .foregroundColor(.secondary)
                     .textCase(.uppercase)
 
                 Text(row.value)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(WakeveTheme.Typography.bodySemibold)
                     .foregroundColor(.primary)
                     .lineLimit(2)
                     .minimumScaleFactor(0.78)
@@ -756,10 +761,10 @@ private struct VoteBar: View {
 
             HStack(spacing: 2) {
                 Text("\(count)")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(WakeveTheme.Typography.tiny)
                     .foregroundColor(color)
                 Text(label)
-                    .font(.system(size: 10))
+                    .font(WakeveTheme.Typography.tiny)
                     .foregroundColor(.secondary)
             }
         }
@@ -778,9 +783,9 @@ private struct RSVPActionButton: View {
         Button(action: action) {
             VStack(spacing: 6) {
                 Image(systemName: icon)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(WakeveTheme.Typography.bodySemibold)
                 Text(title)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(WakeveTheme.Typography.tiny)
             }
             .foregroundColor(color)
             .frame(maxWidth: .infinity)
@@ -788,6 +793,7 @@ private struct RSVPActionButton: View {
             .background(color.opacity(0.1))
             .continuousCornerRadius(12)
         }
+        .frame(minHeight: 44)
     }
 }
 
@@ -800,12 +806,12 @@ private struct UpdateRow: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: icon)
-                .font(.system(size: 14))
+                .font(WakeveTheme.Typography.callout)
                 .foregroundColor(.secondary)
                 .frame(width: 20)
 
             Text(text)
-                .font(.system(size: 15))
+                .font(WakeveTheme.Typography.body)
                 .foregroundColor(.primary)
         }
     }
@@ -820,7 +826,7 @@ private struct InboxTimelineMessageRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             Text(authorInitials)
-                .font(.system(size: 12, weight: .bold))
+                .font(WakeveTheme.Typography.tiny.weight(.bold))
                 .foregroundColor(.white)
                 .frame(width: 32, height: 32)
                 .background(Circle().fill(item.iconColor))
@@ -828,13 +834,13 @@ private struct InboxTimelineMessageRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text(authorName)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(WakeveTheme.Typography.caption)
                         .foregroundColor(.primary)
 
                     Spacer()
 
                     Text(item.timeAgo)
-                        .font(.system(size: 12))
+                        .font(WakeveTheme.Typography.tiny)
                         .foregroundColor(.secondary)
 
                     Menu {
@@ -872,16 +878,17 @@ private struct InboxTimelineMessageRow: View {
                     } label: {
                         Image(systemName: "ellipsis.circle")
                             .foregroundColor(.secondary)
+                            .frame(minWidth: 44, minHeight: 44)
                     }
                 }
 
                 Text(item.title)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(WakeveTheme.Typography.caption)
                     .foregroundColor(.primary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Text(item.message)
-                    .font(.system(size: 14))
+                    .font(WakeveTheme.Typography.callout)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -970,7 +977,7 @@ private struct InboxPollSignalRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: item.icon)
-                .font(.system(size: 14, weight: .semibold))
+                .font(WakeveTheme.Typography.caption)
                 .foregroundColor(item.iconColor)
                 .frame(width: 30, height: 30)
                 .background(item.iconColor.opacity(0.12))
@@ -979,7 +986,7 @@ private struct InboxPollSignalRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(item.title)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(WakeveTheme.Typography.bodySemibold)
                         .foregroundColor(.primary)
                         .lineLimit(2)
                         .minimumScaleFactor(0.82)
@@ -987,12 +994,12 @@ private struct InboxPollSignalRow: View {
                     Spacer(minLength: 8)
 
                     Text(item.timeAgo)
-                        .font(.system(size: 12))
+                        .font(WakeveTheme.Typography.tiny)
                         .foregroundColor(.secondary)
                 }
 
                 Text(item.message)
-                    .font(.system(size: 14))
+                    .font(WakeveTheme.Typography.callout)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }

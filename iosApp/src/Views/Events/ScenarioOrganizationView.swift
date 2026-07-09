@@ -131,13 +131,13 @@ struct ScenarioOrganizationView: View {
                 phaseBadge
 
                 Text(String(localized: "scenario.title"))
-                    .font(.system(size: 42, weight: .bold))
+                    .font(WakeveTheme.Typography.display)
                     .foregroundColor(.white)
                     .lineLimit(2)
                     .minimumScaleFactor(0.74)
 
                 Text(event.title)
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(WakeveTheme.Typography.section)
                     .foregroundColor(.white.opacity(0.74))
                     .lineLimit(2)
             }
@@ -180,7 +180,7 @@ struct ScenarioOrganizationView: View {
             Image(systemName: isLocked ? "lock.fill" : "rectangle.3.group.fill")
                 .font(.system(size: 13, weight: .bold))
             Text(isLocked ? String(localized: "scenario.access_locked") : phaseText)
-                .font(.system(size: 14, weight: .bold))
+                .font(WakeveTheme.Typography.callout)
         }
         .foregroundColor(.white)
         .padding(.horizontal, 12)
@@ -195,11 +195,11 @@ struct ScenarioOrganizationView: View {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 5) {
                         Text(String(format: String(localized: "scenario.options_count_format"), viewModel.scenarios.count))
-                            .font(.system(size: 22, weight: .bold))
+                            .font(WakeveTheme.Typography.title2)
                             .foregroundColor(primaryText)
 
                         Text(summaryText)
-                            .font(.system(size: 15, weight: .medium))
+                            .font(WakeveTheme.Typography.metadata)
                             .foregroundColor(secondaryText)
                             .lineSpacing(3)
                     }
@@ -208,9 +208,9 @@ struct ScenarioOrganizationView: View {
 
                     Image(systemName: "chart.bar.xaxis")
                         .font(.system(size: 22, weight: .bold))
-                        .foregroundColor(.blue)
+                        .foregroundColor(SemanticColor.accent(for: colorScheme))
                         .frame(width: 46, height: 46)
-                        .background(Color.blue.opacity(0.14))
+                        .background(SemanticColor.accent(for: colorScheme).opacity(0.14))
                         .clipShape(Circle())
                 }
 
@@ -235,7 +235,7 @@ struct ScenarioOrganizationView: View {
     private var scenarioContent: some View {
         if viewModel.isLoading && viewModel.scenarios.isEmpty {
             ProgressView()
-                .tint(.blue)
+                .tint(SemanticColor.accent(for: colorScheme))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 40)
                 .accessibilityLabel(String(localized: "common.loading"))
@@ -258,7 +258,7 @@ struct ScenarioOrganizationView: View {
 
             VStack(alignment: .leading, spacing: 12) {
                 Text(String(localized: "scenario.ranking"))
-                    .font(.system(size: 20, weight: .bold))
+                    .font(WakeveTheme.Typography.section)
                     .foregroundColor(primaryText)
 
                 ForEach(viewModel.scenariosRanked, id: \.scenario.id) { scenarioWithVotes in
@@ -317,11 +317,11 @@ struct ScenarioOrganizationView: View {
 
                     VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
                         Text(String(localized: "scenario.budget_decision.title"))
-                            .font(.system(size: 20, weight: .bold))
+                            .font(WakeveTheme.Typography.section)
                             .foregroundColor(primaryText)
 
                         Text(budgetDecisionSubtitle)
-                            .font(.system(size: 15, weight: .medium))
+                            .font(WakeveTheme.Typography.metadata)
                             .foregroundColor(secondaryText)
                             .lineSpacing(3)
                     }
@@ -345,7 +345,7 @@ struct ScenarioOrganizationView: View {
 
                 if missingScenarioBudgetCount > 0 {
                     Label(missingScenarioBudgetText, systemImage: "exclamationmark.triangle.fill")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(WakeveTheme.Typography.caption)
                         .foregroundColor(WakeveTheme.ColorToken.destructive(for: colorScheme))
                 }
             }
@@ -357,7 +357,7 @@ struct ScenarioOrganizationView: View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
                     Label(String(localized: "scenario.comparison"), systemImage: "rectangle.split.3x1.fill")
-                        .font(.system(size: 20, weight: .bold))
+                        .font(WakeveTheme.Typography.section)
                         .foregroundColor(primaryText)
 
                     Spacer()
@@ -366,14 +366,14 @@ struct ScenarioOrganizationView: View {
                         viewModel.clearComparison()
                         selectedComparisonIds.removeAll()
                     }
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.blue)
+                    .font(WakeveTheme.Typography.callout)
+                    .foregroundColor(SemanticColor.accent(for: colorScheme))
                 }
 
                 ForEach(scenarios, id: \.scenario.id) { item in
                     VStack(alignment: .leading, spacing: 10) {
                         Text(item.scenario.name)
-                            .font(.system(size: 17, weight: .bold))
+                            .font(WakeveTheme.Typography.rowTitle)
                             .foregroundColor(primaryText)
 
                         HStack(spacing: 8) {
@@ -401,12 +401,12 @@ struct ScenarioOrganizationView: View {
                     .clipShape(Circle())
 
                 Text(String(localized: "scenario.locked.title"))
-                    .font(.system(size: 22, weight: .bold))
+                    .font(WakeveTheme.Typography.title2)
                     .foregroundColor(primaryText)
                     .multilineTextAlignment(.center)
 
                 Text(String(localized: "scenario.locked.subtitle"))
-                    .font(.system(size: 15, weight: .medium))
+                    .font(WakeveTheme.Typography.metadata)
                     .foregroundColor(secondaryText)
                     .multilineTextAlignment(.center)
                     .lineSpacing(3)
@@ -423,11 +423,11 @@ struct ScenarioOrganizationView: View {
                     .foregroundColor(secondaryText)
 
                 Text(String(localized: "scenario.empty.title"))
-                    .font(.system(size: 22, weight: .bold))
+                    .font(WakeveTheme.Typography.title2)
                     .foregroundColor(primaryText)
 
                 Text(isOrganizer ? String(localized: "scenario.empty.organizer_subtitle") : String(localized: "scenario.empty.participant_subtitle"))
-                    .font(.system(size: 15, weight: .medium))
+                    .font(WakeveTheme.Typography.metadata)
                     .foregroundColor(secondaryText)
                     .multilineTextAlignment(.center)
 
@@ -451,7 +451,7 @@ struct ScenarioOrganizationView: View {
     private var matrixGenerationActions: some View {
         VStack(spacing: WakeveTheme.Spacing.sm) {
             Text(matrixReadinessText)
-                .font(.system(size: 13, weight: .semibold))
+                .font(WakeveTheme.Typography.caption)
                 .foregroundColor(canGenerateMatrixScenarios ? secondaryText : WakeveTheme.ColorToken.destructive(for: colorScheme))
                 .multilineTextAlignment(.center)
 
@@ -481,11 +481,11 @@ struct ScenarioOrganizationView: View {
 
                     VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
                         Text(String(localized: "scenario.matrix_publish.ready_title"))
-                            .font(.system(size: 18, weight: .bold))
+                            .font(WakeveTheme.Typography.bodySemibold)
                             .foregroundColor(primaryText)
 
                         Text(String(localized: "scenario.matrix_publish.ready_subtitle"))
-                            .font(.system(size: 15, weight: .medium))
+                            .font(WakeveTheme.Typography.metadata)
                             .foregroundColor(secondaryText)
                             .lineLimit(3)
                     }
@@ -540,7 +540,7 @@ struct ScenarioOrganizationView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.82)
         }
-        .font(.system(size: 13, weight: .bold))
+        .font(WakeveTheme.Typography.caption)
         .foregroundColor(primaryText)
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
@@ -551,10 +551,10 @@ struct ScenarioOrganizationView: View {
     private func comparisonMetric(_ label: String, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(label)
-                .font(.system(size: 11, weight: .bold))
+                .font(WakeveTheme.Typography.tiny)
                 .foregroundColor(secondaryText)
             Text(value)
-                .font(.system(size: 14, weight: .bold))
+                .font(WakeveTheme.Typography.callout)
                 .foregroundColor(primaryText)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
@@ -1042,12 +1042,12 @@ private struct ScenarioBudgetInsightTile: View {
                 .clipShape(Circle())
 
             Text(title)
-                .font(.system(size: 11, weight: .bold))
+                .font(WakeveTheme.Typography.tiny)
                 .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
                 .textCase(.uppercase)
 
             Text(value)
-                .font(.system(size: 16, weight: .bold))
+                .font(WakeveTheme.Typography.bodySemibold)
                 .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
                 .lineLimit(2)
                 .minimumScaleFactor(0.8)
@@ -1083,11 +1083,11 @@ private struct ScenarioDecisionResolutionCard: View {
 
                     VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
                         Text(String(localized: "scenario.decision.title"))
-                            .font(.system(size: 20, weight: .bold))
+                            .font(WakeveTheme.Typography.section)
                             .foregroundColor(primaryText)
 
                         Text(String(format: String(localized: "scenario.decision.subtitle_format"), scenario.name))
-                            .font(.system(size: 15, weight: .medium))
+                            .font(WakeveTheme.Typography.metadata)
                             .foregroundColor(secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -1115,7 +1115,7 @@ private struct ScenarioDecisionResolutionCard: View {
                 }
 
                 Text(announcementMessage)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(WakeveTheme.Typography.callout)
                     .foregroundColor(primaryText)
                     .padding(WakeveTheme.Spacing.md)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -1126,7 +1126,7 @@ private struct ScenarioDecisionResolutionCard: View {
                 HStack(spacing: WakeveTheme.Spacing.sm) {
                     ShareLink(item: announcementMessage) {
                         Label(String(localized: "scenario.decision.share_action"), systemImage: "square.and.arrow.up")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(WakeveTheme.Typography.metadata)
                             .lineLimit(1)
                             .minimumScaleFactor(0.76)
                             .frame(maxWidth: .infinity)
@@ -1142,7 +1142,7 @@ private struct ScenarioDecisionResolutionCard: View {
                         copyDecisionMessage()
                     } label: {
                         Label(String(localized: "scenario.decision.copy_action"), systemImage: showCopiedDecisionMessage ? "checkmark" : "doc.on.doc.fill")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(WakeveTheme.Typography.metadata)
                             .labelStyle(.iconOnly)
                             .frame(width: 48, height: 48)
                     }
@@ -1153,7 +1153,7 @@ private struct ScenarioDecisionResolutionCard: View {
 
                 if showCopiedDecisionMessage {
                     Label(String(localized: "scenario.decision.copied"), systemImage: "checkmark.circle.fill")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(WakeveTheme.Typography.caption)
                         .foregroundColor(WakeveTheme.ColorToken.confirmation(for: colorScheme))
                         .transition(.opacity.combined(with: .move(edge: .top)))
                         .accessibilityIdentifier("scenarioDecisionCopiedFeedback")
@@ -1178,7 +1178,7 @@ private struct ScenarioDecisionResolutionCard: View {
 
                 if !canOpenTransport {
                     Label(String(localized: "scenario.decision.transport_locked"), systemImage: "lock.fill")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(WakeveTheme.Typography.caption)
                         .foregroundColor(secondaryText)
                 }
             }
@@ -1229,19 +1229,19 @@ private struct ScenarioDecisionMetricRow: View {
         HStack(spacing: WakeveTheme.Spacing.sm) {
             Image(systemName: icon)
                 .font(.system(size: 14, weight: .bold))
-                .foregroundColor(.blue)
+                .foregroundColor(SemanticColor.accent(for: colorScheme))
                 .frame(width: 30, height: 30)
-                .background(Color.blue.opacity(0.12))
+                .background(SemanticColor.accent(for: colorScheme).opacity(0.12))
                 .clipShape(Circle())
 
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
                 Text(title)
-                    .font(.system(size: 11, weight: .bold))
+                    .font(WakeveTheme.Typography.tiny)
                     .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
                     .textCase(.uppercase)
 
                 Text(value)
-                    .font(.system(size: 14, weight: .bold))
+                    .font(WakeveTheme.Typography.callout)
                     .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
                     .lineLimit(2)
                     .minimumScaleFactor(0.78)
@@ -1420,17 +1420,17 @@ private struct ScenarioWeatherComparisonContext: View {
         HStack(spacing: WakeveTheme.Spacing.sm) {
             Image(systemName: icon)
                 .font(.system(size: 15, weight: .bold))
-                .foregroundColor(.blue)
+                .foregroundColor(SemanticColor.accent(for: colorScheme))
                 .frame(width: 30, height: 30)
-                .background(Color.blue.opacity(0.12))
+                .background(SemanticColor.accent(for: colorScheme).opacity(0.12))
                 .clipShape(Circle())
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.system(size: 11, weight: .bold))
+                    .font(WakeveTheme.Typography.tiny)
                     .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
                 Text(value)
-                    .font(.system(size: 13, weight: .bold))
+                    .font(WakeveTheme.Typography.caption)
                     .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
                     .lineLimit(1)
                     .minimumScaleFactor(0.78)
@@ -1485,25 +1485,25 @@ private struct ScenarioOrganizationCard: View {
                     statusBadge
 
                     Text(String(format: String(localized: "scenario.score_format"), votingResult.score))
-                        .font(.system(size: 12, weight: .bold))
+                        .font(WakeveTheme.Typography.caption)
                         .foregroundColor(secondaryText)
                 }
 
                 Text(scenario.name)
-                    .font(.system(size: 20, weight: .bold))
+                    .font(WakeveTheme.Typography.section)
                     .foregroundColor(primaryText)
                     .lineLimit(2)
 
                 if scenario.generationType == .matrix {
                     Text(matrixSourceLabel)
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(.blue)
+                        .font(WakeveTheme.Typography.caption)
+                        .foregroundColor(SemanticColor.accent(for: colorScheme))
                         .lineLimit(1)
                         .minimumScaleFactor(0.78)
                 }
 
                 Text(scenario.description_)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(WakeveTheme.Typography.callout)
                     .foregroundColor(secondaryText)
                     .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
@@ -1514,7 +1514,7 @@ private struct ScenarioOrganizationCard: View {
             Button(action: onToggleComparison) {
                 Image(systemName: isSelectedForComparison ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(isSelectedForComparison ? .blue : secondaryText)
+                    .foregroundColor(isSelectedForComparison ? SemanticColor.accent(for: colorScheme) : secondaryText)
                     .frame(width: 34, height: 34)
             }
             .accessibilityLabel(isSelectedForComparison ? String(localized: "scenario.remove_from_comparison_accessibility") : String(localized: "scenario.add_to_comparison_accessibility"))
@@ -1536,11 +1536,11 @@ private struct ScenarioOrganizationCard: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text(String(localized: "scenario.votes"))
-                    .font(.system(size: 15, weight: .bold))
+                    .font(WakeveTheme.Typography.metadata)
                     .foregroundColor(primaryText)
                 Spacer()
                 Text(String(format: String(localized: "scenario.votes_total_format"), votingResult.totalVotes))
-                    .font(.system(size: 13, weight: .bold))
+                    .font(WakeveTheme.Typography.caption)
                     .foregroundColor(secondaryText)
             }
 
@@ -1577,7 +1577,7 @@ private struct ScenarioOrganizationCard: View {
                 .fill(statusColor)
                 .frame(width: 7, height: 7)
             Text(statusText)
-                .font(.system(size: 12, weight: .bold))
+                .font(WakeveTheme.Typography.caption)
         }
         .foregroundColor(primaryText)
         .padding(.horizontal, 9)
@@ -1590,12 +1590,12 @@ private struct ScenarioOrganizationCard: View {
         VStack(alignment: .leading, spacing: 8) {
             Image(systemName: icon)
                 .font(.system(size: 15, weight: .bold))
-                .foregroundColor(.blue)
+                .foregroundColor(SemanticColor.accent(for: colorScheme))
             Text(label)
-                .font(.system(size: 11, weight: .bold))
+                .font(WakeveTheme.Typography.tiny)
                 .foregroundColor(secondaryText)
             Text(value)
-                .font(.system(size: 14, weight: .bold))
+                .font(WakeveTheme.Typography.callout)
                 .foregroundColor(primaryText)
                 .lineLimit(2)
                 .minimumScaleFactor(0.78)
@@ -1609,10 +1609,10 @@ private struct ScenarioOrganizationCard: View {
     private func voteMetric(_ label: String, _ count: Int32, _ color: Color) -> some View {
         VStack(spacing: 4) {
             Text("\(count)")
-                .font(.system(size: 16, weight: .bold))
+                .font(WakeveTheme.Typography.bodySemibold)
                 .foregroundColor(primaryText)
             Text(label)
-                .font(.system(size: 11, weight: .bold))
+                .font(WakeveTheme.Typography.tiny)
                 .foregroundColor(secondaryText)
                 .lineLimit(1)
                 .minimumScaleFactor(0.72)
@@ -1634,14 +1634,14 @@ private struct ScenarioOrganizationCard: View {
                 Image(systemName: icon)
                     .font(.system(size: 15, weight: .bold))
                 Text(title)
-                    .font(.system(size: 12, weight: .bold))
+                    .font(WakeveTheme.Typography.caption)
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
             }
             .foregroundColor(isActive ? .white : primaryText)
             .frame(maxWidth: .infinity)
             .frame(height: 54)
-            .background(isActive ? Color.blue : WakeveTheme.ColorToken.controlFill(for: colorScheme))
+            .background(isActive ? SemanticColor.accent(for: colorScheme) : WakeveTheme.ColorToken.controlFill(for: colorScheme))
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .buttonStyle(.plain)

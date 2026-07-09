@@ -402,6 +402,8 @@ struct WakeveCircleButton: View {
                 )
         }
         .buttonStyle(.plain)
+        .frame(minWidth: 44, minHeight: 44)
+        .contentShape(Circle())
         .accessibilityLabel(accessibilityLabel)
     }
 

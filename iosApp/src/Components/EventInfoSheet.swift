@@ -3,6 +3,8 @@ import SwiftUI
 /// Bottom sheet for editing event description and organizer profile
 /// Matches the design from description.png
 struct EventInfoSheet: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     @Binding var description: String
     @Binding var organizerName: String
     @Binding var organizerPhotoUrl: String?
@@ -45,7 +47,7 @@ struct EventInfoSheet: View {
                             .frame(width: 32, height: 32)
                             .background(
                                 Circle()
-                                    .fill(Color.blue)
+                                    .fill(SemanticColor.accent(for: colorScheme))
                             )
                     }
                     .frame(minWidth: 44, minHeight: 44)

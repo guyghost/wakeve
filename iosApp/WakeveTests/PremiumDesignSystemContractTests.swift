@@ -312,6 +312,195 @@ final class PremiumDesignSystemContractTests: XCTestCase {
         XCTAssertFalse(errorView.contains("Color.pink"), "ErrorView must not hard-code a generic pink brand color.")
     }
 
+    func testLegacyTypographyUsesSemanticDynamicTypeStyles() throws {
+        let source = try readProjectFile("iosApp/src/Theme/DesignSystem.swift")
+        let typography = slice(source, from: "public struct Typography", to: "// MARK:")
+
+        XCTAssertFalse(
+            typography.contains("Font.system(size:"),
+            "Legacy Typography tokens must use semantic SwiftUI text styles so they scale with Dynamic Type."
+        )
+        for style in ["Font.largeTitle", "Font.headline", "Font.body", "Font.subheadline", "Font.caption"] {
+            XCTAssertTrue(typography.contains(style), "Legacy Typography must map its roles to semantic style \(style).")
+        }
+    }
+
+    func testHighTrafficScreensStayWithinFixedTypographyMigrationBudgets() throws {
+        let budgets = [
+            ("iosApp/src/Views/Events/CreateEventSheet.swift", 16),
+            ("iosApp/src/Views/Polls/PollResultsView.swift", 5),
+            ("iosApp/src/Views/Polls/PollVotingView.swift", 3)
+        ]
+
+        for (path, budget) in budgets {
+            let source = try readProjectFile(path)
+            let count = occurrenceCount(of: ".font(.system(size:", in: source)
+            XCTAssertLessThanOrEqual(
+                count,
+                budget,
+                "\(path) has \(count) fixed-size fonts; at most \(budget) decorative/icon occurrences may remain."
+            )
+        }
+    }
+
+    func testPollResultsUsesSemanticStatusColors() throws {
+        let source = try readProjectFile("iosApp/src/Views/Polls/PollResultsView.swift")
+
+        for rawColor in ["Color.red", "Color.orange", "Color.green", "Color.blue"] {
+            XCTAssertFalse(source.contains(rawColor), "PollResultsView must replace \(rawColor) with a semantic status token.")
+        }
+        for token in ["SemanticColor.destructive", "SemanticColor.warning", "SemanticColor.confirmation", "SemanticColor.accent"] {
+            XCTAssertTrue(source.contains(token), "PollResultsView must express status with \(token).")
+        }
+    }
+
+    func testLegacySheetsAndCalendarActionUseSemanticAccentColors() throws {
+        let paths = [
+            "iosApp/src/Components/AddToCalendarButton.swift",
+            "iosApp/src/Components/EventInfoSheet.swift",
+            "iosApp/src/Components/LocationSelectionSheet.swift"
+        ]
+
+        for path in paths {
+            let source = try readProjectFile(path)
+            XCTAssertFalse(source.contains("Color.blue"), "\(path) must not hard-code Color.blue.")
+            XCTAssertTrue(source.contains("SemanticColor."), "\(path) must use semantic design-system colors.")
+        }
+    }
+
+    func testSharedAndCreateEventAnimationsHonorReduceMotion() throws {
+        let shared = try readProjectFile("iosApp/src/Components/SharedComponents.swift")
+        let createEvent = try readProjectFile("iosApp/src/Views/Events/CreateEventSheet.swift")
+
+        for (path, source) in [
+            ("SharedComponents.swift", shared),
+            ("CreateEventSheet.swift", createEvent)
+        ] {
+            XCTAssertTrue(source.contains("@Environment(\\.accessibilityReduceMotion)"), "\(path) must observe Reduce Motion.")
+            XCTAssertTrue(source.contains("reduceMotion ? nil :"), "\(path) must disable non-essential animations under Reduce Motion.")
+        }
+    }
+
+    func testLiquidGlassAnimationEntryPointsAndBadgeHonorReduceMotion() throws {
+        let source = try readProjectFile("iosApp/src/Components/LiquidGlassAnimations.swift")
+        let helpers = slice(source, from: "struct LiquidGlassAnimations", to: "// MARK: - Animation Modifiers")
+        let animatedBadge = slice(source, from: "struct AnimatedBadgeModifier", to: "extension View")
+
+        XCTAssertTrue(helpers.contains("reduceMotion: Bool"), "LiquidGlassAnimations must expose accessibility-aware helper overloads.")
+        XCTAssertTrue(helpers.contains("reduceMotion ? nil :"), "Accessibility-aware Liquid Glass helpers must return no animation for Reduce Motion.")
+        XCTAssertTrue(animatedBadge.contains("@Environment(\\.accessibilityReduceMotion)"), "AnimatedBadgeModifier must observe Reduce Motion.")
+        XCTAssertTrue(animatedBadge.contains("reduceMotion ? nil :"), "AnimatedBadgeModifier must suppress entrance animation under Reduce Motion.")
+    }
+
+    func testWakeveCircleButtonGuaranteesAccessibleHitTarget() throws {
+        let source = try readProjectFile("iosApp/src/Components/DesignSystem/WakeveDesignSystemComponents.swift")
+        let circleButton = slice(source, from: "struct WakeveCircleButton", to: "private var background")
+
+        XCTAssertTrue(circleButton.contains(".frame(minWidth: 44, minHeight: 44)"), "WakeveCircleButton needs a minimum 44pt hit target.")
+        XCTAssertTrue(circleButton.contains(".contentShape(Circle())"), "WakeveCircleButton must make its full circular hit target interactive.")
+    }
+
+    func testScenarioOrganizationUsesDynamicTypeAndSemanticAccent() throws {
+        let source = try readProjectFile("iosApp/src/Views/Events/ScenarioOrganizationView.swift")
+        let fixedFontCount = occurrenceCount(of: ".font(.system(size:", in: source)
+
+        XCTAssertLessThanOrEqual(
+            fixedFontCount,
+            11,
+            "ScenarioOrganizationView has \(fixedFontCount) fixed-size fonts; only 11 decorative or icon occurrences may remain."
+        )
+        for rawAccent in ["Color.blue", "? .blue", ".tint(.blue)"] {
+            XCTAssertFalse(source.contains(rawAccent), "ScenarioOrganizationView must replace raw accent \(rawAccent) with a semantic token.")
+        }
+        XCTAssertTrue(
+            source.contains("SemanticColor.accent"),
+            "ScenarioOrganizationView must use the semantic accent token for selection and action emphasis."
+        )
+    }
+
+    func testEventDetailExperienceUsesDynamicTypeAndAccessibleToolbarTargets() throws {
+        let source = try readProjectFile("iosApp/src/Views/EventDetailExperienceView.swift")
+        let fixedFontCount = occurrenceCount(of: ".font(.system(size:", in: source)
+        let visualControlCount = occurrenceCount(of: ".frame(width: 36, height: 36)", in: source) - 1
+        let accessibleHitTargetCount = occurrenceCount(of: ".frame(minWidth: 44, minHeight: 44)", in: source)
+
+        XCTAssertLessThanOrEqual(
+            fixedFontCount,
+            7,
+            "EventDetailExperienceView has \(fixedFontCount) fixed-size fonts; only 7 decorative symbol occurrences may remain."
+        )
+        XCTAssertEqual(
+            visualControlCount,
+            3,
+            "The two back buttons and overflow menu are the expected custom 36pt navigation/action controls."
+        )
+        XCTAssertGreaterThanOrEqual(
+            accessibleHitTargetCount,
+            visualControlCount,
+            "Every custom 36pt navigation/action control must expose a minimum 44pt hit target."
+        )
+    }
+
+    func testInboxDetailMeetsTypographyMotionAndControlAccessibilityBudgets() throws {
+        let source = try readProjectFile("iosApp/src/Views/Inbox/InboxDetailView.swift")
+        let handoff = slice(source, from: "private var groupHandoffCard", to: "private func copyGroupHandoffMessage")
+        let rsvpButton = slice(source, from: "private struct RSVPActionButton", to: "// MARK: - Update Row")
+        let fixedFontCount = occurrenceCount(of: ".font(.system(size:", in: source)
+
+        XCTAssertLessThanOrEqual(
+            fixedFontCount,
+            15,
+            "InboxDetailView has \(fixedFontCount) fixed-size fonts; only 15 decorative or icon occurrences may remain."
+        )
+        XCTAssertTrue(source.contains("@Environment(\\.accessibilityReduceMotion)"), "InboxDetailView must observe Reduce Motion.")
+        XCTAssertTrue(
+            source.contains("reduceMotion ? nil") || source.contains("if reduceMotion"),
+            "InboxDetailView must explicitly suppress or branch around copied-state motion when Reduce Motion is enabled."
+        )
+        XCTAssertGreaterThanOrEqual(
+            occurrenceCount(of: ".frame(minWidth: 44, minHeight: 44)", in: source),
+            2,
+            "Both inbox moderation menus must expose minimum 44pt hit targets."
+        )
+        XCTAssertGreaterThanOrEqual(
+            occurrenceCount(of: ".frame(minHeight: 44)", in: handoff),
+            2,
+            "Share and copy handoff actions must each expose an explicit minimum 44pt height."
+        )
+        XCTAssertTrue(rsvpButton.contains(".frame(minHeight: 44)"), "Every RSVPActionButton must expose an explicit minimum 44pt height.")
+
+        for rawControlColor in [
+            "Color(uiColor: .systemGray4)",
+            "Color(uiColor: .systemGray5)",
+            "Color(.systemGray4)",
+            "Color(.systemGray5)"
+        ] {
+            XCTAssertFalse(source.contains(rawControlColor), "InboxDetailView must replace raw control color \(rawControlColor) with a semantic token.")
+        }
+    }
+
+    func testContentViewMeetsLegacyTypographyColorMotionAndAITargetContracts() throws {
+        let source = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
+        let legacyEventList = slice(source, from: "struct EventListView", to: "struct EventCard")
+        let eventAIActionButton = slice(source, from: "private struct EventAIActionButton", to: "private struct EventAIList")
+        let fixedFontCount = occurrenceCount(of: ".font(.system(size:", in: source)
+
+        XCTAssertLessThanOrEqual(
+            fixedFontCount,
+            13,
+            "ContentView.swift has \(fixedFontCount) fixed-size fonts; only 13 decorative or icon occurrences may remain."
+        )
+        XCTAssertFalse(legacyEventList.contains(".foregroundColor(.blue)"), "The legacy event-list section must use a semantic accent token.")
+        XCTAssertFalse(source.contains("Color(.tertiaryLabel)"), "ContentView must use semantic tertiary text tokens.")
+        XCTAssertFalse(source.contains(".foregroundColor(.orange)"), "ContentView must use a semantic warning token.")
+        XCTAssertTrue(source.contains("@Environment(\\.accessibilityReduceMotion)"), "The root ContentView must observe Reduce Motion.")
+        XCTAssertTrue(source.contains("reduceMotion ? nil :"), "Root loading/onboarding state motion must be disabled under Reduce Motion.")
+        XCTAssertTrue(
+            eventAIActionButton.contains(".frame(minHeight: 44)"),
+            "EventAIActionButton must preserve its compact visual style while exposing a minimum 44pt hit target."
+        )
+    }
+
     private func readProjectFile(_ relativePath: String) throws -> String {
         let fileURL = URL(fileURLWithPath: #filePath)
         let testsDir = fileURL.deletingLastPathComponent()
@@ -332,5 +521,9 @@ final class PremiumDesignSystemContractTests: XCTestCase {
         }
 
         return String(tail[..<end])
+    }
+
+    private func occurrenceCount(of needle: String, in source: String) -> Int {
+        source.components(separatedBy: needle).count - 1
     }
 }

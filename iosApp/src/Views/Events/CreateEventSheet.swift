@@ -12,6 +12,7 @@ struct CreateEventSheet: View {
     
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @StateObject private var viewModel = CreateEventViewModel()
 
     @State private var title = ""
@@ -126,8 +127,8 @@ struct CreateEventSheet: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             createBottomAction
         }
-        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: showingDatePicker)
-        .animation(WakeveTheme.Motion.standardSpring, value: currentStep)
+        .animation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.85), value: showingDatePicker)
+        .animation(reduceMotion ? nil : WakeveTheme.Motion.standardSpring, value: currentStep)
         .sheet(isPresented: $showingBackgroundPicker) {
             BackgroundPickerSheet(selectedBackground: $selectedBackground)
                 .presentationDetents([.large])
@@ -982,7 +983,7 @@ struct CreateEventSheet: View {
 
                 Button(action: { showingBackgroundPicker = true }) {
                     Text(String(localized: "events.add_background"))
-                        .font(.system(size: 16, weight: .medium))
+                        .font(WakeveTheme.Typography.bodySemibold)
                         .foregroundColor(heroControlForeground)
                         .padding(.horizontal, 24)
                         .padding(.vertical, 12)
@@ -1031,13 +1032,13 @@ struct CreateEventSheet: View {
                 ZStack(alignment: .center) {
                     if title.isEmpty {
                         Text(String(localized: "events.title_placeholder"))
-                            .font(.system(size: 32, weight: .bold))
+                            .font(WakeveTheme.Typography.largeTitle)
                             .foregroundColor(placeholderTextColor)
                             .multilineTextAlignment(.center)
                             .lineSpacing(4)
                     }
                     TextField("", text: $title)
-                        .font(.system(size: 32, weight: .bold))
+                        .font(WakeveTheme.Typography.largeTitle)
                         .foregroundColor(primaryTextColor)
                         .multilineTextAlignment(.center)
                         .minimumScaleFactor(0.5)
@@ -1090,7 +1091,7 @@ struct CreateEventSheet: View {
 
                     if let name = userName {
                         Text(String(name.prefix(1)).uppercased())
-                            .font(.system(size: 24, weight: .bold))
+                            .font(WakeveTheme.Typography.title2)
                             .foregroundColor(.white)
                     } else {
                         Image(systemName: "person.fill")
@@ -1101,7 +1102,7 @@ struct CreateEventSheet: View {
 
                 // Organizer text
                 Text(String(format: String(localized: "events.organized_by"), userName ?? String(localized: "leaderboard.you")))
-                    .font(.system(size: 18, weight: .medium))
+                    .font(WakeveTheme.Typography.bodySemibold)
                     .foregroundColor(primaryTextColor)
                 
                 // Description or Button
@@ -1185,7 +1186,7 @@ struct CreateEventSheet: View {
                     validationMessage = nil
                     openPreviewIfValid()
                 } else {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) {
                         showValidationError = true
                         validationMessage = validationMessageForCurrentStep
                     }
@@ -1194,7 +1195,7 @@ struct CreateEventSheet: View {
 
             if showValidationError, let msg = validationMessage {
                 Text(msg)
-                    .font(.system(size: 13))
+                    .font(WakeveTheme.Typography.caption)
                     .foregroundColor(Color(hex: "FF6B6B"))
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
@@ -1406,7 +1407,7 @@ struct CreateEventSheet: View {
 
     private func openPreviewIfValid() {
         guard canCreate else {
-            withAnimation(.easeInOut(duration: 0.2)) {
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) {
                 showValidationError = true
                 validationMessage = validationMessageForCurrentStep
             }
@@ -1919,7 +1920,7 @@ struct DateTimePickerPopup: View {
                     Spacer()
 
                     Text(String(localized: "events.date_and_time"))
-                        .font(.system(size: 17, weight: .semibold))
+                        .font(WakeveTheme.Typography.rowTitle)
                         .foregroundColor(primaryTextColor)
 
                     Spacer()
@@ -1944,7 +1945,7 @@ struct DateTimePickerPopup: View {
                     // All Day Toggle
                     HStack {
                         Text(String(localized: "events.all_day"))
-                            .font(.system(size: 16))
+                            .font(WakeveTheme.Typography.body)
                             .foregroundColor(primaryTextColor)
 
                         Spacer()
@@ -1962,7 +1963,7 @@ struct DateTimePickerPopup: View {
                     // Start Date/Time Section
                     HStack(spacing: 6) {
                         Text(String(localized: "events.start"))
-                            .font(.system(size: 16))
+                            .font(WakeveTheme.Typography.body)
                             .foregroundColor(primaryTextColor)
 
                         Spacer()
@@ -1986,7 +1987,7 @@ struct DateTimePickerPopup: View {
 
                         HStack(spacing: 6) {
                             Text(String(localized: "events.end"))
-                                .font(.system(size: 16))
+                                .font(WakeveTheme.Typography.body)
                                 .foregroundColor(primaryTextColor)
 
                             Spacer()
@@ -2009,7 +2010,7 @@ struct DateTimePickerPopup: View {
                                 Image(systemName: "plus.circle.fill")
                                     .font(.system(size: 15, weight: .semibold))
                                 Text(String(localized: "events.add_end_time"))
-                                    .font(.system(size: 16, weight: .semibold))
+                                    .font(WakeveTheme.Typography.bodySemibold)
                             }
                             .foregroundColor(colorScheme == .dark ? WakeveTheme.ColorToken.eventLilacAction : WakeveTheme.ColorToken.permissionBlue)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -2103,7 +2104,7 @@ struct DetailRow: View {
                     .foregroundColor(iconColor)
                 
                 Text(label)
-                    .font(.system(size: 18, weight: isPlaceholder ? .regular : .medium))
+                    .font(isPlaceholder ? WakeveTheme.Typography.body : WakeveTheme.Typography.bodySemibold)
                     .foregroundColor(isPlaceholder ? placeholderTextColor : primaryTextColor)
             }
             .frame(maxWidth: .infinity)
@@ -2174,7 +2175,7 @@ private struct EventPreviewSheet: View {
 
                         // Event title
                         Text(title)
-                            .font(.system(size: 34, weight: .bold))
+                            .font(WakeveTheme.Typography.largeTitle)
                             .foregroundColor(.white)
                             .multilineTextAlignment(.center)
                             .lineLimit(2)
@@ -2187,7 +2188,7 @@ private struct EventPreviewSheet: View {
                                 Text(eventTypeEmoji(eventType))
                                     .font(.system(size: 14))
                                 Text(eventTypeDisplayName(eventType))
-                                    .font(.system(size: 13, weight: .medium))
+                                    .font(WakeveTheme.Typography.caption)
                                     .foregroundColor(.white)
                             }
                             .padding(.horizontal, 12)
@@ -2202,16 +2203,16 @@ private struct EventPreviewSheet: View {
                             VStack(spacing: 4) {
                                 if !proposedSlots.isEmpty {
                                     Text(proposedSlots.count == 1 ? proposedSlots[0].displayTitle : String(format: String(localized: "create_event.proposed_slots_count_format"), proposedSlots.count))
-                                        .font(.system(size: 15, weight: .medium))
+                                        .font(WakeveTheme.Typography.metadata)
                                         .foregroundColor(.white.opacity(0.7))
                                 } else if selectedDate != nil {
                                     Text(formattedDateTime())
-                                        .font(.system(size: 15, weight: .medium))
+                                        .font(WakeveTheme.Typography.metadata)
                                         .foregroundColor(.white.opacity(0.7))
                                 }
                                 if let location = selectedLocation {
                                     Text(location)
-                                        .font(.system(size: 15, weight: .medium))
+                                        .font(WakeveTheme.Typography.metadata)
                                         .foregroundColor(.white.opacity(0.7))
                                 }
                             }
@@ -2219,7 +2220,7 @@ private struct EventPreviewSheet: View {
 
                         if planningMode == .scenarioMatrix {
                             Text(String(format: String(localized: "create_event.scenario_matrix_count_format"), matrixScenarioCount))
-                                .font(.system(size: 13, weight: .bold))
+                                .font(WakeveTheme.Typography.caption)
                                 .foregroundColor(.white.opacity(0.82))
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.78)
@@ -2276,7 +2277,7 @@ private struct EventPreviewSheet: View {
 
                     Button(action: onNext) {
                         Text(String(localized: "events.create_event_button"))
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(WakeveTheme.Typography.bodySemibold)
                             .foregroundColor(Color(hex: "1A1A3E"))
                             .padding(.horizontal, 20)
                             .padding(.vertical, 10)
@@ -2292,7 +2293,7 @@ private struct EventPreviewSheet: View {
             // Fixed bottom section
             VStack(alignment: .leading, spacing: 16) {
                 Text(String(localized: "events.preview.invitation_title"))
-                    .font(.system(size: 20, weight: .bold))
+                    .font(WakeveTheme.Typography.section)
                     .foregroundColor(previewPrimaryText)
 
                 HStack(alignment: .top, spacing: 14) {
@@ -2303,7 +2304,7 @@ private struct EventPreviewSheet: View {
                         .padding(.top, 2)
 
                     Text(String(localized: "events.preview.invitation_description"))
-                        .font(.system(size: 15))
+                        .font(WakeveTheme.Typography.callout)
                         .foregroundColor(previewSecondaryText)
                         .lineSpacing(4)
                 }
@@ -2317,7 +2318,7 @@ private struct EventPreviewSheet: View {
                             .padding(.top, 2)
 
                         Text(String(localized: "create_event.preview.scenario_matrix_explanation"))
-                            .font(.system(size: 15))
+                            .font(WakeveTheme.Typography.callout)
                             .foregroundColor(previewSecondaryText)
                             .lineSpacing(4)
                     }
@@ -2355,7 +2356,7 @@ private struct EventPreviewSheet: View {
 
                 if let name = userName {
                     Text(String(name.prefix(1)).uppercased())
-                        .font(.system(size: 20, weight: .bold))
+                        .font(WakeveTheme.Typography.section)
                         .foregroundColor(.white)
                 } else {
                     Image(systemName: "person.fill")
@@ -2365,12 +2366,12 @@ private struct EventPreviewSheet: View {
             }
 
             Text(String(format: String(localized: "events.organized_by"), userName ?? String(localized: "leaderboard.you")))
-                .font(.system(size: 16, weight: .semibold))
+                .font(WakeveTheme.Typography.bodySemibold)
                 .foregroundColor(.white)
 
             if !description.isEmpty {
                 Text(description)
-                    .font(.system(size: 15))
+                    .font(WakeveTheme.Typography.callout)
                     .foregroundColor(.white.opacity(0.8))
             }
         }
@@ -2384,7 +2385,7 @@ private struct EventPreviewSheet: View {
     private var proposedSlotsPreviewCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(String(localized: "create_event.proposed_slots_title"))
-                .font(.system(size: 16, weight: .semibold))
+                .font(WakeveTheme.Typography.bodySemibold)
                 .foregroundColor(Color(hex: "8B9FFF"))
 
             ForEach(Array(proposedSlots.prefix(4))) { slot in
@@ -2398,13 +2399,13 @@ private struct EventPreviewSheet: View {
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(slot.displayTitle)
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(WakeveTheme.Typography.bodySemibold)
                             .foregroundColor(.white)
                             .lineLimit(1)
                             .minimumScaleFactor(0.78)
 
                         Text(slot.displaySubtitle)
-                            .font(.system(size: 13, weight: .medium))
+                            .font(WakeveTheme.Typography.caption)
                             .foregroundColor(.white.opacity(0.72))
                             .lineLimit(1)
                             .minimumScaleFactor(0.78)
@@ -2416,7 +2417,7 @@ private struct EventPreviewSheet: View {
 
             if proposedSlots.count > 4 {
                 Text(remainingProposedSlotsText(proposedSlots.count - 4))
-                    .font(.system(size: 13, weight: .medium))
+                    .font(WakeveTheme.Typography.caption)
                     .foregroundColor(.white.opacity(0.72))
             }
         }
@@ -2436,12 +2437,12 @@ private struct EventPreviewSheet: View {
     private var itineraryPreviewCard: some View {
         VStack(spacing: 12) {
             Text(String(localized: "events.preview.itinerary"))
-                .font(.system(size: 16, weight: .semibold))
+                .font(WakeveTheme.Typography.bodySemibold)
                 .foregroundColor(Color(hex: "8B9FFF"))
 
             if let location = selectedLocation {
                 Text(location)
-                    .font(.system(size: 15, weight: .medium))
+                    .font(WakeveTheme.Typography.metadata)
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 16)
@@ -2474,7 +2475,7 @@ private struct EventPreviewSheet: View {
                 .font(.system(size: 22))
                 .foregroundColor(.white.opacity(0.9))
             Text(label)
-                .font(.system(size: 13, weight: .medium))
+                .font(WakeveTheme.Typography.caption)
                 .foregroundColor(.white.opacity(0.7))
         }
         .frame(maxWidth: .infinity)
@@ -2563,7 +2564,7 @@ struct EventTypePickerSheet: View {
                                 .frame(width: 36)
 
                             Text(eventTypeDisplayName(type))
-                                .font(.system(size: 16))
+                                .font(WakeveTheme.Typography.body)
                                 .foregroundColor(.primary)
 
                             Spacer()

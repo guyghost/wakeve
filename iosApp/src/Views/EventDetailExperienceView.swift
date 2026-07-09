@@ -42,13 +42,14 @@ struct EventDetailExperienceView: View {
                     .frame(width: 36, height: 36)
                     .background(Color(.tertiarySystemFill))
                     .clipShape(Circle())
+                    .frame(minWidth: 44, minHeight: 44)
             }
             .accessibilityLabel(String(localized: "common.back"))
 
             Spacer()
 
             Text(event.title)
-                .font(.system(size: 20, weight: .bold))
+                .font(WakeveTheme.Typography.section)
                 .multilineTextAlignment(.center)
 
             Spacer()
@@ -63,6 +64,7 @@ struct EventDetailExperienceView: View {
                     .frame(width: 36, height: 36)
                     .background(Color(.tertiarySystemFill))
                     .clipShape(Circle())
+                    .frame(minWidth: 44, minHeight: 44)
             }
         }
         .padding(.top, 8)
@@ -78,7 +80,7 @@ struct EventDetailExperienceView: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 Text(event.title)
-                    .font(.system(size: 28, weight: .bold))
+                    .font(WakeveTheme.Typography.hero)
                     .foregroundColor(.white)
             }
             .padding(16)
@@ -242,13 +244,14 @@ struct TransportPlanView: View {
                             .frame(width: 36, height: 36)
                             .background(Color(.tertiarySystemFill))
                             .clipShape(Circle())
+                            .frame(minWidth: 44, minHeight: 44)
                     }
                     .accessibilityLabel(String(localized: "common.back"))
 
                     Spacer()
 
                     Text("Transport")
-                        .font(.system(size: 24, weight: .bold))
+                        .font(WakeveTheme.Typography.title)
 
                     Spacer()
 
@@ -316,7 +319,7 @@ struct TransportPlanView: View {
                 Button {
                 } label: {
                     Text("Je participe")
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(WakeveTheme.Typography.bodySemibold)
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)

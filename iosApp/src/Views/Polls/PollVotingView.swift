@@ -535,11 +535,11 @@ struct VoteGuideRow: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.system(size: 15, weight: .medium))
+                    .font(WakeveTheme.Typography.metadata)
                     .foregroundColor(.primary)
 
                 Text(description)
-                    .font(.system(size: 13))
+                    .font(WakeveTheme.Typography.caption)
                     .foregroundColor(.secondary)
             }
 
