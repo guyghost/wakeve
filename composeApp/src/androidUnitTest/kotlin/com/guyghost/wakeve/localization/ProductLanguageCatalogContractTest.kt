@@ -35,9 +35,11 @@ class ProductLanguageCatalogContractTest {
         }
 
         val canonical = catalogs.getValue("values")
+        val localeSpecificCanonical = canonical.filterValues { it.translatable }
         catalogs.forEach { (locale, entries) ->
-            assertEquals(canonical.keys, entries.keys, "$locale catalog keys differ from values")
-            canonical.forEach { (key, expected) ->
+            val expected = if (locale == "values") canonical else localeSpecificCanonical
+            assertEquals(expected.keys, entries.keys, "$locale catalog keys differ from values")
+            expected.forEach { (key, expected) ->
                 val actual = entries.getValue(key)
                 assertEquals(expected.kind, actual.kind, "$locale resource kind differs for $key")
                 assertEquals(expected.pluralQuantities, actual.pluralQuantities, "$locale plural quantities differ for $key")
@@ -68,6 +70,7 @@ class ProductLanguageCatalogContractTest {
                             } else {
                                 items.map { positionalPlaceholders(it.textContent) }
                             },
+                            translatable = element.getAttribute("translatable") != "false",
                         ),
                     )
                 }
@@ -89,6 +92,7 @@ class ProductLanguageCatalogContractTest {
         val pluralQuantities: Set<String>,
         val itemCount: Int?,
         val placeholders: List<List<String>>,
+        val translatable: Boolean,
     )
 
     private fun projectFile(path: String): File {

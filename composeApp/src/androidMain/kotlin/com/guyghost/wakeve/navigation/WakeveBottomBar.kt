@@ -46,19 +46,19 @@ fun WakeveBottomBar(
             screen = Screen.Home,
             label = stringResource(R.string.nav_upcoming),
             icon = Icons.Filled.Home,
-            contentDescription = stringResource(R.string.a11y_nav_upcoming)
+            contentDescriptionRes = R.string.a11y_nav_upcoming
         ),
         BottomNavItem(
             screen = Screen.Inbox,
             label = stringResource(R.string.notifications),
             icon = Icons.Filled.Inbox,
-            contentDescription = stringResource(R.string.a11y_nav_notifications)
+            contentDescriptionRes = R.string.a11y_nav_notifications
         ),
         BottomNavItem(
             screen = Screen.Explore,
             label = stringResource(R.string.tab_ideas),
             icon = Icons.Filled.Search,
-            contentDescription = stringResource(R.string.a11y_nav_ideas)
+            contentDescriptionRes = R.string.a11y_nav_ideas
         )
     )
 
@@ -85,13 +85,19 @@ fun WakeveBottomBar(
                         ) {
                             Icon(
                                 imageVector = item.icon,
-                                contentDescription = item.contentDescription
+                                contentDescription = stringResource(
+                                    item.contentDescriptionRes,
+                                    stringResource(if (selected) R.string.a11y_selected else R.string.a11y_unselected)
+                                )
                             )
                         }
                     } else {
                         Icon(
                             imageVector = item.icon,
-                            contentDescription = item.contentDescription
+                            contentDescription = stringResource(
+                                item.contentDescriptionRes,
+                                stringResource(if (selected) R.string.a11y_selected else R.string.a11y_unselected)
+                            )
                         )
                     }
                 },
@@ -130,5 +136,5 @@ private data class BottomNavItem(
     val screen: Screen,
     val label: String,
     val icon: ImageVector,
-    val contentDescription: String
+    val contentDescriptionRes: Int
 )

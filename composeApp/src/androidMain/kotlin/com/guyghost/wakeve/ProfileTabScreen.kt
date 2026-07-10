@@ -72,7 +72,7 @@ fun ProfileTabScreen(
     isAuthenticated: Boolean = false,
     userEmail: String? = null,
     userName: String? = null,
-    appVersionLabel: String = "Version inconnue",
+    appVersionLabel: String? = null,
     onNavigateToSettings: () -> Unit,
     onNavigateToInbox: () -> Unit,
     onNavigateToDashboard: () -> Unit = {},
@@ -167,9 +167,9 @@ fun ProfileTabScreen(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
                                     text = when {
-                                        isGuest -> "Invité"
+                                        isGuest -> stringResource(R.string.profile_guest_name)
                                         userName != null -> userName
-                                        else -> "Utilisateur"
+                                        else -> stringResource(R.string.profile_default_user_name)
                                     },
                                     style = MaterialTheme.typography.titleLarge.copy(
                                         fontWeight = FontWeight.Bold
@@ -201,7 +201,7 @@ fun ProfileTabScreen(
                             
                             Text(
                                 text = when {
-                                    isGuest -> "Fonctionnalités limitées"
+                                    isGuest -> stringResource(R.string.profile_limited_features)
                                     userEmail != null -> userEmail
                                     else -> userId
                                 },
@@ -231,8 +231,8 @@ fun ProfileTabScreen(
             item {
                 ProfileActionItem(
                     icon = Icons.Default.BarChart,
-                    title = "Tableau de bord",
-                    subtitle = "Statistiques et analytiques de vos evenements",
+                    title = stringResource(R.string.profile_dashboard_title),
+                    subtitle = stringResource(R.string.profile_dashboard_subtitle),
                     onClick = onNavigateToDashboard,
                     highlight = true
                 )
@@ -241,8 +241,8 @@ fun ProfileTabScreen(
             item {
                 ProfileActionItem(
                     icon = Icons.Default.Notifications,
-                    title = "Notifications",
-                    subtitle = "Notifications et invitations",
+                    title = stringResource(R.string.notifications),
+                    subtitle = stringResource(R.string.profile_notifications_subtitle),
                     onClick = onNavigateToInbox
                 )
             }
@@ -250,8 +250,8 @@ fun ProfileTabScreen(
             item {
                 ProfileActionItem(
                     icon = Icons.Default.Settings,
-                    title = "Paramètres",
-                    subtitle = "Préférences de l'application",
+                    title = stringResource(R.string.profile_settings_title),
+                    subtitle = stringResource(R.string.profile_settings_subtitle),
                     onClick = onNavigateToSettings
                 )
             }
@@ -272,8 +272,8 @@ fun ProfileTabScreen(
                 item {
                     ProfileActionItem(
                         icon = Icons.AutoMirrored.Filled.ExitToApp,
-                        title = "Se déconnecter",
-                        subtitle = "Quitter votre compte",
+                        title = stringResource(R.string.profile_logout_title),
+                        subtitle = stringResource(R.string.profile_logout_subtitle),
                         onClick = onSignOut,
                         destructive = true
                     )
@@ -285,8 +285,8 @@ fun ProfileTabScreen(
                 item {
                     ProfileActionItem(
                         icon = Icons.Default.PersonAdd,
-                        title = "Créer un compte",
-                        subtitle = "Sauvegarder vos données",
+                        title = stringResource(R.string.profile_create_account_title),
+                        subtitle = stringResource(R.string.profile_create_account_subtitle),
                         onClick = onCreateAccount,
                         highlight = true
                     )
@@ -325,7 +325,7 @@ fun ProfileTabScreen(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = appVersionLabel,
+                            text = appVersionLabel ?: stringResource(R.string.profile_version_unknown),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

@@ -122,6 +122,16 @@ Recommended new test class: `AndroidProductLanguageBatch1Test`, asserting canoni
 - Verification: targeted Batch 1 + catalog command passed (`BUILD SUCCESSFUL`); `:composeApp:assembleDebug --no-configuration-cache` passed. The full `AndroidProductLanguageContractTest` intentionally remains RED in its three broad scanner tests because Batches 2–5 are not migrated.
 - Tooling concern: running `assembleDebug` with the repository default configuration cache reaches APK assembly but Gradle rejects caching `processDebugGoogleServices`; the required no-configuration-cache rerun succeeds.
 
+#### Batch 1 review correction — 2026-07-10
+
+- RED: `AndroidProductLanguageBatch1Test` was strengthened before production edits to inspect visible literals hidden in enum constructors, defaults, `Triple` values, helper returns, interpolations, and component arguments across the same nine owned files. The targeted run executed 3 tests and failed 2: route/taxonomy evidence was incomplete and the indirect scanner reported the remaining Batch 1 copy.
+- GREEN: all Batch 1 indirect copy now resolves through Android resources; filters, selection count, inbox contexts and empty states, relative time, profile actions/defaults, wrapper errors, toasts, version copy, and access-denied copy are covered. The targeted Batch 1, canonical navigation, and catalog command passes.
+- Accessibility correction: bottom-bar and adaptive navigation descriptions now receive the actual selected/unselected state. No description hardcodes an unselected state while Material selection semantics report selected.
+- Normative taxonomy clarification: Android retains exactly three primary destinations (`Home`, internal `Screen.Inbox`, and `Explore`). Task 5A does not add a fourth Messages tab. `Screen.Comments` remains the event-scoped conversation route and is explicitly tested as distinct from `Screen.Notifications`; conversations are not renamed Notifications.
+- Ownership correction: the premature Batch 5 localization wrapper around `EventPhotosFollowUpScreen` was reverted, and its two temporary formatted resources were removed from all catalogs. The Batch 1 scanner explicitly excludes that Batch 5-owned function while still scanning the rest of `WakeveNavHost`.
+- Catalog structure: visible Batch 1 keys are defined in all six catalogs. Default-only `translatable="false"` glyph/brand resources are no longer duplicated in localized catalogs; `ProductLanguageCatalogContractTest` now explicitly permits only those canonical non-translatable omissions while preserving kind, quantity, array, and placeholder parity for translatable resources.
+- Verification: targeted Batch 1 + catalog tests pass; `:composeApp:assembleDebug --no-daemon --no-configuration-cache` passes. The global Android contract remains RED only for later-batch ownership, including the restored Batch 5 `EventPhotosFollowUpScreen` literals and Batches 2–5 screens.
+
 ### Batch 2 — Comments and collaboration
 
 Owning Kotlin files (3):

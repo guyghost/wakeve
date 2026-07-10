@@ -55,6 +55,7 @@ fun ParticipantManagementScreenWrapper(
     onPollStarted: () -> Unit,
     onBack: () -> Unit
 ) {
+    val eventNotFound = stringResource(R.string.event_not_found)
     val repository: EventRepositoryInterface = koinInject()
     val context = LocalContext.current
     val event = remember(eventId) { repository.getEvent(eventId) }
@@ -76,7 +77,7 @@ fun ParticipantManagementScreenWrapper(
     when {
         event == null -> {
             ErrorPlaceholder(
-                message = "Événement non trouvé",
+                message = eventNotFound,
                 onBack = onBack
             )
         }
@@ -109,13 +110,14 @@ fun PollVotingScreenWrapper(
     onVoteSubmitted: () -> Unit,
     onBack: () -> Unit
 ) {
+    val eventNotFound = stringResource(R.string.event_not_found)
     val repository: EventRepositoryInterface = koinInject()
     val event = remember(eventId) { repository.getEvent(eventId) }
     
     when {
         event == null -> {
             ErrorPlaceholder(
-                message = "Événement non trouvé",
+                message = eventNotFound,
                 onBack = onBack
             )
         }
@@ -165,13 +167,14 @@ fun PollResultsScreenWrapper(
     onDateConfirmed: () -> Unit,
     onBack: () -> Unit
 ) {
+    val eventNotFound = stringResource(R.string.event_not_found)
     val repository: EventRepositoryInterface = koinInject()
     val event = remember(eventId) { repository.getEvent(eventId) }
     
     when {
         event == null -> {
             ErrorPlaceholder(
-                message = "Événement non trouvé",
+                message = eventNotFound,
                 onBack = onBack
             )
         }

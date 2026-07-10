@@ -80,6 +80,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.annotation.StringRes
 import com.guyghost.wakeve.models.InboxItem
 import com.guyghost.wakeve.models.InboxItemStatus
 import com.guyghost.wakeve.models.InboxItemType
@@ -95,13 +96,13 @@ import kotlinx.coroutines.launch
  * Inbox filter types matching iOS implementation.
  */
 enum class InboxFilterType(
-    val label: String,
+    @param:StringRes val labelRes: Int,
     val icon: ImageVector
 ) {
-    ALL("Tout", Icons.Outlined.Inbox),
-    FOCUSED("Focus", Icons.Filled.Star),
-    UNREAD("Non lues", Icons.Outlined.MarkEmailRead),
-    EVENT("Événement", Icons.Outlined.Event)
+    ALL(R.string.inbox_filter_all, Icons.Outlined.Inbox),
+    FOCUSED(R.string.inbox_filter_focused, Icons.Filled.Star),
+    UNREAD(R.string.inbox_filter_unread, Icons.Outlined.MarkEmailRead),
+    EVENT(R.string.inbox_filter_event, Icons.Outlined.Event)
 }
 
 /**
@@ -368,7 +369,11 @@ fun InboxScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = if (isSelectionMode) "${selectedIds.size} sélectionné(s)" else "Notifications",
+                            text = if (isSelectionMode) {
+                                stringResource(R.string.inbox_selected_count, selectedIds.size)
+                            } else {
+                                stringResource(R.string.notifications)
+                            },
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -484,7 +489,7 @@ fun InboxScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Text(filter.label)
+                                Text(stringResource(filter.labelRes))
                                 // Show unread count on the "Unread" chip
                                 if (filter == InboxFilterType.UNREAD && unreadCount > 0) {
                                     Surface(
@@ -733,45 +738,45 @@ private fun InboxItemRowMaterial(
 /**
  * Get default context text based on item type.
  */
+@Composable
 private fun getDefaultContext(item: InboxItem): String {
     return when (item.type) {
-        InboxItemType.EVENT_INVITATION -> "Invitation"
-        InboxItemType.POLL_UPDATE -> "Sondage"
-        InboxItemType.VOTE_REMINDER -> "Rappel de vote"
-        InboxItemType.EVENT_CONFIRMED -> "Confirmation"
-        InboxItemType.PARTICIPANT_JOINED -> "Participant"
-        InboxItemType.VOTE_SUBMITTED -> "Vote"
-        InboxItemType.COMMENT_POSTED -> "Commentaire"
-        InboxItemType.COMMENT_REPLY -> "Réponse"
-        InboxItemType.BUDGET_UPDATE -> "Budget"
-        InboxItemType.ACTIVITY_UPDATE -> "Activité"
-        InboxItemType.ACCOMMODATION_UPDATE -> "Hébergement"
-        InboxItemType.GENERAL -> "Notification"
+        InboxItemType.EVENT_INVITATION -> stringResource(R.string.inbox_context_invitation)
+        InboxItemType.POLL_UPDATE -> stringResource(R.string.inbox_context_poll)
+        InboxItemType.VOTE_REMINDER -> stringResource(R.string.inbox_context_vote_reminder)
+        InboxItemType.EVENT_CONFIRMED -> stringResource(R.string.inbox_context_confirmation)
+        InboxItemType.PARTICIPANT_JOINED -> stringResource(R.string.inbox_context_participant)
+        InboxItemType.VOTE_SUBMITTED -> stringResource(R.string.inbox_context_vote)
+        InboxItemType.COMMENT_POSTED -> stringResource(R.string.inbox_context_comment)
+        InboxItemType.COMMENT_REPLY -> stringResource(R.string.inbox_context_reply)
+        InboxItemType.BUDGET_UPDATE -> stringResource(R.string.inbox_context_budget)
+        InboxItemType.ACTIVITY_UPDATE -> stringResource(R.string.inbox_context_activity)
+        InboxItemType.ACCOMMODATION_UPDATE -> stringResource(R.string.inbox_context_accommodation)
+        InboxItemType.GENERAL -> stringResource(R.string.inbox_context_notification)
     }
 }
 
 /**
  * Format timestamp to relative time.
  */
+@Composable
 private fun formatTimeAgo(isoTimestamp: String): String {
-    return try {
+    val duration = runCatching {
         val timestamp = kotlinx.datetime.Instant.parse(isoTimestamp)
         val now = kotlinx.datetime.Clock.System.now()
-        val duration = now - timestamp
-        val minutes = duration.inWholeMinutes
-        val hours = duration.inWholeHours
-        val days = duration.inWholeDays
-        when {
-            minutes < 1 -> "À l'instant"
-            minutes < 60 -> "${minutes}min"
-            hours < 24 -> "${hours}h"
-            days < 7 -> "${days}j"
-            days < 30 -> "${days / 7}sem"
-            days < 365 -> "${days / 30}mois"
-            else -> "${days / 365}an"
-        }
-    } catch (e: Exception) {
-        isoTimestamp.take(10)
+        now - timestamp
+    }.getOrNull() ?: return isoTimestamp.take(10)
+    val minutes = duration.inWholeMinutes
+    val hours = duration.inWholeHours
+    val days = duration.inWholeDays
+    return when {
+        minutes < 1 -> stringResource(R.string.relative_time_now)
+        minutes < 60 -> stringResource(R.string.relative_time_minutes, minutes)
+        hours < 24 -> stringResource(R.string.relative_time_hours, hours)
+        days < 7 -> stringResource(R.string.relative_time_days, days)
+        days < 30 -> stringResource(R.string.relative_time_weeks, days / 7)
+        days < 365 -> stringResource(R.string.relative_time_months, days / 30)
+        else -> stringResource(R.string.relative_time_years, days / 365)
     }
 }
 
@@ -783,26 +788,26 @@ private fun InboxEmptyState(
     filter: InboxFilterType,
     modifier: Modifier = Modifier
 ) {
-    val (icon, title, subtitle) = when (filter) {
+    val (icon, titleRes, subtitleRes) = when (filter) {
         InboxFilterType.ALL -> Triple(
             Icons.Outlined.Inbox,
-            "Aucune notification",
-            "Vous êtes à jour ! Les nouvelles notifications apparaîtront ici."
+            R.string.inbox_empty_all_title,
+            R.string.inbox_empty_all_body
         )
         InboxFilterType.FOCUSED -> Triple(
             Icons.Filled.Star,
-            "Rien en priorité",
-            "Les notifications nécessitant une action apparaîtront ici."
+            R.string.inbox_empty_focused_title,
+            R.string.inbox_empty_focused_body
         )
         InboxFilterType.UNREAD -> Triple(
             Icons.Outlined.MarkEmailRead,
-            "Tout est lu",
-            "Vous n'avez aucune notification non lue."
+            R.string.inbox_empty_unread_title,
+            R.string.inbox_empty_unread_body
         )
         InboxFilterType.EVENT -> Triple(
             Icons.Outlined.Event,
-            "Aucun événement",
-            "Les notifications liées aux événements apparaîtront ici."
+            R.string.inbox_empty_event_title,
+            R.string.inbox_empty_event_body
         )
     }
 
@@ -821,7 +826,7 @@ private fun InboxEmptyState(
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = title,
+            text = stringResource(titleRes),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface,
@@ -829,7 +834,7 @@ private fun InboxEmptyState(
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = subtitle,
+            text = stringResource(subtitleRes),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
