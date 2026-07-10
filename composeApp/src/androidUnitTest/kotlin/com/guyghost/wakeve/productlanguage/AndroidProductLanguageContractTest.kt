@@ -19,28 +19,31 @@ class AndroidProductLanguageContractTest {
 
     @Test
     fun composeTextDoesNotContainHardcodedProductLanguage() {
-        val findings = productionSources().flatMap { source ->
-            source.findingsFor(hardcodedTextCall, "hardcoded Text")
-        }
+        val findings = productionSources().flatMap { ProductLanguageSourceScanner.findings(projectRoot, it) }
 
         assertTrue(findings.isEmpty(), findings.joinToString("\n"))
     }
 
     @Test
     fun namedComposeArgumentsDoNotContainHardcodedProductLanguage() {
-        val findings = productionSources().flatMap { source ->
-            source.findingsFor(hardcodedNamedArgument, "hardcoded named UI argument")
-        }
+        val findings = productionSources().flatMap { ProductLanguageSourceScanner.findings(projectRoot, it) }
 
         assertTrue(findings.isEmpty(), findings.joinToString("\n"))
     }
 
     @Test
     fun ambiguousActionsHaveTargetAndStateKeys() {
-        val findings = productionSources().flatMap { source ->
-            source.findingsFor(hardcodedSemantics, "hardcoded semantics")
-        }
+        val findings = productionSources().flatMap { ProductLanguageSourceScanner.findings(projectRoot, it) }
 
+        assertTrue(findings.isEmpty(), findings.joinToString("\n"))
+    }
+
+    @Test
+    fun exhaustiveIndirectScannerCoversEveryInventoryOwnedAndroidPath() {
+        val scanned = productionSources().map { it.relativeTo(projectRoot).invariantSeparatorsPath }.toSet()
+        val expected = inventoryAndroidKotlinPaths().filterNot(previewAllowlist::contains).toSet()
+        assertTrue(scanned == expected, "scanner inventory drift: missing=${expected - scanned}, extra=${scanned - expected}")
+        val findings = productionSources().flatMap { ProductLanguageSourceScanner.findings(projectRoot, it) }
         assertTrue(findings.isEmpty(), findings.joinToString("\n"))
     }
 

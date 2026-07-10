@@ -216,7 +216,7 @@ fun ConflictResolutionDialog(
  * and two action buttons. The selected option is visually highlighted.
  */
 @Composable
-private fun ConflictRowItem(
+internal fun ConflictRowItem(
     conflict: ConflictRecord,
     currentDecision: ResolutionDecision?,
     onKeepLocal: () -> Unit,
@@ -238,8 +238,7 @@ private fun ConflictRowItem(
 
     Card(
         modifier = modifier
-            .fillMaxWidth()
-            .semantics { contentDescription = summaryDescription },
+            .fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         shape = RoundedCornerShape(16.dp)
     ) {
@@ -249,7 +248,8 @@ private fun ConflictRowItem(
                 text = fieldLabel,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.clearAndSetSemantics { contentDescription = summaryDescription }
             )
             Spacer(Modifier.height(10.dp))
 

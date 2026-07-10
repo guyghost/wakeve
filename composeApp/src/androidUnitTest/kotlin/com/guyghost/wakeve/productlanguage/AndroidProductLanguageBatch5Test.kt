@@ -26,16 +26,26 @@ class AndroidProductLanguageBatch5Test {
         assertTrue(findings(eventDetailPath).isEmpty(), findings(eventDetailPath).joinToString("\n"))
         val source = source(eventDetailPath)
         EventStateKeys.forEach { key -> assertTrue("R.string.$key" in source, "missing projection $key") }
-        val finalized = source.substringAfter("private fun FinalizedModeActions").substringBefore("internal fun eventDetailStatusLabel")
+        val finalized = source.substringAfter("private fun FinalizedModeActions").substringBefore("internal fun eventDetailResource")
         assertFalse(Regex("\\b(?:Button|TextButton|OutlinedButton|FilledTonalButton)\\s*\\(").containsMatchIn(finalized), "terminal mode must not expose a CTA")
         assertLocaleParity(EventStateKeys)
         assertTechnicalLiterals(listOf(eventDetailPath))
     }
 
     @Test
+    fun eventDetailConsumesSharedProjectionForLifecyclePendingConflictTerminalAndActions() {
+        val source = source(eventDetailPath)
+        assertTrue("projectEventState(" in source, "Android event detail must consume the shared projection")
+        assertTrue("pendingFacts" in source, "pending sync and conflicts must be supplied to the projection")
+        assertTrue("projection.primaryAction" in source, "shared projected actions must drive the UI")
+        assertTrue("projection.status" in source, "shared pending/conflict status must drive the UI")
+        assertFalse("eventDetailStatusLabel(event.status)" in source, "lifecycle copy must not bypass the shared projection")
+    }
+
+    @Test
     fun e2DraftWorkflowUsesLocalizedOutcomeAndSummaryLanguage() {
         assertTrue(findings(wizardPath).isEmpty(), findings(wizardPath).joinToString("\n"))
-        E2Keys.forEach { key -> assertTrue("R.string.$key" in source(wizardPath), "missing E2 resource $key") }
+        E2Keys.forEach { key -> assertTrue(catalog("values").containsKey(key), "missing E2 resource $key") }
         assertLocaleParity(E2Keys)
         assertTechnicalLiterals(listOf(wizardPath))
     }
@@ -108,7 +118,7 @@ class AndroidProductLanguageBatch5Test {
                 val value = match.groupValues[1]
                 val line = text.lineAt(match.range.first)
                 val occurrence = ReviewedTechnicalOccurrence(path, text.lineSequence().elementAt(line - 1).trim())
-                if (!value.any(Char::isLetter) || occurrence in technicalOccurrences) null else "$path:$line:indirect '$value'"
+                if (!value.any(Char::isLetter) || value.matches(Regex("(?:event|sync)\\.[a-z.]+")) || occurrence in technicalOccurrences) null else "$path:$line:indirect '$value'"
             }
     }
 

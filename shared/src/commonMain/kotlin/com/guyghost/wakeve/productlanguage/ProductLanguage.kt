@@ -1,6 +1,7 @@
 package com.guyghost.wakeve.productlanguage
 
 import com.guyghost.wakeve.models.EventStatus
+import kotlin.jvm.JvmInline
 
 @JvmInline
 value class SemanticKey(val value: String)

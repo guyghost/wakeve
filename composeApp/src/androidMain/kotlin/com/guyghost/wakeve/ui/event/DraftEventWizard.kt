@@ -67,6 +67,12 @@ import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventType
 import com.guyghost.wakeve.models.TimeOfDay
 import com.guyghost.wakeve.models.TimeSlot
+import com.guyghost.wakeve.models.EventStatus
+import com.guyghost.wakeve.productlanguage.AllowedAction
+import com.guyghost.wakeve.productlanguage.PendingFact
+import com.guyghost.wakeve.productlanguage.ProductLanguageInput
+import com.guyghost.wakeve.productlanguage.UserRole
+import com.guyghost.wakeve.productlanguage.projectEventState
 import com.guyghost.wakeve.ui.components.EventTypeSelector
 import com.guyghost.wakeve.ui.components.LocationInputDialog
 import com.guyghost.wakeve.ui.components.PotentialLocationsList
@@ -107,7 +113,8 @@ fun DraftEventWizard(
     onSaveStep: (DraftEventWizardUiState) -> Unit,
     onComplete: (DraftEventWizardUiState) -> Unit,
     onCancel: () -> Unit,
-    workflowOutcome: DraftWorkflowOutcome = DraftWorkflowOutcome.READY,
+    pendingFacts: Set<PendingFact> = emptySet(),
+    allowedAction: AllowedAction? = AllowedAction.CONTINUE,
     modifier: Modifier = Modifier
 ) {
     var wizardState by remember(initialEvent) { mutableStateOf(initialEvent.toDraftEventWizardUiState()) }
@@ -336,13 +343,10 @@ fun DraftEventWizard(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            when (workflowOutcome) {
-                DraftWorkflowOutcome.READY -> Unit
-                DraftWorkflowOutcome.SYNC_PENDING -> DraftOutcomeMessage(R.string.sync_waiting)
-                DraftWorkflowOutcome.OFFLINE -> DraftOutcomeMessage(R.string.offline_status)
-                DraftWorkflowOutcome.ERROR -> DraftOutcomeMessage(R.string.error_generic)
-                DraftWorkflowOutcome.CANCELLED -> DraftOutcomeMessage(R.string.action_cancel)
-            }
+            val projection = projectEventState(
+                ProductLanguageInput(EventStatus.DRAFT, UserRole.ORGANIZER, emptySet(), pendingFacts, allowedAction)
+            )
+            projection.status?.let { DraftOutcomeMessage(eventDetailResource(it)) }
             AnimatedContent(
                 targetState = currentStep,
                 transitionSpec = {
@@ -855,9 +859,6 @@ fun DraftEventWizard(
         )
     }
 }
-
-/** Presentation-only outcomes supplied by the deterministic workflow owner. */
-enum class DraftWorkflowOutcome { READY, SYNC_PENDING, OFFLINE, ERROR, CANCELLED }
 
 @Composable
 private fun DraftOutcomeMessage(messageRes: Int) {
