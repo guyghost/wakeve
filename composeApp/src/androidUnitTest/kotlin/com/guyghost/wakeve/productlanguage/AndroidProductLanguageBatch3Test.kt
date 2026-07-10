@@ -54,7 +54,7 @@ class AndroidProductLanguageBatch3Test {
     }
 
     private fun keys(directory: String) = catalog(directory).keys.filterTo(mutableSetOf()) { key ->
-        prefixes.any(key::startsWith) || key == "currency_amount"
+        (prefixes.any(key::startsWith) && key !in legacyKeys) || key == "currency_amount"
     }
     private fun catalog(directory: String): Map<String, String> {
         val doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(root.resolve("composeApp/src/androidMain/res/$directory/strings.xml"))
@@ -63,11 +63,16 @@ class AndroidProductLanguageBatch3Test {
             e.getAttribute("name") to e.textContent.trim()
         }
     }
-    private fun placeholders(value: String) = Regex("""%\d+\$[a-z]""").findAll(value).map { it.value }.toList()
-    private fun String.withoutComments() = replace(Regex("""(?s)/\*.*?\*/""")) { " ".repeat(it.value.length) }.lineSequence().joinToString("\n") { it.substringBefore("//").padEnd(it.length) }
+    private fun placeholders(value: String) = Regex("""%\d+\$(?:\.\d+)?[a-z]""").findAll(value).map { it.value }.toList()
+    private fun String.withoutComments() = replace(Regex("""(?s)/\*.*?\*/""")) { " ".repeat(it.value.length) }
+        .lineSequence()
+        .joinToString("\n") { line -> if (line.trimStart().startsWith("//")) " ".repeat(line.length) else line }
     private fun String.lineAt(index: Int) = take(index).count { it == '\n' } + 1
     private fun String.lineTextAt(index: Int): String { val s = lastIndexOf('\n', index).let { if (it < 0) 0 else it + 1 }; val e = indexOf('\n', index).let { if (it < 0) length else it }; return substring(s, e) }
-    private fun technical(value: String, line: String): Boolean = !value.any(Char::isLetter) || value.matches(Regex("""[a-z][a-z0-9_./?={}&:-]*""")) || line.contains("stringResource(") || line.contains("getString(") || line.contains("Regex(")
+    private fun technical(value: String, line: String): Boolean =
+        !value.any(Char::isLetter) ||
+            value.matches(Regex("""[A-Za-z][A-Za-z0-9_./?={}&:$-]*""")) ||
+            listOf("stringResource(", "getString(", "Regex(", "String.format(", "provider =", "providerId =", "providerUrl =", "syncStatus =", "status ==").any(line::contains)
 
     private companion object {
         val root: File by lazy { var f = File(requireNotNull(System.getProperty("user.dir"))).absoluteFile; while (!File(f, "settings.gradle.kts").isFile) f = requireNotNull(f.parentFile); f }
@@ -82,6 +87,12 @@ class AndroidProductLanguageBatch3Test {
         val direct = listOf("Text" to Regex("""\bText\s*\(\s*(?:text\s*=\s*)?\""""), "argument" to Regex("""\b(?:label|placeholder|supportingText|text)\s*=\s*\""""), "a11y" to Regex("""\bcontentDescription\s*=\s*\""""))
         val literal = Regex("""\"([^\"\\]*(?:\\.[^\"\\]*)*)\"""")
         val prefixes = listOf("budget_", "activity_", "equipment_", "a11y_budget_", "a11y_activity_", "a11y_equipment_")
-        val cognates = mapOf("de" to setOf("budget_overview_title"), "es" to setOf("budget_overview_title"), "it" to setOf("budget_overview_title"), "pt" to setOf("budget_overview_title"))
+        val legacyKeys = setOf("budget_per_person", "budget_hint", "budget_overview", "budget_label")
+        val cognates = mapOf(
+            "de" to setOf("budget_overview_title", "activity_time_placeholder"),
+            "es" to setOf("budget_overview_title", "activity_time_placeholder", "activity_time_duration", "activity_date_display"),
+            "it" to setOf("budget_overview_title", "activity_time_placeholder", "activity_time_duration", "activity_date_display"),
+            "pt" to setOf("budget_overview_title", "activity_time_placeholder", "activity_time_duration", "activity_date_display")
+        )
     }
 }

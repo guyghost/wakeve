@@ -43,6 +43,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.payment.PaymentPotRecord
@@ -57,6 +59,7 @@ import com.guyghost.wakeve.models.BudgetCategory
 import com.guyghost.wakeve.models.BudgetCategoryDetails
 import com.guyghost.wakeve.models.BudgetItem
 import com.guyghost.wakeve.models.BudgetWithItems
+import com.guyghost.wakeve.R
 
 /**
  * Budget Overview Screen - Main budget dashboard.
@@ -310,13 +313,14 @@ fun PaymentPotScreen(
         mutableStateOf<PaymentPotRecord?>(paymentPotRepository.getActivePotForEvent(eventId))
     }
     val mutationsEnabled = canManagePayment && !isReadOnly
+    val defaultPotTitle = paymentPotDefaultTitle()
     fun createPaymentPot() {
         if (!mutationsEnabled || pot != null) return
         pot = paymentPotRepository.createPot(
             eventId = eventId,
             organizerId = organizerId,
             goalAmount = 0.0,
-            title = paymentPotDefaultTitle()
+            title = defaultPotTitle
         )
     }
     fun activatePaymentPot() {
@@ -415,10 +419,11 @@ fun TricountHandoffScreen(
     var handoff by remember(eventId) {
         mutableStateOf<TricountHandoffRecord?>(null)
     }
-    val safeExternalLink = remember(handoff) {
+    val tricountOpenLabel = tricountOpenActionLabel()
+    val safeExternalLink = remember(handoff, tricountOpenLabel) {
         handoff?.providerUrl?.let { url ->
             SafeExternalLink.sanitize(
-                label = tricountOpenActionLabel(),
+                label = tricountOpenLabel,
                 provider = "TRICOUNT",
                 rawUrl = url,
                 verifier = tricountHandoffRepository::isTrustedProviderUrl
@@ -550,7 +555,7 @@ data class SafeExternalLink(
                     label = label,
                     provider = provider,
                     validatedURL = trimmed,
-                    verificationStatus = "vérifié",
+                    verificationStatus = "verified",
                     isVerified = true
                 )
             } else {
@@ -669,7 +674,7 @@ private fun BudgetSummaryCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "%.2f €".format(budget.totalEstimated),
+                        text = stringResource(R.string.currency_amount, String.format("%.2f", budget.totalEstimated)),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -682,7 +687,7 @@ private fun BudgetSummaryCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "%.2f €".format(budget.totalActual),
+                        text = stringResource(R.string.currency_amount, String.format("%.2f", budget.totalActual)),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = if (budget.isOverBudget) 
@@ -745,9 +750,7 @@ private fun PerPersonCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "%.2f €".format(
-                            if (participantCount > 0) budget.totalEstimated / participantCount else 0.0
-                        ),
+                        text = stringResource(R.string.currency_amount, String.format("%.2f", if (participantCount > 0) budget.totalEstimated / participantCount else 0.0)),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -760,9 +763,7 @@ private fun PerPersonCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "%.2f €".format(
-                            if (participantCount > 0) budget.totalActual / participantCount else 0.0
-                        ),
+                        text = stringResource(R.string.currency_amount, String.format("%.2f", if (participantCount > 0) budget.totalActual / participantCount else 0.0)),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -855,13 +856,12 @@ private fun CategoryBreakdownCard(category: BudgetCategoryDetails) {
                     
                     Column {
                         Text(
-                            text = category.category.name.lowercase()
-                                .replaceFirstChar { it.uppercase() },
+                            text = budgetCategoryLabel(category.category),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "${category.paidItemCount}/${category.itemCount} payés",
+                            text = stringResource(R.string.budget_paid_ratio, category.paidItemCount, category.itemCount),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -870,7 +870,7 @@ private fun CategoryBreakdownCard(category: BudgetCategoryDetails) {
                 
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = "%.2f €".format(category.actual),
+                        text = stringResource(R.string.currency_amount, String.format("%.2f", category.actual)),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = if (category.isOverBudget)
@@ -879,7 +879,7 @@ private fun CategoryBreakdownCard(category: BudgetCategoryDetails) {
                             MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "/ %.2f €".format(category.estimated),
+                        text = stringResource(R.string.budget_estimated_ratio_amount, category.estimated),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -902,7 +902,7 @@ private fun CategoryBreakdownCard(category: BudgetCategoryDetails) {
             
             if (category.isOverBudget) {
                 Text(
-                    text = "⚠️ Dépassement : %.2f €".format(category.actual - category.estimated),
+                    text = stringResource(R.string.budget_category_overspend, category.actual - category.estimated),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error
                 )
@@ -924,7 +924,7 @@ internal data class BudgetSettlementLine(
     val sentence: String
 )
 
-internal fun budgetSettlementSummary(
+@Composable internal fun budgetSettlementSummary(
     items: List<BudgetItem>,
     maxLines: Int = 3
 ): BudgetSettlementSummary {
@@ -934,7 +934,7 @@ internal fun budgetSettlementSummary(
     if (paidItems.isEmpty()) {
         return BudgetSettlementSummary(
             title = budgetSettlementTitle(0, hasPaidItems = false),
-            body = "Aucune dépense payée à répartir pour l'instant.",
+            body = stringResource(R.string.budget_settlement_no_paid_items),
             lines = emptyList()
         )
     }
@@ -945,7 +945,7 @@ internal fun budgetSettlementSummary(
     if (settlements.isEmpty()) {
         return BudgetSettlementSummary(
             title = budgetSettlementTitle(0, hasPaidItems = true),
-            body = "Les dépenses payées sont équilibrées entre les participants.",
+            body = stringResource(R.string.budget_settlement_balanced),
             lines = emptyList()
         )
     }
@@ -969,29 +969,28 @@ internal fun budgetSettlementSummary(
     )
 }
 
-internal fun budgetSettlementTitle(count: Int, hasPaidItems: Boolean): String = when {
-    !hasPaidItems -> "Remboursements"
-    count == 0 -> "Remboursements à jour"
-    count == 1 -> "1 remboursement à régler"
-    else -> "$count remboursements à régler"
+@Composable internal fun budgetSettlementTitle(count: Int, hasPaidItems: Boolean): String = when {
+    !hasPaidItems -> stringResource(R.string.budget_settlement_title)
+    count == 0 -> stringResource(R.string.budget_settlement_up_to_date)
+    else -> pluralStringResource(R.plurals.budget_settlement_count, count, count)
 }
 
-internal fun budgetSettlementBody(totalCount: Int, displayedCount: Int): String =
+@Composable internal fun budgetSettlementBody(totalCount: Int, displayedCount: Int): String =
     if (totalCount > displayedCount) {
-        "$displayedCount remboursements prioritaires affichés sur $totalCount pour équilibrer les dépenses payées."
+        stringResource(R.string.budget_settlement_priority_body, displayedCount, totalCount)
     } else {
-        "$totalCount remboursement${if (totalCount > 1) "s" else ""} à solder pour que chacun paie sa part réelle."
+        pluralStringResource(R.plurals.budget_settlement_body, totalCount, totalCount)
     }
 
-internal fun budgetSettlementLineLabel(
+@Composable internal fun budgetSettlementLineLabel(
     fromParticipant: String,
     toParticipant: String,
     amount: String
-): String = "$fromParticipant doit $amount à $toParticipant"
+): String = stringResource(R.string.budget_settlement_line, fromParticipant, amount, toParticipant)
 
-internal fun budgetParticipantDisplayName(participantId: String): String {
+@Composable internal fun budgetParticipantDisplayName(participantId: String): String {
     val trimmed = participantId.trim()
-    if (trimmed.isBlank()) return "Participant"
+    if (trimmed.isBlank()) return stringResource(R.string.budget_participant_fallback)
 
     val localPart = trimmed.substringBefore("@")
     val userPrefixMatch = Regex("^user[-_ ]?(.+)$", RegexOption.IGNORE_CASE).matchEntire(localPart)
@@ -1001,105 +1000,96 @@ internal fun budgetParticipantDisplayName(participantId: String): String {
         .trim()
         .replaceFirstChar { char -> if (char.isLowerCase()) char.titlecase() else char.toString() }
 
-    return if (userPrefixMatch != null) "Participant $display" else display.ifBlank { "Participant" }
+    val fallback = stringResource(R.string.budget_participant_fallback)
+    return if (userPrefixMatch != null) stringResource(R.string.budget_participant_numbered, display) else display.ifBlank { fallback }
 }
 
-internal fun budgetMoneyLabel(amount: Double): String = "%.2f €".format(amount)
+@Composable internal fun budgetMoneyLabel(amount: Double): String = stringResource(R.string.currency_amount, String.format("%.2f", amount))
 
-internal fun budgetOverviewTitle(): String = "Budget"
+@Composable internal fun budgetOverviewTitle(): String = stringResource(R.string.budget_overview_title)
 
-internal fun budgetBackContentDescription(): String = "Retour"
+@Composable internal fun budgetBackContentDescription(): String = stringResource(R.string.budget_back_action)
 
-internal fun budgetDetailsContentDescription(): String = "Voir les détails"
+@Composable internal fun budgetDetailsContentDescription(): String = stringResource(R.string.a11y_budget_view_details)
 
-internal fun budgetEmptyTitle(): String = "Aucun budget pour cet événement"
+@Composable internal fun budgetEmptyTitle(): String = stringResource(R.string.budget_empty_title)
 
-internal fun budgetCreateActionLabel(): String = "Créer un budget"
+@Composable internal fun budgetCreateActionLabel(): String = stringResource(R.string.budget_create_action)
 
-internal fun budgetReadOnlyEmptyMessage(): String =
-    "Le budget est consultable une fois créé par l'organisateur."
+@Composable internal fun budgetReadOnlyEmptyMessage(): String = stringResource(R.string.budget_read_only_empty)
 
-internal fun paymentPotDefaultTitle(): String = "Cagnotte de l'événement"
+@Composable internal fun paymentPotDefaultTitle(): String = stringResource(R.string.budget_payment_pot_default_title)
 
-internal fun paymentPotScreenTitle(): String = "Cagnotte"
+@Composable internal fun paymentPotScreenTitle(): String = stringResource(R.string.budget_payment_pot_title)
 
-internal fun paymentPotActiveMessage(goalAmount: Double, currency: String): String =
-    "Cagnotte active - $goalAmount $currency. Les changements sont enregistrés sur cet appareil."
+@Composable internal fun paymentPotActiveMessage(goalAmount: Double, currency: String): String = stringResource(R.string.budget_payment_pot_active, goalAmount, currency)
 
-internal fun paymentPotInactiveMessage(): String =
-    "Aucune cagnotte active pour cet événement."
+@Composable internal fun paymentPotInactiveMessage(): String = stringResource(R.string.budget_payment_pot_inactive)
 
-internal fun paymentPotCreateActionLabel(): String = "Créer une cagnotte"
+@Composable internal fun paymentPotCreateActionLabel(): String = stringResource(R.string.budget_payment_pot_create)
 
-internal fun paymentPotActivateActionLabel(): String = "Activer la cagnotte"
+@Composable internal fun paymentPotActivateActionLabel(): String = stringResource(R.string.budget_payment_pot_activate)
 
-internal fun paymentPotOpenActionLabel(): String = "Ouvrir la cagnotte"
+@Composable internal fun paymentPotOpenActionLabel(): String = stringResource(R.string.budget_payment_pot_open)
 
-internal fun paymentPotCloseActionLabel(): String = "Clôturer la cagnotte"
+@Composable internal fun paymentPotCloseActionLabel(): String = stringResource(R.string.budget_payment_pot_close)
 
-internal fun paymentPotEntryMessage(): String =
-    "Suivre la cagnotte et les contributions participants."
+@Composable internal fun paymentPotEntryMessage(): String = stringResource(R.string.budget_payment_pot_entry)
 
-internal fun tricountScreenTitle(): String = "Tricount"
+@Composable internal fun tricountScreenTitle(): String = stringResource(R.string.budget_tricount_title)
 
-internal fun tricountOpenActionLabel(): String = "Ouvrir Tricount"
+@Composable internal fun tricountOpenActionLabel(): String = stringResource(R.string.budget_tricount_open)
 
-internal fun tricountLinkTitle(): String = "Lien Tricount"
+@Composable internal fun tricountLinkTitle(): String = stringResource(R.string.budget_tricount_link_title)
 
-internal fun tricountMissingLinkMessage(): String =
-    "Aucun lien Tricount n'est encore associé. Ajoutez un lien vérifié avant de rediriger les participants."
+@Composable internal fun tricountMissingLinkMessage(): String = stringResource(R.string.budget_tricount_missing_link)
 
-internal fun tricountLinkStatusMessage(verificationStatus: String?, provider: String?): String =
-    "Lien ${verificationStatus ?: "non vérifié"} pour ${provider ?: "Tricount"}."
+@Composable internal fun tricountLinkStatusMessage(verificationStatus: String?, provider: String?): String = stringResource(
+    R.string.budget_tricount_link_status,
+    if (verificationStatus == "verified") stringResource(R.string.budget_tricount_verified) else stringResource(R.string.budget_tricount_unverified),
+    provider ?: stringResource(R.string.budget_tricount_title)
+)
 
-internal fun tricountLinkActionLabel(): String = "Associer Tricount"
+@Composable internal fun tricountLinkActionLabel(): String = stringResource(R.string.budget_tricount_link_action)
 
-internal fun tricountUnlinkActionLabel(): String = "Dissocier Tricount"
+@Composable internal fun tricountUnlinkActionLabel(): String = stringResource(R.string.budget_tricount_unlink_action)
 
-internal fun tricountNotNeededActionLabel(): String = "Tricount non requis"
+@Composable internal fun tricountNotNeededActionLabel(): String = stringResource(R.string.budget_tricount_not_needed)
 
-internal fun tricountEntryMessage(): String =
-    "Préparer le règlement partagé via un lien vérifié."
+@Composable internal fun tricountEntryMessage(): String = stringResource(R.string.budget_tricount_entry)
 
-internal fun budgetPendingOfflineSyncMessage(): String =
-    "Synchronisation en attente. Modifications locales en attente d'envoi."
+@Composable internal fun budgetPendingOfflineSyncMessage(): String = stringResource(R.string.budget_pending_offline_sync)
 
-internal fun budgetPendingSyncMessage(): String =
-    "Modifications locales en attente d'envoi."
+@Composable internal fun budgetPendingSyncMessage(): String = stringResource(R.string.budget_pending_sync)
 
-internal fun budgetOfflineAvailableMessage(): String =
-    "Données locales disponibles hors ligne."
+@Composable internal fun budgetOfflineAvailableMessage(): String = stringResource(R.string.budget_offline_available)
 
-internal fun budgetCategoryBreakdownTitle(): String = "Répartition par catégorie"
+@Composable internal fun budgetCategoryBreakdownTitle(): String = stringResource(R.string.budget_category_breakdown)
 
-internal fun budgetTotalTitle(): String = "Budget total"
+@Composable internal fun budgetTotalTitle(): String = stringResource(R.string.budget_total_title)
 
-internal fun budgetEstimatedLabel(): String = "Estimé"
+@Composable internal fun budgetEstimatedLabel(): String = stringResource(R.string.budget_estimated_label)
 
-internal fun budgetSpentLabel(): String = "Dépensé"
+@Composable internal fun budgetSpentLabel(): String = stringResource(R.string.budget_spent_label)
 
-internal fun budgetUsageLabel(usagePercentage: Double): String =
-    "%.1f%% utilisé".format(usagePercentage)
+@Composable internal fun budgetUsageLabel(usagePercentage: Double): String = stringResource(R.string.budget_usage, usagePercentage)
 
-internal fun budgetPerPersonTitle(participantCount: Int): String =
-    "Par personne ($participantCount participants)"
+@Composable internal fun budgetPerPersonTitle(participantCount: Int): String = pluralStringResource(R.plurals.budget_per_person_title, participantCount, participantCount)
 
-internal fun budgetStatusText(
+@Composable internal fun budgetStatusText(
     isOverBudget: Boolean,
     remaining: Double,
     totalEstimated: Double,
     totalActual: Double
 ): String {
     return when {
-        isOverBudget -> "Dépassement de budget"
-        remaining < totalEstimated * 0.1 -> "Budget presque épuisé"
-        totalActual == 0.0 -> "Aucune dépense enregistrée"
-        else -> "Dans le budget"
+        isOverBudget -> stringResource(R.string.budget_status_over)
+        remaining < totalEstimated * 0.1 -> stringResource(R.string.budget_status_nearly_used)
+        totalActual == 0.0 -> stringResource(R.string.budget_status_empty)
+        else -> stringResource(R.string.budget_status_within)
     }
 }
 
-internal fun budgetRemainingLabel(remaining: Double): String =
-    "Reste disponible : %.2f €".format(remaining)
+@Composable internal fun budgetRemainingLabel(remaining: Double): String = stringResource(R.string.budget_remaining, remaining)
 
-internal fun budgetOverspendLabel(overspend: Double): String =
-    "Dépassement : %.2f €".format(overspend)
+@Composable internal fun budgetOverspendLabel(overspend: Double): String = stringResource(R.string.budget_overspend, overspend)

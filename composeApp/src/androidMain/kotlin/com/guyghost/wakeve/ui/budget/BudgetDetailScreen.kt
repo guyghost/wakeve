@@ -57,8 +57,12 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.budget.BudgetRepository
@@ -67,6 +71,7 @@ import com.guyghost.wakeve.models.Budget
 import com.guyghost.wakeve.models.BudgetCategory
 import com.guyghost.wakeve.models.BudgetItem
 import com.guyghost.wakeve.models.CommentSection
+import com.guyghost.wakeve.R
 
 /**
  * Budget Detail Screen - Detailed list of budget items.
@@ -334,7 +339,7 @@ private fun BudgetSummaryHeader(budget: Budget) {
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Text(
-                    text = "%.2f € / %.2f €".format(budget.totalActual, budget.totalEstimated),
+                    text = stringResource(R.string.budget_amount_ratio, budget.totalActual, budget.totalEstimated),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -497,7 +502,11 @@ private fun BudgetItemCard(
                 
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = if (item.isPaid) "%.2f €".format(item.actualCost) else "~%.2f €".format(item.estimatedCost),
+                        text = if (item.isPaid) {
+                            stringResource(R.string.currency_amount, String.format("%.2f", item.actualCost))
+                        } else {
+                            stringResource(R.string.budget_estimated_amount, item.estimatedCost)
+                        },
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = if (item.isPaid) 
@@ -546,8 +555,11 @@ private fun BudgetItemCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 if (canMutateBudget && !item.isPaid) {
+                    val paidState = stringResource(R.string.a11y_budget_unpaid_state, item.name)
+                    val markPaidDescription = stringResource(R.string.a11y_budget_mark_paid, item.name, paidState)
                     AssistChip(
                         onClick = onMarkPaid,
+                        modifier = Modifier.semantics { contentDescription = markPaidDescription },
                         label = { Text(budgetMarkPaidActionLabel()) },
                         leadingIcon = { Icon(Icons.Default.CheckCircle, null) }
                     )
@@ -589,6 +601,9 @@ fun BudgetItemDialog(
     var estimatedCost by remember { mutableStateOf(existingItem?.estimatedCost?.toString() ?: "") }
     var selectedCategory by remember { mutableStateOf(existingItem?.category ?: BudgetCategory.OTHER) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    val missingNameMessage = budgetItemMissingNameMessage()
+    val invalidCostMessage = budgetItemInvalidCostMessage()
+    val saveFailureMessage = budgetItemSaveFailureMessage()
     
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -673,13 +688,13 @@ fun BudgetItemDialog(
                 onClick = {
                     // Validation
                     if (name.isBlank()) {
-                        errorMessage = budgetItemMissingNameMessage()
+                        errorMessage = missingNameMessage
                         return@TextButton
                     }
                     
                     val cost = estimatedCost.toDoubleOrNull()
                     if (cost == null || cost < 0) {
-                        errorMessage = budgetItemInvalidCostMessage()
+                        errorMessage = invalidCostMessage
                         return@TextButton
                     }
                     
@@ -708,7 +723,7 @@ fun BudgetItemDialog(
                         }
                         onDismiss()
                     } catch (e: Exception) {
-                        errorMessage = budgetItemSaveFailureMessage()
+                        errorMessage = saveFailureMessage
                     }
                 }
             ) {
@@ -723,83 +738,80 @@ fun BudgetItemDialog(
     )
 }
 
-internal fun budgetDetailTitle(): String = "Détails du budget"
+@Composable internal fun budgetDetailTitle(): String = stringResource(R.string.budget_detail_title)
 
-internal fun budgetDetailBackContentDescription(): String = "Retour"
+@Composable internal fun budgetDetailBackContentDescription(): String = stringResource(R.string.budget_back_action)
 
-internal fun budgetCommentContentDescription(commentCount: Int): String =
-    if (commentCount <= 0) "Aucun commentaire budget" else "$commentCount commentaire${if (commentCount > 1) "s" else ""} budget"
+@Composable internal fun budgetCommentContentDescription(commentCount: Int): String =
+    if (commentCount <= 0) stringResource(R.string.a11y_budget_comments_empty)
+    else pluralStringResource(R.plurals.a11y_budget_comments_count, commentCount, commentCount)
 
-internal fun budgetAddItemContentDescription(): String = "Ajouter une dépense"
+@Composable internal fun budgetAddItemContentDescription(): String = stringResource(R.string.a11y_budget_add_item)
 
-internal fun budgetDetailEmptyMessage(noItems: Boolean): String =
-    if (noItems) "Aucune dépense enregistrée" else "Aucune dépense ne correspond aux filtres"
+@Composable internal fun budgetDetailEmptyMessage(noItems: Boolean): String = stringResource(
+    if (noItems) R.string.budget_empty_items else R.string.budget_empty_filtered
+)
 
-internal fun budgetDeleteItemTitle(): String = "Supprimer la dépense ?"
+@Composable internal fun budgetDeleteItemTitle(): String = stringResource(R.string.budget_delete_item_title)
 
-internal fun budgetDeleteItemMessage(itemName: String): String =
-    "Supprimer \"$itemName\" du budget ? Cette action ne supprime pas les remboursements déjà notés ailleurs."
+@Composable internal fun budgetDeleteItemMessage(itemName: String): String = stringResource(R.string.budget_delete_item_message, itemName)
 
-internal fun budgetDeleteActionLabel(): String = "Supprimer"
+@Composable internal fun budgetDeleteActionLabel(): String = stringResource(R.string.budget_delete_action)
 
-internal fun budgetCancelActionLabel(): String = "Annuler"
+@Composable internal fun budgetCancelActionLabel(): String = stringResource(R.string.budget_cancel_action)
 
-internal fun budgetDetailTotalLabel(): String = "Total"
+@Composable internal fun budgetDetailTotalLabel(): String = stringResource(R.string.budget_total_label)
 
-internal fun budgetDetailOverBudgetLabel(): String = "Dépassement de budget"
+@Composable internal fun budgetDetailOverBudgetLabel(): String = stringResource(R.string.budget_over_limit)
 
-internal fun budgetCategoryFilterTitle(): String = "Catégories"
+@Composable internal fun budgetCategoryFilterTitle(): String = stringResource(R.string.budget_category_filter)
 
-internal fun budgetAllCategoriesLabel(): String = "Toutes"
+@Composable internal fun budgetAllCategoriesLabel(): String = stringResource(R.string.budget_all_categories)
 
-internal fun budgetStatusFilterTitle(): String = "Statut"
+@Composable internal fun budgetStatusFilterTitle(): String = stringResource(R.string.budget_status_filter)
 
-internal fun budgetPaidFilterLabel(): String = "Payées"
+@Composable internal fun budgetPaidFilterLabel(): String = stringResource(R.string.budget_paid_filter)
 
-internal fun budgetUnpaidFilterLabel(): String = "À payer"
+@Composable internal fun budgetUnpaidFilterLabel(): String = stringResource(R.string.budget_unpaid_filter)
 
-internal fun budgetCategoryLabel(category: BudgetCategory): String = when (category) {
-    BudgetCategory.TRANSPORT -> "Transport"
-    BudgetCategory.ACCOMMODATION -> "Logement"
-    BudgetCategory.MEALS -> "Repas"
-    BudgetCategory.ACTIVITIES -> "Activités"
-    BudgetCategory.EQUIPMENT -> "Équipement"
-    BudgetCategory.OTHER -> "Autre"
-}
+@Composable internal fun budgetCategoryLabel(category: BudgetCategory): String = stringResource(when (category) {
+    BudgetCategory.TRANSPORT -> R.string.budget_category_transport
+    BudgetCategory.ACCOMMODATION -> R.string.budget_category_accommodation
+    BudgetCategory.MEALS -> R.string.budget_category_meals
+    BudgetCategory.ACTIVITIES -> R.string.budget_category_activities
+    BudgetCategory.EQUIPMENT -> R.string.budget_category_equipment
+    BudgetCategory.OTHER -> R.string.budget_category_other
+})
 
-internal fun budgetItemPaidContentDescription(): String = "Dépense payée"
+@Composable internal fun budgetItemPaidContentDescription(): String = stringResource(R.string.a11y_budget_item_paid)
 
-internal fun budgetSharedByLabel(sharedByCount: Int): String =
-    "Partagée par $sharedByCount participant${if (sharedByCount > 1) "s" else ""}"
+@Composable internal fun budgetSharedByLabel(sharedByCount: Int): String =
+    pluralStringResource(R.plurals.budget_shared_by, sharedByCount, sharedByCount)
 
-internal fun budgetPaidByLabel(paidBy: String?, currentUserId: String): String =
-    if (paidBy != null && paidBy == currentUserId) "Payée par vous" else "Payée par un participant"
+@Composable internal fun budgetPaidByLabel(paidBy: String?, currentUserId: String): String = stringResource(
+    if (paidBy != null && paidBy == currentUserId) R.string.budget_paid_by_you else R.string.budget_paid_by_participant
+)
 
-internal fun budgetCostPerPersonLabel(costPerPerson: Double): String =
-    "%.2f € par personne".format(costPerPerson)
+@Composable internal fun budgetCostPerPersonLabel(costPerPerson: Double): String = stringResource(R.string.budget_cost_per_person, costPerPerson)
 
-internal fun budgetMarkPaidActionLabel(): String = "Marquer payée"
+@Composable internal fun budgetMarkPaidActionLabel(): String = stringResource(R.string.budget_mark_paid_action)
 
-internal fun budgetEditActionLabel(): String = "Modifier"
+@Composable internal fun budgetEditActionLabel(): String = stringResource(R.string.budget_edit_action)
 
-internal fun budgetItemDialogTitle(isNewItem: Boolean): String =
-    if (isNewItem) "Ajouter une dépense" else "Modifier la dépense"
+@Composable internal fun budgetItemDialogTitle(isNewItem: Boolean): String = stringResource(if (isNewItem) R.string.budget_add_item_title else R.string.budget_edit_item_title)
 
-internal fun budgetItemNameLabel(): String = "Nom"
+@Composable internal fun budgetItemNameLabel(): String = stringResource(R.string.budget_item_name)
 
-internal fun budgetItemDescriptionLabel(): String = "Description"
+@Composable internal fun budgetItemDescriptionLabel(): String = stringResource(R.string.budget_item_description)
 
-internal fun budgetItemEstimatedCostLabel(): String = "Coût estimé (€)"
+@Composable internal fun budgetItemEstimatedCostLabel(): String = stringResource(R.string.budget_item_estimated_cost)
 
-internal fun budgetItemCategoryLabel(): String = "Catégorie"
+@Composable internal fun budgetItemCategoryLabel(): String = stringResource(R.string.budget_item_category)
 
-internal fun budgetItemMissingNameMessage(): String = "Le nom de la dépense est requis."
+@Composable internal fun budgetItemMissingNameMessage(): String = stringResource(R.string.budget_item_name_required)
 
-internal fun budgetItemInvalidCostMessage(): String = "Le coût doit être un nombre positif."
+@Composable internal fun budgetItemInvalidCostMessage(): String = stringResource(R.string.budget_item_cost_invalid)
 
-internal fun budgetItemDialogConfirmLabel(isNewItem: Boolean): String =
-    if (isNewItem) "Ajouter" else "Modifier"
+@Composable internal fun budgetItemDialogConfirmLabel(isNewItem: Boolean): String = stringResource(if (isNewItem) R.string.budget_add_action else R.string.budget_edit_action)
 
-internal fun budgetItemSaveFailureMessage(): String {
-    return "Impossible d'enregistrer cette dépense. Réessayez."
-}
+@Composable internal fun budgetItemSaveFailureMessage(): String = stringResource(R.string.budget_item_save_error)
