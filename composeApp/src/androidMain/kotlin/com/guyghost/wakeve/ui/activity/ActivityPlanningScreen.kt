@@ -57,10 +57,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.activity.ActivityManager
 import com.guyghost.wakeve.activity.ActivityRepository
+import com.guyghost.wakeve.R
 import com.guyghost.wakeve.comment.CommentRepository
 import com.guyghost.wakeve.models.ActivitiesByDate
 import com.guyghost.wakeve.models.Activity
@@ -120,10 +125,10 @@ fun ActivityPlanningScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(activityPlanningTitle()) },
+                title = { Text(stringResource(R.string.activity_planning_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, activityBackContentDescription())
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.activity_back_action))
                     }
                 },
                 actions = {
@@ -134,7 +139,11 @@ fun ActivityPlanningScreen(
                         Box {
                             Icon(
                                 Icons.AutoMirrored.Outlined.Comment,
-                                contentDescription = activityCommentContentDescription(commentCount)
+                                contentDescription = if (commentCount == 0) {
+                                    stringResource(R.string.a11y_activity_comments_empty)
+                                } else {
+                                    pluralStringResource(R.plurals.a11y_activity_comments_count, commentCount, commentCount)
+                                }
                             )
                             if (commentCount > 0) {
                                 Box(
@@ -164,7 +173,7 @@ fun ActivityPlanningScreen(
             FloatingActionButton(
                 onClick = { showAddActivityDialog = true }
             ) {
-                Icon(Icons.Default.Add, activityAddContentDescription())
+                Icon(Icons.Default.Add, stringResource(R.string.a11y_activity_add))
             }
         }
     ) { padding ->
@@ -205,9 +214,9 @@ fun ActivityPlanningScreen(
             if (allActivities.isEmpty()) {
                 EmptyStateCard(
                     message = if (activitiesByDate.isEmpty())
-                        activityEmptyPlanningMessage()
+                        stringResource(R.string.activity_empty_planning)
                     else
-                        activityEmptyDateMessage(),
+                        stringResource(R.string.activity_empty_date),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp)
@@ -280,20 +289,20 @@ fun ActivityPlanningScreen(
     activityToDelete?.let { activity ->
         AlertDialog(
             onDismissRequest = { activityToDelete = null },
-            title = { Text(activityDeleteTitle()) },
-            text = { Text(activityDeleteMessage(activity.name)) },
+            title = { Text(stringResource(R.string.activity_delete_title)) },
+            text = { Text(stringResource(R.string.activity_delete_message, activity.name)) },
             confirmButton = {
                 TextButton(onClick = {
                     activityRepository.deleteActivity(activity.id)
                     activityToDelete = null
                     loadData()
                 }) {
-                    Text(activityDeleteActionLabel(), color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.activity_delete_action), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { activityToDelete = null }) {
-                    Text(activityCancelActionLabel())
+                    Text(stringResource(R.string.activity_cancel_action))
                 }
             }
         )
@@ -370,7 +379,7 @@ private fun ActivitySummaryCard(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = activitySummaryCountLabel(totalActivities),
+                    text = pluralStringResource(R.plurals.activity_summary_count, totalActivities, totalActivities),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -380,13 +389,13 @@ private fun ActivitySummaryCard(
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = "${totalCost / 100}€",
+                    text = stringResource(R.string.currency_amount, totalCost / 100.0),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = activityTotalCostLabel(),
+                    text = stringResource(R.string.activity_total_cost),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -410,7 +419,7 @@ private fun DateFilterRow(
             FilterChip(
                 selected = selectedDate == null,
                 onClick = { onDateSelected("") },
-                label = { Text(activityAllDatesLabel()) }
+                label = { Text(stringResource(R.string.activity_all_dates)) }
             )
         }
 
@@ -419,7 +428,7 @@ private fun DateFilterRow(
                 selected = selectedDate == date,
                 onClick = { onDateSelected(date) },
                 label = {
-                    Text(formatDateString(date))
+                    Text(formatActivityDate(date))
                 }
             )
         }
@@ -448,7 +457,7 @@ private fun DateSection(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = formatDateString(date),
+                    text = formatActivityDate(date),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -486,6 +495,9 @@ private fun ActivityItemRow(
     onParticipantsClick: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val editDescription = stringResource(R.string.a11y_activity_edit, activity.activity.name)
+    val participantsDescription = stringResource(R.string.a11y_activity_manage_participants, activity.activity.name)
+    val deleteDescription = stringResource(R.string.a11y_activity_delete, activity.activity.name)
 
     Column {
         Row(
@@ -525,7 +537,11 @@ private fun ActivityItemRow(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = activityTimeDurationLabel(activity.activity.time, activity.activity.duration),
+                                text = stringResource(
+                                    R.string.activity_time_duration,
+                                    activity.activity.time ?: stringResource(R.string.activity_time_to_define),
+                                    activity.activity.duration
+                                ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -556,7 +572,7 @@ private fun ActivityItemRow(
                     activity.activity.cost?.let { cost ->
                         if (cost > 0) {
                             Text(
-                                text = activityCostPerPersonLabel(cost),
+                                text = stringResource(R.string.activity_cost_per_person, cost / 100.0),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -573,9 +589,12 @@ private fun ActivityItemRow(
                         onClick = onParticipantsClick,
                         label = {
                             Text(
-                                text = activityRegistrationLabel(
-                                    registeredCount = activity.registeredCount,
-                                    maxParticipants = activity.activity.maxParticipants
+                                text = activity.activity.maxParticipants?.let { maximum ->
+                                    stringResource(R.string.activity_registration_ratio, activity.registeredCount, maximum)
+                                } ?: pluralStringResource(
+                                    R.plurals.activity_registration_count,
+                                    activity.registeredCount,
+                                    activity.registeredCount
                                 ),
                                 style = MaterialTheme.typography.labelSmall
                             )
@@ -593,7 +612,7 @@ private fun ActivityItemRow(
                     if (activity.isFull) {
                         SuggestionChip(
                             onClick = {},
-                            label = { Text(activityFullLabel(), style = MaterialTheme.typography.labelSmall) },
+                            label = { Text(stringResource(R.string.activity_full_label), style = MaterialTheme.typography.labelSmall) },
                             colors = SuggestionChipDefaults.suggestionChipColors(
                                 containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
                                 labelColor = MaterialTheme.colorScheme.error
@@ -614,7 +633,10 @@ private fun ActivityItemRow(
             ) {
                 AssistChip(
                     onClick = onClick,
-                    label = { Text(activityEditActionLabel()) },
+                    modifier = Modifier.semantics {
+                        contentDescription = editDescription
+                    },
+                    label = { Text(stringResource(R.string.activity_edit_action)) },
                     leadingIcon = {
                         Icon(Icons.Default.Edit, null, modifier = Modifier.size(16.dp))
                     }
@@ -622,7 +644,10 @@ private fun ActivityItemRow(
 
                 AssistChip(
                     onClick = onParticipantsClick,
-                    label = { Text(activityParticipantsActionLabel()) },
+                    modifier = Modifier.semantics {
+                        contentDescription = participantsDescription
+                    },
+                    label = { Text(stringResource(R.string.activity_participants_action)) },
                     leadingIcon = {
                         Icon(Icons.Default.People, null, modifier = Modifier.size(16.dp))
                     }
@@ -630,7 +655,10 @@ private fun ActivityItemRow(
 
                 AssistChip(
                     onClick = onDeleteClick,
-                    label = { Text(activityDeleteActionLabel()) },
+                    modifier = Modifier.semantics {
+                        contentDescription = deleteDescription
+                    },
+                    label = { Text(stringResource(R.string.activity_delete_action)) },
                     leadingIcon = {
                         Icon(Icons.Default.Delete, null, modifier = Modifier.size(16.dp))
                     },
@@ -678,73 +706,38 @@ private fun EmptyStateCard(
 /**
  * Format ISO date string (YYYY-MM-DD) to display format
  */
-private fun formatDateString(dateStr: String): String {
+@Composable
+private fun formatActivityDate(dateStr: String): String {
     val months = listOf(
-        "Jan", "Fév", "Mar", "Avr", "Mai", "Juin",
-        "Juil", "Août", "Sep", "Oct", "Nov", "Déc"
+        stringResource(R.string.activity_month_january),
+        stringResource(R.string.activity_month_february),
+        stringResource(R.string.activity_month_march),
+        stringResource(R.string.activity_month_april),
+        stringResource(R.string.activity_month_may),
+        stringResource(R.string.activity_month_june),
+        stringResource(R.string.activity_month_july),
+        stringResource(R.string.activity_month_august),
+        stringResource(R.string.activity_month_september),
+        stringResource(R.string.activity_month_october),
+        stringResource(R.string.activity_month_november),
+        stringResource(R.string.activity_month_december)
     )
-
-    return try {
+    val parsedDate = try {
         val parts = dateStr.split("-")
         if (parts.size == 3) {
             val day = parts[2].toInt()
             val month = parts[1].toInt()
-            "$day ${months[month - 1]}"
+            day to months[month - 1]
         } else {
-            dateStr
+            null
         }
     } catch (e: Exception) {
-        dateStr
+        null
     }
+    return parsedDate?.let { (day, month) ->
+        stringResource(R.string.activity_date_display, day, month)
+    } ?: dateStr
 }
-
-internal fun activityPlanningTitle(): String = "Planification des activités"
-
-internal fun activityBackContentDescription(): String = "Retour"
-
-internal fun activityCommentContentDescription(commentCount: Int): String =
-    if (commentCount <= 0) "Aucun commentaire activité" else "$commentCount commentaire${if (commentCount > 1) "s" else ""} activité"
-
-internal fun activityAddContentDescription(): String = "Ajouter une activité"
-
-internal fun activityEmptyPlanningMessage(): String = "Aucune activité planifiée"
-
-internal fun activityEmptyDateMessage(): String = "Aucune activité à cette date"
-
-internal fun activityDeleteTitle(): String = "Supprimer l'activité ?"
-
-internal fun activityDeleteMessage(activityName: String): String =
-    "Supprimer « $activityName » du programme ?"
-
-internal fun activityDeleteActionLabel(): String = "Supprimer"
-
-internal fun activityCancelActionLabel(): String = "Annuler"
-
-internal fun activitySummaryCountLabel(totalActivities: Int): String =
-    if (totalActivities <= 1) "Activité" else "Activités"
-
-internal fun activityTotalCostLabel(): String = "Coût total"
-
-internal fun activityAllDatesLabel(): String = "Toutes"
-
-internal fun activityTimeDurationLabel(time: String?, durationMinutes: Int): String =
-    "${time ?: "Heure à définir"} (${durationMinutes} min)"
-
-internal fun activityCostPerPersonLabel(costCents: Long): String =
-    "${costCents / 100} € / personne"
-
-internal fun activityRegistrationLabel(registeredCount: Int, maxParticipants: Int?): String =
-    if (maxParticipants != null) {
-        "$registeredCount / $maxParticipants inscrits"
-    } else {
-        "$registeredCount inscrit${if (registeredCount > 1) "s" else ""}"
-    }
-
-internal fun activityFullLabel(): String = "Complet"
-
-internal fun activityEditActionLabel(): String = "Modifier"
-
-internal fun activityParticipantsActionLabel(): String = "Participants"
 
 internal data class ActivityProgramSummary(
     val title: String,
@@ -753,6 +746,7 @@ internal data class ActivityProgramSummary(
     val readinessLabel: String
 )
 
+@Composable
 internal fun activityProgramSummary(activitiesByDate: List<ActivitiesByDate>): ActivityProgramSummary {
     val scheduledActivities = activitiesByDate
         .flatMap { group -> group.activities.map { activity -> group.date to activity } }
@@ -784,33 +778,40 @@ internal fun activityProgramSummary(activitiesByDate: List<ActivitiesByDate>): A
     )
 }
 
-internal fun activityProgramTitle(): String = "Programme à suivre"
+@Composable
+internal fun activityProgramTitle(): String = stringResource(R.string.activity_program_title)
 
-internal fun activityProgramEmptyNextStepLabel(): String =
-    "Aucune prochaine étape : ajoutez une activité pour guider le groupe."
+@Composable
+internal fun activityProgramEmptyNextStepLabel(): String = stringResource(R.string.activity_program_empty_next_step)
 
-internal fun activityProgramEmptyCoverageLabel(): String =
-    "Le programme n'a pas encore de journée planifiée."
+@Composable
+internal fun activityProgramEmptyCoverageLabel(): String = stringResource(R.string.activity_program_empty_coverage)
 
-internal fun activityProgramEmptyReadinessLabel(): String =
-    "Priorité : définir au moins une activité datée."
+@Composable
+internal fun activityProgramEmptyReadinessLabel(): String = stringResource(R.string.activity_program_empty_readiness)
 
+@Composable
 internal fun activityProgramNextStepLabel(date: String, activity: Activity): String {
-    val dateLabel = formatDateString(date)
+    val dateLabel = formatActivityDate(date)
     val timeLabel = activity.time?.takeIf { it.isNotBlank() }
     return if (timeLabel == null) {
-        "Prochaine étape : $dateLabel - ${activity.name} (heure à définir)"
+        stringResource(R.string.activity_program_next_step_without_time, dateLabel, activity.name)
     } else {
-        "Prochaine étape : $dateLabel à $timeLabel - ${activity.name}"
+        stringResource(R.string.activity_program_next_step, dateLabel, timeLabel, activity.name)
     }
 }
 
-internal fun activityProgramCoverageLabel(totalActivities: Int, dayCount: Int): String =
-    "$totalActivities ${if (totalActivities > 1) "activités" else "activité"} sur $dayCount ${if (dayCount > 1) "jours" else "jour"}."
+@Composable
+internal fun activityProgramCoverageLabel(totalActivities: Int, dayCount: Int): String = stringResource(
+    R.string.activity_program_coverage,
+    pluralStringResource(R.plurals.activity_count, totalActivities, totalActivities),
+    pluralStringResource(R.plurals.activity_day_count, dayCount, dayCount)
+)
 
+@Composable
 internal fun activityProgramReadinessLabel(missingTimeCount: Int): String =
     if (missingTimeCount == 0) {
-        "Programme horaire prêt à partager."
+        stringResource(R.string.activity_program_ready)
     } else {
-        "$missingTimeCount ${if (missingTimeCount > 1) "activités restent" else "activité reste"} sans heure."
+        pluralStringResource(R.plurals.activity_program_missing_time, missingTimeCount, missingTimeCount)
     }

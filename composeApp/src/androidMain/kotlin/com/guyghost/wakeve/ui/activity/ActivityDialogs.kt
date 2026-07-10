@@ -30,9 +30,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.activity.ActivityRepository
+import com.guyghost.wakeve.R
 import com.guyghost.wakeve.models.Activity
 import com.guyghost.wakeve.models.ActivityParticipant
 import com.guyghost.wakeve.models.ActivityWithStats
@@ -69,7 +71,7 @@ fun AddEditActivityDialog(
     
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(activityDialogTitle(isNewActivity = activity == null)) },
+        title = { Text(stringResource(if (activity == null) R.string.activity_add_title else R.string.activity_edit_title)) },
         text = {
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -79,7 +81,7 @@ fun AddEditActivityDialog(
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it },
-                        label = { Text(activityNameLabel()) },
+                        label = { Text(stringResource(R.string.activity_name_required)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -89,7 +91,7 @@ fun AddEditActivityDialog(
                     OutlinedTextField(
                         value = description,
                         onValueChange = { description = it },
-                        label = { Text(activityDescriptionLabel()) },
+                        label = { Text(stringResource(R.string.activity_description_required)) },
                         modifier = Modifier.fillMaxWidth(),
                         maxLines = 3
                     )
@@ -103,19 +105,19 @@ fun AddEditActivityDialog(
                         OutlinedTextField(
                             value = date,
                             onValueChange = { date = it },
-                            label = { Text(activityDateLabel()) },
+                            label = { Text(stringResource(R.string.activity_date_required)) },
                             modifier = Modifier.weight(1f),
                             singleLine = true,
-                            placeholder = { Text(activityDatePlaceholder()) }
+                            placeholder = { Text(stringResource(R.string.activity_date_placeholder)) }
                         )
                         
                         OutlinedTextField(
                             value = time,
                             onValueChange = { time = it },
-                            label = { Text(activityTimeLabel()) },
+                            label = { Text(stringResource(R.string.activity_time_label)) },
                             modifier = Modifier.weight(1f),
                             singleLine = true,
-                            placeholder = { Text(activityTimePlaceholder()) }
+                            placeholder = { Text(stringResource(R.string.activity_time_placeholder)) }
                         )
                     }
                 }
@@ -128,7 +130,7 @@ fun AddEditActivityDialog(
                         OutlinedTextField(
                             value = duration,
                             onValueChange = { duration = it },
-                            label = { Text(activityDurationLabel()) },
+                            label = { Text(stringResource(R.string.activity_duration_required)) },
                             modifier = Modifier.weight(1f),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true
@@ -137,11 +139,11 @@ fun AddEditActivityDialog(
                         OutlinedTextField(
                             value = maxParticipants,
                             onValueChange = { maxParticipants = it },
-                            label = { Text(activityCapacityLabel()) },
+                            label = { Text(stringResource(R.string.activity_capacity_label)) },
                             modifier = Modifier.weight(1f),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true,
-                            placeholder = { Text(activityUnlimitedCapacityPlaceholder()) }
+                            placeholder = { Text(stringResource(R.string.activity_unlimited)) }
                         )
                     }
                 }
@@ -150,7 +152,7 @@ fun AddEditActivityDialog(
                     OutlinedTextField(
                         value = location,
                         onValueChange = { location = it },
-                        label = { Text(activityLocationLabel()) },
+                        label = { Text(stringResource(R.string.activity_location_label)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -160,11 +162,11 @@ fun AddEditActivityDialog(
                     OutlinedTextField(
                         value = cost,
                         onValueChange = { cost = it },
-                        label = { Text(activityCostFieldLabel()) },
+                        label = { Text(stringResource(R.string.activity_cost_field_label)) },
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true,
-                        suffix = { Text("€") }
+                        suffix = { Text(stringResource(R.string.currency_symbol_euro)) }
                     )
                 }
             }
@@ -196,12 +198,12 @@ fun AddEditActivityDialog(
                 },
                 enabled = isValid
             ) {
-                Text(activityDialogConfirmLabel(isNewActivity = activity == null))
+                Text(stringResource(if (activity == null) R.string.activity_add_action else R.string.activity_edit_action))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(activityCancelActionLabel())
+                Text(stringResource(R.string.activity_cancel_action))
             }
         }
     )
@@ -261,10 +263,14 @@ fun ManageParticipantsDialog(
         onDismissRequest = onDismiss,
         title = {
             Column {
-                Text(activityParticipantsDialogTitle(activity.activity.name))
+                Text(stringResource(R.string.activity_participants_title, activity.activity.name))
                 if (activity.activity.maxParticipants != null) {
                     Text(
-                        text = activityRegistrationLabel(activity.registeredCount, activity.activity.maxParticipants),
+                        text = stringResource(
+                            R.string.activity_registration_ratio,
+                            activity.registeredCount,
+                            activity.activity.maxParticipants ?: 0
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -321,7 +327,7 @@ fun ManageParticipantsDialog(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = activityFullDialogMessage(),
+                                    text = stringResource(R.string.activity_full_message),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onErrorContainer
                                 )
@@ -333,43 +339,8 @@ fun ManageParticipantsDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text(activityCloseActionLabel())
+                Text(stringResource(R.string.activity_close_action))
             }
         }
     )
 }
-
-internal fun activityDialogTitle(isNewActivity: Boolean): String =
-    if (isNewActivity) "Ajouter une activité" else "Modifier l'activité"
-
-internal fun activityNameLabel(): String = "Nom requis"
-
-internal fun activityDescriptionLabel(): String = "Description requise"
-
-internal fun activityDateLabel(): String = "Date requise"
-
-internal fun activityDatePlaceholder(): String = "AAAA-MM-JJ"
-
-internal fun activityTimeLabel(): String = "Heure"
-
-internal fun activityTimePlaceholder(): String = "HH:MM"
-
-internal fun activityDurationLabel(): String = "Durée requise (min)"
-
-internal fun activityCapacityLabel(): String = "Places maximum"
-
-internal fun activityUnlimitedCapacityPlaceholder(): String = "Illimité"
-
-internal fun activityLocationLabel(): String = "Lieu"
-
-internal fun activityCostFieldLabel(): String = "Coût par personne (€)"
-
-internal fun activityDialogConfirmLabel(isNewActivity: Boolean): String =
-    if (isNewActivity) "Ajouter" else "Modifier"
-
-internal fun activityParticipantsDialogTitle(activityName: String): String =
-    "Participants - $activityName"
-
-internal fun activityCloseActionLabel(): String = "Fermer"
-
-internal fun activityFullDialogMessage(): String = "Activité complète"
