@@ -57,6 +57,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import com.guyghost.wakeve.R
 import com.guyghost.wakeve.comment.CommentRepository
 import com.guyghost.wakeve.models.Comment
@@ -434,7 +436,11 @@ private fun CommentItem(
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    TextButton(onClick = { onReply(comment) }) {
+                    val replyDescription = stringResource(R.string.a11y_comment_reply, comment.authorName)
+                    TextButton(
+                        onClick = { onReply(comment) },
+                        modifier = Modifier.clearAndSetSemantics { contentDescription = replyDescription },
+                    ) {
                         Text(stringResource(R.string.comment_reply))
                     }
 
