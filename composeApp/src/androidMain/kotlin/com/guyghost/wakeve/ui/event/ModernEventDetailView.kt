@@ -41,6 +41,13 @@ import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.R
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
+import com.guyghost.wakeve.productlanguage.AllowedAction
+import com.guyghost.wakeve.productlanguage.PendingFact
+import com.guyghost.wakeve.productlanguage.ProductLanguageInput
+import com.guyghost.wakeve.productlanguage.ProductLanguageProjection
+import com.guyghost.wakeve.productlanguage.SemanticKey
+import com.guyghost.wakeve.productlanguage.UserRole
+import com.guyghost.wakeve.productlanguage.projectEventState
 
 /**
  * Modern Event Detail View
@@ -66,10 +73,16 @@ fun ModernEventDetailView(
     dayOfSummary: EventDayOfSummary? = null,
     destinationSummary: EventDestinationSummary? = null,
     settlementSummary: EventSettlementSummary? = null,
+    pendingFacts: Set<PendingFact> = emptySet(),
+    allowedAction: AllowedAction? = AllowedAction.CONTINUE,
+    onProjectedPrimaryAction: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
     val openBudget = onNavigateToBudgetOverview
+    val projection = projectEventState(
+        ProductLanguageInput(event.status, UserRole.PARTICIPANT, emptySet(), pendingFacts, allowedAction)
+    )
     
     Scaffold(
         topBar = {
@@ -97,12 +110,14 @@ fun ModernEventDetailView(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Event Status Header
-            EventStatusHeader(event)
+            EventStatusHeader(event, projection)
             
             // Event Description
             EventDescriptionCard(event)
 
-            EventNextStepCard(event.status)
+            EventNextStepCard(projection)
+
+            ProjectionOutcome(projection, onProjectedPrimaryAction)
 
             dayOfSummary?.let {
                 EventDayOfSummaryCard(summary = it)
@@ -346,7 +361,7 @@ private fun EventDayOfSummaryCard(summary: EventDayOfSummary) {
 }
 
 @Composable
-private fun EventStatusHeader(event: Event) {
+private fun EventStatusHeader(event: Event, projection: ProductLanguageProjection) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -365,7 +380,7 @@ private fun EventStatusHeader(event: Event) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = stringResource(eventDetailStatusLabel(event.status)),
+                text = stringResource(eventDetailResource(projection.title)),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = when (event.status) {
@@ -402,7 +417,8 @@ private fun EventStatusHeader(event: Event) {
 }
 
 @Composable
-private fun EventNextStepCard(status: EventStatus) {
+private fun EventNextStepCard(projection: ProductLanguageProjection) {
+    val status = projection.domainStatus
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -423,6 +439,18 @@ private fun EventNextStepCard(status: EventStatus) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+    }
+}
+
+@Composable
+private fun ProjectionOutcome(projection: ProductLanguageProjection, onPrimaryAction: (() -> Unit)?) {
+    projection.status?.let { Text(stringResource(eventDetailResource(it))) }
+    projection.primaryAction?.let { action ->
+        if (onPrimaryAction != null) {
+            Button(onClick = onPrimaryAction, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(eventDetailResource(action)))
+            }
         }
     }
 }
@@ -727,14 +755,23 @@ private fun FinalizedModeActions(
     }
 }
 
-internal fun eventDetailStatusLabel(status: EventStatus): Int = when (status) {
-    EventStatus.DRAFT -> R.string.event_state_draft
-    EventStatus.POLLING -> R.string.event_state_polling
-    EventStatus.COMPARING -> R.string.event_state_comparing
-    EventStatus.CONFIRMED -> R.string.event_state_confirmed
-    EventStatus.ORGANIZING -> R.string.event_state_organizing
-    EventStatus.FINALIZED -> R.string.event_state_finalized
+internal fun eventDetailResource(key: SemanticKey): Int = when (key.value) {
+    "event.state.draft" -> R.string.event_state_draft
+    "event.state.polling" -> R.string.event_state_polling
+    "event.state.comparing" -> R.string.event_state_comparing
+    "event.state.confirmed" -> R.string.event_state_confirmed
+    "event.state.organizing" -> R.string.event_state_organizing
+    "event.state.finalized" -> R.string.event_state_finalized
+    "sync.waiting" -> R.string.sync_waiting
+    "sync.conflict" -> R.string.sync_conflict_title
+    "sync.retry" -> R.string.action_retry
+    "event.action.continue" -> R.string.next
+    else -> error(key.value)
 }
+
+internal fun eventDetailStatusLabel(status: EventStatus): Int = eventDetailResource(
+    projectEventState(ProductLanguageInput(status, UserRole.PARTICIPANT, emptySet(), emptySet(), null)).title
+)
 
 internal fun eventDetailNextStepTitle(status: EventStatus): Int = when (status) {
     EventStatus.DRAFT -> R.string.event_next_step_draft

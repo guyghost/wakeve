@@ -320,3 +320,13 @@ TDD evidence:
 - GREEN: the wizard and detail view use resource mappings, device-locale date/time formats, localized formatted summaries, and natural six-locale catalogs. `FINALIZED` remains read-only and contains no button CTA.
 - Compatibility-test migration: `EventDetailModelsTest` now verifies status/title/body resource mappings rather than calling obsolete French-string helpers; workflow-state assertions remain unchanged.
 - Verification: E2, terminal E3, `EventDetailModelsTest`, catalog parity, and shared `ProductLanguageTest` pass. `EventManagementStateMachineTest`, `:composeApp:assembleDebug --no-daemon --no-configuration-cache`, and `git diff --check` pass. Because terminal detail was part of this ownership slice, the full Batch 5 class now has three expected RED partitions (E4–E6), not the stale four-RED forecast.
+
+## Task 5 final findings 1–4 correction — 2026-07-10
+
+- RED: the new Android consumption contract failed because event lifecycle, pending/conflict status, and actions did not call shared `projectEventState`; the exhaustive indirect scanner also failed on its first unreviewed occurrence.
+- GREEN: event detail and draft presentation now consume `ProductLanguageProjection`; the Android-only `DraftWorkflowOutcome` enum was removed. Terminal state, pending mutation, sync conflict, and projected action keys are mapped to Android resources without changing domain transitions, intents, routes, repositories, or analytics.
+- Portability: `SemanticKey` explicitly imports `kotlin.jvm.JvmInline`; `:shared:compileKotlinIosSimulatorArm64` passes. Android shared tests pass with `:shared:testDebugUnitTest`. The broader `:shared:allTests` remains blocked by pre-existing JVM-only `java.io.File` use in `StateMachineBasicTest` when compiling iOS tests.
+- Semantics: the conflict summary is now a separate non-interactive semantics node; each local/remote choice retains one radio-button click node. The real Compose semantics-tree test compiles; no Android device was attached, so device execution was unavailable.
+- Global contract: all inventory-owned Android production paths use the reusable `ProductLanguageSourceScanner`, including direct and strengthened indirect forms. The allowlist is an exact path + line + content snapshot hash, so moved or edited occurrences require review.
+- Verification: targeted Task 5/global Android tests, notification filters, shared Android tests, iOS main compilation, Android instrumentation-test compilation, `assembleDebug`, and `git diff --check` pass.
+- Scope: Messages navigation and the Batch 1 taxonomy assertion were not modified; finding 5 remains pending human direction.
