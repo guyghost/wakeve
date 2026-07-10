@@ -98,7 +98,7 @@ private fun WakeveNavigationBar(
         wakevePrimaryDestinations().forEach { item ->
             val selected = currentDestination?.hierarchy?.any { it.route == item.screen.route } == true
             NavigationBarItem(
-                icon = { WakeveNavIcon(item = item, inboxUnreadCount = inboxUnreadCount) },
+                icon = { WakeveNavIcon(item = item, inboxUnreadCount = inboxUnreadCount, selected = selected) },
                 label = { Text(text = item.label, style = MaterialTheme.typography.labelMedium) },
                 selected = selected,
                 onClick = { navController.navigatePrimary(item.screen.route) },
@@ -132,7 +132,7 @@ private fun WakeveNavigationRail(
         wakevePrimaryDestinations().forEach { item ->
             val selected = currentDestination?.hierarchy?.any { it.route == item.screen.route } == true
             NavigationRailItem(
-                icon = { WakeveNavIcon(item = item, inboxUnreadCount = inboxUnreadCount) },
+                icon = { WakeveNavIcon(item = item, inboxUnreadCount = inboxUnreadCount, selected = selected) },
                 label = { Text(text = item.label, style = MaterialTheme.typography.labelMedium) },
                 selected = selected,
                 onClick = { navController.navigatePrimary(item.screen.route) },
@@ -151,8 +151,13 @@ private fun WakeveNavigationRail(
 @Composable
 private fun WakeveNavIcon(
     item: WakevePrimaryDestination,
-    inboxUnreadCount: Int
+    inboxUnreadCount: Int,
+    selected: Boolean
 ) {
+    val contentDescription = stringResource(
+        item.contentDescriptionRes,
+        stringResource(if (selected) R.string.a11y_selected else R.string.a11y_unselected)
+    )
     if (item.screen == Screen.Inbox && inboxUnreadCount > 0) {
         BadgedBox(
             badge = {
@@ -161,10 +166,10 @@ private fun WakeveNavIcon(
                 }
             }
         ) {
-            Icon(imageVector = item.icon, contentDescription = item.contentDescription)
+            Icon(imageVector = item.icon, contentDescription = contentDescription)
         }
     } else {
-        Icon(imageVector = item.icon, contentDescription = item.contentDescription)
+        Icon(imageVector = item.icon, contentDescription = contentDescription)
     }
 }
 
@@ -182,7 +187,7 @@ private data class WakevePrimaryDestination(
     val screen: Screen,
     val label: String,
     val icon: ImageVector,
-    val contentDescription: String
+    val contentDescriptionRes: Int
 )
 
 @Composable
@@ -191,18 +196,18 @@ private fun wakevePrimaryDestinations() = listOf(
         screen = Screen.Home,
         label = stringResource(R.string.nav_upcoming),
         icon = Icons.Filled.Home,
-        contentDescription = stringResource(R.string.a11y_nav_upcoming)
+        contentDescriptionRes = R.string.a11y_nav_upcoming
     ),
     WakevePrimaryDestination(
         screen = Screen.Inbox,
         label = stringResource(R.string.notifications),
         icon = Icons.Filled.Inbox,
-        contentDescription = stringResource(R.string.a11y_nav_notifications)
+        contentDescriptionRes = R.string.a11y_nav_notifications
     ),
     WakevePrimaryDestination(
         screen = Screen.Explore,
         label = stringResource(R.string.tab_ideas),
         icon = Icons.Filled.Search,
-        contentDescription = stringResource(R.string.a11y_nav_ideas)
+        contentDescriptionRes = R.string.a11y_nav_ideas
     )
 )

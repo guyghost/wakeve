@@ -203,7 +203,11 @@ fun WakeveNavHost(
                 isAuthenticated = authState.isAuthenticated,
                 userEmail = authState.currentUser?.email,
                 userName = authState.currentUser?.displayName,
-                appVersionLabel = "Version ${com.guyghost.wakeve.BuildConfig.VERSION_NAME} (${com.guyghost.wakeve.BuildConfig.VERSION_CODE})",
+                appVersionLabel = stringResource(
+                    R.string.profile_version,
+                    com.guyghost.wakeve.BuildConfig.VERSION_NAME,
+                    com.guyghost.wakeve.BuildConfig.VERSION_CODE
+                ),
                 onNavigateToSettings = {
                     navController.navigate(Screen.Settings.route)
                 },
@@ -582,7 +586,9 @@ fun WakeveNavHost(
         ) { backStackEntry ->
             val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
             val eventViewModel: EventManagementViewModel = koinInject()
-            val eventTitle = eventViewModel.state.value.selectedEvent?.title ?: "Événement"
+            val eventTitle = eventViewModel.state.value.selectedEvent?.title
+                ?: stringResource(R.string.event_default_title)
+            val eventNotFound = stringResource(R.string.event_not_found_sentence)
             val invitationShareService = remember(context) {
                 AndroidInvitationShareService(context.applicationContext)
             }
@@ -593,7 +599,7 @@ fun WakeveNavHost(
 
             LaunchedEffect(eventId, retryInvitationCreation) {
                 if (eventId.isBlank()) {
-                    invitationError = "Événement introuvable."
+                    invitationError = eventNotFound
                     return@LaunchedEffect
                 }
 
@@ -639,10 +645,11 @@ fun WakeveNavHost(
         ) { backStackEntry ->
             val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
             
+            val participantAdded = stringResource(R.string.participant_added)
             ParticipantManagementScreenWrapper(
                 eventId = eventId,
                 onParticipantAdded = {
-                    Toast.makeText(context, "Participant ajouté", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, participantAdded, Toast.LENGTH_SHORT).show()
                 },
                 onPollStarted = {
                     navController.navigate(Screen.PollVoting.createRoute(eventId))
@@ -1076,7 +1083,7 @@ fun WakeveNavHost(
 
             if (!canAccessOrganizationDetails || !phase5Access.isOrganizationStatusAllowed) {
                 AccessDenied(
-                    message = "Confirmez votre présence pour accéder aux détails des réunions.",
+                    message = stringResource(R.string.access_denied_meetings),
                     onBack = { navController.navigateUp() }
                 )
                 return@composable
@@ -1134,7 +1141,7 @@ fun WakeveNavHost(
 
             if (!canAccessOrganizationDetails || !phase5Access.isOrganizationStatusAllowed) {
                 AccessDenied(
-                    message = "Confirmez votre présence pour accéder aux détails de la cagnotte.",
+                    message = stringResource(R.string.access_denied_payment_pot),
                     onBack = { navController.navigateUp() }
                 )
                 return@composable
@@ -1175,7 +1182,7 @@ fun WakeveNavHost(
 
             if (!canAccessOrganizationDetails || !phase5Access.isOrganizationStatusAllowed) {
                 AccessDenied(
-                    message = "Confirmez votre présence pour ouvrir les détails Tricount.",
+                    message = stringResource(R.string.access_denied_tricount),
                     onBack = { navController.navigateUp() }
                 )
                 return@composable
@@ -1251,7 +1258,7 @@ fun WakeveNavHost(
 
             if (!canAccessOrganizationDetails || !phase5Access.isOrganizationStatusAllowed) {
                 AccessDenied(
-                    message = "Confirmez votre présence pour accéder aux détails du budget.",
+                    message = stringResource(R.string.access_denied_budget),
                     onBack = { navController.navigateUp() }
                 )
                 return@composable
@@ -1306,7 +1313,7 @@ fun WakeveNavHost(
 
             if (!phase5Access.canEnterOrganizationRoutes) {
                 AccessDenied(
-                    message = "Confirmez votre présence pour accéder aux détails des dépenses.",
+                    message = stringResource(R.string.access_denied_expenses),
                     onBack = { navController.navigateUp() }
                 )
                 return@composable
@@ -1625,7 +1632,7 @@ private fun EventPhotosFollowUpScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
-            text = stringResource(R.string.event_next_action, state.recommendedActionLabel),
+            text = "Prochaine action : ${state.recommendedActionLabel}",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface
         )
@@ -1636,7 +1643,7 @@ private fun EventPhotosFollowUpScreen(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = stringResource(R.string.event_status_and_title, item.statusLabel, item.title),
+                        text = "${item.statusLabel} - ${item.title}",
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurface
                     )
