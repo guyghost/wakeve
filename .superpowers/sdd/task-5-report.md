@@ -181,6 +181,13 @@ Recommended new test class: `AndroidProductLanguageBatch2Test`, restricting the 
 - Scope correction: `CommentItem.kt` is now included in the Batch 2 source contract because it owns both collaboration reply actions and the former compatibility helpers. Its action labels, pin/options semantics, and relative timestamps are resource-backed.
 - Verification: targeted Batch 2, Comments, collaboration copy, and catalog tests pass; the global contract remains RED only for later batches and reports no `ui/collaboration` or `ui/comment` path; `assembleDebug --no-daemon --no-configuration-cache` and `git diff --check` pass.
 
+#### Batch 2 final semantics and catalog correction — 2026-07-10
+
+- RED: the discovery-based reply-action contract found three rendered `onReply` actions and failed only for the `CommentsScreen.kt` action, which lacked targeted non-duplicating semantics.
+- GREEN: all three discovered reply actions now consume `a11y_comment_reply` with `comment.authorName` and use `clearAndSetSemantics`; the test no longer assumes that reply actions live only in `CommentItem.kt`.
+- Catalog completeness: Batch 2 keys are derived from the default catalogue by the `comment_*`, `comments_*`, `a11y_comment_*`, and mention families, then compared exactly across all six catalogues. `mention_user_label` is covered as an exact invariant (`@%1$s`) rather than an untranslated-copy exception.
+- Verification: targeted Batch 2, Comments, collaboration copy, and catalog tests pass; `git diff --check` passes.
+
 ### Batch 3 — Budget, activities, accommodation, and equipment
 
 Owning Kotlin files from current RED findings (6):

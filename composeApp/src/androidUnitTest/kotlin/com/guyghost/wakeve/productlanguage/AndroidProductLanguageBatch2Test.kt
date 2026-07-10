@@ -35,13 +35,19 @@ class AndroidProductLanguageBatch2Test {
         }
         assertFalse(projectRoot.resolve(batch2TestPath).readText().contains("compatibility" + "Copy"))
 
-        val commentItem = sources.getValue(commentItemPath)
-        assertEquals(
-            2,
-            Regex("""stringResource\(R\.string\.a11y_comment_reply,\s*comment\.authorName\)""")
-                .findAll(commentItem).count(),
-            "Both reply actions must consume author-targeted semantics",
-        )
+        val replyActions = sources.flatMap { (path, source) ->
+            Regex("""onClick\s*=\s*\{\s*onReply\(""").findAll(source).map { match ->
+                val start = (match.range.first - 500).coerceAtLeast(0)
+                val end = (match.range.last + 350).coerceAtMost(source.length - 1)
+                path to source.substring(start, end)
+            }
+        }
+        assertEquals(3, replyActions.size, "Every rendered reply action must be discovered")
+        replyActions.forEach { (path, action) ->
+            assertTrue(action.contains("R.string.a11y_comment_reply"), "$path reply action lacks a11y resource")
+            assertTrue(action.contains("comment.authorName"), "$path reply action lacks author target")
+            assertTrue(action.contains("clearAndSetSemantics"), "$path reply action may duplicate TalkBack copy")
+        }
     }
 
     @Test
@@ -58,6 +64,7 @@ class AndroidProductLanguageBatch2Test {
     @Test
     fun batch2TranslationsAreNaturalAndKeepPlaceholderParity() {
         val english = catalog("values-en")
+        val translatedKeys = batch2Keys("values") - invariantKeys
         val findings = listOf("de", "es", "it", "pt").flatMap { locale ->
             val localized = catalog("values-$locale")
             translatedKeys.mapNotNull { key ->
@@ -71,6 +78,15 @@ class AndroidProductLanguageBatch2Test {
             }
         }
         assertTrue(findings.isEmpty(), findings.joinToString("\n"))
+    }
+
+    @Test
+    fun everyDerivedBatch2KeyExistsAcrossCatalogsAndInvariantsAreExact() {
+        val expected = batch2Keys("values")
+        listOf("values-en", "values-de", "values-es", "values-it", "values-pt").forEach { directory ->
+            assertEquals(expected, batch2Keys(directory), "$directory Batch 2 key set")
+            assertEquals("@%1\$s", catalog(directory).getValue("mention_user_label"), "$directory mention format")
+        }
     }
 
     @Test
@@ -103,6 +119,11 @@ class AndroidProductLanguageBatch2Test {
 
     private fun catalogSource(directory: String) =
         projectRoot.resolve("composeApp/src/androidMain/res/$directory/strings.xml").readText()
+
+    private fun batch2Keys(directory: String): Set<String> = catalog(directory).keys.filterTo(mutableSetOf()) { key ->
+        key.startsWith("comment_") || key.startsWith("comments_") ||
+            key.startsWith("a11y_comment_") || key == "mention_prompt" || key == "mention_user_label"
+    }
 
     private fun placeholders(value: String) = Regex("""%\d+\$[a-z]""").findAll(value).map { it.value }.toList()
     private fun String.withoutComments() = replace(Regex("""(?s)/\*.*?\*/""")) { " ".repeat(it.value.length) }
@@ -154,7 +175,6 @@ class AndroidProductLanguageBatch2Test {
         )
         val visibleLiteral = Regex("""\"([^\"\\]*(?:\\.[^\"\\]*)*)\"""")
         const val batch2TestPath = "composeApp/src/androidUnitTest/kotlin/com/guyghost/wakeve/productlanguage/AndroidProductLanguageBatch2Test.kt"
-        const val commentItemPath = "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/collaboration/CommentItem.kt"
         val legacyHelperNames = setOf(
             "commentInputPlaceholder", "commentSendContentDescription", "getSectionTitle",
             "loadMoreRepliesLabel", "emptyCommentsTitle", "emptyCommentsSubtitle",
@@ -167,25 +187,7 @@ class AndroidProductLanguageBatch2Test {
             "a11y_comment_send", "a11y_comment_reply", "a11y_comment_edit",
             "a11y_comment_delete", "a11y_comment_filter", "a11y_comment_back",
         )
-        val translatedKeys = setOf(
-            "comments_title", "comments_title_for_section", "comments_section_options", "comments_section_poll",
-            "comments_section_transport", "comments_section_accommodation", "comments_section_meal",
-            "comments_section_equipment", "comments_section_activity", "comments_section_budget",
-            "comment_section_general", "comment_section_options", "comment_section_poll", "comment_section_transport",
-            "comment_section_accommodation", "comment_section_meal", "comment_section_equipment",
-            "comment_section_activity", "comment_section_budget", "comment_input_placeholder", "mention_prompt",
-            "comment_add", "comment_reply", "comment_edit", "comment_post", "comment_delete", "comment_cancel",
-            "comment_close", "comment_retry", "comment_edited", "comments_empty", "comments_empty_body",
-            "comments_empty_event", "comments_empty_section", "comments_empty_call_to_action", "comment_error_title",
-            "comment_load_error", "comment_filter_title", "comment_filter_all", "comment_edit_title",
-            "comment_reply_to", "comment_field_label", "comment_field_placeholder", "comment_character_count",
-            "comment_delete_title", "comment_delete_body", "comment_time_now", "comment_time_minutes",
-            "comment_time_hours", "comment_time_days", "comment_time_recent", "a11y_comment_send",
-            "a11y_comment_reply", "a11y_comment_edit", "a11y_comment_delete", "a11y_comment_filter",
-            "a11y_comment_back", "a11y_comment_add", "comment_submit_error", "comment_delete_error",
-            "comment_reply_count", "comment_pin", "comment_unpin", "comment_remove", "comment_time_weeks",
-            "a11y_comment_pinned", "a11y_comment_options",
-        )
+        val invariantKeys = setOf("mention_user_label")
         val cognates: Map<String, Set<String>> = mapOf(
             "de" to setOf("comment_section_budget"),
             "es" to setOf("comment_section_general", "comment_error_title"),
