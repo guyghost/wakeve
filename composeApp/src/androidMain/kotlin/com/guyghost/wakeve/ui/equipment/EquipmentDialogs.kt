@@ -28,9 +28,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.models.EquipmentCategory
+import com.guyghost.wakeve.R
 import com.guyghost.wakeve.models.EquipmentItem
 import com.guyghost.wakeve.models.ItemStatus
 import com.guyghost.wakeve.ui.activity.ParticipantInfo
@@ -65,7 +67,7 @@ fun AddEditItemDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(equipmentItemDialogTitle(isNewItem = item == null)) },
+        title = { Text(stringResource(if (item == null) R.string.equipment_add_title else R.string.equipment_edit_title)) },
         text = {
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -75,7 +77,7 @@ fun AddEditItemDialog(
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it },
-                        label = { Text(equipmentItemNameLabel()) },
+                        label = { Text(stringResource(R.string.equipment_name_required)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -85,7 +87,7 @@ fun AddEditItemDialog(
                     OutlinedTextField(
                         value = notes,
                         onValueChange = { notes = it },
-                        label = { Text(equipmentItemNotesLabel()) },
+                        label = { Text(stringResource(R.string.equipment_notes_label)) },
                         modifier = Modifier.fillMaxWidth(),
                         maxLines = 3
                     )
@@ -99,7 +101,7 @@ fun AddEditItemDialog(
                         OutlinedTextField(
                             value = quantity,
                             onValueChange = { quantity = it },
-                            label = { Text(equipmentItemQuantityLabel()) },
+                            label = { Text(stringResource(R.string.equipment_quantity_required)) },
                             modifier = Modifier.weight(1f),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true
@@ -108,11 +110,11 @@ fun AddEditItemDialog(
                         OutlinedTextField(
                             value = sharedCost,
                             onValueChange = { sharedCost = it },
-                            label = { Text(equipmentItemSharedCostLabel()) },
+                            label = { Text(stringResource(R.string.equipment_shared_cost_label)) },
                             modifier = Modifier.weight(1f),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             singleLine = true,
-                            suffix = { Text("€") }
+                            suffix = { Text(stringResource(R.string.currency_symbol_euro)) }
                         )
                     }
                 }
@@ -124,10 +126,10 @@ fun AddEditItemDialog(
                         onExpandedChange = { showCategoryMenu = it }
                     ) {
                         OutlinedTextField(
-                            value = equipmentCategoryLabel(category),
+                            value = stringResource(category.dialogLabelResource()),
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text(equipmentItemCategoryLabel()) },
+                            label = { Text(stringResource(R.string.equipment_category_label)) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(showCategoryMenu) },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -143,7 +145,7 @@ fun AddEditItemDialog(
                         ) {
                             EquipmentCategory.entries.forEach { cat ->
                                 DropdownMenuItem(
-                                    text = { Text(equipmentCategoryLabel(cat)) },
+                                    text = { Text(stringResource(cat.dialogLabelResource())) },
                                     onClick = {
                                         category = cat
                                         showCategoryMenu = false
@@ -161,10 +163,10 @@ fun AddEditItemDialog(
                         onExpandedChange = { showStatusMenu = it }
                     ) {
                         OutlinedTextField(
-                            value = equipmentStatusLabel(status),
+                            value = stringResource(status.dialogLabelResource()),
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text(equipmentItemStatusLabel()) },
+                            label = { Text(stringResource(R.string.equipment_status_label)) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(showStatusMenu) },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -180,7 +182,7 @@ fun AddEditItemDialog(
                         ) {
                             ItemStatus.entries.forEach { st ->
                                 DropdownMenuItem(
-                                    text = { Text(equipmentStatusLabel(st)) },
+                                    text = { Text(stringResource(st.dialogLabelResource())) },
                                     onClick = {
                                         status = st
                                         showStatusMenu = false
@@ -199,11 +201,11 @@ fun AddEditItemDialog(
                     ) {
                         OutlinedTextField(
                             value = assignedTo?.let { id ->
-                                participants.find { it.id == id }?.name ?: equipmentUnassignedLabel()
-                            } ?: equipmentUnassignedLabel(),
+                                participants.find { it.id == id }?.name ?: stringResource(R.string.equipment_unassigned)
+                            } ?: stringResource(R.string.equipment_unassigned),
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text(equipmentAssignedToLabel()) },
+                            label = { Text(stringResource(R.string.equipment_assigned_to_label)) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(showParticipantMenu) },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -218,7 +220,7 @@ fun AddEditItemDialog(
                             onDismissRequest = { showParticipantMenu = false }
                         ) {
                             DropdownMenuItem(
-                                text = { Text(equipmentUnassignedLabel()) },
+                                text = { Text(stringResource(R.string.equipment_unassigned)) },
                                 onClick = {
                                     assignedTo = null
                                     showParticipantMenu = false
@@ -261,12 +263,12 @@ fun AddEditItemDialog(
                 },
                 enabled = isValid
             ) {
-                Text(equipmentItemDialogConfirmLabel(isNewItem = item == null))
+                Text(stringResource(if (item == null) R.string.equipment_add_action else R.string.equipment_edit_action))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(equipmentCancelActionLabel())
+                Text(stringResource(R.string.equipment_cancel_action))
             }
         }
     )
@@ -286,12 +288,12 @@ fun AssignItemDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(equipmentAssignDialogTitle(item.name)) },
+        title = { Text(stringResource(R.string.equipment_assign_title, item.name)) },
         text = {
             LazyColumn {
                 item {
                     ListItem(
-                        headlineContent = { Text(equipmentUnassignedLabel()) },
+                        headlineContent = { Text(stringResource(R.string.equipment_unassigned)) },
                         leadingContent = {
                             RadioButton(
                                 selected = selectedParticipant == null,
@@ -324,12 +326,12 @@ fun AssignItemDialog(
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(selectedParticipant) }) {
-                Text(equipmentConfirmActionLabel())
+                Text(stringResource(R.string.equipment_confirm_action))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(equipmentCancelActionLabel())
+                Text(stringResource(R.string.equipment_cancel_action))
             }
         }
     )
@@ -346,30 +348,30 @@ fun AutoGenerateDialog(
     var selectedType by remember { mutableStateOf("camping") }
 
     val eventTypes = listOf(
-        "camping" to "Camping",
-        "beach" to "Plage",
-        "ski" to "Ski / Montagne",
-        "hiking" to "Randonnée",
-        "picnic" to "Pique-nique",
-        "indoor" to "Intérieur"
+        "camping" to R.string.equipment_event_type_camping,
+        "beach" to R.string.equipment_event_type_beach,
+        "ski" to R.string.equipment_event_type_ski,
+        "hiking" to R.string.equipment_event_type_hiking,
+        "picnic" to R.string.equipment_event_type_picnic,
+        "indoor" to R.string.equipment_event_type_indoor
     )
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(equipmentAutoGenerateTitle()) },
+        title = { Text(stringResource(R.string.equipment_auto_generate_title)) },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = equipmentAutoGenerateDescription(),
+                    text = stringResource(R.string.equipment_auto_generate_description),
                     style = MaterialTheme.typography.bodyMedium
                 )
 
                 LazyColumn {
-                    items(eventTypes) { (type, label) ->
+                    items(eventTypes) { (type, labelResource) ->
                         ListItem(
-                            headlineContent = { Text(label) },
+                            headlineContent = { Text(stringResource(labelResource)) },
                             leadingContent = {
                                 RadioButton(
                                     selected = selectedType == type,
@@ -384,69 +386,30 @@ fun AutoGenerateDialog(
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(selectedType) }) {
-                Text(equipmentPrepareActionLabel())
+                Text(stringResource(R.string.equipment_prepare_action))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(equipmentCancelActionLabel())
+                Text(stringResource(R.string.equipment_cancel_action))
             }
         }
     )
 }
 
-internal fun equipmentItemDialogTitle(isNewItem: Boolean): String =
-    if (isNewItem) "Ajouter un équipement" else "Modifier l'équipement"
-
-internal fun equipmentItemNameLabel(): String = "Nom requis"
-
-internal fun equipmentItemNotesLabel(): String = "Notes"
-
-internal fun equipmentItemQuantityLabel(): String = "Quantité requise"
-
-internal fun equipmentItemSharedCostLabel(): String = "Coût partagé (€)"
-
-internal fun equipmentItemCategoryLabel(): String = "Catégorie"
-
-internal fun equipmentItemStatusLabel(): String = "Statut"
-
-internal fun equipmentAssignedToLabel(): String = "Responsable"
-
-internal fun equipmentUnassignedLabel(): String = "Non assigné"
-
-internal fun equipmentItemDialogConfirmLabel(isNewItem: Boolean): String =
-    if (isNewItem) "Ajouter" else "Modifier"
-
-internal fun equipmentCancelActionLabel(): String = "Annuler"
-
-internal fun equipmentConfirmActionLabel(): String = "Confirmer"
-
-internal fun equipmentAssignDialogTitle(itemName: String): String = "Assigner « $itemName »"
-
-internal fun equipmentAutoGenerateTitle(): String = "Préparer une liste d'équipement"
-
-internal fun equipmentAutoGenerateDescription(): String =
-    "Sélectionnez le type d'événement pour préparer une liste adaptée au groupe."
-
-internal fun equipmentPrepareActionLabel(): String = "Préparer"
-
-internal fun equipmentCategoryLabel(category: EquipmentCategory): String {
-    return when (category) {
-        EquipmentCategory.CAMPING -> "Camping"
-        EquipmentCategory.SPORTS -> "Sport"
-        EquipmentCategory.COOKING -> "Cuisine"
-        EquipmentCategory.ELECTRONICS -> "Électronique"
-        EquipmentCategory.SAFETY -> "Sécurité"
-        EquipmentCategory.OTHER -> "Autre"
-    }
+private fun EquipmentCategory.dialogLabelResource(): Int = when (this) {
+    EquipmentCategory.CAMPING -> R.string.equipment_category_camping
+    EquipmentCategory.SPORTS -> R.string.equipment_category_sports
+    EquipmentCategory.COOKING -> R.string.equipment_category_cooking
+    EquipmentCategory.ELECTRONICS -> R.string.equipment_category_electronics
+    EquipmentCategory.SAFETY -> R.string.equipment_category_safety
+    EquipmentCategory.OTHER -> R.string.equipment_category_other
 }
 
-internal fun equipmentStatusLabel(status: ItemStatus): String {
-    return when (status) {
-        ItemStatus.NEEDED -> "Requis"
-        ItemStatus.ASSIGNED -> "Assigné"
-        ItemStatus.CONFIRMED -> "Confirmé"
-        ItemStatus.PACKED -> "Prêt"
-        ItemStatus.CANCELLED -> "Annulé"
-    }
+private fun ItemStatus.dialogLabelResource(): Int = when (this) {
+    ItemStatus.NEEDED -> R.string.equipment_status_needed
+    ItemStatus.ASSIGNED -> R.string.equipment_status_assigned
+    ItemStatus.CONFIRMED -> R.string.equipment_status_confirmed
+    ItemStatus.PACKED -> R.string.equipment_status_packed
+    ItemStatus.CANCELLED -> R.string.equipment_status_cancelled
 }
