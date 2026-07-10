@@ -34,8 +34,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.guyghost.wakeve.R
 import com.guyghost.wakeve.meal.MealRepository
 import com.guyghost.wakeve.models.AutoMealPlanRequest
 import com.guyghost.wakeve.models.DietaryRestriction
@@ -58,6 +62,11 @@ fun AddEditMealDialog(
     onDismiss: () -> Unit,
     onSave: (MealRequest) -> Unit
 ) {
+    val requiredName = stringResource(R.string.meal_error_name_required)
+    val requiredDate = stringResource(R.string.meal_error_date_required)
+    val requiredTime = stringResource(R.string.meal_error_time_required)
+    val invalidServings = stringResource(R.string.meal_error_people_invalid)
+    val invalidEstimatedCost = stringResource(R.string.meal_error_estimated_cost_invalid)
     var selectedType by remember { mutableStateOf(meal?.type ?: MealType.DINNER) }
     var name by remember { mutableStateOf(meal?.name ?: "") }
     var date by remember { mutableStateOf(meal?.date ?: LocalDate.now().toString()) }
@@ -72,7 +81,7 @@ fun AddEditMealDialog(
     
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (meal == null) "Ajouter un repas" else "Modifier le repas") },
+        title = { Text(stringResource(if (meal == null) R.string.meal_add_title else R.string.meal_edit_title)) },
         text = {
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -81,7 +90,7 @@ fun AddEditMealDialog(
                 // Type selector
                 item {
                     Text(
-                        "Type de repas",
+                        stringResource(R.string.meal_type_label),
                         style = MaterialTheme.typography.labelMedium
                     )
                     Row(
@@ -89,10 +98,13 @@ fun AddEditMealDialog(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         MealType.entries.take(3).forEach { type ->
+                            val typeLabel = getMealTypeLabel(type)
+                            val typeDescription = stringResource(R.string.a11y_meal_type_selection, typeLabel, selectedType == type)
                             FilterChip(
+                                modifier = Modifier.semantics { contentDescription = typeDescription },
                                 selected = selectedType == type,
                                 onClick = { selectedType = type },
-                                label = { Text(getMealTypeLabel(type)) }
+                                label = { Text(typeLabel) }
                             )
                         }
                     }
@@ -101,10 +113,13 @@ fun AddEditMealDialog(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         MealType.entries.drop(3).forEach { type ->
+                            val typeLabel = getMealTypeLabel(type)
+                            val typeDescription = stringResource(R.string.a11y_meal_type_selection, typeLabel, selectedType == type)
                             FilterChip(
+                                modifier = Modifier.semantics { contentDescription = typeDescription },
                                 selected = selectedType == type,
                                 onClick = { selectedType = type },
-                                label = { Text(getMealTypeLabel(type)) }
+                                label = { Text(typeLabel) }
                             )
                         }
                     }
@@ -115,8 +130,8 @@ fun AddEditMealDialog(
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it },
-                        label = { Text("Nom du repas") },
-                        placeholder = { Text("Ex: Barbecue du samedi soir") },
+                        label = { Text(stringResource(R.string.meal_name_label)) },
+                        placeholder = { Text(stringResource(R.string.meal_name_placeholder)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -127,8 +142,8 @@ fun AddEditMealDialog(
                     OutlinedTextField(
                         value = date,
                         onValueChange = { date = it },
-                        label = { Text("Date (YYYY-MM-DD)") },
-                        placeholder = { Text("2025-12-25") },
+                        label = { Text(stringResource(R.string.meal_date_label)) },
+                        placeholder = { Text(stringResource(R.string.meal_date_placeholder)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -139,8 +154,8 @@ fun AddEditMealDialog(
                     OutlinedTextField(
                         value = time,
                         onValueChange = { time = it },
-                        label = { Text("Heure (HH:MM)") },
-                        placeholder = { Text("19:00") },
+                        label = { Text(stringResource(R.string.meal_time_label)) },
+                        placeholder = { Text(stringResource(R.string.meal_time_placeholder)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -151,8 +166,8 @@ fun AddEditMealDialog(
                     OutlinedTextField(
                         value = location,
                         onValueChange = { location = it },
-                        label = { Text("Lieu (optionnel)") },
-                        placeholder = { Text("Restaurant, maison, etc.") },
+                        label = { Text(stringResource(R.string.meal_location_label)) },
+                        placeholder = { Text(stringResource(R.string.meal_location_placeholder)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -163,8 +178,8 @@ fun AddEditMealDialog(
                     OutlinedTextField(
                         value = servings,
                         onValueChange = { servings = it },
-                        label = { Text("Nombre de personnes") },
-                        placeholder = { Text("4") },
+                        label = { Text(stringResource(R.string.meal_people_label)) },
+                        placeholder = { Text(stringResource(R.string.meal_people_placeholder)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
@@ -176,13 +191,13 @@ fun AddEditMealDialog(
                     OutlinedTextField(
                         value = estimatedCost,
                         onValueChange = { estimatedCost = it },
-                        label = { Text("Coût estimé (centimes)") },
-                        placeholder = { Text("2000 = 20€") },
+                        label = { Text(stringResource(R.string.meal_estimated_cost_label)) },
+                        placeholder = { Text(stringResource(R.string.meal_estimated_cost_placeholder)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         supportingText = { 
-                            Text("${estimatedCost.toLongOrNull()?.div(100.0) ?: 0.0}€") 
+                            Text(stringResource(R.string.meal_currency_amount, estimatedCost.toLongOrNull()?.div(100.0) ?: 0.0))
                         }
                     )
                 }
@@ -192,13 +207,13 @@ fun AddEditMealDialog(
                     OutlinedTextField(
                         value = actualCost,
                         onValueChange = { actualCost = it },
-                        label = { Text("Coût réel (optionnel, en centimes)") },
-                        placeholder = { Text("2150") },
+                        label = { Text(stringResource(R.string.meal_actual_cost_label)) },
+                        placeholder = { Text(stringResource(R.string.meal_actual_cost_placeholder)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         supportingText = { 
-                            Text("${actualCost.toLongOrNull()?.div(100.0) ?: 0.0}€") 
+                            Text(stringResource(R.string.meal_currency_amount, actualCost.toLongOrNull()?.div(100.0) ?: 0.0))
                         }
                     )
                 }
@@ -206,17 +221,20 @@ fun AddEditMealDialog(
                 // Status selector
                 item {
                     Text(
-                        "Statut",
+                        stringResource(R.string.meal_status_label),
                         style = MaterialTheme.typography.labelMedium
                     )
                     Column(
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         MealStatus.entries.forEach { status ->
+                            val statusLabel = getMealStatusLabel(status)
+                            val statusDescription = stringResource(R.string.a11y_meal_status_selection, statusLabel, selectedStatus == status)
                             FilterChip(
+                                modifier = Modifier.semantics { contentDescription = statusDescription },
                                 selected = selectedStatus == status,
                                 onClick = { selectedStatus = status },
-                                label = { Text(getMealStatusLabel(status)) }
+                                label = { Text(statusLabel) }
                             )
                         }
                     }
@@ -227,8 +245,8 @@ fun AddEditMealDialog(
                     OutlinedTextField(
                         value = notes,
                         onValueChange = { notes = it },
-                        label = { Text("Notes (optionnel)") },
-                        placeholder = { Text("Menu, préparation, etc.") },
+                        label = { Text(stringResource(R.string.meal_notes_label)) },
+                        placeholder = { Text(stringResource(R.string.meal_notes_placeholder)) },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 2,
                         maxLines = 4
@@ -256,11 +274,11 @@ fun AddEditMealDialog(
                     val actualCostLong = actualCost.toLongOrNull()
                     
                     when {
-                        name.isBlank() -> errorMessage = "Le nom est requis"
-                        date.isBlank() -> errorMessage = "La date est requise"
-                        time.isBlank() -> errorMessage = "L'heure est requise"
-                        servingsInt == null || servingsInt <= 0 -> errorMessage = "Nombre de personnes invalide"
-                        estimatedCostLong == null || estimatedCostLong < 0 -> errorMessage = "Coût estimé invalide"
+                        name.isBlank() -> errorMessage = requiredName
+                        date.isBlank() -> errorMessage = requiredDate
+                        time.isBlank() -> errorMessage = requiredTime
+                        servingsInt == null || servingsInt <= 0 -> errorMessage = invalidServings
+                        estimatedCostLong == null || estimatedCostLong < 0 -> errorMessage = invalidEstimatedCost
                         else -> {
                             val request = MealRequest(
                                 eventId = eventId,
@@ -281,12 +299,12 @@ fun AddEditMealDialog(
                     }
                 }
             ) {
-                Text(if (meal == null) "Ajouter" else "Enregistrer")
+                Text(stringResource(if (meal == null) R.string.meal_action_add else R.string.meal_action_save))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Annuler")
+                Text(stringResource(R.string.meal_action_cancel))
             }
         }
     )
@@ -301,6 +319,11 @@ fun AutoGenerateMealsDialog(
     onDismiss: () -> Unit,
     onGenerate: (AutoMealPlanRequest) -> Unit
 ) {
+    val requiredStartDate = stringResource(R.string.meal_error_start_date_required)
+    val requiredEndDate = stringResource(R.string.meal_error_end_date_required)
+    val invalidParticipants = stringResource(R.string.meal_error_participants_invalid)
+    val invalidCost = stringResource(R.string.meal_error_cost_invalid)
+    val requiredType = stringResource(R.string.meal_error_type_required)
     var startDate by remember { mutableStateOf(LocalDate.now().toString()) }
     var endDate by remember { mutableStateOf(LocalDate.now().plusDays(3).toString()) }
     var participantCount by remember { mutableStateOf("4") }
@@ -310,7 +333,7 @@ fun AutoGenerateMealsDialog(
     
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Préparer un plan de repas") },
+        title = { Text(stringResource(R.string.meal_generate_title)) },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -320,8 +343,8 @@ fun AutoGenerateMealsDialog(
                 OutlinedTextField(
                     value = startDate,
                     onValueChange = { startDate = it },
-                    label = { Text("Date de début") },
-                    placeholder = { Text("2025-12-25") },
+                    label = { Text(stringResource(R.string.meal_start_date_label)) },
+                    placeholder = { Text(stringResource(R.string.meal_start_date_placeholder)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -330,8 +353,8 @@ fun AutoGenerateMealsDialog(
                 OutlinedTextField(
                     value = endDate,
                     onValueChange = { endDate = it },
-                    label = { Text("Date de fin") },
-                    placeholder = { Text("2025-12-28") },
+                    label = { Text(stringResource(R.string.meal_end_date_label)) },
+                    placeholder = { Text(stringResource(R.string.meal_end_date_placeholder)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -340,8 +363,8 @@ fun AutoGenerateMealsDialog(
                 OutlinedTextField(
                     value = participantCount,
                     onValueChange = { participantCount = it },
-                    label = { Text("Nombre de participants") },
-                    placeholder = { Text("4") },
+                    label = { Text(stringResource(R.string.meal_participant_count_label)) },
+                    placeholder = { Text(stringResource(R.string.meal_people_placeholder)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
@@ -351,28 +374,31 @@ fun AutoGenerateMealsDialog(
                 OutlinedTextField(
                     value = costPerMeal,
                     onValueChange = { costPerMeal = it },
-                    label = { Text("Coût par repas/personne (centimes)") },
-                    placeholder = { Text("1500 = 15€") },
+                    label = { Text(stringResource(R.string.meal_cost_per_person_label)) },
+                    placeholder = { Text(stringResource(R.string.meal_cost_per_person_placeholder)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     supportingText = { 
-                        Text("${costPerMeal.toLongOrNull()?.div(100.0) ?: 0.0}€ par personne") 
+                        Text(stringResource(R.string.meal_cost_per_person_value, costPerMeal.toLongOrNull()?.div(100.0) ?: 0.0))
                     }
                 )
                 
                 // Meal types to include
                 Text(
-                    "Types de repas à générer",
+                    stringResource(R.string.meal_types_to_generate),
                     style = MaterialTheme.typography.labelMedium
                 )
                 
                 MealType.entries.forEach { type ->
+                    val typeLabel = getMealTypeLabel(type)
+                    val typeDescription = stringResource(R.string.a11y_meal_type_selection, typeLabel, selectedTypes.contains(type))
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Checkbox(
+                            modifier = Modifier.semantics { contentDescription = typeDescription },
                             checked = selectedTypes.contains(type),
                             onCheckedChange = { checked ->
                                 selectedTypes = if (checked) {
@@ -382,7 +408,7 @@ fun AutoGenerateMealsDialog(
                                 }
                             }
                         )
-                        Text(getMealTypeLabel(type))
+                        Text(typeLabel)
                     }
                 }
                 
@@ -403,11 +429,11 @@ fun AutoGenerateMealsDialog(
                         HorizontalDivider()
                         
                         Text(
-                            "Aperçu",
+                            stringResource(R.string.meal_preview_title),
                             style = MaterialTheme.typography.labelMedium
                         )
                         Text(
-                            "• $days jour(s)\n• $totalMeals repas au total\n• Coût total estimé: ${totalCost / 100.0}€",
+                            stringResource(R.string.meal_preview_summary, days, totalMeals, totalCost / 100.0),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -431,11 +457,11 @@ fun AutoGenerateMealsDialog(
                     val costPerMealLong = costPerMeal.toLongOrNull()
                     
                     when {
-                        startDate.isBlank() -> errorMessage = "Date de début requise"
-                        endDate.isBlank() -> errorMessage = "Date de fin requise"
-                        participantCountInt == null || participantCountInt <= 0 -> errorMessage = "Nombre de participants invalide"
-                        costPerMealLong == null || costPerMealLong <= 0 -> errorMessage = "Coût invalide"
-                        selectedTypes.isEmpty() -> errorMessage = "Sélectionnez au moins un type de repas"
+                        startDate.isBlank() -> errorMessage = requiredStartDate
+                        endDate.isBlank() -> errorMessage = requiredEndDate
+                        participantCountInt == null || participantCountInt <= 0 -> errorMessage = invalidParticipants
+                        costPerMealLong == null || costPerMealLong <= 0 -> errorMessage = invalidCost
+                        selectedTypes.isEmpty() -> errorMessage = requiredType
                         else -> {
                             val request = AutoMealPlanRequest(
                                 eventId = eventId,
@@ -450,12 +476,12 @@ fun AutoGenerateMealsDialog(
                     }
                 }
             ) {
-                Text("Préparer")
+                Text(stringResource(R.string.meal_action_generate))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Annuler")
+                Text(stringResource(R.string.meal_action_cancel))
             }
         }
     )
@@ -477,7 +503,7 @@ fun DietaryRestrictionsDialog(
     
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Contraintes alimentaires") },
+        title = { Text(stringResource(R.string.meal_restrictions_title)) },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -485,7 +511,7 @@ fun DietaryRestrictionsDialog(
             ) {
                 if (restrictions.isEmpty()) {
                     Text(
-                        "Aucune contrainte alimentaire enregistrée",
+                        stringResource(R.string.meal_restrictions_empty),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -495,6 +521,8 @@ fun DietaryRestrictionsDialog(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(restrictions) { restriction ->
+                            val restrictionLabel = getDietaryRestrictionLabel(restriction.restriction)
+                            val deleteDescription = stringResource(R.string.a11y_meal_delete_restriction, restrictionLabel, restriction.participantId)
                             Card(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
@@ -509,12 +537,12 @@ fun DietaryRestrictionsDialog(
                                         modifier = Modifier.weight(1f)
                                     ) {
                                         Text(
-                                            getDietaryRestrictionLabel(restriction.restriction),
+                                            restrictionLabel,
                                             style = MaterialTheme.typography.bodyMedium,
                                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                                         )
                                         Text(
-                                            "Participant: ${restriction.participantId}",
+                                            stringResource(R.string.meal_participant_value, restriction.participantId),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -527,10 +555,13 @@ fun DietaryRestrictionsDialog(
                                         }
                                     }
                                     
-                                    IconButton(onClick = { restrictionToDelete = restriction }) {
+                                    IconButton(
+                                        onClick = { restrictionToDelete = restriction },
+                                        modifier = Modifier.semantics { contentDescription = deleteDescription }
+                                    ) {
                                         Icon(
                                             Icons.Default.Delete,
-                                            contentDescription = "Supprimer",
+                                            contentDescription = null,
                                             tint = MaterialTheme.colorScheme.error
                                         )
                                     }
@@ -546,13 +577,13 @@ fun DietaryRestrictionsDialog(
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
-                    Text("Ajouter une contrainte")
+                    Text(stringResource(R.string.meal_add_restriction_action))
                 }
             }
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Fermer")
+                Text(stringResource(R.string.meal_action_close))
             }
         }
     )
@@ -573,8 +604,8 @@ fun DietaryRestrictionsDialog(
     restrictionToDelete?.let { restriction ->
         AlertDialog(
             onDismissRequest = { restrictionToDelete = null },
-            title = { Text("Supprimer la contrainte ?") },
-            text = { Text("Voulez-vous vraiment supprimer cette contrainte alimentaire ?") },
+            title = { Text(stringResource(R.string.meal_delete_restriction_title)) },
+            text = { Text(stringResource(R.string.meal_delete_restriction_message, getDietaryRestrictionLabel(restriction.restriction), restriction.participantId)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -585,12 +616,12 @@ fun DietaryRestrictionsDialog(
                         contentColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    Text("Supprimer")
+                    Text(stringResource(R.string.meal_action_delete))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { restrictionToDelete = null }) {
-                    Text("Annuler")
+                    Text(stringResource(R.string.meal_action_cancel))
                 }
             }
         )
@@ -606,6 +637,7 @@ fun AddDietaryRestrictionDialog(
     onDismiss: () -> Unit,
     onAdd: (DietaryRestrictionRequest) -> Unit
 ) {
+    val participantRequired = stringResource(R.string.meal_error_participant_required)
     var participantId by remember { mutableStateOf("") }
     var selectedRestriction by remember { mutableStateOf(DietaryRestriction.VEGETARIAN) }
     var notes by remember { mutableStateOf("") }
@@ -613,7 +645,7 @@ fun AddDietaryRestrictionDialog(
     
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Ajouter une contrainte") },
+        title = { Text(stringResource(R.string.meal_add_restriction_title)) },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -622,25 +654,28 @@ fun AddDietaryRestrictionDialog(
                 OutlinedTextField(
                     value = participantId,
                     onValueChange = { participantId = it },
-                    label = { Text("ID du participant") },
-                    placeholder = { Text("participant-123") },
+                    label = { Text(stringResource(R.string.meal_participant_id_label)) },
+                    placeholder = { Text(stringResource(R.string.meal_participant_id_placeholder)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
                 
                 Text(
-                    "Type de contrainte",
+                    stringResource(R.string.meal_restriction_type_label),
                     style = MaterialTheme.typography.labelMedium
                 )
                 
                 Column(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    DietaryRestriction.entries.forEach { restriction ->
-                        FilterChip(
+                        DietaryRestriction.entries.forEach { restriction ->
+                            val restrictionLabel = getDietaryRestrictionLabel(restriction)
+                            val restrictionDescription = stringResource(R.string.a11y_meal_restriction_selection, restrictionLabel, selectedRestriction == restriction)
+                            FilterChip(
+                            modifier = Modifier.semantics { contentDescription = restrictionDescription },
                             selected = selectedRestriction == restriction,
                             onClick = { selectedRestriction = restriction },
-                            label = { Text(getDietaryRestrictionLabel(restriction)) }
+                            label = { Text(restrictionLabel) }
                         )
                     }
                 }
@@ -648,8 +683,8 @@ fun AddDietaryRestrictionDialog(
                 OutlinedTextField(
                     value = notes,
                     onValueChange = { notes = it },
-                    label = { Text("Notes (optionnel)") },
-                    placeholder = { Text("Détails supplémentaires") },
+                    label = { Text(stringResource(R.string.meal_notes_label)) },
+                    placeholder = { Text(stringResource(R.string.meal_restriction_notes_placeholder)) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2
                 )
@@ -667,7 +702,7 @@ fun AddDietaryRestrictionDialog(
             TextButton(
                 onClick = {
                     when {
-                        participantId.isBlank() -> errorMessage = "ID participant requis"
+                        participantId.isBlank() -> errorMessage = participantRequired
                         else -> {
                             val request = DietaryRestrictionRequest(
                                 participantId = participantId.trim(),
@@ -680,26 +715,27 @@ fun AddDietaryRestrictionDialog(
                     }
                 }
             ) {
-                Text("Ajouter")
+                Text(stringResource(R.string.meal_action_add))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Annuler")
+                Text(stringResource(R.string.meal_action_cancel))
             }
         }
     )
 }
 
-fun getDietaryRestrictionLabel(restriction: DietaryRestriction): String = when (restriction) {
-    DietaryRestriction.VEGETARIAN -> "Végétarien"
-    DietaryRestriction.VEGAN -> "Végétalien"
-    DietaryRestriction.GLUTEN_FREE -> "Sans gluten"
-    DietaryRestriction.LACTOSE_INTOLERANT -> "Intolérant lactose"
-    DietaryRestriction.NUT_ALLERGY -> "Allergie noix"
-    DietaryRestriction.SHELLFISH_ALLERGY -> "Allergie fruits de mer"
-    DietaryRestriction.KOSHER -> "Casher"
-    DietaryRestriction.HALAL -> "Halal"
-    DietaryRestriction.DIABETIC -> "Diabétique"
-    DietaryRestriction.OTHER -> "Autre"
-}
+@Composable
+fun getDietaryRestrictionLabel(restriction: DietaryRestriction): String = stringResource(when (restriction) {
+    DietaryRestriction.VEGETARIAN -> R.string.meal_restriction_vegetarian
+    DietaryRestriction.VEGAN -> R.string.meal_restriction_vegan
+    DietaryRestriction.GLUTEN_FREE -> R.string.meal_restriction_gluten_free
+    DietaryRestriction.LACTOSE_INTOLERANT -> R.string.meal_restriction_lactose_intolerant
+    DietaryRestriction.NUT_ALLERGY -> R.string.meal_restriction_nut_allergy
+    DietaryRestriction.SHELLFISH_ALLERGY -> R.string.meal_restriction_shellfish_allergy
+    DietaryRestriction.KOSHER -> R.string.meal_restriction_kosher
+    DietaryRestriction.HALAL -> R.string.meal_restriction_halal
+    DietaryRestriction.DIABETIC -> R.string.meal_restriction_diabetic
+    DietaryRestriction.OTHER -> R.string.meal_restriction_other
+})
