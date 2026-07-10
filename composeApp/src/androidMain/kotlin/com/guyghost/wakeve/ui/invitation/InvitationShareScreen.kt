@@ -1,5 +1,6 @@
 package com.guyghost.wakeve.ui.invitation
 
+import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -54,6 +55,8 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -87,6 +90,7 @@ fun InvitationShareScreen(
     val inviteUrl = createInviteUrl(invitationCode)
     val shareContent = createInvitationShareContent(eventTitle, invitationCode)
     var qrBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var shareErrorResource by remember { mutableStateOf<Int?>(null) }
 
     // Generate QR code on first composition
     LaunchedEffect(inviteUrl) {
@@ -132,7 +136,7 @@ fun InvitationShareScreen(
             if (isLoading) {
                 CircularProgressIndicator()
                 Text(
-                    text = stringResource(R.string.loading),
+                    text = stringResource(R.string.invitation_loading),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -141,13 +145,13 @@ fun InvitationShareScreen(
 
             if (!errorMessage.isNullOrBlank()) {
                 Text(
-                    text = errorMessage,
+                    text = stringResource(R.string.invitation_error),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error,
                     textAlign = TextAlign.Center
                 )
                 OutlinedButton(onClick = onRetry, enabled = !isLoading) {
-                    Text(stringResource(R.string.retry))
+                    Text(stringResource(R.string.action_retry))
                 }
             }
 
@@ -176,7 +180,7 @@ fun InvitationShareScreen(
                                 tint = MaterialTheme.colorScheme.primary
                             )
                             Text(
-                                text = "QR Code",
+                                text = stringResource(R.string.invitation_qr_code),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
@@ -191,7 +195,7 @@ fun InvitationShareScreen(
                             ) {
                                 Image(
                                     bitmap = bitmap.asImageBitmap(),
-                                    contentDescription = stringResource(R.string.invitation_qr_description),
+                                    contentDescription = stringResource(R.string.a11y_invitation_qr),
                                     modifier = Modifier.fillMaxSize(),
                                     contentScale = ContentScale.Fit
                                 )
@@ -249,9 +253,12 @@ fun InvitationShareScreen(
                             Spacer(modifier = Modifier.width(8.dp))
 
                             OutlinedButton(
+                                modifier = Modifier.semantics {
+                                    contentDescription = context.getString(R.string.a11y_copy_invitation_link)
+                                },
                                 onClick = {
                                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                    val clip = ClipData.newPlainText("Invitation Wakeve", inviteUrl)
+                                    val clip = ClipData.newPlainText(context.getString(R.string.invitation_clipboard_label), inviteUrl)
                                     clipboard.setPrimaryClip(clip)
                                     Toast.makeText(context, context.getString(R.string.link_copied), Toast.LENGTH_SHORT).show()
                                 }
@@ -280,7 +287,14 @@ fun InvitationShareScreen(
                         putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.invitation_share_subject, content.eventTitle))
                         type = "text/plain"
                     }
-                    context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.invitation_share_chooser)))
+                    try {
+                        context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.invitation_share_chooser)))
+                        shareErrorResource = null
+                    } catch (_: SecurityException) {
+                        shareErrorResource = R.string.permission_required
+                    } catch (_: ActivityNotFoundException) {
+                        shareErrorResource = R.string.invitation_error
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -299,6 +313,15 @@ fun InvitationShareScreen(
                     text = stringResource(R.string.invitation_share_chooser),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
+                )
+            }
+
+            shareErrorResource?.let { resource ->
+                Text(
+                    text = stringResource(resource),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center
                 )
             }
 

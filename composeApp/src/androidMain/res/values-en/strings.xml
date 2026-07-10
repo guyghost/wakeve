@@ -859,4 +859,12 @@
 <string name="a11y_meal_filter_status">Filter by status %1$s, %2$s</string>
 <string name="a11y_meal_open">Edit meal %1$s, status %2$s</string>
 <string name="a11y_meal_delete">Delete meal %1$s</string><plurals name="meal_count"><item quantity="one">%1$d meal</item><item quantity="other">%1$d meals</item></plurals><plurals name="meal_constraint_count"><item quantity="one">%1$d dietary restriction</item><item quantity="other">%1$d dietary restrictions</item></plurals><plurals name="meal_responsible_count"><item quantity="one">%1$d person responsible</item><item quantity="other">%1$d people responsible</item></plurals><plurals name="meal_serving_count"><item quantity="one">%1$d serving</item><item quantity="other">%1$d servings</item></plurals><plurals name="a11y_meal_comments"><item quantity="one">Open %1$d meal comment</item><item quantity="other">Open %1$d meal comments</item></plurals>
+<string name="a11y_event_cover_image">Event cover image</string>
+<string name="a11y_user_avatar">User profile picture</string>
+<string name="a11y_invitation_qr">QR code to join the event</string>
+<string name="a11y_copy_invitation_link">Copy invitation link</string>
+<string name="invitation_loading">Loading invitation…</string>
+<string name="action_retry">Try again</string>
+<string name="permission_required">Permission is required to share the invitation.</string>
+<string name="invitation_clipboard_label">Wakeve invitation</string>
 </resources>

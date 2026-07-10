@@ -814,4 +814,12 @@
 <string name="a11y_meal_filter_status">Filtrar por estado %1$s, %2$s</string>
 <string name="a11y_meal_open">Editar la comida %1$s, estado %2$s</string>
 <string name="a11y_meal_delete">Eliminar la comida %1$s</string><plurals name="meal_count"><item quantity="one">%1$d comida</item><item quantity="other">%1$d comidas</item></plurals><plurals name="meal_constraint_count"><item quantity="one">%1$d restricción alimentaria</item><item quantity="other">%1$d restricciones alimentarias</item></plurals><plurals name="meal_responsible_count"><item quantity="one">%1$d responsable</item><item quantity="other">%1$d responsables</item></plurals><plurals name="meal_serving_count"><item quantity="one">%1$d ración</item><item quantity="other">%1$d raciones</item></plurals><plurals name="a11y_meal_comments"><item quantity="one">Abrir %1$d comentario sobre comidas</item><item quantity="other">Abrir %1$d comentarios sobre comidas</item></plurals>
+<string name="a11y_event_cover_image">Imagen de portada del evento</string>
+<string name="a11y_user_avatar">Foto de perfil del usuario</string>
+<string name="a11y_invitation_qr">Código QR para unirse al evento</string>
+<string name="a11y_copy_invitation_link">Copiar enlace de invitación</string>
+<string name="invitation_loading">Cargando invitación…</string>
+<string name="action_retry">Volver a intentarlo</string>
+<string name="permission_required">Se necesita permiso para compartir la invitación.</string>
+<string name="invitation_clipboard_label">Invitación de Wakeve</string>
 </resources>

@@ -10,63 +10,80 @@ import org.w3c.dom.Element
 
 class AndroidProductLanguageBatch5Test {
     @Test
-    fun everyOwnedSurfaceUsesResourcesForDirectAndIndirectVisibleCopy() {
-        val result = ownedPaths.flatMap(::findings)
+    fun e1ImagesAndInvitationsUseLocalizedActionTargetStateLanguage() {
+        val paths = listOf(imagePath, invitationPath)
+        val result = paths.flatMap(::findings)
         assertTrue(result.isEmpty(), result.joinToString("\n"))
+        E1Keys.forEach { key ->
+            assertTrue(paths.any { "R.string.$key" in source(it) }, "missing E1 resource $key")
+        }
+        assertLocaleParity(E1Keys)
+        assertTechnicalLiterals(paths)
     }
 
     @Test
-    fun workflowProjectionCoversEveryStateAndFinalizedModeHasNoCallToAction() {
+    fun e3WorkflowProjectionCoversEveryStateAndFinalizedModeHasNoCallToAction() {
+        assertTrue(findings(eventDetailPath).isEmpty(), findings(eventDetailPath).joinToString("\n"))
         val source = source(eventDetailPath)
         EventStateKeys.forEach { key -> assertTrue("R.string.$key" in source, "missing projection $key") }
         val finalized = source.substringAfter("private fun FinalizedModeActions").substringBefore("internal fun eventDetailStatusLabel")
         assertFalse(Regex("\\b(?:Button|TextButton|OutlinedButton|FilledTonalButton)\\s*\\(").containsMatchIn(finalized), "terminal mode must not expose a CTA")
+        assertLocaleParity(EventStateKeys)
+        assertTechnicalLiterals(listOf(eventDetailPath))
     }
 
     @Test
-    fun pendingOfflineErrorCancellationPermissionAndRetryOutcomesAreExplicit() {
-        val all = ownedPaths.joinToString("\n") { source(it) }
-        OutcomeKeys.forEach { key -> assertTrue("R.string.$key" in all, "missing outcome resource $key") }
+    fun e2DraftWorkflowUsesLocalizedOutcomeAndSummaryLanguage() {
+        assertTrue(findings(wizardPath).isEmpty(), findings(wizardPath).joinToString("\n"))
+        E2Keys.forEach { key -> assertTrue("R.string.$key" in source(wizardPath), "missing E2 resource $key") }
+        assertLocaleParity(E2Keys)
+        assertTechnicalLiterals(listOf(wizardPath))
     }
 
     @Test
-    fun notificationsKeepFiltersAndExposeLocalizedAttentionAndTimeProjection() {
+    fun e4NotificationsKeepFiltersAndExposeLocalizedAttentionAndTimeProjection() {
         val source = source(notificationPath)
+        assertTrue(findings(notificationPath).isEmpty(), findings(notificationPath).joinToString("\n"))
         assertTrue("NotificationInboxFilter.ALL" in source && "NotificationInboxFilter.UNREAD" in source)
         NotificationKeys.forEach { key -> assertTrue("R.string.$key" in source || "R.plurals.$key" in source, "missing notification resource $key") }
+        assertLocaleParity(NotificationKeys)
+        assertTechnicalLiterals(listOf(notificationPath))
     }
 
     @Test
-    fun invitationAlbumsImagesAndSyncConflictHaveActionTargetStateSemantics() {
-        val all = listOf(imagePath, invitationPath, albumsPath, conflictPath).joinToString("\n") { source(it) }
-        A11yKeys.forEach { key -> assertTrue("R.string.$key" in all || "R.plurals.$key" in all, "missing semantic resource $key") }
+    fun e5AlbumsUseLocalizedCountsAndActionTargetSemantics() {
+        assertTrue(findings(albumsPath).isEmpty(), findings(albumsPath).joinToString("\n"))
+        E5Keys.forEach { key -> assertTrue("R.string.$key" in source(albumsPath) || "R.plurals.$key" in source(albumsPath), "missing E5 resource $key") }
+        assertLocaleParity(E5Keys)
+        assertTechnicalLiterals(listOf(albumsPath))
+    }
+
+    @Test
+    fun e6SyncConflictsUseLocalizedCountsAndExclusiveChoiceSemantics() {
+        assertTrue(findings(conflictPath).isEmpty(), findings(conflictPath).joinToString("\n"))
+        E6Keys.forEach { key -> assertTrue("R.string.$key" in source(conflictPath) || "R.plurals.$key" in source(conflictPath), "missing E6 resource $key") }
         assertTrue("clearAndSetSemantics" in source(conflictPath), "conflict choices must suppress duplicate descendant speech")
+        assertLocaleParity(E6Keys)
+        assertTechnicalLiterals(listOf(conflictPath))
     }
 
-    @Test
-    fun everyDerivedBatchFiveKeyHasNaturalSixLocaleParity() {
-        val expected = reviewedKeys
+    private fun assertLocaleParity(expected: Set<String>) {
         val french = catalog("values")
         assertTrue(expected.all(french::containsKey), "French catalog missing ${expected - french.keys}")
         val english = catalog("values-en")
         localeDirectories.forEach { directory ->
             val localized = catalog(directory)
             assertTrue(expected.all(localized::containsKey), "$directory missing ${expected - localized.keys}")
-            expected.forEach { key ->
-                assertEquals(placeholders(english.getValue(key)), placeholders(localized.getValue(key)), "$directory:$key placeholders")
-            }
+            expected.forEach { key -> assertEquals(placeholders(english.getValue(key)), placeholders(localized.getValue(key)), "$directory:$key placeholders") }
         }
         listOf("values-de", "values-es", "values-it", "values-pt").forEach { directory ->
             val localized = catalog(directory)
-            expected.filterNot { it in exactTechnicalResourceKeys }.forEach { key ->
-                assertTrue(localized.getValue(key) != english.getValue(key), "$directory:$key copied English")
-            }
+            expected.forEach { key -> assertTrue(localized.getValue(key) != english.getValue(key), "$directory:$key copied English") }
         }
     }
 
-    @Test
-    fun technicalLiteralsAreAllowedOnlyAtExactReviewedSites() {
-        ownedPaths.forEach { path ->
+    private fun assertTechnicalLiterals(paths: List<String>) {
+        paths.forEach { path ->
             source(path).withoutComments().lineSequence().forEachIndexed { index, line ->
                 literal.findAll(line).forEach { match ->
                     val value = match.groupValues[1]
@@ -119,7 +136,7 @@ class AndroidProductLanguageBatch5Test {
         val ownedPaths = listOf(imagePath, wizardPath, eventDetailPath, invitationPath, notificationPath, albumsPath, conflictPath)
         val direct = listOf("Text" to Regex("""\bText\s*\(\s*(?:text\s*=\s*)?\""""), "argument" to Regex("""\b(?:label|placeholder|supportingText|contentDescription)\s*=\s*\""""))
         val literal = Regex("""\"([^\"\\]*(?:\\.[^\"\\]*)*)\"""")
-        val technicalValues = setOf("currentUser", "temp-event-id", "step_transition", "https://wakeve.app/invite/${'$'}it", "text/plain", "UTF-8")
+        val technicalValues = setOf("currentUser", "temp-event-id", "step_transition", "https://wakeve.app/invite/${'$'}it", "text/plain", "UTF-8", "\\s+")
         val technicalOccurrences = setOf(
             ReviewedTechnicalOccurrence(wizardPath, "userId: String = \"currentUser\","),
             ReviewedTechnicalOccurrence(wizardPath, "label = \"step_transition\""),
@@ -127,13 +144,16 @@ class AndroidProductLanguageBatch5Test {
             ReviewedTechnicalOccurrence(invitationPath, "?.let { \"https://wakeve.app/invite/${'$'}it\" }"),
             ReviewedTechnicalOccurrence(invitationPath, "type = \"text/plain\""),
             ReviewedTechnicalOccurrence(invitationPath, "EncodeHintType.CHARACTER_SET to \"UTF-8\","),
+            ReviewedTechnicalOccurrence(invitationPath, "eventTitle.trim().replace(Regex(\"\\\\s+\"), \" \")"),
         )
         val EventStateKeys = setOf("event_state_draft", "event_state_polling", "event_state_comparing", "event_state_confirmed", "event_state_organizing", "event_state_finalized", "event_next_step_draft", "event_next_step_polling", "event_next_step_comparing", "event_next_step_confirmed", "event_next_step_organizing", "event_terminal_summary")
         val OutcomeKeys = setOf("sync_waiting", "offline_status", "error_generic", "action_retry", "action_cancel", "permission_required", "invitation_loading", "invitation_error")
         val NotificationKeys = setOf("notifications_filter_all", "notifications_filter_unread", "notification_time_now", "notification_minutes_ago", "notification_hours_ago", "notification_days_ago", "notification_attention_required", "notification_information")
         val A11yKeys = setOf("a11y_event_cover_image", "a11y_user_avatar", "a11y_invitation_qr", "a11y_copy_invitation_link", "a11y_album_open", "a11y_album_cover", "a11y_photo", "a11y_conflict_choice", "a11y_conflict_summary")
-        val reviewedKeys = EventStateKeys + OutcomeKeys + NotificationKeys + A11yKeys + setOf("album_photo_count", "sync_conflict_count", "draft_time_range", "draft_location_summary", "draft_slot_summary")
-        val exactTechnicalResourceKeys = emptySet<String>()
+        val E1Keys = setOf("a11y_event_cover_image", "a11y_user_avatar", "a11y_invitation_qr", "a11y_copy_invitation_link", "invitation_loading", "invitation_error", "action_retry", "permission_required")
+        val E2Keys = setOf("sync_waiting", "offline_status", "error_generic", "action_cancel", "draft_time_range", "draft_location_summary", "draft_slot_summary")
+        val E5Keys = setOf("a11y_album_open", "a11y_album_cover", "a11y_photo", "album_photo_count")
+        val E6Keys = setOf("a11y_conflict_choice", "a11y_conflict_summary", "sync_conflict_count")
         val localeDirectories = listOf("values", "values-en", "values-de", "values-es", "values-it", "values-pt")
     }
 }
