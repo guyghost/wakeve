@@ -307,7 +307,8 @@
     <string name="scenario_planning">Comparación de opciones</string>
     <string name="budget_overview">Resumen del presupuesto</string>
     <string name="accommodation">Alojamiento</string>
-    <string name="meal_planning">Planificación de comidas</string>
+
+<string name="meal_planning">Planificación de comidas</string>
     <string name="equipment_checklist">Lista de equipamiento</string>
     <string name="activity_planning">Planificación de actividades</string>
     <string name="manage_participants">Gestionar participantes</string>
@@ -706,6 +707,111 @@
     <string name="equipment_auto_generate_title">Preparar una lista de equipamiento</string><string name="equipment_auto_generate_description">Selecciona el tipo de evento para preparar una lista adaptada al grupo.</string><string name="equipment_prepare_action">Preparar</string><string name="equipment_event_type_camping">Acampada</string><string name="equipment_event_type_beach">Playa</string><string name="equipment_event_type_ski">Esquí / Montaña</string><string name="equipment_event_type_hiking">Senderismo</string><string name="equipment_event_type_picnic">Comida campestre</string><string name="equipment_event_type_indoor">Interior</string>
     <string name="equipment_category_camping">Acampada</string><string name="equipment_category_sports">Deporte</string><string name="equipment_category_cooking">Cocina</string><string name="equipment_category_electronics">Electrónica</string><string name="equipment_category_safety">Seguridad</string><string name="equipment_category_other">Otro</string><string name="equipment_status_needed">Necesario</string><string name="equipment_status_assigned">Asignado</string><string name="equipment_status_confirmed">Confirmado</string><string name="equipment_status_packed">Listo</string><string name="equipment_status_cancelled">Cancelado</string><string name="equipment_packed_state">listo</string><string name="equipment_not_packed_state">aún no está listo</string>
     <string name="a11y_equipment_assign">Asignar %1$s a una persona</string><string name="a11y_equipment_edit">Editar el artículo %1$s</string><string name="a11y_equipment_delete">Eliminar el artículo %1$s</string><string name="a11y_equipment_set_packed">Cambiar el estado de %1$s, %2$s</string><plurals name="a11y_equipment_comments_count"><item quantity="one">%1$d comentario sobre el equipamiento</item><item quantity="other">%1$d comentarios sobre el equipamiento</item></plurals>
-    <string name="meal_add_title">Elegir comida</string><string name="meal_edit_title">comida bearbeiten</string><string name="meal_type_label">comida type</string><string name="meal_name_label">comida name</string><string name="meal_name_placeholder">Saturday barbecue example</string><string name="meal_date_label">Date (YYYY-MM-DD)</string><string name="meal_date_placeholder">2025-12-25</string><string name="meal_time_label">Time (HH:MM)</string><string name="meal_time_placeholder">19:00</string><string name="meal_location_label">Location optional</string><string name="meal_location_placeholder">Restaurant or home</string><string name="meal_people_label">People count</string><string name="meal_people_placeholder">4</string><string name="meal_estimated_cost_label">Estimated cost in cents</string><string name="meal_estimated_cost_placeholder">2000 = 20 €</string><string name="meal_actual_cost_label">Actual cost optional in cents</string><string name="meal_actual_cost_placeholder">2150</string><string name="meal_currency_amount">%1$.2f €</string><string name="meal_status_label">Status value</string><string name="meal_notes_label">Optional notes</string><string name="meal_notes_placeholder">Menu and preparation</string><string name="meal_action_add">Add item</string><string name="meal_action_save">Save item</string><string name="meal_action_cancel">Dismiss</string><string name="meal_action_generate">Prepare plan</string><string name="meal_action_close">Finish</string><string name="meal_action_delete">Remove</string><string name="meal_error_name_required">Name required</string><string name="meal_error_date_required">Date required</string><string name="meal_error_time_required">Time required</string><string name="meal_error_people_invalid">Invalid people count</string><string name="meal_error_estimated_cost_invalid">Invalid estimated cost</string><string name="meal_generate_title">Prepare comida plan</string><string name="meal_start_date_label">Start date</string><string name="meal_start_date_placeholder">2025-12-25</string><string name="meal_end_date_label">End date</string><string name="meal_end_date_placeholder">2025-12-28</string><string name="meal_participant_count_label">Participante count</string><string name="meal_cost_per_person_label">Cost per comida and person in cents</string><string name="meal_cost_per_person_placeholder">1500 = 15 €</string><string name="meal_cost_per_person_value">%1$.2f € per person</string><string name="meal_types_to_generate">comida types to generate</string><string name="meal_preview_title">Plan preview</string><string name="meal_preview_summary">• %1$d days\n• %2$d total meals\n• Total estimate: %3$.2f €</string><string name="meal_error_start_date_required">Start date required</string><string name="meal_error_end_date_required">End date required</string><string name="meal_error_participants_invalid">Invalid participant count</string><string name="meal_error_cost_invalid">Invalid cost value</string><string name="meal_error_type_required">Choose at least one type</string><string name="meal_restrictions_title">restricción alimentaria</string><string name="meal_restrictions_empty">No saved restrictions</string><string name="meal_participant_value">Participante: %1$s</string><string name="meal_add_restriction_action">Add restriction item</string><string name="meal_delete_restriction_title">Remove restriction?</string><string name="meal_delete_restriction_message">Remove %1$s for %2$s?</string><string name="meal_add_restriction_title">New restriction</string><string name="meal_participant_id_label">Participante ID</string><string name="meal_participant_id_placeholder">participant-123</string><string name="meal_restriction_type_label">Restriction category</string><string name="meal_restriction_notes_placeholder">Additional information</string><string name="meal_error_participant_required">Participant ID required</string><string name="meal_restriction_vegetarian">Vegetarian diet</string><string name="meal_restriction_vegan">Vegan diet</string><string name="meal_restriction_gluten_free">Without gluten</string><string name="meal_restriction_lactose_intolerant">Without lactose</string><string name="meal_restriction_nut_allergy">Nut sensitivity</string><string name="meal_restriction_shellfish_allergy">Shellfish sensitivity</string><string name="meal_restriction_kosher">Kosher diet</string><string name="meal_restriction_halal">Halal diet</string><string name="meal_restriction_diabetic">Diabetic diet</string><string name="meal_restriction_other">Different restriction</string><string name="a11y_meal_type_selection">Elegir %1$s, seleccionado: %2$b</string><string name="a11y_meal_status_selection">Elegir status %1$s, seleccionado: %2$b</string><string name="a11y_meal_restriction_selection">Elegir %1$s, seleccionado: %2$b</string><string name="a11y_meal_delete_restriction">Remove %1$s for %2$s</string>
-    <string name="meal_screen_title">Planificación de comidas</string><string name="meal_empty_title">No hay comidas planificadas</string><string name="meal_empty_description">Añade la primera comida o prepara un plan automáticamente.</string><string name="meal_delete_title">¿Eliminar comida?</string><string name="meal_delete_message">¿Seguro que quieres eliminar «%1$s»?</string><string name="meal_summary_title">Resumen</string><string name="meal_total_label">Total de comidas</string><string name="meal_estimated_total_label">Coste estimado</string><string name="meal_completed_label">Completadas</string><string name="meal_completed_ratio">%1$d de %2$d</string><string name="meal_type_breakfast">Desayuno</string><string name="meal_type_lunch">Almuerzo</string><string name="meal_type_dinner">Cena</string><string name="meal_type_snack">Merienda</string><string name="meal_type_aperitif">Aperitivo</string><string name="meal_status_planned">Planificada</string><string name="meal_status_assigned">Asignada</string><string name="meal_status_in_progress">En preparación</string><string name="meal_status_completed">Completada</string><string name="meal_status_cancelled">Cancelada</string><string name="a11y_meal_back">Volver al evento</string><string name="a11y_meal_open_constraints">Abrir restricciones alimentarias, %1$d guardadas</string><string name="a11y_meal_prepare_plan">Preparar automáticamente un plan de comidas</string><string name="a11y_meal_add">Añadir una comida</string><string name="a11y_meal_filter_type">Filtrar por %1$s, seleccionado: %2$b</string><string name="a11y_meal_filter_status">Filtrar por estado %1$s, seleccionado: %2$b</string><string name="a11y_meal_open">Editar la comida %1$s, estado %2$s</string><string name="a11y_meal_delete">Eliminar la comida %1$s</string><plurals name="meal_count"><item quantity="one">%1$d comida</item><item quantity="other">%1$d comidas</item></plurals><plurals name="meal_constraint_count"><item quantity="one">%1$d restricción alimentaria</item><item quantity="other">%1$d restricciones alimentarias</item></plurals><plurals name="meal_responsible_count"><item quantity="one">%1$d responsable</item><item quantity="other">%1$d responsables</item></plurals><plurals name="meal_serving_count"><item quantity="one">%1$d ración</item><item quantity="other">%1$d raciones</item></plurals><plurals name="a11y_meal_comments"><item quantity="one">Abrir %1$d comentario sobre comidas</item><item quantity="other">Abrir %1$d comentarios sobre comidas</item></plurals>
+
+<string name="meal_add_title">Añadir comida</string>
+<string name="meal_edit_title">Editar comida</string>
+<string name="meal_type_label">Tipo de comida</string>
+<string name="meal_name_label">Nombre de la comida</string>
+<string name="meal_name_placeholder">Ej. barbacoa del sábado por la noche</string>
+<string name="meal_date_label">Fecha (AAAA-MM-DD)</string>
+<string name="meal_date_placeholder">2025-12-25</string>
+<string name="meal_time_label">Hora (HH:MM)</string>
+<string name="meal_time_placeholder">19:00</string>
+<string name="meal_location_label">Lugar (opcional)</string>
+<string name="meal_location_placeholder">Restaurante, casa, etc.</string>
+<string name="meal_people_label">Número de personas</string>
+<string name="meal_people_placeholder">4</string>
+<string name="meal_estimated_cost_label">Coste estimado (céntimos)</string>
+<string name="meal_estimated_cost_placeholder">2000 = 20 €</string>
+<string name="meal_actual_cost_label">Coste real (opcional, en céntimos)</string>
+<string name="meal_actual_cost_placeholder">2150</string>
+<string name="meal_currency_amount">%1$.2f €</string>
+<string name="meal_status_label">Situación</string>
+<string name="meal_notes_label">Notas (opcionales)</string>
+<string name="meal_notes_placeholder">Menú, preparación, etc.</string>
+<string name="meal_action_add">Añadir</string>
+<string name="meal_action_save">Guardar</string>
+<string name="meal_action_cancel">Cancelar</string>
+<string name="meal_action_generate">Preparar</string>
+<string name="meal_action_close">Cerrar</string>
+<string name="meal_action_delete">Eliminar</string>
+<string name="meal_error_name_required">El nombre es obligatorio</string>
+<string name="meal_error_date_required">La fecha es obligatoria</string>
+<string name="meal_error_time_required">La hora es obligatoria</string>
+<string name="meal_error_people_invalid">Número de personas no válido</string>
+<string name="meal_error_estimated_cost_invalid">Coste estimado no válido</string>
+<string name="meal_generate_title">Preparar un plan de comidas</string>
+<string name="meal_start_date_label">Fecha de inicio</string>
+<string name="meal_start_date_placeholder">2025-12-25</string>
+<string name="meal_end_date_label">Fecha de fin</string>
+<string name="meal_end_date_placeholder">2025-12-28</string>
+<string name="meal_participant_count_label">Número de participantes</string>
+<string name="meal_cost_per_person_label">Coste por comida y persona (céntimos)</string>
+<string name="meal_cost_per_person_placeholder">1500 = 15 €</string>
+<string name="meal_cost_per_person_value">%1$.2f € por persona</string>
+<string name="meal_types_to_generate">Comidas que se prepararán</string>
+<string name="meal_preview_title">Vista previa</string>
+<string name="meal_preview_summary">• %1$d días\n• %2$d comidas en total\n• Coste total estimado: %3$.2f €</string>
+<string name="meal_error_start_date_required">La fecha de inicio es obligatoria</string>
+<string name="meal_error_end_date_required">La fecha de fin es obligatoria</string>
+<string name="meal_error_participants_invalid">Número de participantes no válido</string>
+<string name="meal_error_cost_invalid">Coste no válido</string>
+<string name="meal_error_type_required">Selecciona al menos un tipo de comida</string>
+<string name="meal_restrictions_title">restricción alimentaria</string>
+<string name="meal_restrictions_empty">No hay restricciones alimentarias guardadas</string>
+<string name="meal_participant_value">Participante: %1$s</string>
+<string name="meal_add_restriction_action">Añadir restricción</string>
+<string name="meal_delete_restriction_title">¿Eliminar la restricción?</string>
+<string name="meal_delete_restriction_message">¿Eliminar %1$s para %2$s?</string>
+<string name="meal_add_restriction_title">Añadir restricción</string>
+<string name="meal_participant_id_label">ID del participante</string>
+<string name="meal_participant_id_placeholder">participant-123</string>
+<string name="meal_restriction_type_label">Tipo de restricción</string>
+<string name="meal_restriction_notes_placeholder">Información adicional</string>
+<string name="meal_error_participant_required">El ID del participante es obligatorio</string>
+<string name="meal_restriction_vegetarian">Vegetariana</string>
+<string name="meal_restriction_vegan">Vegana</string>
+<string name="meal_restriction_gluten_free">Sin gluten</string>
+<string name="meal_restriction_lactose_intolerant">Intolerancia a la lactosa</string>
+<string name="meal_restriction_nut_allergy">Alergia a los frutos secos</string>
+<string name="meal_restriction_shellfish_allergy">Alergia al marisco</string>
+<string name="meal_restriction_kosher">Kosher</string>
+<string name="meal_restriction_halal">Halal</string>
+<string name="meal_restriction_diabetic">Para diabéticos</string>
+<string name="meal_restriction_other">Otra</string>
+<string name="meal_selected_state">seleccionado</string>
+<string name="meal_unselected_state">no seleccionado</string>
+<string name="a11y_meal_type_selection">Elegir %1$s, %2$s</string>
+<string name="a11y_meal_status_selection">Elegir el estado %1$s, %2$s</string>
+<string name="a11y_meal_restriction_selection">Elegir %1$s, %2$s</string>
+<string name="a11y_meal_delete_restriction">Eliminar %1$s para %2$s</string>
+
+<string name="meal_screen_title">Planificación de comidas</string>
+<string name="meal_empty_title">No hay comidas planificadas</string>
+<string name="meal_empty_description">Añade la primera comida o prepara un plan automáticamente.</string>
+<string name="meal_delete_title">¿Eliminar comida?</string>
+<string name="meal_delete_message">¿Seguro que quieres eliminar «%1$s»?</string>
+<string name="meal_summary_title">Resumen</string>
+<string name="meal_total_label">Total de comidas</string>
+<string name="meal_estimated_total_label">Coste estimado</string>
+<string name="meal_completed_label">Completadas</string>
+<string name="meal_completed_ratio">%1$d de %2$d</string>
+<string name="meal_type_breakfast">Desayuno</string>
+<string name="meal_type_lunch">Almuerzo</string>
+<string name="meal_type_dinner">Cena</string>
+<string name="meal_type_snack">Merienda</string>
+<string name="meal_type_aperitif">Aperitivo</string>
+<string name="meal_status_planned">Planificada</string>
+<string name="meal_status_assigned">Asignada</string>
+<string name="meal_status_in_progress">En preparación</string>
+<string name="meal_status_completed">Completada</string>
+<string name="meal_status_cancelled">Cancelada</string>
+<string name="a11y_meal_back">Volver al evento</string>
+<string name="a11y_meal_open_constraints">Abrir restricciones alimentarias, %1$d guardadas</string>
+<string name="a11y_meal_prepare_plan">Preparar automáticamente un plan de comidas</string>
+<string name="a11y_meal_add">Añadir una comida</string>
+<string name="a11y_meal_filter_type">Filtrar por %1$s, %2$s</string>
+<string name="a11y_meal_filter_status">Filtrar por estado %1$s, %2$s</string>
+<string name="a11y_meal_open">Editar la comida %1$s, estado %2$s</string>
+<string name="a11y_meal_delete">Eliminar la comida %1$s</string><plurals name="meal_count"><item quantity="one">%1$d comida</item><item quantity="other">%1$d comidas</item></plurals><plurals name="meal_constraint_count"><item quantity="one">%1$d restricción alimentaria</item><item quantity="other">%1$d restricciones alimentarias</item></plurals><plurals name="meal_responsible_count"><item quantity="one">%1$d responsable</item><item quantity="other">%1$d responsables</item></plurals><plurals name="meal_serving_count"><item quantity="one">%1$d ración</item><item quantity="other">%1$d raciones</item></plurals><plurals name="a11y_meal_comments"><item quantity="one">Abrir %1$d comentario sobre comidas</item><item quantity="other">Abrir %1$d comentarios sobre comidas</item></plurals>
 </resources>

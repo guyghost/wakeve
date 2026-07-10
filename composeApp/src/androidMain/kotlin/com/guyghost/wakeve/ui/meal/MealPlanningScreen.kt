@@ -63,7 +63,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.comment.CommentRepository
@@ -151,7 +151,7 @@ fun MealPlanningScreen(
                     )
                     IconButton(
                         onClick = { showDietaryRestrictionsDialog = true },
-                        modifier = Modifier.semantics {
+                        modifier = Modifier.clearAndSetSemantics {
                             contentDescription = constraintsDescription
                         }
                     ) {
@@ -524,15 +524,16 @@ fun MealFiltersRow(
         ) {
             MealType.entries.forEach { type ->
                 val typeLabel = getMealTypeLabel(type)
+                val selectedState = stringResource(if (selectedType == type) R.string.meal_selected_state else R.string.meal_unselected_state)
                 val typeDescription = stringResource(
                     R.string.a11y_meal_filter_type,
                     typeLabel,
-                    selectedType == type
+                    selectedState
                 )
                 FilterChip(
                     selected = selectedType == type,
                     onClick = { onTypeSelected(type) },
-                    modifier = Modifier.semantics {
+                    modifier = Modifier.clearAndSetSemantics {
                         contentDescription = typeDescription
                     },
                     label = { Text(typeLabel) }
@@ -553,15 +554,16 @@ fun MealFiltersRow(
         ) {
             MealStatus.entries.forEach { status ->
                 val statusLabel = getMealStatusLabel(status)
+                val selectedState = stringResource(if (selectedStatus == status) R.string.meal_selected_state else R.string.meal_unselected_state)
                 val statusDescription = stringResource(
                     R.string.a11y_meal_filter_status,
                     statusLabel,
-                    selectedStatus == status
+                    selectedState
                 )
                 FilterChip(
                     selected = selectedStatus == status,
                     onClick = { onStatusSelected(status) },
-                    modifier = Modifier.semantics {
+                    modifier = Modifier.clearAndSetSemantics {
                         contentDescription = statusDescription
                     },
                     label = { Text(statusLabel) }
@@ -629,7 +631,7 @@ fun MealCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .semantics {
+            .clearAndSetSemantics {
                 contentDescription = openDescription
             },
         colors = CardDefaults.cardColors(
@@ -779,7 +781,7 @@ fun MealCard(
             // Delete button
             IconButton(
                 onClick = onDeleteClick,
-                modifier = Modifier.semantics {
+                modifier = Modifier.clearAndSetSemantics {
                     contentDescription = deleteDescription
                 }
             ) {

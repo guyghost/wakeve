@@ -36,7 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.R
@@ -99,9 +99,10 @@ fun AddEditMealDialog(
                     ) {
                         MealType.entries.take(3).forEach { type ->
                             val typeLabel = getMealTypeLabel(type)
-                            val typeDescription = stringResource(R.string.a11y_meal_type_selection, typeLabel, selectedType == type)
+                            val selectedState = stringResource(if (selectedType == type) R.string.meal_selected_state else R.string.meal_unselected_state)
+                            val typeDescription = stringResource(R.string.a11y_meal_type_selection, typeLabel, selectedState)
                             FilterChip(
-                                modifier = Modifier.semantics { contentDescription = typeDescription },
+                                modifier = Modifier.clearAndSetSemantics { contentDescription = typeDescription },
                                 selected = selectedType == type,
                                 onClick = { selectedType = type },
                                 label = { Text(typeLabel) }
@@ -114,9 +115,10 @@ fun AddEditMealDialog(
                     ) {
                         MealType.entries.drop(3).forEach { type ->
                             val typeLabel = getMealTypeLabel(type)
-                            val typeDescription = stringResource(R.string.a11y_meal_type_selection, typeLabel, selectedType == type)
+                            val selectedState = stringResource(if (selectedType == type) R.string.meal_selected_state else R.string.meal_unselected_state)
+                            val typeDescription = stringResource(R.string.a11y_meal_type_selection, typeLabel, selectedState)
                             FilterChip(
-                                modifier = Modifier.semantics { contentDescription = typeDescription },
+                                modifier = Modifier.clearAndSetSemantics { contentDescription = typeDescription },
                                 selected = selectedType == type,
                                 onClick = { selectedType = type },
                                 label = { Text(typeLabel) }
@@ -229,9 +231,10 @@ fun AddEditMealDialog(
                     ) {
                         MealStatus.entries.forEach { status ->
                             val statusLabel = getMealStatusLabel(status)
-                            val statusDescription = stringResource(R.string.a11y_meal_status_selection, statusLabel, selectedStatus == status)
+                            val selectedState = stringResource(if (selectedStatus == status) R.string.meal_selected_state else R.string.meal_unselected_state)
+                            val statusDescription = stringResource(R.string.a11y_meal_status_selection, statusLabel, selectedState)
                             FilterChip(
-                                modifier = Modifier.semantics { contentDescription = statusDescription },
+                                modifier = Modifier.clearAndSetSemantics { contentDescription = statusDescription },
                                 selected = selectedStatus == status,
                                 onClick = { selectedStatus = status },
                                 label = { Text(statusLabel) }
@@ -392,13 +395,14 @@ fun AutoGenerateMealsDialog(
                 
                 MealType.entries.forEach { type ->
                     val typeLabel = getMealTypeLabel(type)
-                    val typeDescription = stringResource(R.string.a11y_meal_type_selection, typeLabel, selectedTypes.contains(type))
+                    val selectedState = stringResource(if (selectedTypes.contains(type)) R.string.meal_selected_state else R.string.meal_unselected_state)
+                    val typeDescription = stringResource(R.string.a11y_meal_type_selection, typeLabel, selectedState)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Checkbox(
-                            modifier = Modifier.semantics { contentDescription = typeDescription },
+                            modifier = Modifier.clearAndSetSemantics { contentDescription = typeDescription },
                             checked = selectedTypes.contains(type),
                             onCheckedChange = { checked ->
                                 selectedTypes = if (checked) {
@@ -557,7 +561,7 @@ fun DietaryRestrictionsDialog(
                                     
                                     IconButton(
                                         onClick = { restrictionToDelete = restriction },
-                                        modifier = Modifier.semantics { contentDescription = deleteDescription }
+                                        modifier = Modifier.clearAndSetSemantics { contentDescription = deleteDescription }
                                     ) {
                                         Icon(
                                             Icons.Default.Delete,
@@ -670,9 +674,10 @@ fun AddDietaryRestrictionDialog(
                 ) {
                         DietaryRestriction.entries.forEach { restriction ->
                             val restrictionLabel = getDietaryRestrictionLabel(restriction)
-                            val restrictionDescription = stringResource(R.string.a11y_meal_restriction_selection, restrictionLabel, selectedRestriction == restriction)
+                            val selectedState = stringResource(if (selectedRestriction == restriction) R.string.meal_selected_state else R.string.meal_unselected_state)
+                            val restrictionDescription = stringResource(R.string.a11y_meal_restriction_selection, restrictionLabel, selectedState)
                             FilterChip(
-                            modifier = Modifier.semantics { contentDescription = restrictionDescription },
+                            modifier = Modifier.clearAndSetSemantics { contentDescription = restrictionDescription },
                             selected = selectedRestriction == restriction,
                             onClick = { selectedRestriction = restriction },
                             label = { Text(restrictionLabel) }
