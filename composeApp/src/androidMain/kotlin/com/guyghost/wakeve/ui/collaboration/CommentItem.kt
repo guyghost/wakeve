@@ -20,6 +20,10 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import com.guyghost.wakeve.R
 import com.guyghost.wakeve.collaboration.MentionParser
 import com.guyghost.wakeve.models.Comment
 import com.guyghost.wakeve.theme.WakeveColors
@@ -116,7 +120,7 @@ fun CommentItem(
                 if (isPinned) {
                     Icon(
                         imageVector = Icons.Default.PushPin,
-                        contentDescription = commentPinnedContentDescription(),
+                        contentDescription = stringResource(R.string.a11y_comment_pinned, comment.authorName),
                         tint = WakeveColors.primary,
                         modifier = Modifier.size(20.dp)
                     )
@@ -127,7 +131,10 @@ fun CommentItem(
                 if (comment.canEdit(currentUserId) || comment.canDelete(currentUserId, isOrganizer)) {
                     Box {
                         IconButton(onClick = { showMenu = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = commentOptionsContentDescription())
+                            Icon(
+                                Icons.Default.MoreVert,
+                                contentDescription = stringResource(R.string.a11y_comment_options, comment.authorName),
+                            )
                         }
 
                         CommentDropdownMenu(
@@ -180,13 +187,15 @@ fun CommentItem(
             // Reply button (for parent comments only)
             if (isParent && !comment.isDeleted) {
                 Spacer(modifier = Modifier.height(8.dp))
+                val replyDescription = stringResource(R.string.a11y_comment_reply, comment.authorName)
                 TextButton(
                     onClick = { onReply(comment.id, comment.authorName) },
+                    modifier = Modifier.clearAndSetSemantics { contentDescription = replyDescription },
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = WakeveColors.primary
                     )
                 ) {
-                    Text(commentReplyActionLabel())
+                    Text(stringResource(R.string.comment_reply))
                 }
             }
         }
@@ -214,8 +223,10 @@ fun CommentDropdownMenu(
     ) {
         if (!comment.isDeleted) {
             // Reply
+            val replyDescription = stringResource(R.string.a11y_comment_reply, comment.authorName)
             DropdownMenuItem(
-                text = { Text(commentReplyActionLabel()) },
+                text = { Text(stringResource(R.string.comment_reply)) },
+                modifier = Modifier.clearAndSetSemantics { contentDescription = replyDescription },
                 onClick = {
                     onReply(comment.id, comment.authorName)
                     onDismissRequest()
@@ -225,7 +236,7 @@ fun CommentDropdownMenu(
             // Edit (only own comments)
             if (comment.canEdit(currentUserId)) {
                 DropdownMenuItem(
-                    text = { Text(commentEditActionLabel()) },
+                    text = { Text(stringResource(R.string.comment_edit)) },
                     onClick = {
                         onEdit(comment.id, comment.content)
                         onDismissRequest()
@@ -237,7 +248,7 @@ fun CommentDropdownMenu(
             if (comment.canPin(currentUserId, isOrganizer)) {
                 DropdownMenuItem(
                     text = {
-                        Text(commentPinActionLabel(comment.isPinned))
+                        Text(stringResource(if (comment.isPinned) R.string.comment_unpin else R.string.comment_pin))
                     },
                     onClick = {
                         onPin(comment.id, !comment.isPinned)
@@ -252,7 +263,9 @@ fun CommentDropdownMenu(
                 DropdownMenuItem(
                     text = {
                         Text(
-                            commentDeleteActionLabel(isOwnComment = comment.authorId == currentUserId),
+                            stringResource(
+                                if (comment.authorId == currentUserId) R.string.comment_delete else R.string.comment_remove,
+                            ),
                             color = MaterialTheme.colorScheme.error
                         )
                     },
@@ -265,24 +278,6 @@ fun CommentDropdownMenu(
         }
     }
 }
-
-internal fun commentPinnedContentDescription(): String =
-    "Commentaire epingle"
-
-internal fun commentOptionsContentDescription(): String =
-    "Options du commentaire"
-
-internal fun commentReplyActionLabel(): String =
-    "Repondre"
-
-internal fun commentEditActionLabel(): String =
-    "Modifier"
-
-internal fun commentPinActionLabel(isPinned: Boolean): String =
-    if (isPinned) "Retirer l'epingle" else "Epingler"
-
-internal fun commentDeleteActionLabel(isOwnComment: Boolean): String =
-    if (isOwnComment) "Supprimer" else "Retirer"
 
 /**
  * Avatar placeholder with initials
@@ -320,22 +315,24 @@ private fun getInitials(name: String): String {
 /**
  * Format timestamp to relative time
  */
+@Composable
 private fun formatTimestamp(timestamp: String): String {
-    return try {
+    val resource = try {
         val instant = kotlinx.datetime.Instant.parse(timestamp)
         val now = Clock.System.now()
         val duration = now.minus(instant)
 
         when {
-            duration.inWholeMinutes < 1 -> "Just now"
-            duration.inWholeMinutes < 60 -> "${duration.inWholeMinutes}m ago"
-            duration.inWholeHours < 24 -> "${duration.inWholeHours}h ago"
-            duration.inWholeDays < 7 -> "${duration.inWholeDays}d ago"
-            else -> "${duration.inWholeDays / 7}w ago"
+            duration.inWholeMinutes < 1 -> R.string.comment_time_now to null
+            duration.inWholeMinutes < 60 -> R.string.comment_time_minutes to duration.inWholeMinutes
+            duration.inWholeHours < 24 -> R.string.comment_time_hours to duration.inWholeHours
+            duration.inWholeDays < 7 -> R.string.comment_time_days to duration.inWholeDays
+            else -> R.string.comment_time_weeks to duration.inWholeDays / 7
         }
     } catch (e: Exception) {
-        "Unknown time"
+        R.string.comment_time_recent to null
     }
+    return resource.second?.let { stringResource(resource.first, it) } ?: stringResource(resource.first)
 }
 
 /**

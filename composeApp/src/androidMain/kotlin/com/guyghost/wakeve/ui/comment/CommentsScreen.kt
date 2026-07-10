@@ -848,15 +848,3 @@ sealed class CommentsState {
     data class Error(val message: String) : CommentsState()
     data class Success(val data: CommentsBySection) : CommentsState()
 }
-
-internal fun commentLoadFailureMessage(): String {
-    return "Impossible de charger les commentaires. Reessayez."
-}
-
-internal fun commentSubmitFailureMessage(): String {
-    return "Impossible d'enregistrer le commentaire. Reessayez."
-}
-
-internal fun commentDeleteFailureMessage(): String {
-    return "Impossible de supprimer le commentaire. Reessayez."
-}
