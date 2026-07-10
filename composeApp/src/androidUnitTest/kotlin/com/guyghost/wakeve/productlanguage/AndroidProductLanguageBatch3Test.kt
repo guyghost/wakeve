@@ -4,6 +4,7 @@ import java.io.File
 import javax.xml.parsers.DocumentBuilderFactory
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import org.w3c.dom.Element
 
@@ -11,15 +12,43 @@ class AndroidProductLanguageBatch3Test {
     @Test
     fun batch3UsesResourcesForDirectAndIndirectVisibleCopy() {
         val findings = paths.flatMap { path ->
-            val source = root.resolve(path).readText().withoutComments()
-            direct.flatMap { (kind, regex) -> regex.findAll(source).map { "$path:${source.lineAt(it.range.first)}:$kind" } } +
-                literal.findAll(source).mapNotNull { match ->
-                    val value = match.groupValues[1]
-                    val line = source.lineTextAt(match.range.first)
-                    if (technical(value, line)) null else "$path:${source.lineAt(match.range.first)}:indirect '$value'"
-                }
+            sourceFindings(path, root.resolve(path).readText())
         }
         assertTrue(findings.isEmpty(), findings.joinToString("\n"))
+    }
+
+    @Test
+    fun indirectScannerRejectsVisibleOneWordHelpersEnumsAndDefaults() {
+        val fixtures = mapOf(
+            "helper return" to "fun editLabel(): String { return \"Edit\" }",
+            "helper argument" to "ActionChip(label = \"Edit\")",
+            "enum label" to "enum class Action(val label: String) { EDIT(\"Edit\") }",
+            "visible default" to "fun ActionButton(label: String = \"Edit\") = Unit"
+        )
+
+        fixtures.forEach { (name, source) ->
+            assertTrue(sourceFindings("fixture/$name.kt", source).isNotEmpty(), "$name must be reported")
+        }
+    }
+
+    @Test
+    fun indirectScannerAllowsOnlyExactReviewedTechnicalIdentifiersAndUrls() {
+        val reviewed = """
+            val provider = "TRICOUNT"
+            val status = "ACTIVE"
+            val url = "https://tricount.com/group/${'$'}eventId"
+        """.trimIndent()
+        assertTrue(sourceFindings("fixture/reviewed.kt", reviewed).isEmpty())
+
+        val unreviewed = """
+            val label = "Edit"
+            val provider = "SOME_NEW_PROVIDER"
+            val url = "https://example.com/unreviewed"
+        """.trimIndent()
+        val findings = sourceFindings("fixture/unreviewed.kt", unreviewed)
+        assertTrue(findings.any { it.contains("'Edit'") }, findings.joinToString("\n"))
+        assertTrue(findings.any { it.contains("'SOME_NEW_PROVIDER'") }, findings.joinToString("\n"))
+        assertTrue(findings.any { it.contains("'https://example.com/unreviewed'") }, findings.joinToString("\n"))
     }
 
     @Test
@@ -33,6 +62,30 @@ class AndroidProductLanguageBatch3Test {
             assertTrue(it in values, "Missing $it")
             assertTrue(values.getValue(it).contains("%1\$s"), "$it must name its target")
         }
+    }
+
+    @Test
+    fun budgetDetailConsumesTargetAwarePaidUnpaidEditAndDeleteSemanticsOnce() {
+        val source = root.resolve(
+            "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/budget/BudgetDetailScreen.kt"
+        ).readText().withoutComments()
+
+        listOf(
+            Regex("""stringResource\(R\.string\.a11y_budget_paid_state,\s*item\.name\)""") to 1,
+            Regex("""stringResource\(R\.string\.a11y_budget_unpaid_state,\s*item\.name\)""") to 1,
+            Regex("""stringResource\(R\.string\.a11y_budget_edit,\s*item\.name\)""") to 1,
+            Regex("""stringResource\(R\.string\.a11y_budget_delete,\s*item\.name\)""") to 1,
+            Regex("""Modifier\.clearAndSetSemantics\s*\{\s*contentDescription\s*=\s*markPaidDescription\s*onClick""") to 1,
+            Regex("""Modifier\.clearAndSetSemantics\s*\{\s*contentDescription\s*=\s*editDescription\s*onClick""") to 1,
+            Regex("""Modifier\.clearAndSetSemantics\s*\{\s*contentDescription\s*=\s*deleteDescription\s*onClick""") to 1,
+        ).forEach { (expected, count) ->
+            assertEquals(count, expected.findAll(source).count(), "Unexpected BudgetDetail consumption count: $expected")
+        }
+
+        assertFalse(
+            Regex("""semantics\s*\{\s*contentDescription\s*=\s*(?:markPaidDescription|editDescription|deleteDescription)\s*}""").containsMatchIn(source),
+            "Budget actions must not append a second description to their visible label"
+        )
     }
 
     @Test
@@ -71,11 +124,17 @@ class AndroidProductLanguageBatch3Test {
         .lineSequence()
         .joinToString("\n") { line -> if (line.trimStart().startsWith("//")) " ".repeat(line.length) else line }
     private fun String.lineAt(index: Int) = take(index).count { it == '\n' } + 1
-    private fun String.lineTextAt(index: Int): String { val s = lastIndexOf('\n', index).let { if (it < 0) 0 else it + 1 }; val e = indexOf('\n', index).let { if (it < 0) length else it }; return substring(s, e) }
-    private fun technical(value: String, line: String): Boolean =
-        !value.any(Char::isLetter) ||
-            value.matches(Regex("""[A-Za-z][A-Za-z0-9_./?={}&:$-]*""")) ||
-            listOf("stringResource(", "getString(", "Regex(", "String.format(", "provider =", "providerId =", "providerUrl =", "syncStatus =", "status ==").any(line::contains)
+    private fun sourceFindings(path: String, rawSource: String): List<String> {
+        val source = rawSource.withoutComments()
+        return direct.flatMap { (kind, regex) ->
+            regex.findAll(source).map { "$path:${source.lineAt(it.range.first)}:$kind" }.toList()
+        } + literal.findAll(source).mapNotNull { match ->
+            val value = match.groupValues[1]
+            if (technical(value)) null else "$path:${source.lineAt(match.range.first)}:indirect '$value'"
+        }
+    }
+    private fun technical(value: String): Boolean =
+        !value.any(Char::isLetter) || value in reviewedTechnicalLiterals
 
     private companion object {
         val root: File by lazy { var f = File(requireNotNull(System.getProperty("user.dir"))).absoluteFile; while (!File(f, "settings.gradle.kts").isFile) f = requireNotNull(f.parentFile); f }
@@ -91,6 +150,14 @@ class AndroidProductLanguageBatch3Test {
         val literal = Regex("""\"([^\"\\]*(?:\\.[^\"\\]*)*)\"""")
         val prefixes = listOf("budget_", "activity_", "equipment_", "a11y_budget_", "a11y_activity_", "a11y_equipment_")
         val legacyKeys = setOf("budget_per_person", "budget_hint", "budget_overview", "budget_label")
+        val reviewedTechnicalLiterals = setOf(
+            "TRICOUNT", "ACTIVE", "LINKED", "verified",
+            "camping", "beach", "ski", "hiking", "picnic", "indoor",
+            "%.2f", "99:99", "-", " ",
+            "tricount-\$eventId", "https://tricount.com/group/\$eventId",
+            "\\\\d{4}-\\\\d{2}-\\\\d{2}", "\\\\d{2}:\\\\d{2}",
+            "^user[-_ ]?(.+)\$", "[-_]+"
+        )
         val cognates = mapOf(
             "de" to setOf("budget_overview_title", "budget_status_filter", "budget_item_name", "budget_tricount_title", "activity_time_placeholder", "equipment_quantity_value", "equipment_status_label"),
             "es" to setOf("budget_overview_title", "budget_total_label", "budget_tricount_title", "activity_time_placeholder", "activity_time_duration", "activity_date_display", "equipment_quantity_value"),

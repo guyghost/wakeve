@@ -30,6 +30,6 @@ class BudgetDetailScreenErrorMessageTest {
     fun paidActionNamesTargetAndState() {
         assertTrue(source.contains("R.string.a11y_budget_mark_paid"))
         assertTrue(source.contains("R.string.a11y_budget_unpaid_state"))
-        assertTrue(source.contains("Modifier.semantics"))
+        assertTrue(source.contains("Modifier.clearAndSetSemantics"))
     }
 }

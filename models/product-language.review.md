@@ -17,6 +17,7 @@ The generated inventory contains 263 non-empty, sorted paths. Path exhaustivenes
 - Validation, cancellation, denied/restricted permission, and unavailable/rejected AI outcomes have typed executable branches without changing `domainStatus`.
 - `FINALIZED` reaches a terminal state and suppresses editing even if the caller provides it.
 - No free text, copy, generated content, or LLM output is accepted as an input or event discriminator.
+- Budget item accessibility is a deterministic projection of typed item facts: paid/unpaid state names the item target, and mark-paid/edit/delete actions name their target. Action chips expose one merged semantic description so TalkBack does not repeat the visible action label.
 
 ## Required review matrix
 
@@ -31,7 +32,7 @@ The generated inventory contains 263 non-empty, sorted paths. Path exhaustivenes
 | Sync conflict | Conflict identifies affected event details, blocks shared confirmation, and guards visible CTA plus resolve/retry events with the exact allowed action. | Accepted by positive and negative executable tests. |
 | Terminal state | `FINALIZED` enters final `terminal` and suppresses a stale caller-provided edit CTA. | Accepted by executable test. |
 | AI unavailable/rejected | Both typed outcomes enter `manualFallback`, preserve status, and expose a manual path; no AI event can transition domain state. | Accepted by two executable tests. |
-| Long text/accessibility | Output is semantic keys, not rendered copy. | Not proven by Task 1; remains platform implementation and verification work. |
+| Long text/accessibility | Output is semantic keys, not rendered copy. Budget item projections additionally require action + target + applicable state, exposed once to TalkBack. | Batch 3 source and catalog contracts verify the Budget projection; runtime font-scale validation remains later work. |
 
 ## Review decision
 
