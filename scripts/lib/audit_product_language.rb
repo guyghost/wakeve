@@ -21,7 +21,7 @@ allowlist = if File.file?(allowlist_path)
 forbidden = /Wakeve AI|\bSc[eé]nario(?:s)?\b|\bScenario(?:s)?\b|\bInbox\b|\bGenerate\b|\bGénérer\b|Party Animal|Social Butterfly|Chatterbox|Event Master|Maître du vote/i
 
 android_paths = locales.to_h do |locale|
-  directory = locale == 'en' ? 'values' : "values-#{locale}"
+  directory = locale == 'fr' ? 'values' : "values-#{locale}"
   base = fixture ? 'android' : 'composeApp/src/androidMain/res'
   [locale, File.join(root, base, directory, 'strings.xml')]
 end
@@ -52,8 +52,25 @@ def android_entries(path, locale, findings)
     next unless key
 
     findings << "android #{locale}: duplicate key #{key}" if entries.key?(key)
-    value = REXML::XPath.match(element, './/text()').map(&:value).join(' ')
-    entries[key] = value.gsub(/\s+/, ' ').strip
+    text = lambda do |node|
+      REXML::XPath.match(node, './/text()').map(&:value).join(' ').gsub(/\s+/, ' ').strip
+    end
+    placeholders = lambda do |value|
+      value.scan(/%\d+\$[-#+ 0,(<]*\d*(?:\.\d+)?[a-zA-Z]/).sort
+    end
+    entries[key] = case element.name
+                   when 'string'
+                     { kind: 'string', value: text.call(element), placeholders: placeholders.call(text.call(element)) }
+                   when 'plurals'
+                     items = element.get_elements('item').to_h do |item|
+                       value = text.call(item)
+                       [item.attributes['quantity'], placeholders.call(value)]
+                     end
+                     { kind: 'plurals', value: text.call(element), quantities: items.keys.sort, item_placeholders: items }
+                   when 'string-array'
+                     items = element.get_elements('item').map { |item| placeholders.call(text.call(item)) }
+                     { kind: 'string-array', value: text.call(element), item_count: items.length, item_placeholders: items }
+                   end
   end
   entries
 rescue REXML::ParseException => error
@@ -85,6 +102,35 @@ if %w[all catalogs].include?(mode)
       keys = entries_by_locale.fetch(locale, {}).keys.to_set
       (base_keys - keys).sort.each { |key| findings << "#{platform} #{locale}: missing #{key}" }
       (keys - base_keys).sort.each { |key| findings << "#{platform} #{locale}: extra #{key}" }
+      next unless platform == 'android'
+
+      base = entries_by_locale.fetch('en')
+      (base_keys & keys).sort.each do |key|
+        expected = base.fetch(key)
+        actual = entries_by_locale.fetch(locale).fetch(key)
+        if expected[:kind] != actual[:kind]
+          findings << "android #{locale}: kind mismatch #{key} (expected #{expected[:kind]}, got #{actual[:kind]})"
+          next
+        end
+        case expected[:kind]
+        when 'string'
+          if expected[:placeholders] != actual[:placeholders]
+            findings << "android #{locale}: positional placeholders mismatch #{key}"
+          end
+        when 'plurals'
+          if expected[:quantities] != actual[:quantities]
+            findings << "android #{locale}: plural quantities mismatch #{key}"
+          elsif expected[:item_placeholders] != actual[:item_placeholders]
+            findings << "android #{locale}: positional placeholders mismatch #{key}"
+          end
+        when 'string-array'
+          if expected[:item_count] != actual[:item_count]
+            findings << "android #{locale}: array structure mismatch #{key}"
+          elsif expected[:item_placeholders] != actual[:item_placeholders]
+            findings << "android #{locale}: positional placeholders mismatch #{key}"
+          end
+        end
+      end
     end
   end
 end
@@ -94,7 +140,8 @@ if %w[all terms].include?(mode)
     entries_by_locale.each do |locale, entries|
       entries.each do |key, value|
         identity = "#{platform}/#{locale}:#{key}"
-        findings << "#{identity}: forbidden visible term" if value.match?(forbidden) && !allowlist.include?(identity)
+        visible_value = value.is_a?(Hash) ? value[:value] : value
+        findings << "#{identity}: forbidden visible term" if visible_value.match?(forbidden) && !allowlist.include?(identity)
       end
     end
   end
