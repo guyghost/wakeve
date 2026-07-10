@@ -52,8 +52,11 @@ class AndroidProductLanguageBatch5Test {
 
     @Test
     fun e5AlbumsUseLocalizedCountsAndActionTargetSemantics() {
+        val source = source(albumsPath)
         assertTrue(findings(albumsPath).isEmpty(), findings(albumsPath).joinToString("\n"))
-        E5Keys.forEach { key -> assertTrue("R.string.$key" in source(albumsPath) || "R.plurals.$key" in source(albumsPath), "missing E5 resource $key") }
+        E5Keys.forEach { key -> assertTrue("R.string.$key" in source || "R.plurals.$key" in source, "missing E5 resource $key") }
+        assertTrue("pluralStringResource(R.plurals.album_photo_count" in source, "photo totals must use Android plurals")
+        assertTrue("clearAndSetSemantics" in source, "album and photo actions must suppress duplicate descendant speech")
         assertLocaleParity(E5Keys)
         assertTechnicalLiterals(listOf(albumsPath))
     }
@@ -152,7 +155,18 @@ class AndroidProductLanguageBatch5Test {
         val A11yKeys = setOf("a11y_event_cover_image", "a11y_user_avatar", "a11y_invitation_qr", "a11y_copy_invitation_link", "a11y_album_open", "a11y_album_cover", "a11y_photo", "a11y_conflict_choice", "a11y_conflict_summary")
         val E1Keys = setOf("a11y_event_cover_image", "a11y_user_avatar", "a11y_invitation_qr", "a11y_copy_invitation_link", "invitation_loading", "invitation_error", "action_retry", "permission_required")
         val E2Keys = setOf("sync_waiting", "offline_status", "error_generic", "action_cancel", "draft_time_range", "draft_location_summary", "draft_slot_summary")
-        val E5Keys = setOf("a11y_album_open", "a11y_album_cover", "a11y_photo", "album_photo_count")
+        val E5Keys = setOf(
+            "albums", "my_albums", "album_suggestions", "album_auto_badge",
+            "album_smart_sharing", "album_share_summary_title", "album_share_summary_auto_body",
+            "album_share_summary_manual_body", "album_photos_section", "album_relevance_score",
+            "album_matched_tags", "new_album", "album_create_description", "album_name",
+            "album_name_hint", "no_albums", "album_empty_body", "no_photos",
+            "album_empty_photos_body", "search_photos", "no_photos_found", "photo_without_caption",
+            "action_create", "action_cancel", "action_share", "a11y_album_search", "a11y_album_create",
+            "a11y_album_add_photos", "a11y_album_back", "a11y_album_share", "a11y_album_delete",
+            "a11y_album_close_search", "a11y_album_open", "a11y_album_cover", "a11y_photo",
+            "a11y_photo_favorite", "a11y_share_suggestion", "album_photo_count"
+        )
         val E6Keys = setOf("a11y_conflict_choice", "a11y_conflict_summary", "sync_conflict_count")
         val localeDirectories = listOf("values", "values-en", "values-de", "values-es", "values-it", "values-pt")
     }

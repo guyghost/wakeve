@@ -72,15 +72,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.guyghost.wakeve.models.Album
 import com.guyghost.wakeve.models.Photo
+import com.guyghost.wakeve.R
 import com.guyghost.wakeve.services.SharingSuggestion
 import com.guyghost.wakeve.viewmodel.AlbumsUiState
 import com.guyghost.wakeve.viewmodel.AlbumsViewModel
@@ -147,11 +149,12 @@ fun AlbumsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var showCreateAlbumDialog by remember { mutableStateOf(false) }
     var searchActive by remember { mutableStateOf(false) }
+    val localizedError = stringResource(R.string.error_generic)
 
     // Show error in snackbar
     LaunchedEffect(uiState.error) {
-        uiState.error?.let { error ->
-            snackbarHostState.showSnackbar(error)
+        uiState.error?.let {
+            snackbarHostState.showSnackbar(localizedError)
             onClearError()
         }
     }
@@ -171,7 +174,7 @@ fun AlbumsScreen(
                 TopAppBar(
                     title = {
                         Text(
-                            text = albumsScreenTitle(),
+                            text = stringResource(R.string.albums),
                             style = MaterialTheme.typography.titleLarge
                         )
                     },
@@ -179,13 +182,13 @@ fun AlbumsScreen(
                         IconButton(onClick = { searchActive = true }) {
                             Icon(
                                 imageVector = Icons.Default.Search,
-                                contentDescription = albumSearchContentDescription()
+                                contentDescription = stringResource(R.string.a11y_album_search)
                             )
                         }
                         IconButton(onClick = { showCreateAlbumDialog = true }) {
                             Icon(
                                 imageVector = Icons.Default.Add,
-                                contentDescription = albumCreateContentDescription()
+                                contentDescription = stringResource(R.string.a11y_album_create)
                             )
                         }
                     },
@@ -203,7 +206,7 @@ fun AlbumsScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.PhotoCamera,
-                        contentDescription = albumAddPhotosContentDescription()
+                        contentDescription = stringResource(R.string.a11y_album_add_photos)
                     )
                 }
             }
@@ -307,7 +310,7 @@ private fun AlbumDetailTopBar(
             IconButton(onClick = onBack) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = albumBackContentDescription()
+                    contentDescription = stringResource(R.string.a11y_album_back, albumName)
                 )
             }
         },
@@ -315,13 +318,13 @@ private fun AlbumDetailTopBar(
             IconButton(onClick = onShare) {
                 Icon(
                     imageVector = Icons.Default.Share,
-                    contentDescription = albumShareContentDescription()
+                    contentDescription = stringResource(R.string.a11y_album_share, albumName)
                 )
             }
             IconButton(onClick = onDelete) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = albumDeleteContentDescription()
+                    contentDescription = stringResource(R.string.a11y_album_delete, albumName)
                 )
             }
         },
@@ -359,7 +362,7 @@ private fun SearchOverlay(
                     onSearch = { onQueryChange(searchQuery) },
                     expanded = true,
                     onExpandedChange = {},
-                    placeholder = { Text(albumSearchPlaceholder()) },
+                    placeholder = { Text(stringResource(R.string.search_photos)) },
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Search,
@@ -370,7 +373,7 @@ private fun SearchOverlay(
                         IconButton(onClick = { onClose() }) {
                             Icon(
                                 imageVector = Icons.Default.Clear,
-                                contentDescription = albumCloseContentDescription()
+                                contentDescription = stringResource(R.string.a11y_album_close_search)
                             )
                         }
                     }
@@ -435,7 +438,7 @@ private fun AlbumsListContent(
             if (albums.isNotEmpty()) {
                 item {
                     Text(
-                        text = albumListTitle(),
+                        text = stringResource(R.string.my_albums),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.padding(horizontal = 16.dp)
@@ -483,6 +486,7 @@ private fun AlbumShareSummaryCard(
     summary: AlbumShareSummary,
     onShare: () -> Unit
 ) {
+    val shareDescription = stringResource(R.string.a11y_album_share, summary.albumName)
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -506,18 +510,27 @@ private fun AlbumShareSummaryCard(
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = summary.title,
+                    text = stringResource(R.string.album_share_summary_title, summary.albumName),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Text(
-                    text = summary.body,
+                    text = pluralStringResource(
+                        if (summary.isAutoGenerated) R.plurals.album_share_summary_auto_body else R.plurals.album_share_summary_manual_body,
+                        summary.photoCount,
+                        summary.photoCount
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f)
                 )
             }
-            TextButton(onClick = onShare) {
-                Text(albumShareNowActionLabel())
+            TextButton(
+                onClick = onShare,
+                modifier = Modifier.clearAndSetSemantics {
+                    contentDescription = shareDescription
+                }
+            ) {
+                Text(stringResource(R.string.action_share))
             }
         }
     }
@@ -535,7 +548,7 @@ private fun AutoAlbumSuggestionsSection(
         modifier = Modifier.fillMaxWidth()
     ) {
         Text(
-            text = albumSuggestionsTitle(),
+            text = stringResource(R.string.album_suggestions),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(horizontal = 16.dp)
@@ -584,13 +597,22 @@ fun AlbumCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val photoCount = album.photoCount()
+    val albumDescription = stringResource(
+        R.string.a11y_album_open,
+        album.name,
+        pluralStringResource(R.plurals.album_photo_count, photoCount, photoCount)
+    )
+    val coverDescription = album.coverPhotoId?.let { stringResource(R.string.a11y_album_cover, album.name) }
+    val openDescription = listOfNotNull(albumDescription, coverDescription)
+        .joinToString(stringResource(R.string.list_separator))
     Card(
         modifier = modifier
             .fillMaxWidth()
             .height(200.dp)
             .clickable(onClick = onClick)
-            .semantics {
-                contentDescription = albumCardContentDescription(album.name, album.photoCount())
+            .clearAndSetSemantics {
+                contentDescription = openDescription
             },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
@@ -617,7 +639,7 @@ fun AlbumCard(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Image,
-                            contentDescription = albumCoverContentDescription(album.name),
+                            contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSecondaryContainer,
                             modifier = Modifier.size(48.dp)
                         )
@@ -667,7 +689,7 @@ fun AlbumCard(
                             .padding(8.dp)
                     ) {
                         Text(
-                            text = albumAutoBadgeLabel(),
+                            text = stringResource(R.string.album_auto_badge),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onTertiary,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -703,7 +725,7 @@ fun AlbumCard(
                         modifier = Modifier.size(14.dp)
                     )
                     Text(
-                        text = albumPhotoCountLabel(album.photoCount()),
+                        text = pluralStringResource(R.plurals.album_photo_count, photoCount, photoCount),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -756,7 +778,10 @@ private fun AlbumDetailContent(
             // Photos grid
             item {
                 Text(
-                    text = albumPhotosSectionTitle(photos.size),
+                    text = stringResource(
+                        R.string.album_photos_section,
+                        pluralStringResource(R.plurals.album_photo_count, photos.size, photos.size)
+                    ),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -832,7 +857,7 @@ private fun AlbumInfoHeader(
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Text(
-                    text = albumPhotoCountLabel(photoCount),
+                    text = pluralStringResource(R.plurals.album_photo_count, photoCount, photoCount),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                 )
@@ -863,7 +888,7 @@ private fun SmartSharingSection(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = albumSmartSharingTitle(),
+                text = stringResource(R.string.album_smart_sharing),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -889,10 +914,12 @@ private fun SharingSuggestionItem(
     suggestion: SharingSuggestion,
     onClick: () -> Unit
 ) {
+    val shareDescription = stringResource(R.string.a11y_share_suggestion, suggestion.title)
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .clearAndSetSemantics { contentDescription = shareDescription },
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
@@ -928,7 +955,7 @@ private fun SharingSuggestionItem(
 
             Icon(
                 imageVector = Icons.Default.Share,
-                contentDescription = albumShareContentDescription(),
+                contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary
             )
         }
@@ -943,12 +970,19 @@ private fun PhotoThumbnailItem(
     photo: Photo,
     onClick: () -> Unit
 ) {
+    val caption = photo.caption?.takeIf { it.isNotBlank() }
+        ?: stringResource(R.string.photo_without_caption)
+    val description = stringResource(
+        R.string.a11y_photo,
+        caption,
+        stringResource(if (photo.isFavorite) R.string.a11y_photo_favorite else R.string.a11y_photo_not_favorite)
+    )
     Card(
         modifier = Modifier
             .aspectRatio(1f)
             .clickable(onClick = onClick)
-            .semantics {
-                contentDescription = albumPhotoContentDescription(photo.caption)
+            .clearAndSetSemantics {
+                contentDescription = description
             },
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(
@@ -975,7 +1009,7 @@ private fun PhotoThumbnailItem(
             if (photo.isFavorite) {
                 Icon(
                     imageVector = Icons.Default.Star,
-                    contentDescription = albumFavoriteContentDescription(),
+                    contentDescription = null,
                     tint = MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
@@ -1031,7 +1065,7 @@ private fun SearchResultsContent(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = albumSearchEmptyMessage(),
+                            text = stringResource(R.string.no_photos_found),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -1050,10 +1084,15 @@ private fun SearchResultCard(
     result: SearchResult,
     onClick: () -> Unit
 ) {
+    val relevance = (result.relevanceScore * 100).toInt()
+    val caption = result.photo.caption?.takeIf { it.isNotBlank() }
+        ?: stringResource(R.string.photo_without_caption)
+    val resultDescription = stringResource(R.string.a11y_photo_search_result, caption, relevance)
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .clearAndSetSemantics { contentDescription = resultDescription },
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
@@ -1090,7 +1129,7 @@ private fun SearchResultCard(
                         .padding(4.dp)
                 ) {
                     Text(
-                        text = "${(result.relevanceScore * 100).toInt()}%",
+                        text = stringResource(R.string.album_relevance_score, relevance),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -1115,7 +1154,10 @@ private fun SearchResultCard(
                 if (result.matchedTags.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = result.matchedTags.take(2).joinToString(", "),
+                        text = stringResource(
+                            R.string.album_matched_tags,
+                            result.matchedTags.take(2).joinToString(stringResource(R.string.list_separator))
+                        ),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
                         maxLines = 1,
@@ -1141,14 +1183,14 @@ private fun CreateAlbumDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = albumCreateDialogTitle(),
+                text = stringResource(R.string.new_album),
                 style = MaterialTheme.typography.titleLarge
             )
         },
         text = {
             Column {
                 Text(
-                    text = albumCreateDialogDescription(),
+                    text = stringResource(R.string.album_create_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1156,8 +1198,8 @@ private fun CreateAlbumDialog(
                 androidx.compose.material3.OutlinedTextField(
                     value = albumName,
                     onValueChange = { albumName = it },
-                    label = { Text(albumNameFieldLabel()) },
-                    placeholder = { Text(albumNamePlaceholder()) },
+                    label = { Text(stringResource(R.string.album_name)) },
+                    placeholder = { Text(stringResource(R.string.album_name_hint)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1168,12 +1210,12 @@ private fun CreateAlbumDialog(
                 onClick = { onCreate(albumName) },
                 enabled = albumName.isNotBlank()
             ) {
-                Text(albumCreateActionLabel())
+                Text(stringResource(R.string.action_create))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(albumCancelActionLabel())
+                Text(stringResource(R.string.action_cancel))
             }
         }
     )
@@ -1196,12 +1238,12 @@ private fun EmptyAlbumsState(modifier: Modifier = Modifier) {
             modifier = Modifier.size(64.dp)
         )
         Text(
-            text = albumEmptyTitle(),
+            text = stringResource(R.string.no_albums),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
-            text = albumEmptyDescription(),
+            text = stringResource(R.string.album_empty_body),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             textAlign = TextAlign.Center
@@ -1226,12 +1268,12 @@ private fun EmptyPhotosState(modifier: Modifier = Modifier) {
             modifier = Modifier.size(64.dp)
         )
         Text(
-            text = albumEmptyPhotosTitle(),
+            text = stringResource(R.string.no_photos),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
-            text = albumEmptyPhotosDescription(),
+            text = stringResource(R.string.album_empty_photos_body),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             textAlign = TextAlign.Center
@@ -1266,48 +1308,11 @@ fun AlbumsScreen(
     )
 }
 
-internal fun albumsScreenTitle(): String = "Albums"
-
-internal fun albumSearchContentDescription(): String = "Rechercher des photos"
-
-internal fun albumCreateContentDescription(): String = "Créer un album"
-
-internal fun albumAddPhotosContentDescription(): String = "Ajouter des photos"
-
-internal fun albumBackContentDescription(): String = "Retour"
-
-internal fun albumShareContentDescription(): String = "Partager"
-
-internal fun albumDeleteContentDescription(): String = "Supprimer"
-
-internal fun albumCloseContentDescription(): String = "Fermer"
-
-internal fun albumSearchPlaceholder(): String = "Rechercher des photos..."
-
-internal fun albumListTitle(): String = "Mes albums"
-
-internal fun albumSuggestionsTitle(): String = "Suggestions d'albums"
-
-internal fun albumCardContentDescription(albumName: String, photoCount: Int): String =
-    "Album $albumName, ${albumPhotoCountLabel(photoCount)}"
-
-internal fun albumCoverContentDescription(albumName: String): String =
-    "Photo de couverture de l'album $albumName"
-
-internal fun albumAutoBadgeLabel(): String = "Auto"
-
-internal fun albumPhotoCountLabel(photoCount: Int): String =
-    "$photoCount photo${if (photoCount > 1) "s" else ""}"
-
-internal fun albumPhotosSectionTitle(photoCount: Int): String =
-    "Photos (${albumPhotoCountLabel(photoCount)})"
-
-internal fun albumSmartSharingTitle(): String = "Partage intelligent"
-
 internal data class AlbumShareSummary(
     val albumId: String,
-    val title: String,
-    val body: String,
+    val albumName: String,
+    val photoCount: Int,
+    val isAutoGenerated: Boolean,
     val photoIds: List<String>
 )
 
@@ -1323,8 +1328,9 @@ internal fun albumShareSummary(albums: List<Album>): AlbumShareSummary? {
 
     return AlbumShareSummary(
         albumId = recommended.id,
-        title = albumShareSummaryTitle(recommended.name),
-        body = albumShareSummaryBody(recommended.photoCount(), recommended.isAutoGenerated),
+        albumName = recommended.name,
+        photoCount = recommended.photoCount(),
+        isAutoGenerated = recommended.isAutoGenerated,
         photoIds = recommended.photoIds
     )
 }
@@ -1333,46 +1339,3 @@ private fun Album.shareScore(): Int =
     photoCount() +
         if (isAutoGenerated) 25 else 0 +
         if (coverPhotoId != null) 10 else 0
-
-internal fun albumShareSummaryTitle(albumName: String): String =
-    "À partager maintenant : $albumName"
-
-internal fun albumShareSummaryBody(photoCount: Int, isAutoGenerated: Boolean): String {
-    val sourceLabel = if (isAutoGenerated) {
-        "cette sélection automatique"
-    } else {
-        "cet album prêt"
-    }
-    return "${albumPhotoCountLabel(photoCount)} dans $sourceLabel pour relancer le groupe après l'événement."
-}
-
-internal fun albumShareNowActionLabel(): String = "Partager"
-
-internal fun albumPhotoContentDescription(caption: String?): String =
-    "Photo : ${caption?.takeIf { it.isNotBlank() } ?: "sans légende"}"
-
-internal fun albumFavoriteContentDescription(): String = "Photo favorite"
-
-internal fun albumSearchEmptyMessage(): String = "Aucune photo trouvée"
-
-internal fun albumCreateDialogTitle(): String = "Nouvel album"
-
-internal fun albumCreateDialogDescription(): String = "Donnez un nom à votre album."
-
-internal fun albumNameFieldLabel(): String = "Nom de l'album"
-
-internal fun albumNamePlaceholder(): String = "Ex. Mariage de Sophie"
-
-internal fun albumCreateActionLabel(): String = "Créer"
-
-internal fun albumCancelActionLabel(): String = "Annuler"
-
-internal fun albumEmptyTitle(): String = "Aucun album"
-
-internal fun albumEmptyDescription(): String =
-    "Créez un album pour retrouver les photos après l'événement."
-
-internal fun albumEmptyPhotosTitle(): String = "Aucune photo"
-
-internal fun albumEmptyPhotosDescription(): String =
-    "Ajoutez des photos pour partager les souvenirs avec le groupe."
