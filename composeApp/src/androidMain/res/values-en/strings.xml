@@ -867,4 +867,9 @@
 <string name="action_retry">Try again</string>
 <string name="permission_required">Permission is required to share the invitation.</string>
 <string name="invitation_clipboard_label">Wakeve invitation</string>
+    <string name="offline_status">Available offline</string><string name="error_generic">Something went wrong</string><string name="action_cancel">Cancel</string>
+    <string name="draft_time_range">%1$s–%2$s</string><string name="draft_location_summary">• %1$s</string><string name="draft_slot_summary">• %1$s – %2$s</string>
+    <string name="event_next_step_draft">Finish setup</string><string name="event_next_step_polling">Collect votes</string><string name="event_next_step_comparing">Choose the best option</string><string name="event_next_step_confirmed">Invite and prepare</string><string name="event_next_step_organizing">Run the event</string><string name="event_terminal_summary">View summary</string>
+    <string name="event_next_step_draft_body">Add the missing details, then start the poll.</string><string name="event_next_step_polling_body">Remind participants who have not voted yet.</string><string name="event_next_step_comparing_body">Compare the options before selecting the final plan.</string><string name="event_next_step_confirmed_body">Share the invitation and prepare the practical details.</string><string name="event_next_step_organizing_body">Track the budget and preparations from this control centre.</string><string name="event_terminal_body">The event is finalized. Its summary remains available read-only.</string>
+    <string name="event_option_summary">%1$s – %2$s: %3$s</string><string name="event_checklist_summary">%1$s – %2$s</string>
 </resources>

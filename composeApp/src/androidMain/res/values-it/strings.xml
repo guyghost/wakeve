@@ -820,4 +820,9 @@
 <string name="action_retry">Riprova</string>
 <string name="permission_required">È necessaria l’autorizzazione per condividere l’invito.</string>
 <string name="invitation_clipboard_label">Invito Wakeve</string>
+    <string name="offline_status">Disponibile offline</string><string name="error_generic">Si è verificato un errore</string><string name="action_cancel">Annulla</string>
+    <string name="draft_time_range">Dalle %1$s alle %2$s</string><string name="draft_location_summary">• Luogo: %1$s</string><string name="draft_slot_summary">• %1$s, %2$s</string>
+    <string name="event_next_step_draft">Completa la configurazione</string><string name="event_next_step_polling">Raccogli i voti</string><string name="event_next_step_comparing">Scegli l’opzione migliore</string><string name="event_next_step_confirmed">Invita e prepara</string><string name="event_next_step_organizing">Coordina l’evento</string><string name="event_terminal_summary">Visualizza il riepilogo</string>
+    <string name="event_next_step_draft_body">Aggiungi i dati mancanti, quindi avvia il sondaggio.</string><string name="event_next_step_polling_body">Ricorda di votare a chi non lo ha ancora fatto.</string><string name="event_next_step_comparing_body">Confronta le opzioni prima di scegliere il piano definitivo.</string><string name="event_next_step_confirmed_body">Condividi l’invito e prepara i dettagli pratici.</string><string name="event_next_step_organizing_body">Controlla budget e preparativi da questo pannello.</string><string name="event_terminal_body">L’evento è concluso. Il riepilogo resta disponibile in sola lettura.</string>
+    <string name="event_option_summary">%1$s – %2$s: %3$s</string><string name="event_checklist_summary">%1$s – %2$s</string>
 </resources>

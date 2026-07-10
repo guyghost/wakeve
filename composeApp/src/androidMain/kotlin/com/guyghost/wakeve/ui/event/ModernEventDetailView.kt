@@ -199,7 +199,7 @@ private fun EventDestinationSummaryCard(
             )
             summary.options.forEach { option ->
                 Text(
-                    text = "${option.typeLabel} - ${option.title}: ${option.body}",
+                    text = stringResource(R.string.event_option_summary, option.typeLabel, option.title, option.body),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -320,7 +320,7 @@ private fun EventDayOfSummaryCard(summary: EventDayOfSummary) {
                 summary.checklist.forEach { item ->
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            text = "${item.statusLabel} - ${item.title}",
+                            text = stringResource(R.string.event_checklist_summary, item.statusLabel, item.title),
                             style = MaterialTheme.typography.bodySmall,
                             color = if (item.isBlocking) {
                                 MaterialTheme.colorScheme.error
@@ -365,7 +365,7 @@ private fun EventStatusHeader(event: Event) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = eventDetailStatusLabel(event.status),
+                text = stringResource(eventDetailStatusLabel(event.status)),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = when (event.status) {
@@ -414,12 +414,12 @@ private fun EventNextStepCard(status: EventStatus) {
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(
-                text = eventDetailNextStepTitle(status),
+                text = stringResource(eventDetailNextStepTitle(status)),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = eventDetailNextStepBody(status),
+                text = stringResource(eventDetailNextStepBody(status)),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -458,7 +458,7 @@ private fun DraftModeActions(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = eventDetailNextStepTitle(EventStatus.DRAFT),
+            text = stringResource(eventDetailNextStepTitle(EventStatus.DRAFT)),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
@@ -481,7 +481,7 @@ private fun PollingModeActions() {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = eventDetailNextStepTitle(EventStatus.POLLING),
+            text = stringResource(eventDetailNextStepTitle(EventStatus.POLLING)),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
@@ -504,7 +504,7 @@ private fun ComparingModeActions(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = eventDetailNextStepTitle(EventStatus.COMPARING),
+            text = stringResource(eventDetailNextStepTitle(EventStatus.COMPARING)),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
@@ -545,7 +545,7 @@ private fun ConfirmedModeActions(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = eventDetailNextStepTitle(EventStatus.CONFIRMED),
+            text = stringResource(eventDetailNextStepTitle(EventStatus.CONFIRMED)),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
@@ -644,7 +644,7 @@ private fun OrganizingModeActions(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = eventDetailNextStepTitle(EventStatus.ORGANIZING),
+            text = stringResource(eventDetailNextStepTitle(EventStatus.ORGANIZING)),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
@@ -714,42 +714,42 @@ private fun FinalizedModeActions(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = eventDetailNextStepTitle(EventStatus.FINALIZED),
+            text = stringResource(eventDetailNextStepTitle(EventStatus.FINALIZED)),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
 
         Text(
-            text = eventDetailNextStepBody(EventStatus.FINALIZED),
+            text = stringResource(eventDetailNextStepBody(EventStatus.FINALIZED)),
             style = MaterialTheme.typography.bodyMedium,
             color = if (readOnly) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
         )
     }
 }
 
-internal fun eventDetailStatusLabel(status: EventStatus): String = when (status) {
-    EventStatus.DRAFT -> "Brouillon"
-    EventStatus.POLLING -> "Sondage"
-    EventStatus.COMPARING -> "Comparaison"
-    EventStatus.CONFIRMED -> "Date confirmee"
-    EventStatus.ORGANIZING -> "Organisation"
-    EventStatus.FINALIZED -> "Finalise"
+internal fun eventDetailStatusLabel(status: EventStatus): Int = when (status) {
+    EventStatus.DRAFT -> R.string.event_state_draft
+    EventStatus.POLLING -> R.string.event_state_polling
+    EventStatus.COMPARING -> R.string.event_state_comparing
+    EventStatus.CONFIRMED -> R.string.event_state_confirmed
+    EventStatus.ORGANIZING -> R.string.event_state_organizing
+    EventStatus.FINALIZED -> R.string.event_state_finalized
 }
 
-internal fun eventDetailNextStepTitle(status: EventStatus): String = when (status) {
-    EventStatus.DRAFT -> "Terminer la creation"
-    EventStatus.POLLING -> "Obtenir les votes"
-    EventStatus.COMPARING -> "Choisir la meilleure option"
-    EventStatus.CONFIRMED -> "Inviter et preparer"
-    EventStatus.ORGANIZING -> "Piloter l'evenement"
-    EventStatus.FINALIZED -> "Consulter le recapitulatif"
+internal fun eventDetailNextStepTitle(status: EventStatus): Int = when (status) {
+    EventStatus.DRAFT -> R.string.event_next_step_draft
+    EventStatus.POLLING -> R.string.event_next_step_polling
+    EventStatus.COMPARING -> R.string.event_next_step_comparing
+    EventStatus.CONFIRMED -> R.string.event_next_step_confirmed
+    EventStatus.ORGANIZING -> R.string.event_next_step_organizing
+    EventStatus.FINALIZED -> R.string.event_terminal_summary
 }
 
-internal fun eventDetailNextStepBody(status: EventStatus): String = when (status) {
-    EventStatus.DRAFT -> "Ajoutez les informations manquantes, puis lancez le sondage quand l'evenement est pret."
-    EventStatus.POLLING -> "Relancez les participants qui n'ont pas vote avant de confirmer la date."
-    EventStatus.COMPARING -> "Comparez destination, budget et contraintes avant de selectionner le scenario final."
-    EventStatus.CONFIRMED -> "Partagez l'invitation, ajoutez l'evenement au calendrier et preparez les details pratiques."
-    EventStatus.ORGANIZING -> "Suivez budget, hebergement, repas, materiel et activites depuis ce centre de controle."
-    EventStatus.FINALIZED -> "L'evenement est verrouille; gardez le recapitulatif accessible pour les participants."
+internal fun eventDetailNextStepBody(status: EventStatus): Int = when (status) {
+    EventStatus.DRAFT -> R.string.event_next_step_draft_body
+    EventStatus.POLLING -> R.string.event_next_step_polling_body
+    EventStatus.COMPARING -> R.string.event_next_step_comparing_body
+    EventStatus.CONFIRMED -> R.string.event_next_step_confirmed_body
+    EventStatus.ORGANIZING -> R.string.event_next_step_organizing_body
+    EventStatus.FINALIZED -> R.string.event_terminal_body
 }

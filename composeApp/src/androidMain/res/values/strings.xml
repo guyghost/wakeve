@@ -871,4 +871,9 @@
 <string name="action_retry">Réessayer</string>
 <string name="permission_required">Autorisation requise pour partager l’invitation.</string>
 <string name="invitation_clipboard_label">Invitation Wakeve</string>
+    <string name="offline_status">Disponible hors connexion</string><string name="error_generic">Une erreur est survenue</string><string name="action_cancel">Annuler</string>
+    <string name="draft_time_range">%1$s – %2$s</string><string name="draft_location_summary">• %1$s</string><string name="draft_slot_summary">• %1$s – %2$s</string>
+    <string name="event_next_step_draft">Terminer la création</string><string name="event_next_step_polling">Obtenir les votes</string><string name="event_next_step_comparing">Choisir la meilleure option</string><string name="event_next_step_confirmed">Inviter et préparer</string><string name="event_next_step_organizing">Piloter l’événement</string><string name="event_terminal_summary">Consulter le récapitulatif</string>
+    <string name="event_next_step_draft_body">Ajoutez les informations manquantes, puis lancez le sondage.</string><string name="event_next_step_polling_body">Relancez les participants qui n’ont pas encore voté.</string><string name="event_next_step_comparing_body">Comparez les options avant de choisir le scénario final.</string><string name="event_next_step_confirmed_body">Partagez l’invitation et préparez les détails pratiques.</string><string name="event_next_step_organizing_body">Suivez le budget et les préparatifs depuis ce centre de contrôle.</string><string name="event_terminal_body">L’événement est finalisé. Son récapitulatif reste accessible en lecture seule.</string>
+    <string name="event_option_summary">%1$s – %2$s : %3$s</string><string name="event_checklist_summary">%1$s – %2$s</string>
 </resources>

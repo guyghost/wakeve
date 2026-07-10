@@ -822,4 +822,9 @@
 <string name="action_retry">Volver a intentarlo</string>
 <string name="permission_required">Se necesita permiso para compartir la invitación.</string>
 <string name="invitation_clipboard_label">Invitación de Wakeve</string>
+    <string name="offline_status">Disponible sin conexión</string><string name="error_generic">Se ha producido un error</string><string name="action_cancel">Cancelar</string>
+    <string name="draft_time_range">De %1$s a %2$s</string><string name="draft_location_summary">• Lugar: %1$s</string><string name="draft_slot_summary">• %1$s, %2$s</string>
+    <string name="event_next_step_draft">Terminar la configuración</string><string name="event_next_step_polling">Recoger los votos</string><string name="event_next_step_comparing">Elegir la mejor opción</string><string name="event_next_step_confirmed">Invitar y preparar</string><string name="event_next_step_organizing">Coordinar el evento</string><string name="event_terminal_summary">Ver el resumen</string>
+    <string name="event_next_step_draft_body">Añade los datos que faltan y después inicia la encuesta.</string><string name="event_next_step_polling_body">Recuerda que voten quienes aún no lo hayan hecho.</string><string name="event_next_step_comparing_body">Compara las opciones antes de elegir el plan definitivo.</string><string name="event_next_step_confirmed_body">Comparte la invitación y prepara los detalles prácticos.</string><string name="event_next_step_organizing_body">Controla el presupuesto y los preparativos desde este panel.</string><string name="event_terminal_body">El evento está finalizado. Su resumen sigue disponible en modo de solo lectura.</string>
+    <string name="event_option_summary">%1$s – %2$s: %3$s</string><string name="event_checklist_summary">%1$s – %2$s</string>
 </resources>
