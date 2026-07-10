@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -58,14 +59,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
-import java.util.Locale
 import java.util.concurrent.TimeUnit
 import androidx.compose.ui.res.stringResource
 import com.guyghost.wakeve.R
@@ -125,19 +125,6 @@ data class NotificationItem(
             }
         }
 
-    val relativeTimestamp: String
-        get() {
-            val diff = System.currentTimeMillis() - createdAt.time
-            return when {
-                diff < TimeUnit.MINUTES.toMillis(1) -> "A l'instant"
-                diff < TimeUnit.HOURS.toMillis(1) -> "Il y a ${TimeUnit.MILLISECONDS.toMinutes(diff)} min"
-                diff < TimeUnit.DAYS.toMillis(1) -> "Il y a ${TimeUnit.MILLISECONDS.toHours(diff)}h"
-                diff < TimeUnit.DAYS.toMillis(7) -> "Il y a ${TimeUnit.MILLISECONDS.toDays(diff)}j"
-                else -> {
-                    SimpleDateFormat("dd/MM", Locale.FRANCE).format(createdAt)
-                }
-            }
-    }
 }
 
 enum class NotificationInboxFilter {
@@ -146,10 +133,9 @@ enum class NotificationInboxFilter {
 }
 
 internal fun parseNotificationInboxFilter(value: String?): NotificationInboxFilter {
-    return when (value?.trim()?.lowercase()) {
-        "unread" -> NotificationInboxFilter.UNREAD
-        else -> NotificationInboxFilter.ALL
-    }
+    return if (value?.trim()?.uppercase() == NotificationInboxFilter.UNREAD.name) {
+        NotificationInboxFilter.UNREAD
+    } else NotificationInboxFilter.ALL
 }
 
 internal fun filterNotificationItems(
@@ -162,12 +148,8 @@ internal fun filterNotificationItems(
     }
 }
 
-internal fun notificationInboxErrorMessage(error: Throwable? = null): String {
-    return "Impossible de charger les notifications."
-}
-
 internal data class NotificationAttentionCue(
-    val label: String,
+    val labelRes: Int,
     val requiresAttention: Boolean
 )
 
@@ -175,33 +157,33 @@ internal fun notificationAttentionCue(notification: NotificationItem): Notificat
     return when (notification.notificationType) {
         NotificationType.DEADLINE_REMINDER,
         NotificationType.VOTE_CLOSE_REMINDER -> NotificationAttentionCue(
-            label = "Action attendue - evite de bloquer le groupe",
+            labelRes = R.string.notification_attention_blocking,
             requiresAttention = true
         )
         NotificationType.MENTION -> NotificationAttentionCue(
-            label = "Action requise - vous etes mentionne",
+            labelRes = R.string.notification_attention_required,
             requiresAttention = true
         )
         NotificationType.EVENT_CONFIRMED -> NotificationAttentionCue(
-            label = "Important - date validee",
+            labelRes = R.string.notification_attention_confirmed,
             requiresAttention = true
         )
         NotificationType.PARTICIPANT_JOINED -> NotificationAttentionCue(
-            label = "Utile - presence du groupe mise a jour",
+            labelRes = R.string.notification_information_participant,
             requiresAttention = false
         )
         NotificationType.VOTE_SUBMITTED -> NotificationAttentionCue(
-            label = "Info utile - vote enregistre",
+            labelRes = R.string.notification_information_vote,
             requiresAttention = false
         )
         NotificationType.COMMENT_POSTED,
         NotificationType.COMMENT_REPLY -> NotificationAttentionCue(
-            label = "Conversation - faible priorite",
+            labelRes = R.string.notification_information_conversation,
             requiresAttention = false
         )
         NotificationType.EVENT_UPDATE,
         null -> NotificationAttentionCue(
-            label = "Info - bruit limite",
+            labelRes = R.string.notification_information,
             requiresAttention = false
         )
     }
@@ -224,6 +206,7 @@ fun NotificationsScreen(
     var notifications by remember { mutableStateOf<List<NotificationItem>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
     var loadErrorMessage by remember { mutableStateOf<String?>(null) }
+    var selectedFilter by remember(initialFilter) { mutableStateOf(initialFilter) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     fun loadNotifications() {
@@ -235,7 +218,7 @@ fun NotificationsScreen(
                 notifications = notificationService.getNotifications(userId)
                     .map(NotificationMessage::toNotificationItem)
             } catch (e: Exception) {
-                loadErrorMessage = notificationInboxErrorMessage(e)
+                loadErrorMessage = e.javaClass.name
             } finally {
                 isLoading = false
             }
@@ -250,8 +233,8 @@ fun NotificationsScreen(
         notifications.count { !it.isRead }
     }
 
-    val visibleNotifications = remember(notifications, initialFilter) {
-        filterNotificationItems(notifications, initialFilter)
+    val visibleNotifications = remember(notifications, selectedFilter) {
+        filterNotificationItems(notifications, selectedFilter)
     }
 
     val groupedNotifications = remember(visibleNotifications) {
@@ -288,7 +271,7 @@ fun NotificationsScreen(
                                     if (result.isSuccess) {
                                         loadNotifications()
                                     } else {
-                                        loadErrorMessage = notificationInboxErrorMessage(result.exceptionOrNull())
+                                        loadErrorMessage = result.exceptionOrNull()?.javaClass?.name
                                     }
                                 }
                             } else {
@@ -345,8 +328,34 @@ fun NotificationsScreen(
                     LazyColumn(
                         modifier = Modifier.fillMaxSize()
                     ) {
+                        item {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                NotificationInboxFilter.entries.forEach { filter ->
+                                    FilterChip(
+                                        selected = filter == selectedFilter,
+                                        onClick = { selectedFilter = filter },
+                                        label = {
+                                            Text(
+                                                text = stringResource(
+                                                    when (filter) {
+                                                        NotificationInboxFilter.ALL -> R.string.notifications_filter_all
+                                                        NotificationInboxFilter.UNREAD -> R.string.notifications_filter_unread
+                                                    }
+                                                )
+                                            )
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
                         groupedNotifications.forEach { (group, items) ->
-                            item(key = "header-${group.name}") {
+                            item(key = group.name) {
                                 Text(
                                     text = stringResource(group.labelRes),
                                     style = MaterialTheme.typography.titleSmall,
@@ -372,7 +381,7 @@ fun NotificationsScreen(
                                                 if (result.isSuccess) {
                                                     loadNotifications()
                                                 } else {
-                                                    loadErrorMessage = notificationInboxErrorMessage(result.exceptionOrNull())
+                                                    loadErrorMessage = result.exceptionOrNull()?.javaClass?.name
                                                 }
                                             }
                                         } else {
@@ -388,7 +397,7 @@ fun NotificationsScreen(
                                                 if (result.isSuccess) {
                                                     loadNotifications()
                                                 } else {
-                                                    loadErrorMessage = notificationInboxErrorMessage(result.exceptionOrNull())
+                                                    loadErrorMessage = result.exceptionOrNull()?.javaClass?.name
                                                 }
                                             }
                                         } else {
@@ -402,7 +411,7 @@ fun NotificationsScreen(
                                                 if (result.isSuccess) {
                                                     loadNotifications()
                                                 } else {
-                                                    loadErrorMessage = notificationInboxErrorMessage(result.exceptionOrNull())
+                                                    loadErrorMessage = result.exceptionOrNull()?.javaClass?.name
                                                 }
                                             }
                                         }
@@ -461,7 +470,7 @@ private fun SwipeToDismissNotificationRow(
                     SwipeToDismissBoxValue.EndToStart -> Color(0xFFDC2626)
                     else -> Color.Transparent
                 },
-                label = "swipe_bg"
+                label = String()
             )
 
             val icon = when (direction) {
@@ -555,7 +564,7 @@ private fun NotificationRow(
                 )
 
                 Text(
-                    text = notification.relativeTimestamp,
+                    text = notificationRelativeTimestamp(notification.createdAt),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -574,7 +583,7 @@ private fun NotificationRow(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = attentionCue.label,
+                text = stringResource(attentionCue.labelRes),
                 style = MaterialTheme.typography.labelSmall,
                 color = if (attentionCue.requiresAttention) {
                     MaterialTheme.colorScheme.primary
@@ -660,7 +669,7 @@ private fun NotificationErrorState(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = message,
+            text = stringResource(R.string.notifications_load_error),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
@@ -670,8 +679,31 @@ private fun NotificationErrorState(
         Spacer(modifier = Modifier.height(12.dp))
 
         TextButton(onClick = onRetry) {
-            Text(text = "Réessayer")
+            Text(text = stringResource(R.string.action_retry))
         }
+    }
+}
+
+@Composable
+private fun notificationRelativeTimestamp(createdAt: Date): String {
+    val elapsed = (System.currentTimeMillis() - createdAt.time).coerceAtLeast(0)
+    return when {
+        elapsed < TimeUnit.MINUTES.toMillis(1) -> stringResource(R.string.notification_time_now)
+        elapsed < TimeUnit.HOURS.toMillis(1) -> pluralStringResource(
+            R.plurals.notification_minutes_ago,
+            TimeUnit.MILLISECONDS.toMinutes(elapsed).toInt(),
+            TimeUnit.MILLISECONDS.toMinutes(elapsed).toInt()
+        )
+        elapsed < TimeUnit.DAYS.toMillis(1) -> pluralStringResource(
+            R.plurals.notification_hours_ago,
+            TimeUnit.MILLISECONDS.toHours(elapsed).toInt(),
+            TimeUnit.MILLISECONDS.toHours(elapsed).toInt()
+        )
+        else -> pluralStringResource(
+            R.plurals.notification_days_ago,
+            TimeUnit.MILLISECONDS.toDays(elapsed).toInt(),
+            TimeUnit.MILLISECONDS.toDays(elapsed).toInt()
+        )
     }
 }
 
@@ -682,7 +714,9 @@ private fun NotificationMessage.toNotificationItem(): NotificationItem =
         notificationType = type,
         title = title,
         body = body,
-        eventId = data["eventId"] ?: data["event_id"],
+        eventId = data.entries.firstOrNull { entry ->
+            entry.key.filter(Char::isLetter).equals(NotificationItem::eventId.name, ignoreCase = true)
+        }?.value,
         clickTarget = resolveNotificationClickTarget(data),
         isRead = readAt != null,
         createdAt = sentAt.toDateOrNow()

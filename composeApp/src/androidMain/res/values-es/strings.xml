@@ -584,10 +584,21 @@
     <string name="notification_date_yesterday">Ayer</string>
     <string name="notification_date_this_week">Esta semana</string>
     <string name="notification_date_older">Más antiguo</string>
-    <string name="notification_just_now">Ahora mismo</string>
-    <string name="notification_minutes_ago">Hace %1$d min</string>
-    <string name="notification_hours_ago">Hace %1$dh</string>
-    <string name="notification_days_ago">Hace %1$dd</string>
+    <string name="notification_time_now">Ahora mismo</string>
+    <plurals name="notification_minutes_ago"><item quantity="one">Hace %1$d minuto</item><item quantity="other">Hace %1$d minutos</item></plurals>
+    <plurals name="notification_hours_ago"><item quantity="one">Hace %1$d hora</item><item quantity="other">Hace %1$d horas</item></plurals>
+    <plurals name="notification_days_ago"><item quantity="one">Hace %1$d día</item><item quantity="other">Hace %1$d días</item></plurals>
+    <string name="notifications_filter_all">Todas</string>
+    <string name="notifications_filter_unread">No leídas</string>
+    <string name="notification_attention_required">Acción requerida</string>
+    <string name="notification_information">Información</string>
+    <string name="notification_attention_blocking">Acción pendiente — evita bloquear al grupo</string>
+    <string name="notification_attention_mention">Acción requerida — te han mencionado</string>
+    <string name="notification_attention_confirmed">Importante — fecha confirmada</string>
+    <string name="notification_information_participant">Útil — asistencia del grupo actualizada</string>
+    <string name="notification_information_vote">Información útil — voto registrado</string>
+    <string name="notification_information_conversation">Conversación — prioridad baja</string>
+    <string name="notifications_load_error">No se han podido cargar las notificaciones.</string>
     <string name="notification_empty_body">Tus notificaciones aparecerán aquí cuando alguien vote, comente o actualice un evento.</string>
 
     <!-- Notification Preferences -->

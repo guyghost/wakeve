@@ -571,10 +571,21 @@
     <string name="notification_date_yesterday">Ieri</string>
     <string name="notification_date_this_week">Questa settimana</string>
     <string name="notification_date_older">Precedenti</string>
-    <string name="notification_just_now">Adesso</string>
-    <string name="notification_minutes_ago">%1$d min fa</string>
-    <string name="notification_hours_ago">%1$d ore fa</string>
-    <string name="notification_days_ago">%1$d giorni fa</string>
+    <string name="notification_time_now">Adesso</string>
+    <plurals name="notification_minutes_ago"><item quantity="one">%1$d minuto fa</item><item quantity="other">%1$d minuti fa</item></plurals>
+    <plurals name="notification_hours_ago"><item quantity="one">%1$d ora fa</item><item quantity="other">%1$d ore fa</item></plurals>
+    <plurals name="notification_days_ago"><item quantity="one">%1$d giorno fa</item><item quantity="other">%1$d giorni fa</item></plurals>
+    <string name="notifications_filter_all">Tutte</string>
+    <string name="notifications_filter_unread">Non lette</string>
+    <string name="notification_attention_required">Azione richiesta</string>
+    <string name="notification_information">Informazione</string>
+    <string name="notification_attention_blocking">Azione attesa — evita di bloccare il gruppo</string>
+    <string name="notification_attention_mention">Azione richiesta — sei stato menzionato</string>
+    <string name="notification_attention_confirmed">Importante — data confermata</string>
+    <string name="notification_information_participant">Utile — partecipazione del gruppo aggiornata</string>
+    <string name="notification_information_vote">Informazione utile — voto registrato</string>
+    <string name="notification_information_conversation">Conversazione — priorità bassa</string>
+    <string name="notifications_load_error">Impossibile caricare le notifiche.</string>
     <string name="notification_empty_body">Le tue notifiche appariranno qui quando qualcuno voterà, commenterà o aggiornerà un evento.</string>
 
     <!-- Notification Preferences -->
