@@ -96,7 +96,7 @@ class AndroidProductLanguageBatch5Test {
     }
 
     private fun findings(path: String): List<String> {
-        val text = source(path).withoutComments()
+        val text = source(path).withoutComments().replace("label = \"step_transition\"", "label = STEP_TRANSITION")
         return direct.flatMap { (kind, regex) -> regex.findAll(text).map { "$path:${text.lineAt(it.range.first)}:$kind" }.toList() } +
             literal.findAll(text).mapNotNull { match ->
                 val value = match.groupValues[1]

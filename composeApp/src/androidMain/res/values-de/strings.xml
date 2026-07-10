@@ -823,4 +823,9 @@
 <string name="action_retry">Erneut versuchen</string>
 <string name="permission_required">Zum Teilen der Einladung ist eine Berechtigung erforderlich.</string>
 <string name="invitation_clipboard_label">Wakeve-Einladung</string>
+    <string name="offline_status">Offline verfügbar</string><string name="error_generic">Ein Fehler ist aufgetreten</string><string name="action_cancel">Abbrechen</string>
+    <string name="draft_time_range">%1$s bis %2$s</string><string name="draft_location_summary">• Ort: %1$s</string><string name="draft_slot_summary">• %1$s, %2$s</string>
+    <string name="event_next_step_draft">Einrichtung abschließen</string><string name="event_next_step_polling">Stimmen einholen</string><string name="event_next_step_comparing">Beste Option auswählen</string><string name="event_next_step_confirmed">Einladen und vorbereiten</string><string name="event_next_step_organizing">Veranstaltung koordinieren</string><string name="event_terminal_summary">Zusammenfassung ansehen</string>
+    <string name="event_next_step_draft_body">Fehlende Angaben ergänzen und danach die Umfrage starten.</string><string name="event_next_step_polling_body">Teilnehmende ohne Stimme noch einmal erinnern.</string><string name="event_next_step_comparing_body">Optionen vergleichen und anschließend den endgültigen Plan wählen.</string><string name="event_next_step_confirmed_body">Einladung teilen und praktische Details vorbereiten.</string><string name="event_next_step_organizing_body">Budget und Vorbereitungen in dieser Übersicht verfolgen.</string><string name="event_terminal_body">Die Veranstaltung ist abgeschlossen. Die Zusammenfassung bleibt schreibgeschützt verfügbar.</string>
+    <string name="event_option_summary">%1$s – %2$s: %3$s</string><string name="event_checklist_summary">%1$s – %2$s</string>
 </resources>

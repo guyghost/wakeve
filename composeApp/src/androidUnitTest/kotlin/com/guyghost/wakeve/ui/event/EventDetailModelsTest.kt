@@ -11,6 +11,7 @@ import com.guyghost.wakeve.models.LocationType
 import com.guyghost.wakeve.models.PotentialLocation
 import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.models.Vote
+import com.guyghost.wakeve.R
 import com.guyghost.wakeve.payment.SettlementRecord
 import com.guyghost.wakeve.postevent.PostEventItemStatus
 import com.guyghost.wakeve.postevent.PostEventPrimaryAction
@@ -22,13 +23,13 @@ import kotlin.test.assertTrue
 
 class EventDetailModelsTest {
     @Test
-    fun eventDetailStatusLabelsAreUserFacingFrenchCopy() {
-        assertEquals("Brouillon", eventDetailStatusLabel(EventStatus.DRAFT))
-        assertEquals("Sondage", eventDetailStatusLabel(EventStatus.POLLING))
-        assertEquals("Comparaison", eventDetailStatusLabel(EventStatus.COMPARING))
-        assertEquals("Date confirmee", eventDetailStatusLabel(EventStatus.CONFIRMED))
-        assertEquals("Organisation", eventDetailStatusLabel(EventStatus.ORGANIZING))
-        assertEquals("Finalise", eventDetailStatusLabel(EventStatus.FINALIZED))
+    fun eventDetailStatusLabelsMapToLocalizedResources() {
+        assertEquals(R.string.event_state_draft, eventDetailStatusLabel(EventStatus.DRAFT))
+        assertEquals(R.string.event_state_polling, eventDetailStatusLabel(EventStatus.POLLING))
+        assertEquals(R.string.event_state_comparing, eventDetailStatusLabel(EventStatus.COMPARING))
+        assertEquals(R.string.event_state_confirmed, eventDetailStatusLabel(EventStatus.CONFIRMED))
+        assertEquals(R.string.event_state_organizing, eventDetailStatusLabel(EventStatus.ORGANIZING))
+        assertEquals(R.string.event_state_finalized, eventDetailStatusLabel(EventStatus.FINALIZED))
     }
 
     @Test
@@ -38,17 +39,16 @@ class EventDetailModelsTest {
         assertEquals(statuses.size, statuses.map(::eventDetailNextStepTitle).toSet().size)
         assertEquals(statuses.size, statuses.map(::eventDetailNextStepBody).toSet().size)
 
-        assertEquals("Terminer la creation", eventDetailNextStepTitle(EventStatus.DRAFT))
-        assertEquals("Obtenir les votes", eventDetailNextStepTitle(EventStatus.POLLING))
-        assertEquals("Choisir la meilleure option", eventDetailNextStepTitle(EventStatus.COMPARING))
-        assertEquals("Inviter et preparer", eventDetailNextStepTitle(EventStatus.CONFIRMED))
-        assertEquals("Piloter l'evenement", eventDetailNextStepTitle(EventStatus.ORGANIZING))
-        assertEquals("Consulter le recapitulatif", eventDetailNextStepTitle(EventStatus.FINALIZED))
-
-        assertTrue(eventDetailNextStepBody(EventStatus.POLLING).contains("participants"))
-        assertTrue(eventDetailNextStepBody(EventStatus.CONFIRMED).contains("invitation"))
-        assertTrue(eventDetailNextStepBody(EventStatus.ORGANIZING).contains("centre de controle"))
-        assertTrue(eventDetailNextStepBody(EventStatus.FINALIZED).contains("verrouille"))
+        assertEquals(R.string.event_next_step_draft, eventDetailNextStepTitle(EventStatus.DRAFT))
+        assertEquals(R.string.event_next_step_polling, eventDetailNextStepTitle(EventStatus.POLLING))
+        assertEquals(R.string.event_next_step_comparing, eventDetailNextStepTitle(EventStatus.COMPARING))
+        assertEquals(R.string.event_next_step_confirmed, eventDetailNextStepTitle(EventStatus.CONFIRMED))
+        assertEquals(R.string.event_next_step_organizing, eventDetailNextStepTitle(EventStatus.ORGANIZING))
+        assertEquals(R.string.event_terminal_summary, eventDetailNextStepTitle(EventStatus.FINALIZED))
+        assertEquals(R.string.event_next_step_polling_body, eventDetailNextStepBody(EventStatus.POLLING))
+        assertEquals(R.string.event_next_step_confirmed_body, eventDetailNextStepBody(EventStatus.CONFIRMED))
+        assertEquals(R.string.event_next_step_organizing_body, eventDetailNextStepBody(EventStatus.ORGANIZING))
+        assertEquals(R.string.event_terminal_body, eventDetailNextStepBody(EventStatus.FINALIZED))
     }
 
     @Test

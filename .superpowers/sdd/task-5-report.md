@@ -300,3 +300,23 @@ if rg '^android/' /tmp/task-5-product-language-audit.txt; then exit 1; fi
 ```
 
 The scanner proof must also record the global exit and non-Android finding count so a zero-byte output or scanner crash cannot be mistaken for zero Android findings.
+
+## Task 5E1 — Images and invitation sharing
+
+TDD evidence:
+
+- RED: the initial Batch 5 contract failed on hard-coded image descriptions, the QR heading, indirect clipboard copy, and missing E1 action-target-state resources.
+- Partition: `AndroidProductLanguageBatch5Test` now has six independently runnable ownership tests. E1 owns `WakeveAsyncImage.kt` and `InvitationShareScreen.kt`; E2–E6 remain RED for their future owners.
+- GREEN: E1 passes with natural French, English, German, Spanish, Italian, and Portuguese resources, placeholder parity, non-English anti-copy checks, and exact-site technical literal guards.
+- Implementation: event cover, avatar, QR, copy-link, loading, error, retry, clipboard, and permission feedback are resource-backed. Share-launch failures project explicit permission/error state without changing invitation URL or QR generation semantics.
+- Verification: the E1 partition passes; the full Batch 5 class reports exactly five expected failures (E2–E6); `InvitationShareScreenTest` and `:composeApp:compileDebugKotlinAndroid` pass; `git diff --check` is clean.
+
+## Task 5E2 — Draft workflow and terminal event detail
+
+TDD evidence:
+
+- RED: E2 reported direct and indirect French copy for time-of-day, formatted ranges, location/slot summaries, plus missing pending/offline/error/cancellation resources. The terminal partition separately proved every lifecycle label and next-step sentence was hard-coded.
+- Model/review: `DraftWorkflowOutcome` is a presentation-only deterministic input (`READY`, `SYNC_PENDING`, `OFFLINE`, `ERROR`, `CANCELLED`). It emits no intent, repository write, route, or domain transition. Existing callbacks and event-status transitions are unchanged.
+- GREEN: the wizard and detail view use resource mappings, device-locale date/time formats, localized formatted summaries, and natural six-locale catalogs. `FINALIZED` remains read-only and contains no button CTA.
+- Compatibility-test migration: `EventDetailModelsTest` now verifies status/title/body resource mappings rather than calling obsolete French-string helpers; workflow-state assertions remain unchanged.
+- Verification: E2, terminal E3, `EventDetailModelsTest`, catalog parity, and shared `ProductLanguageTest` pass. `EventManagementStateMachineTest`, `:composeApp:assembleDebug --no-daemon --no-configuration-cache`, and `git diff --check` pass. Because terminal detail was part of this ownership slice, the full Batch 5 class now has three expected RED partitions (E4–E6), not the stale four-RED forecast.

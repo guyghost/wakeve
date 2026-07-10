@@ -107,6 +107,7 @@ fun DraftEventWizard(
     onSaveStep: (DraftEventWizardUiState) -> Unit,
     onComplete: (DraftEventWizardUiState) -> Unit,
     onCancel: () -> Unit,
+    workflowOutcome: DraftWorkflowOutcome = DraftWorkflowOutcome.READY,
     modifier: Modifier = Modifier
 ) {
     var wizardState by remember(initialEvent) { mutableStateOf(initialEvent.toDraftEventWizardUiState()) }
@@ -129,10 +130,10 @@ fun DraftEventWizard(
     
     // Formatters for preview
     val dateFormatter = remember { 
-        DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(Locale.FRENCH)
+        DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(Locale.getDefault())
     }
     val timeFormatter = remember {
-        DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(Locale.FRENCH)
+        DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(Locale.getDefault())
     }
     // Validation for each step
     fun isStepValid(step: Int): Boolean {
@@ -175,6 +176,7 @@ fun DraftEventWizard(
     }
     
     // Helper to format time slot for preview
+    @Composable
     fun formatTimeSlotForPreview(slot: TimeSlot): Pair<String, String> {
         val dateStr = slot.start?.let { startIso ->
             try {
@@ -188,22 +190,24 @@ fun DraftEventWizard(
         } ?: ""
         
         val timeStr = when (slot.timeOfDay) {
-            TimeOfDay.ALL_DAY -> "Toute la journée"
-            TimeOfDay.MORNING -> "Matin (8h-12h)"
-            TimeOfDay.AFTERNOON -> "Après-midi (12h-18h)"
-            TimeOfDay.EVENING -> "Soir (18h-minuit)"
+            TimeOfDay.ALL_DAY -> stringResource(R.string.time_of_day_all_day)
+            TimeOfDay.MORNING -> stringResource(R.string.time_of_day_morning)
+            TimeOfDay.AFTERNOON -> stringResource(R.string.time_of_day_afternoon)
+            TimeOfDay.EVENING -> stringResource(R.string.time_of_day_evening)
             TimeOfDay.SPECIFIC -> {
-                try {
+                val range = try {
                     val startInstant = Instant.parse(slot.start!!)
                     val endInstant = Instant.parse(slot.end!!)
                     val startLocalTime = startInstant.toLocalDateTime(TimeZone.of(slot.timezone)).time
                     val endLocalTime = endInstant.toLocalDateTime(TimeZone.of(slot.timezone)).time
                     val javaStartTime = java.time.LocalTime.of(startLocalTime.hour, startLocalTime.minute)
                     val javaEndTime = java.time.LocalTime.of(endLocalTime.hour, endLocalTime.minute)
-                    "${javaStartTime.format(timeFormatter)} - ${javaEndTime.format(timeFormatter)}"
+                    javaStartTime.format(timeFormatter) to javaEndTime.format(timeFormatter)
                 } catch (e: Exception) {
-                    "Heure spécifique"
+                    null
                 }
+                range?.let { (start, end) -> stringResource(R.string.draft_time_range, start, end) }
+                    ?: stringResource(R.string.time_of_day_specific)
             }
         }
         
@@ -332,6 +336,13 @@ fun DraftEventWizard(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            when (workflowOutcome) {
+                DraftWorkflowOutcome.READY -> Unit
+                DraftWorkflowOutcome.SYNC_PENDING -> DraftOutcomeMessage(R.string.sync_waiting)
+                DraftWorkflowOutcome.OFFLINE -> DraftOutcomeMessage(R.string.offline_status)
+                DraftWorkflowOutcome.ERROR -> DraftOutcomeMessage(R.string.error_generic)
+                DraftWorkflowOutcome.CANCELLED -> DraftOutcomeMessage(R.string.action_cancel)
+            }
             AnimatedContent(
                 targetState = currentStep,
                 transitionSpec = {
@@ -505,7 +516,7 @@ fun DraftEventWizard(
                                                     val instant = Instant.parse(startIso)
                                                     val localDate = instant.toLocalDateTime(TimeZone.of(slot.timezone)).date
                                                     val javaDate = java.time.LocalDate.of(localDate.year, localDate.monthNumber, localDate.dayOfMonth)
-                                                    val dateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(Locale.FRENCH)
+                                                    val dateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(Locale.getDefault())
                                                     javaDate.format(dateFormatter)
                                                 } catch (e: Exception) {
                                                     startIso
@@ -525,18 +536,20 @@ fun DraftEventWizard(
                                                     TimeOfDay.EVENING -> stringResource(R.string.time_of_day_evening)
                                                     TimeOfDay.SPECIFIC -> {
                                                         // Display start-end times for SPECIFIC
-                                                        try {
+                                                        val range = try {
                                                             val startInstant = Instant.parse(slot.start!!)
                                                             val endInstant = Instant.parse(slot.end!!)
                                                             val startLocalTime = startInstant.toLocalDateTime(TimeZone.of(slot.timezone)).time
                                                             val endLocalTime = endInstant.toLocalDateTime(TimeZone.of(slot.timezone)).time
-                                                            val timeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(Locale.FRENCH)
+                                                            val timeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(Locale.getDefault())
                                                             val javaStartTime = java.time.LocalTime.of(startLocalTime.hour, startLocalTime.minute)
                                                             val javaEndTime = java.time.LocalTime.of(endLocalTime.hour, endLocalTime.minute)
-                                                            "${javaStartTime.format(timeFormatter)} - ${javaEndTime.format(timeFormatter)}"
+                                                            javaStartTime.format(timeFormatter) to javaEndTime.format(timeFormatter)
                                                         } catch (e: Exception) {
-                                                            stringResource(R.string.time_of_day_specific)
+                                                            null
                                                         }
+                                                        range?.let { (start, end) -> stringResource(R.string.draft_time_range, start, end) }
+                                                            ?: stringResource(R.string.time_of_day_specific)
                                                     }
                                                 },
                                                 style = MaterialTheme.typography.bodyMedium,
@@ -711,7 +724,7 @@ fun DraftEventWizard(
                                             )
                                             locations.forEach { location ->
                                                 Text(
-                                                    text = "• ${location.name}",
+                                                    text = stringResource(R.string.draft_location_summary, location.name),
                                                     style = MaterialTheme.typography.bodyMedium
                                                 )
                                             }
@@ -739,7 +752,7 @@ fun DraftEventWizard(
                                         timeSlots.forEach { slot ->
                                             val (dateStr, timeStr) = formatTimeSlotForPreview(slot)
                                             Text(
-                                                text = "• $dateStr - $timeStr",
+                                                text = stringResource(R.string.draft_slot_summary, dateStr, timeStr),
                                                 style = MaterialTheme.typography.bodyMedium
                                             )
                                         }
@@ -839,6 +852,24 @@ fun DraftEventWizard(
                     Text(stringResource(R.string.done))
                 }
             }
+        )
+    }
+}
+
+/** Presentation-only outcomes supplied by the deterministic workflow owner. */
+enum class DraftWorkflowOutcome { READY, SYNC_PENDING, OFFLINE, ERROR, CANCELLED }
+
+@Composable
+private fun DraftOutcomeMessage(messageRes: Int) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Text(
+            text = stringResource(messageRes),
+            modifier = Modifier.padding(12.dp),
+            style = MaterialTheme.typography.bodyMedium
         )
     }
 }
