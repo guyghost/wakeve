@@ -16,6 +16,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.guyghost.wakeve.R
 import com.guyghost.wakeve.theme.WakeveColors
 import com.guyghost.wakeve.collaboration.MentionParser
 
@@ -81,7 +83,7 @@ fun CommentInput(
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(focusRequester),
-                placeholder = { Text(commentInputPlaceholder()) },
+                placeholder = { Text(stringResource(R.string.comment_input_placeholder)) },
                 minLines = 1,
                 maxLines = 4,
                 shape = RoundedCornerShape(24.dp),
@@ -102,7 +104,7 @@ fun CommentInput(
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = commentSendContentDescription(),
+                            contentDescription = stringResource(R.string.a11y_comment_send),
                             tint = if (text.isNotBlank()) {
                                 WakeveColors.primary
                             } else {
@@ -186,7 +188,7 @@ fun MentionAutocomplete(
             modifier = Modifier.padding(8.dp)
         ) {
             Text(
-                text = "Mention someone...",
+                text = stringResource(R.string.mention_prompt),
                 style = MaterialTheme.typography.labelSmall,
                 color = WakeveColors.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -227,7 +229,7 @@ fun MentionUserItem(
 
         // Username
         Text(
-            text = "@$username",
+            text = stringResource(R.string.mention_user_label, username),
             style = MaterialTheme.typography.bodyMedium,
             color = WakeveColors.onSurface
         )
