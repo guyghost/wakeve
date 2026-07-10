@@ -22,3 +22,12 @@ Base: `6673d15f`
 - Android production Kotlin compilation passes.
 - Full Batch 4 remains intentionally RED only on `mealPlanningScreenUsesResourcesForEveryVisibleLiteral`; this is the next micro-lot.
 - `git diff --check` passes.
+
+## Batch 4 MealPlanningScreen completion
+
+Base: `aea1aa10`
+
+- Migrated the screen title, navigation, empty state, filters, summary, delete confirmation, meal cards, comments, constraints, costs, counts, servings, status/type projections, and locale-aware date headings to Android resources.
+- Added action-target-state semantics for constraints, preparation, comments, adding, type/status filters, opening a named meal with its status, and deleting a named meal.
+- Added natural French, English, German, Spanish, Italian, and Portuguese catalogs with plural and positional-placeholder parity.
+- Preserved repository operations, filtering, dialog behavior, generated-plan behavior, and meal state rules.

@@ -27,6 +27,29 @@ class AndroidProductLanguageBatch4Test {
     }
 
     @Test
+    fun mealPlanningDefinesActionTargetAndStateAwareSemantics() {
+        val source = root.resolve(screenPath).readText()
+        listOf(
+            "a11y_meal_open_constraints",
+            "a11y_meal_filter_type",
+            "a11y_meal_filter_status",
+            "a11y_meal_open",
+            "a11y_meal_delete",
+        ).forEach {
+            assertTrue(source.contains("R.string.$it"), "MealPlanningScreen must consume $it")
+        }
+        listOf(
+            "meal_count",
+            "meal_constraint_count",
+            "meal_responsible_count",
+            "meal_serving_count",
+            "a11y_meal_comments",
+        ).forEach {
+            assertTrue(source.contains("R.plurals.$it"), "MealPlanningScreen must consume plural $it")
+        }
+    }
+
+    @Test
     fun everyDerivedMealKeyHasNaturalSixLocaleParity() {
         val expected = keys("values")
         val english = catalog("values-en")
