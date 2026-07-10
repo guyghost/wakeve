@@ -61,8 +61,9 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.budget.BudgetRepository
@@ -516,9 +517,10 @@ private fun BudgetItemCard(
                     )
                     
                     if (item.isPaid) {
+                        val paidState = stringResource(R.string.a11y_budget_paid_state, item.name)
                         Icon(
                             imageVector = Icons.Default.CheckCircle,
-                            contentDescription = budgetItemPaidContentDescription(),
+                            contentDescription = paidState,
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )
@@ -559,21 +561,34 @@ private fun BudgetItemCard(
                     val markPaidDescription = stringResource(R.string.a11y_budget_mark_paid, item.name, paidState)
                     AssistChip(
                         onClick = onMarkPaid,
-                        modifier = Modifier.semantics { contentDescription = markPaidDescription },
+                        modifier = Modifier.clearAndSetSemantics {
+                            contentDescription = markPaidDescription
+                            onClick { onMarkPaid(); true }
+                        },
                         label = { Text(budgetMarkPaidActionLabel()) },
                         leadingIcon = { Icon(Icons.Default.CheckCircle, null) }
                     )
                 }
                 
                 if (canMutateBudget) {
+                    val editDescription = stringResource(R.string.a11y_budget_edit, item.name)
                     AssistChip(
                         onClick = onEdit,
+                        modifier = Modifier.clearAndSetSemantics {
+                            contentDescription = editDescription
+                            onClick { onEdit(); true }
+                        },
                         label = { Text(budgetEditActionLabel()) },
                         leadingIcon = { Icon(Icons.Default.Edit, null) }
                     )
 
+                    val deleteDescription = stringResource(R.string.a11y_budget_delete, item.name)
                     AssistChip(
                         onClick = onDelete,
+                        modifier = Modifier.clearAndSetSemantics {
+                            contentDescription = deleteDescription
+                            onClick { onDelete(); true }
+                        },
                         label = { Text(budgetDeleteActionLabel()) },
                         leadingIcon = { Icon(Icons.Default.Delete, null) },
                         colors = AssistChipDefaults.assistChipColors(
@@ -782,8 +797,6 @@ fun BudgetItemDialog(
     BudgetCategory.EQUIPMENT -> R.string.budget_category_equipment
     BudgetCategory.OTHER -> R.string.budget_category_other
 })
-
-@Composable internal fun budgetItemPaidContentDescription(): String = stringResource(R.string.a11y_budget_item_paid)
 
 @Composable internal fun budgetSharedByLabel(sharedByCount: Int): String =
     pluralStringResource(R.plurals.budget_shared_by, sharedByCount, sharedByCount)
