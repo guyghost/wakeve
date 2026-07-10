@@ -1,6 +1,5 @@
 package com.guyghost.wakeve.ui.sync
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,7 +15,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -27,22 +25,24 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.guyghost.wakeve.R
 import com.guyghost.wakeve.sync.conflict.ConflictRecord
 import com.guyghost.wakeve.sync.conflict.ConflictSummary
 import com.guyghost.wakeve.sync.conflict.ResolutionDecision
@@ -108,13 +108,13 @@ fun ConflictResolutionDialog(
                 )
                 Spacer(Modifier.width(10.dp))
                 Text(
-                    text = "Sync conflict",
+                    text = stringResource(R.string.sync_conflict_title),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold
                 )
             }
             Text(
-                text = "${summary.criticalConflicts.size} field(s) were edited by multiple participants. Choose which version to keep.",
+                text = pluralStringResource(R.plurals.sync_conflict_count, summary.criticalConflicts.size, summary.criticalConflicts.size),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 6.dp, bottom = 16.dp)
@@ -136,7 +136,7 @@ fun ConflictResolutionDialog(
                         .weight(1f)
                         .height(48.dp)
                 ) {
-                    Text("Keep all mine", maxLines = 1)
+                    Text(stringResource(R.string.sync_conflict_keep_all_mine), maxLines = 1)
                 }
                 OutlinedButton(
                     onClick = {
@@ -149,7 +149,7 @@ fun ConflictResolutionDialog(
                         .weight(1f)
                         .height(48.dp)
                 ) {
-                    Text("Keep all theirs", maxLines = 1)
+                    Text(stringResource(R.string.sync_conflict_keep_all_theirs), maxLines = 1)
                 }
             }
 
@@ -187,7 +187,9 @@ fun ConflictResolutionDialog(
 
             // ── Confirm button ────────────────────────────────────────────
             Button(
-                onClick = { onResolved(pendingDecisions.values.toList()) },
+                onClick = {
+                    onResolved(summary.criticalConflicts.map { pendingDecisions.getValue(it.fieldName) })
+                },
                 enabled = allResolved,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -195,7 +197,11 @@ fun ConflictResolutionDialog(
                 shape = RoundedCornerShape(26.dp)
             ) {
                 Text(
-                    text = if (allResolved) "Apply resolution" else "Resolve all conflicts to continue",
+                    text = if (allResolved) {
+                        stringResource(R.string.sync_conflict_apply)
+                    } else {
+                        stringResource(R.string.sync_conflict_resolve_all)
+                    },
                     style = MaterialTheme.typography.titleMedium
                 )
             }
@@ -220,21 +226,27 @@ private fun ConflictRowItem(
     val localSelected  = currentDecision is ResolutionDecision.KeepLocal
     val remoteSelected = currentDecision is ResolutionDecision.KeepRemote
 
+    val fieldLabel = conflictFieldLabel(conflict.fieldName)
+    val mineLabel = stringResource(R.string.sync_conflict_mine)
+    val theirsLabel = stringResource(R.string.sync_conflict_theirs)
+    val summaryDescription = stringResource(
+        R.string.a11y_conflict_summary,
+        fieldLabel,
+        conflict.localValue,
+        conflict.remoteValue
+    )
+
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .semantics {
-                contentDescription =
-                    "Conflict in ${friendlyFieldName(conflict.fieldName)}. " +
-                    "Mine: ${conflict.localValue}. Theirs: ${conflict.remoteValue}."
-            },
+            .semantics { contentDescription = summaryDescription },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         shape = RoundedCornerShape(16.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             // Field label
             Text(
-                text = friendlyFieldName(conflict.fieldName),
+                text = fieldLabel,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -248,7 +260,7 @@ private fun ConflictRowItem(
             ) {
                 // Mine (local)
                 ConflictValueChip(
-                    label = "Mine",
+                    label = mineLabel,
                     value = conflict.localValue.truncated(),
                     selected = localSelected,
                     onClick = onKeepLocal,
@@ -256,7 +268,7 @@ private fun ConflictRowItem(
                 )
                 // Theirs (remote)
                 ConflictValueChip(
-                    label = "Theirs",
+                    label = theirsLabel,
                     value = conflict.remoteValue.truncated(),
                     selected = remoteSelected,
                     onClick = onKeepRemote,
@@ -285,13 +297,19 @@ private fun ConflictValueChip(
     else
         MaterialTheme.colorScheme.onSurface
 
+    val choiceDescription = stringResource(R.string.a11y_conflict_choice, label, value)
+
     Card(
         onClick = onClick,
         colors = CardDefaults.cardColors(containerColor = containerColor),
         shape = RoundedCornerShape(12.dp),
         modifier = modifier
             .height(80.dp)
-            .semantics { contentDescription = "Keep $label: $value" }
+            .clearAndSetSemantics {
+                contentDescription = choiceDescription
+                role = Role.RadioButton
+                this.selected = selected
+            }
     ) {
         Column(
             modifier = Modifier.padding(10.dp),
@@ -317,15 +335,19 @@ private fun ConflictValueChip(
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 
-private fun friendlyFieldName(fieldName: String): String = when (fieldName) {
-    "title"          -> "Event title"
-    "description"    -> "Description"
-    "status"         -> "Status"
-    "finalDate"      -> "Confirmed date"
-    "deadline"       -> "Voting deadline"
-    "participants"   -> "Participants"
-    "proposedSlots"  -> "Time slots"
-    else             -> fieldName.replaceFirstChar { it.uppercase() }
+@Composable
+private fun conflictFieldLabel(fieldName: String): String {
+    val resource = when (fieldName) {
+        "title" -> R.string.conflict_field_title
+        "description" -> R.string.conflict_field_description
+        "status" -> R.string.conflict_field_status
+        "finalDate" -> R.string.conflict_field_final_date
+        "deadline" -> R.string.conflict_field_deadline
+        "participants" -> R.string.conflict_field_participants
+        "proposedSlots" -> R.string.conflict_field_proposed_slots
+        else -> return fieldName.replaceFirstChar { it.uppercase() }
+    }
+    return stringResource(resource)
 }
 
 private fun String.truncated(maxChars: Int = 60): String =

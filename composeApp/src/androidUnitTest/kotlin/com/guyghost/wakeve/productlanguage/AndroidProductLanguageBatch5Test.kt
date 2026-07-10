@@ -65,7 +65,10 @@ class AndroidProductLanguageBatch5Test {
     fun e6SyncConflictsUseLocalizedCountsAndExclusiveChoiceSemantics() {
         assertTrue(findings(conflictPath).isEmpty(), findings(conflictPath).joinToString("\n"))
         E6Keys.forEach { key -> assertTrue("R.string.$key" in source(conflictPath) || "R.plurals.$key" in source(conflictPath), "missing E6 resource $key") }
+        assertTrue("pluralStringResource(R.plurals.sync_conflict_count" in source(conflictPath), "conflict totals must use Android plurals")
         assertTrue("clearAndSetSemantics" in source(conflictPath), "conflict choices must suppress duplicate descendant speech")
+        assertTrue("Role.RadioButton" in source(conflictPath) && "selected = selected" in source(conflictPath), "conflict choices must expose exclusive selection state")
+        assertTrue("summary.criticalConflicts.map" in source(conflictPath), "resolution output must preserve deterministic conflict order")
         assertLocaleParity(E6Keys)
         assertTechnicalLiterals(listOf(conflictPath))
     }
@@ -139,7 +142,7 @@ class AndroidProductLanguageBatch5Test {
         val ownedPaths = listOf(imagePath, wizardPath, eventDetailPath, invitationPath, notificationPath, albumsPath, conflictPath)
         val direct = listOf("Text" to Regex("""\bText\s*\(\s*(?:text\s*=\s*)?\""""), "argument" to Regex("""\b(?:label|placeholder|supportingText|contentDescription)\s*=\s*\""""))
         val literal = Regex("""\"([^\"\\]*(?:\\.[^\"\\]*)*)\"""")
-        val technicalValues = setOf("currentUser", "temp-event-id", "step_transition", "https://wakeve.app/invite/${'$'}it", "text/plain", "UTF-8", "\\s+")
+        val technicalValues = setOf("currentUser", "temp-event-id", "step_transition", "https://wakeve.app/invite/${'$'}it", "text/plain", "UTF-8", "\\s+", "title", "description", "status", "finalDate", "deadline", "participants", "proposedSlots")
         val technicalOccurrences = setOf(
             ReviewedTechnicalOccurrence(wizardPath, "userId: String = \"currentUser\","),
             ReviewedTechnicalOccurrence(wizardPath, "label = \"step_transition\""),
@@ -148,6 +151,13 @@ class AndroidProductLanguageBatch5Test {
             ReviewedTechnicalOccurrence(invitationPath, "type = \"text/plain\""),
             ReviewedTechnicalOccurrence(invitationPath, "EncodeHintType.CHARACTER_SET to \"UTF-8\","),
             ReviewedTechnicalOccurrence(invitationPath, "eventTitle.trim().replace(Regex(\"\\\\s+\"), \" \")"),
+            ReviewedTechnicalOccurrence(conflictPath, "\"title\" -> R.string.conflict_field_title"),
+            ReviewedTechnicalOccurrence(conflictPath, "\"description\" -> R.string.conflict_field_description"),
+            ReviewedTechnicalOccurrence(conflictPath, "\"status\" -> R.string.conflict_field_status"),
+            ReviewedTechnicalOccurrence(conflictPath, "\"finalDate\" -> R.string.conflict_field_final_date"),
+            ReviewedTechnicalOccurrence(conflictPath, "\"deadline\" -> R.string.conflict_field_deadline"),
+            ReviewedTechnicalOccurrence(conflictPath, "\"participants\" -> R.string.conflict_field_participants"),
+            ReviewedTechnicalOccurrence(conflictPath, "\"proposedSlots\" -> R.string.conflict_field_proposed_slots"),
         )
         val EventStateKeys = setOf("event_state_draft", "event_state_polling", "event_state_comparing", "event_state_confirmed", "event_state_organizing", "event_state_finalized", "event_next_step_draft", "event_next_step_polling", "event_next_step_comparing", "event_next_step_confirmed", "event_next_step_organizing", "event_terminal_summary")
         val OutcomeKeys = setOf("sync_waiting", "offline_status", "error_generic", "action_retry", "action_cancel", "permission_required", "invitation_loading", "invitation_error")
@@ -167,7 +177,14 @@ class AndroidProductLanguageBatch5Test {
             "a11y_album_close_search", "a11y_album_open", "a11y_album_cover", "a11y_photo",
             "a11y_photo_favorite", "a11y_share_suggestion", "album_photo_count"
         )
-        val E6Keys = setOf("a11y_conflict_choice", "a11y_conflict_summary", "sync_conflict_count")
+        val E6Keys = setOf(
+            "sync_conflict_title", "sync_conflict_count", "sync_conflict_keep_all_mine",
+            "sync_conflict_keep_all_theirs", "sync_conflict_apply", "sync_conflict_resolve_all",
+            "sync_conflict_mine", "sync_conflict_theirs", "a11y_conflict_choice",
+            "a11y_conflict_summary", "conflict_field_title", "conflict_field_description",
+            "conflict_field_status", "conflict_field_final_date", "conflict_field_deadline",
+            "conflict_field_participants", "conflict_field_proposed_slots"
+        )
         val localeDirectories = listOf("values", "values-en", "values-de", "values-es", "values-it", "values-pt")
     }
 }

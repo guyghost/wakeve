@@ -886,4 +886,24 @@
     <string name="album_auto_badge">Automatic</string><string name="album_smart_sharing">Smart sharing</string><string name="album_share_summary_title">Share now: %1$s</string><plurals name="album_share_summary_auto_body"><item quantity="one">%1$d photo in this automatic selection to reconnect the group after the event.</item><item quantity="other">%1$d photos in this automatic selection to reconnect the group after the event.</item></plurals><plurals name="album_share_summary_manual_body"><item quantity="one">%1$d photo in this ready album to reconnect the group after the event.</item><item quantity="other">%1$d photos in this ready album to reconnect the group after the event.</item></plurals>
     <string name="album_photos_section">Photos (%1$s)</string><string name="album_relevance_score">%1$d%%</string><string name="album_matched_tags">Tags: %1$s</string><string name="album_create_description">Give your album a name.</string><string name="album_empty_body">Create an album to find the photos after the event.</string><string name="album_empty_photos_body">Add photos to share memories with the group.</string><string name="photo_without_caption">no caption</string><string name="action_create">Create</string><string name="action_share">Share</string><string name="list_separator">, </string>
     <string name="a11y_album_search">Search photos</string><string name="a11y_album_create">Create an album</string><string name="a11y_album_add_photos">Add photos to a new album</string><string name="a11y_album_back">Go back from album %1$s</string><string name="a11y_album_share">Share album %1$s</string><string name="a11y_album_delete">Delete album %1$s</string><string name="a11y_album_close_search">Close photo search</string><string name="a11y_album_open">Open album %1$s, %2$s</string><string name="a11y_album_cover">Cover for album %1$s</string><string name="a11y_photo">Open photo %1$s, %2$s</string><string name="a11y_photo_favorite">favorite</string><string name="a11y_photo_not_favorite">not favorite</string><string name="a11y_share_suggestion">Share selection %1$s</string><string name="a11y_photo_search_result">Open photo %1$s, relevance %2$d%%</string><plurals name="album_photo_count"><item quantity="one">%1$d photo</item><item quantity="other">%1$d photos</item></plurals>
+    <string name="sync_conflict_title">Sync conflict</string>
+    <plurals name="sync_conflict_count">
+        <item quantity="one">%1$d field was edited by multiple participants. Choose which version to keep.</item>
+        <item quantity="other">%1$d fields were edited by multiple participants. Choose which versions to keep.</item>
+    </plurals>
+    <string name="sync_conflict_keep_all_mine">Keep all my versions</string>
+    <string name="sync_conflict_keep_all_theirs">Keep all their versions</string>
+    <string name="sync_conflict_apply">Apply choices</string>
+    <string name="sync_conflict_resolve_all">Choose a version for every conflict</string>
+    <string name="sync_conflict_mine">My version</string>
+    <string name="sync_conflict_theirs">Their version</string>
+    <string name="a11y_conflict_choice">Keep %1$s: %2$s</string>
+    <string name="a11y_conflict_summary">Conflict in %1$s. My version: %2$s. Their version: %3$s.</string>
+    <string name="conflict_field_title">Event title</string>
+    <string name="conflict_field_description">Description</string>
+    <string name="conflict_field_status">Status</string>
+    <string name="conflict_field_final_date">Confirmed date</string>
+    <string name="conflict_field_deadline">Voting deadline</string>
+    <string name="conflict_field_participants">Participants</string>
+    <string name="conflict_field_proposed_slots">Proposed time slots</string>
 </resources>
