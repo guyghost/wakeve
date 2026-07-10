@@ -15,6 +15,14 @@ run() {
     "$@"
 }
 
+run_gate() {
+    local label="$1"
+    shift
+    echo
+    echo "+ $label"
+    "$@"
+}
+
 assert_generated_report_is_commit_safe() {
     local report="$1"
     local label="$2"
@@ -863,6 +871,8 @@ run ./scripts/test-ios-calendar-permission-contract.sh
 run ./scripts/test-ios-release-signing-team-contract.sh
 
 run ./scripts/test-ios-poll-confirmation-architecture.sh
+
+run_gate "product language" scripts/audit-product-language.sh
 
 assert_no_sensitive_server_logs
 assert_no_android_release_local_backend_defaults
