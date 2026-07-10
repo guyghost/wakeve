@@ -101,9 +101,13 @@ class AndroidProductLanguageBatch4Test {
         val screen = root.resolve(screenPath).readText()
         assertTrue(dialogs.contains("clearAndSetSemantics"), "dialog chips and controls must replace descendant semantics")
         assertTrue(!Regex("Modifier\\.semantics\\s*\\{\\s*contentDescription\\s*=\\s*(?:type|status|restriction)Description").containsMatchIn(dialogs), "dialog selection controls must not merge duplicate label semantics")
-        listOf("constraintsDescription", "typeDescription", "statusDescription", "openDescription", "deleteDescription").forEach { description ->
+        listOf("constraintsDescription", "typeDescription", "statusDescription", "openDescription").forEach { description ->
             assertTrue(Regex("clearAndSetSemantics\\s*\\{[^}]*contentDescription\\s*=\\s*$description", RegexOption.DOT_MATCHES_ALL).containsMatchIn(screen), "$description must replace descendant semantics")
         }
+        assertTrue(
+            Regex("Modifier\\.semantics\\s*\\{[^}]*contentDescription\\s*=\\s*deleteDescription", RegexOption.DOT_MATCHES_ALL).containsMatchIn(screen),
+            "deleteDescription belongs to an icon-only sibling and must retain IconButton click semantics"
+        )
     }
 
     @Test

@@ -64,6 +64,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.comment.CommentRepository
@@ -629,11 +630,7 @@ fun MealCard(
     val deleteDescription = stringResource(R.string.a11y_meal_delete, meal.name)
     Card(
         modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .clearAndSetSemantics {
-                contentDescription = openDescription
-            },
+            .fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = when (meal.status) {
                 MealStatus.COMPLETED -> MaterialTheme.colorScheme.tertiaryContainer
@@ -651,7 +648,12 @@ fun MealCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(onClick = onClick)
+                    .clearAndSetSemantics {
+                        contentDescription = openDescription
+                    },
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 // Time + Type badge
@@ -781,7 +783,7 @@ fun MealCard(
             // Delete button
             IconButton(
                 onClick = onDeleteClick,
-                modifier = Modifier.clearAndSetSemantics {
+                modifier = Modifier.semantics {
                     contentDescription = deleteDescription
                 }
             ) {
