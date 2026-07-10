@@ -258,7 +258,7 @@ fun LoginScreen(
 private fun AppBranding() {
     Image(
         painter = painterResource(id = R.drawable.wakeve_app_icon),
-        contentDescription = "Wakeve Logo",
+        contentDescription = stringResource(R.string.a11y_wakeve_logo),
         modifier = Modifier
             .size(120.dp)
             .clip(MaterialTheme.shapes.large),
@@ -321,7 +321,7 @@ fun ErrorScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "❌",
+                    text = stringResource(R.string.error_symbol),
                     style = MaterialTheme.typography.displayMedium
                 )
                 Spacer(modifier = Modifier.height(16.dp))

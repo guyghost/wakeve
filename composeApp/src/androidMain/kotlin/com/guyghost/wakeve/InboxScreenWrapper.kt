@@ -301,7 +301,7 @@ fun InboxScreen(
         ) {
             Column(modifier = Modifier.padding(24.dp)) {
                 Text(
-                    text = "Filtrer par événement",
+                    text = stringResource(R.string.inbox_filter_by_event),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -321,7 +321,7 @@ fun InboxScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "Tous les événements",
+                        text = stringResource(R.string.inbox_all_events),
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.padding(16.dp)
                     )
@@ -376,14 +376,14 @@ fun InboxScreen(
                 actions = {
                     if (isSelectionMode) {
                         TextButton(onClick = { cancelSelection() }) {
-                            Text("Annuler")
+                            Text(stringResource(R.string.cancel))
                         }
                     } else {
                         if (unreadCount > 0) {
                             IconButton(onClick = { markAllAsRead() }) {
                                 Icon(
                                     imageVector = Icons.Filled.DoneAll,
-                                    contentDescription = "Tout marquer comme lu"
+                                    contentDescription = stringResource(R.string.a11y_mark_all_notifications_read)
                                 )
                             }
                         }
@@ -391,7 +391,7 @@ fun InboxScreen(
                             IconButton(onClick = onNavigateToNotifications) {
                                 Icon(
                                     imageVector = Icons.Default.Settings,
-                                    contentDescription = "Préférences de notifications"
+                                    contentDescription = stringResource(R.string.a11y_open_notification_preferences)
                                 )
                             }
                         }
@@ -437,7 +437,7 @@ fun InboxScreen(
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Marquer lu")
+                            Text(stringResource(R.string.inbox_mark_read))
                         }
                         FilledTonalButton(
                             onClick = { markSelectedAsDone() },
@@ -449,7 +449,7 @@ fun InboxScreen(
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Terminé")
+                            Text(stringResource(R.string.inbox_mark_done))
                         }
                     }
                 }
@@ -505,7 +505,7 @@ fun InboxScreen(
                                 // Show event name on the "Event" chip if filtered
                                 if (filter == InboxFilterType.EVENT && selectedEventFilter != null) {
                                     Text(
-                                        text = "· $selectedEventFilter",
+                                        text = stringResource(R.string.inbox_event_filter_value, selectedEventFilter.orEmpty()),
                                         style = MaterialTheme.typography.labelSmall,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis

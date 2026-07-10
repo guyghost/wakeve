@@ -23,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -35,6 +36,7 @@ import com.guyghost.wakeve.GetStartedScreen
 import com.guyghost.wakeve.InboxScreen
 import com.guyghost.wakeve.OnboardingScreen
 import com.guyghost.wakeve.ProfileTabScreen
+import com.guyghost.wakeve.R
 import com.guyghost.wakeve.SettingsScreen
 import com.guyghost.wakeve.SplashScreen
 import com.guyghost.wakeve.deeplink.AndroidInvitationShareService
@@ -1623,7 +1625,7 @@ private fun EventPhotosFollowUpScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
-            text = "Prochaine action : ${state.recommendedActionLabel}",
+            text = stringResource(R.string.event_next_action, state.recommendedActionLabel),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface
         )
@@ -1634,7 +1636,7 @@ private fun EventPhotosFollowUpScreen(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = "${item.statusLabel} - ${item.title}",
+                        text = stringResource(R.string.event_status_and_title, item.statusLabel, item.title),
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -1777,7 +1779,7 @@ private fun AccessDenied(
             horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Accès restreint",
+                text = stringResource(R.string.restricted_access_title),
                 style = MaterialTheme.typography.titleLarge
             )
             Text(
@@ -1785,7 +1787,7 @@ private fun AccessDenied(
                 style = MaterialTheme.typography.bodyMedium
             )
             Button(onClick = onBack) {
-                Text("Retour")
+                Text(stringResource(R.string.back))
             }
         }
     }
