@@ -1,0 +1,1438 @@
+# Review package: 16771ce5..4e6b0be5
+
+## Commits
+4e6b0be5 feat(android): localize navigation auth profile and inbox
+
+## Files changed
+ .superpowers/sdd/task-5-report.md                  | 259 +++++++++++++++++++++
+ .../com/guyghost/wakeve/InboxScreenWrapper.kt      |  16 +-
+ .../com/guyghost/wakeve/LoginScreen.android.kt     |   5 +-
+ .../kotlin/com/guyghost/wakeve/LoginScreen.kt      |   4 +-
+ .../kotlin/com/guyghost/wakeve/ProfileTabScreen.kt |  19 +-
+ .../guyghost/wakeve/navigation/AuthCallbacks.kt    |   2 +-
+ .../guyghost/wakeve/navigation/ScreenWrappers.kt   |   4 +-
+ .../navigation/WakeveAdaptiveNavigationScaffold.kt |  21 +-
+ .../guyghost/wakeve/navigation/WakeveBottomBar.kt  |  14 +-
+ .../guyghost/wakeve/navigation/WakeveNavHost.kt    |  10 +-
+ .../src/androidMain/res/values-de/strings.xml      |   5 +
+ .../src/androidMain/res/values-en/strings.xml      |   6 +
+ .../src/androidMain/res/values-es/strings.xml      |   5 +
+ .../src/androidMain/res/values-it/strings.xml      |   5 +
+ .../src/androidMain/res/values-pt/strings.xml      |   5 +
+ composeApp/src/androidMain/res/values/strings.xml  |   6 +
+ .../AndroidProductLanguageBatch1Test.kt            |  66 ++++++
+ .../AndroidProductLanguageContractTest.kt          |  98 ++++++++
+ 18 files changed, 508 insertions(+), 42 deletions(-)
+
+## Diff
+diff --git a/.superpowers/sdd/task-5-report.md b/.superpowers/sdd/task-5-report.md
+new file mode 100644
+index 00000000..0920ce0b
+--- /dev/null
++++ b/.superpowers/sdd/task-5-report.md
+@@ -0,0 +1,259 @@
++# Task 5 Report — BLOCKED
++
++## Status
++
++Task 5 is **BLOCKED before production implementation** because the complete Android migration is too large to keep reviewable in one bounded implementation turn. No production subset was applied, no resource fallback was introduced, and no commit was created.
++
++## TDD evidence
++
++Created:
++
++- `composeApp/src/androidUnitTest/kotlin/com/guyghost/wakeve/productlanguage/AndroidProductLanguageContractTest.kt`
++
++The contract is limited to Android Kotlin production paths from `models/product-language.inventory.json` and protects:
++
++- canonical navigation resources while retaining `Screen.Inbox`;
++- hardcoded `Text` calls, including multiline and named `text` forms;
++- hardcoded named Compose UI arguments;
++- hardcoded `contentDescription` and semantics;
++- exact diagnostics as `path:line:type:source`;
++- an exact preview allowlist of `preview/factories/InboxItemFactory.kt`, `ui/components/WakeveAsyncImagePreview.kt`, and `ui/inbox/InboxScreenPreview.kt`.
++
++RED command:
++
++```text
++./gradlew :composeApp:testDebugUnitTest --tests '*AndroidProductLanguageContractTest*' --no-daemon --no-configuration-cache
++```
++
++Observed result:
++
++- Kotlin compilation succeeded;
++- 4 tests executed;
++- 4 tests failed for the expected missing migration categories;
++- Gradle exited 1 with `BUILD FAILED`.
++
++## Scope evidence
++
++The source contract found overlapping categories across 24 Android production files:
++
++- 141 hardcoded `Text` findings;
++- 62 hardcoded named UI argument findings;
++- 17 hardcoded accessibility/semantics findings;
++- 177 distinct scanned literals;
++- only 37 literals already have a matching Task 4 resource;
++- approximately 140 semantic or formatted resource keys still require coherent translations in all six Android catalogs;
++- meal planning and meal dialogs account for 74 findings alone.
++
++Completing this as one migration would either evade the new contract, introduce untranslated fallbacks, or make review and targeted verification unreliable. All three violate the Task 5 brief.
++
++## Required decomposition
++
++Run these as explicit, independently reviewed GREEN batches while retaining the single contract as the invariant:
++
++1. Navigation, authentication, profile, and inbox — tabs `Idées` / `Notifications` / `Messages`, route preservation, notification entry points, and action-target-state semantics.
++2. Comments and collaboration — inputs, filters, replies, destructive confirmations, errors, and accessibility labels.
++3. Budget, activities, accommodation, and equipment — formatted amounts, paid/unpaid state semantics, dialogs, and pending/error outcomes.
++4. Meals — 74 findings across `MealPlanningScreen.kt` and `MealDialogs.kt`, including formatted dates, money, participants, constraints, delete confirmations, and semantics.
++5. Event workflow, notifications, sync conflicts, settings, and albums — `projectEventState` projection, pending/offline/error/cancellation/permission/terminal outcomes, terminal CTA removal, and filter copy.
++6. Six-catalog parity and final verification — translate every new key in `values`, `values-en`, `values-de`, `values-es`, `values-it`, and `values-pt`; run the full contract, notification filter test, deterministic Android-only scanner check, and `assembleDebug`.
++
++Each batch must follow RED → GREEN → targeted test, and the final integrator must auto-review identifiers to confirm that `Screen.Inbox`, routes, intents, repositories, and analytics remain unchanged.
++
++## Verification not claimed
++
++Because production implementation intentionally did not begin, these completion gates were not run and are not claimed:
++
++- `NotificationsScreenFilterTest` GREEN;
++- Android `assembleDebug` after migration;
++- font-scale and compact/medium/expanded design validation;
++- zero Android findings after migration;
++- final commit.
++
++## Executable batch ownership (exact RED inventory)
++
++### Count reconciliation
++
++A fresh read of the Gradle XML result identifies **27 unique Kotlin paths**, not 24. The earlier 24-file count omitted three scanner findings that are not ordinary visible product copy but still fail the current contract:
++
++- `navigation/AuthCallbacks.kt`: `Text("Sign in with Google")` inside KDoc/example text;
++- `ui/event/DraftEventWizard.kt`: internal animation `label = "step_transition"`;
++- `LoginScreen.kt`: decorative error glyph `text = "❌"`.
++
++These are explicitly retained below so the executable partition matches the actual contract and no finding is silently lost. Each of the 27 raw paths has exactly one owning batch. There are no file overlaps between batches. Finding-category overlaps remain inside files: the same source expression is commonly reported once as `hardcoded Text` and once as a named `text` argument; `contentDescription` findings form a third category. Those overlapping diagnostics are one migration responsibility, not separate files or separate resource keys.
++
++### Batch 1 — Navigation, authentication, profile, and inbox
++
++Owning Kotlin files (9):
++
++- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/InboxScreenWrapper.kt`
++- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/LoginScreen.android.kt`
++- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/LoginScreen.kt`
++- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/AuthCallbacks.kt`
++- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/ScreenWrappers.kt`
++- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/WakeveAdaptiveNavigationScaffold.kt`
++- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/WakeveBottomBar.kt`
++- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/WakeveNavHost.kt`
++- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ProfileTabScreen.kt`
++
++Resource families:
++
++- `tab_*`, `nav_*`, `a11y_nav_*`, using canonical `tab_ideas`, Notifications, and Messages while preserving `Screen.Inbox`;
++- `auth_*`, `login_*`, `error_*`, and provider/action labels;
++- `inbox_*`, `messages_*`, `notifications_*`, filters, read/unread actions, cancellation, and completion;
++- `profile_*`, `account_*`, `about_*`, quick actions, guest/account outcomes;
++- formatted `event_next_action`, `event_status_and_title`, restricted-access copy;
++- target/action/state accessibility keys for navigation and inbox icons.
++
++Targeted test pattern:
++
++```text
++./gradlew :composeApp:testDebugUnitTest --tests '*AndroidProductLanguageContractTest.navigationUsesCanonicalResourcesWithoutRenamingRoutes' --tests '*AndroidProductLanguageBatch1Test*' --no-daemon --no-configuration-cache
++```
++
++Recommended new test class: `AndroidProductLanguageBatch1Test`, asserting canonical tab IDs, `Screen.Inbox` preservation, and no findings restricted to these nine paths.
++
++#### Batch 1 TDD execution — 2026-07-10
++
++- RED: the targeted Batch 1 command executed 3 tests and failed 3 as expected: the canonical `R.string.tab_ideas` reference was absent and the nine-file scanner reported hardcoded visible copy and semantics.
++- GREEN: `AndroidProductLanguageBatch1Test` now scopes the contract to the nine owned paths; the canonical navigation test and Batch 1 tests pass without implying the global Task 5 contract is green.
++- Catalogs: all new keys exist in `values`, `values-en`, `values-de`, `values-es`, `values-it`, and `values-pt`; `ProductLanguageCatalogContractTest` passes, including structural and placeholder parity.
++- Navigation contract: visible Ideas/Notifications copy uses resources while `Screen.Inbox`, routes, intents, repository calls, and analytics identifiers remain unchanged.
++- Accessibility: migrated navigation and inbox actions use resource-backed TalkBack labels naming the action and target; navigation labels also expose tab state through the Material navigation item semantics.
++- Verification: targeted Batch 1 + catalog command passed (`BUILD SUCCESSFUL`); `:composeApp:assembleDebug --no-configuration-cache` passed. The full `AndroidProductLanguageContractTest` intentionally remains RED in its three broad scanner tests because Batches 2–5 are not migrated.
++- Tooling concern: running `assembleDebug` with the repository default configuration cache reaches APK assembly but Gradle rejects caching `processDebugGoogleServices`; the required no-configuration-cache rerun succeeds.
++
++### Batch 2 — Comments and collaboration
++
++Owning Kotlin files (3):
++
++- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/collaboration/CommentInput.kt`
++- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/collaboration/CommentListScreen.kt`
++- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/comment/CommentsScreen.kt`
++
++Resource families:
++
++- `comment_*`, `comments_*`, `reply_*`, `mention_*`, edited state, empty state, filters, close/cancel/retry;
++- plurals `comment_reply_count` and formatted character-count/mention keys;
++- destructive confirmation title/body/action keys;
++- `a11y_comment_*` keys naming action, comment/author target, and applicable state.
++
++Targeted test pattern:
++
++```text
++./gradlew :composeApp:testDebugUnitTest --tests '*AndroidProductLanguageBatch2Test*' --tests '*Comments*Test*' --no-daemon --no-configuration-cache
++```
++
++Recommended new test class: `AndroidProductLanguageBatch2Test`, restricting the source-contract helper to these three files and checking plural placeholder parity.
++
++### Batch 3 — Budget, activities, accommodation, and equipment
++
++Owning Kotlin files from current RED findings (6):
++
++- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/activity/ActivityDialogs.kt`
++- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/activity/ActivityPlanningScreen.kt`
++- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/budget/BudgetDetailScreen.kt`
++- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/budget/BudgetOverviewScreen.kt`
++- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/equipment/EquipmentChecklistScreen.kt`
++- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/equipment/EquipmentDialogs.kt`
++
++`AccommodationScreen.kt` remains part of the broader Task 5 review surface but has no current contract finding, so it is not falsely counted as one of the RED paths.
++
++Resource families:
++
++- `currency_*`, `budget_*`, estimated/actual/remaining/overrun and paid-count plurals;
++- `activity_*`, activity cost and dialog field/action copy;
++- `equipment_*`, quantity, total/shared cost, checklist actions and dialog copy;
++- formatted amount/ratio resources with positional placeholders instead of Kotlin-built visible strings;
++- `a11y_budget_*`, `a11y_activity_*`, `a11y_equipment_*`, and accommodation paid/unpaid action-target-state semantics.
++
++Targeted test pattern:
++
++```text
++./gradlew :composeApp:testDebugUnitTest --tests '*AndroidProductLanguageBatch3Test*' --tests '*Budget*Test*' --tests '*Equipment*Test*' --tests '*Activity*Test*' --no-daemon --no-configuration-cache
++```
++
++Recommended new test class: `AndroidProductLanguageBatch3Test`, validating formatted-resource placeholders and paid/unpaid semantic keys for this ownership set.
++
++### Batch 4 — Meals
++
++Owning Kotlin files (2):
++
++- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/meal/MealDialogs.kt`
++- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/meal/MealPlanningScreen.kt`
++
++Resource families:
++
++- `meal_*`, planning title, prepare/add/delete/cancel/close actions and terminal/empty/error states;
++- `meal_field_*` and `meal_hint_*` for name, dates, time, location, people, estimated/actual cost, notes;
++- `meal_constraint_*` for dietary constraints, participant, details, addition/removal and confirmations;
++- plurals/formats for participant count, meal count, per-person cost, total cost, date range, and delete target name;
++- `a11y_meal_*` and `a11y_meal_constraint_*` action-target-state descriptions.
++
++Targeted test pattern:
++
++```text
++./gradlew :composeApp:testDebugUnitTest --tests '*AndroidProductLanguageBatch4Test*' --tests '*Meal*Test*' --no-daemon --no-configuration-cache
++```
++
++Recommended new test class: `AndroidProductLanguageBatch4Test`, restricting source checks to the two meal files and verifying every plural/format signature across six catalogs.
++
++### Batch 5 — Workflow, media, notifications, sync, and terminal outcomes
++
++Owning Kotlin files (7):
++
++- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/components/WakeveAsyncImage.kt`
++- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/event/DraftEventWizard.kt`
++- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/event/ModernEventDetailView.kt`
++- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/invitation/InvitationShareScreen.kt`
++- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/notification/NotificationsScreen.kt`
++- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/screens/AlbumsScreen.kt`
++- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/sync/ConflictResolutionDialog.kt`
++
++Resource families:
++
++- `event_state_*`, `event_action_*`, `event_pending_*`, projection keys from `projectEventState`, and terminal copy with no CTA;
++- `draft_*`, location/time-slot formats, invitation/QR/share copy;
++- `notifications_filter_*`, priority/reason labels, retry/error/offline/permission outcomes;
++- `sync_*`, conflict counts, mine/theirs selection and keep-all actions;
++- `album_*`, relevance percentage and media state copy;
++- `a11y_image_*`, `a11y_event_*`, `a11y_notification_*`, `a11y_sync_*`, naming action, target, and state;
++- internal diagnostic/animation labels such as `step_transition` must move to constants or an exact non-product mechanism rather than user-facing string resources.
++
++Targeted test pattern:
++
++```text
++./gradlew :composeApp:testDebugUnitTest --tests '*AndroidProductLanguageBatch5Test*' --tests '*NotificationsScreenFilterTest*' --tests '*ProductLanguageTest*' --no-daemon --no-configuration-cache
++```
++
++Recommended new test class: `AndroidProductLanguageBatch5Test`, covering the seven owned files, projection-to-resource mapping, terminal no-CTA behavior, and action-target-state semantics.
++
++### Batch 6 — Catalog parity, scanner proof, and integration
++
++Owning Kotlin files from RED findings: none. Batches 1–5 own all 27 raw Kotlin paths exactly once. Batch 6 owns integration artifacts only:
++
++- `composeApp/src/androidMain/res/values/strings.xml`
++- `composeApp/src/androidMain/res/values-en/strings.xml`
++- `composeApp/src/androidMain/res/values-de/strings.xml`
++- `composeApp/src/androidMain/res/values-es/strings.xml`
++- `composeApp/src/androidMain/res/values-it/strings.xml`
++- `composeApp/src/androidMain/res/values-pt/strings.xml`
++- `composeApp/src/androidUnitTest/kotlin/com/guyghost/wakeve/productlanguage/AndroidProductLanguageContractTest.kt`
++- existing catalog/projection/filter tests.
++
++Resource families:
++
++- parity for every family introduced in batches 1–5;
++- identical resource kinds (`string`, `plurals`, arrays), plural quantities, positional placeholders, and formatting signatures in all six catalogs;
++- exact preview/diagnostic allowlist only; no production-source exception;
++- deterministic Android-only extraction of global scanner results, because known future iOS debt may keep the global scanner exit non-zero.
++
++Targeted and final test pattern:
++
++```text
++./gradlew :composeApp:testDebugUnitTest --tests '*AndroidProductLanguageContractTest*' --tests '*ProductLanguageCatalogContractTest*' --tests '*NotificationsScreenFilterTest*' --no-daemon --no-configuration-cache
++scripts/audit-product-language.sh --forbidden-terms-only > /tmp/task-5-product-language-audit.txt 2>&1 || true
++if rg '^android/' /tmp/task-5-product-language-audit.txt; then exit 1; fi
++./gradlew :composeApp:assembleDebug --no-daemon
++```
++
++The scanner proof must also record the global exit and non-Android finding count so a zero-byte output or scanner crash cannot be mistaken for zero Android findings.
+diff --git a/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/InboxScreenWrapper.kt b/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/InboxScreenWrapper.kt
+index 643a15b5..ba68ce7b 100644
+--- a/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/InboxScreenWrapper.kt
++++ b/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/InboxScreenWrapper.kt
+@@ -294,41 +294,41 @@ fun InboxScreen(
+ 
+     // Event filter bottom sheet
+     if (showEventSheet) {
+         val sheetState = rememberModalBottomSheetState()
+         ModalBottomSheet(
+             onDismissRequest = { showEventSheet = false },
+             sheetState = sheetState
+         ) {
+             Column(modifier = Modifier.padding(24.dp)) {
+                 Text(
+-                    text = "Filtrer par événement",
++                    text = stringResource(R.string.inbox_filter_by_event),
+                     style = MaterialTheme.typography.titleLarge,
+                     fontWeight = FontWeight.Bold
+                 )
+                 Spacer(modifier = Modifier.height(16.dp))
+ 
+                 // "All events" option
+                 Surface(
+                     onClick = {
+                         selectedEventFilter = null
+                         showEventSheet = false
+                     },
+                     shape = RoundedCornerShape(12.dp),
+                     color = if (selectedEventFilter == null)
+                         MaterialTheme.colorScheme.primaryContainer
+                     else
+                         MaterialTheme.colorScheme.surfaceContainerLow,
+                     modifier = Modifier.fillMaxWidth()
+                 ) {
+                     Text(
+-                        text = "Tous les événements",
++                        text = stringResource(R.string.inbox_all_events),
+                         style = MaterialTheme.typography.bodyLarge,
+                         modifier = Modifier.padding(16.dp)
+                     )
+                 }
+ 
+                 Spacer(modifier = Modifier.height(8.dp))
+ 
+                 availableEvents.forEach { eventName ->
+                     Surface(
+                         onClick = {
+@@ -369,36 +369,36 @@ fun InboxScreen(
+                     ) {
+                         Text(
+                             text = if (isSelectionMode) "${selectedIds.size} sélectionné(s)" else "Notifications",
+                             fontWeight = FontWeight.Bold
+                         )
+                     }
+                 },
+                 actions = {
+                     if (isSelectionMode) {
+                         TextButton(onClick = { cancelSelection() }) {
+-                            Text("Annuler")
++                            Text(stringResource(R.string.cancel))
+                         }
+                     } else {
+                         if (unreadCount > 0) {
+                             IconButton(onClick = { markAllAsRead() }) {
+                                 Icon(
+                                     imageVector = Icons.Filled.DoneAll,
+-                                    contentDescription = "Tout marquer comme lu"
++                                    contentDescription = stringResource(R.string.a11y_mark_all_notifications_read)
+                                 )
+                             }
+                         }
+                         if (onNavigateToNotifications != null) {
+                             IconButton(onClick = onNavigateToNotifications) {
+                                 Icon(
+                                     imageVector = Icons.Default.Settings,
+-                                    contentDescription = "Préférences de notifications"
++                                    contentDescription = stringResource(R.string.a11y_open_notification_preferences)
+                                 )
+                             }
+                         }
+                     }
+                 },
+                 scrollBehavior = scrollBehavior,
+                 colors = TopAppBarDefaults.topAppBarColors(
+                     containerColor = MaterialTheme.colorScheme.surface,
+                     scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
+                 )
+@@ -430,33 +430,33 @@ fun InboxScreen(
+                         FilledTonalButton(
+                             onClick = { markSelectedAsRead() },
+                             modifier = Modifier.weight(1f)
+                         ) {
+                             Icon(
+                                 imageVector = Icons.Filled.MarkEmailRead,
+                                 contentDescription = null,
+                                 modifier = Modifier.size(18.dp)
+                             )
+                             Spacer(modifier = Modifier.width(8.dp))
+-                            Text("Marquer lu")
++                            Text(stringResource(R.string.inbox_mark_read))
+                         }
+                         FilledTonalButton(
+                             onClick = { markSelectedAsDone() },
+                             modifier = Modifier.weight(1f)
+                         ) {
+                             Icon(
+                                 imageVector = Icons.Filled.Check,
+                                 contentDescription = null,
+                                 modifier = Modifier.size(18.dp)
+                             )
+                             Spacer(modifier = Modifier.width(8.dp))
+-                            Text("Terminé")
++                            Text(stringResource(R.string.inbox_mark_done))
+                         }
+                     }
+                 }
+             }
+         }
+     ) { paddingValues ->
+         Column(
+             modifier = Modifier
+                 .fillMaxSize()
+                 .padding(paddingValues)
+@@ -498,21 +498,21 @@ fun InboxScreen(
+                                                 style = MaterialTheme.typography.labelSmall,
+                                                 color = MaterialTheme.colorScheme.onPrimary,
+                                                 fontWeight = FontWeight.Bold
+                                             )
+                                         }
+                                     }
+                                 }
+                                 // Show event name on the "Event" chip if filtered
+                                 if (filter == InboxFilterType.EVENT && selectedEventFilter != null) {
+                                     Text(
+-                                        text = "· $selectedEventFilter",
++                                        text = stringResource(R.string.inbox_event_filter_value, selectedEventFilter.orEmpty()),
+                                         style = MaterialTheme.typography.labelSmall,
+                                         maxLines = 1,
+                                         overflow = TextOverflow.Ellipsis
+                                     )
+                                 }
+                             }
+                         },
+                         leadingIcon = {
+                             Icon(
+                                 imageVector = filter.icon,
+diff --git a/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/LoginScreen.android.kt b/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/LoginScreen.android.kt
+index 838e04c1..f5480484 100644
+--- a/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/LoginScreen.android.kt
++++ b/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/LoginScreen.android.kt
+@@ -11,20 +11,21 @@ import androidx.compose.foundation.layout.width
+ import androidx.compose.foundation.layout.wrapContentSize
+ import androidx.compose.material3.Button
+ import androidx.compose.material3.ButtonDefaults
+ import androidx.compose.material3.MaterialTheme
+ import androidx.compose.material3.Surface
+ import androidx.compose.material3.Text
+ import androidx.compose.runtime.Composable
+ import androidx.compose.ui.Alignment
+ import androidx.compose.ui.Modifier
+ import androidx.compose.ui.graphics.Color
++import androidx.compose.ui.res.stringResource
+ import androidx.compose.ui.unit.dp
+ 
+ /**
+  * Android implementation of Google Sign-In button.
+  *
+  * Uses Material 3 styling with Google branding colors.
+  */
+ @Composable
+ fun GoogleSignInButton(
+     onClick: () -> Unit,
+@@ -54,33 +55,33 @@ fun GoogleSignInButton(
+             verticalAlignment = Alignment.CenterVertically
+         ) {
+             // Google logo (placeholder - would use actual resource)
+             Surface(
+                 modifier = Modifier.size(24.dp),
+                 color = Color.White,
+                 shape = MaterialTheme.shapes.small
+             ) {
+                 // TODO: Replace with actual Google logo resource
+                 Text(
+-                    text = "G",
++                    text = stringResource(R.string.login_google_initial),
+                     style = MaterialTheme.typography.titleMedium,
+                     color = Color(0xFF4285F4), // Google Blue
+                     modifier = Modifier
+                         .fillMaxSize()
+                         .wrapContentSize(Alignment.Center)
+                 )
+             }
+ 
+             Spacer(modifier = Modifier.width(12.dp))
+ 
+             Text(
+-                text = "Sign in with Google",
++                text = stringResource(R.string.login_google_action),
+                 style = MaterialTheme.typography.titleMedium,
+                 color = Color.Black.copy(alpha = if (enabled) 1f else 0.5f)
+             )
+         }
+     }
+ }
+ 
+ /**
+  * Android implementation of Apple Sign-In button.
+  *
+diff --git a/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/LoginScreen.kt b/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/LoginScreen.kt
+index cc97108b..056c746c 100644
+--- a/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/LoginScreen.kt
++++ b/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/LoginScreen.kt
+@@ -251,21 +251,21 @@ fun LoginScreen(
+ 
+ /**
+  * App branding/logo component.
+  *
+  * Shows the app logo or name with styling.
+  */
+ @Composable
+ private fun AppBranding() {
+     Image(
+         painter = painterResource(id = R.drawable.wakeve_app_icon),
+-        contentDescription = "Wakeve Logo",
++        contentDescription = stringResource(R.string.a11y_wakeve_logo),
+         modifier = Modifier
+             .size(120.dp)
+             .clip(MaterialTheme.shapes.large),
+         contentScale = ContentScale.Fit
+     )
+ }
+ 
+ /**
+  * Loading screen shown during authentication.
+  */
+@@ -314,21 +314,21 @@ fun ErrorScreen(
+         Card(
+             colors = CardDefaults.cardColors(
+                 containerColor = MaterialTheme.colorScheme.errorContainer
+             )
+         ) {
+             Column(
+                 modifier = Modifier.padding(24.dp),
+                 horizontalAlignment = Alignment.CenterHorizontally
+             ) {
+                 Text(
+-                    text = "❌",
++                    text = stringResource(R.string.error_symbol),
+                     style = MaterialTheme.typography.displayMedium
+                 )
+                 Spacer(modifier = Modifier.height(16.dp))
+                 Text(
+                     text = stringResource(R.string.generic_error_title),
+                     style = MaterialTheme.typography.headlineSmall,
+                     color = MaterialTheme.colorScheme.onErrorContainer,
+                     textAlign = TextAlign.Center
+                 )
+                 Spacer(modifier = Modifier.height(8.dp))
+diff --git a/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ProfileTabScreen.kt b/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ProfileTabScreen.kt
+index c4a45d30..8390b95c 100644
+--- a/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ProfileTabScreen.kt
++++ b/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ProfileTabScreen.kt
+@@ -31,20 +31,21 @@ import androidx.compose.material3.Icon
+ import androidx.compose.material3.MaterialTheme
+ import androidx.compose.material3.Scaffold
+ import androidx.compose.material3.Surface
+ import androidx.compose.material3.Text
+ import androidx.compose.material3.TopAppBar
+ import androidx.compose.material3.TopAppBarDefaults
+ import androidx.compose.runtime.Composable
+ import androidx.compose.ui.Alignment
+ import androidx.compose.ui.Modifier
+ import androidx.compose.ui.draw.clip
++import androidx.compose.ui.res.stringResource
+ import androidx.compose.ui.text.font.FontWeight
+ import androidx.compose.ui.unit.dp
+ 
+ /**
+  * Profile Tab Screen - User info, settings, and inbox link.
+  * 
+  * Displays:
+  * - User profile information (avatar, name, email)
+  * - Guest mode badge if applicable
+  * - Quick links (Inbox, Settings)
+@@ -76,21 +77,21 @@ fun ProfileTabScreen(
+     onNavigateToInbox: () -> Unit,
+     onNavigateToDashboard: () -> Unit = {},
+     onSignOut: () -> Unit,
+     onCreateAccount: () -> Unit = {}
+ ) {
+     Scaffold(
+         topBar = {
+             TopAppBar(
+                 title = {
+                     Text(
+-                        text = "Profil",
++                        text = stringResource(R.string.profile_screen_title),
+                         style = MaterialTheme.typography.headlineMedium.copy(
+                             fontWeight = FontWeight.Bold
+                         )
+                     )
+                 },
+                 colors = TopAppBarDefaults.topAppBarColors(
+                     containerColor = MaterialTheme.colorScheme.background,
+                     titleContentColor = MaterialTheme.colorScheme.onBackground
+                 )
+             )
+@@ -140,21 +141,21 @@ fun ProfileTabScreen(
+                                     Text(
+                                         text = getInitials(userName),
+                                         style = MaterialTheme.typography.headlineSmall.copy(
+                                             fontWeight = FontWeight.Bold
+                                         ),
+                                         color = MaterialTheme.colorScheme.onPrimary
+                                     )
+                                 } else {
+                                     Icon(
+                                         imageVector = Icons.Default.Person,
+-                                        contentDescription = "Avatar",
++                                        contentDescription = stringResource(R.string.a11y_profile_avatar),
+                                         modifier = Modifier.size(36.dp),
+                                         tint = if (isGuest) {
+                                             MaterialTheme.colorScheme.onTertiary
+                                         } else {
+                                             MaterialTheme.colorScheme.onPrimary
+                                         }
+                                     )
+                                 }
+                             }
+                         }
+@@ -179,21 +180,21 @@ fun ProfileTabScreen(
+                                         MaterialTheme.colorScheme.onPrimaryContainer
+                                     }
+                                 )
+                                 
+                                 if (isGuest) {
+                                     Spacer(modifier = Modifier.width(8.dp))
+                                     AssistChip(
+                                         onClick = {},
+                                         label = { 
+                                             Text(
+-                                                "Mode invité",
++                                                stringResource(R.string.profile_guest_mode),
+                                                 style = MaterialTheme.typography.labelSmall
+                                             )
+                                         },
+                                         colors = AssistChipDefaults.assistChipColors(
+                                             containerColor = MaterialTheme.colorScheme.tertiary,
+                                             labelColor = MaterialTheme.colorScheme.onTertiary
+                                         )
+                                     )
+                                 }
+                             }
+@@ -212,21 +213,21 @@ fun ProfileTabScreen(
+                                 }
+                             )
+                         }
+                     }
+                 }
+             }
+             
+             // Quick Actions Section
+             item {
+                 Text(
+-                    text = "Actions rapides",
++                    text = stringResource(R.string.profile_quick_actions),
+                     style = MaterialTheme.typography.titleMedium.copy(
+                         fontWeight = FontWeight.SemiBold
+                     ),
+                     modifier = Modifier.padding(vertical = 8.dp)
+                 )
+             }
+             
+             item {
+                 ProfileActionItem(
+                     icon = Icons.Default.BarChart,
+@@ -251,21 +252,21 @@ fun ProfileTabScreen(
+                     icon = Icons.Default.Settings,
+                     title = "Paramètres",
+                     subtitle = "Préférences de l'application",
+                     onClick = onNavigateToSettings
+                 )
+             }
+             
+             // Account Section
+             item {
+                 Text(
+-                    text = "Compte",
++                    text = stringResource(R.string.profile_account_section),
+                     style = MaterialTheme.typography.titleMedium.copy(
+                         fontWeight = FontWeight.SemiBold
+                     ),
+                     modifier = Modifier.padding(vertical = 8.dp)
+                 )
+             }
+             
+             // Sign Out (only for authenticated users)
+             if (isAuthenticated && !isGuest) {
+                 item {
+@@ -289,55 +290,55 @@ fun ProfileTabScreen(
+                         onClick = onCreateAccount,
+                         highlight = true
+                     )
+                 }
+             }
+             
+             // App Info Section
+             item {
+                 Spacer(modifier = Modifier.height(16.dp))
+                 Text(
+-                    text = "À propos",
++                    text = stringResource(R.string.about),
+                     style = MaterialTheme.typography.titleMedium.copy(
+                         fontWeight = FontWeight.SemiBold
+                     ),
+                     modifier = Modifier.padding(vertical = 8.dp)
+                 )
+             }
+             
+             item {
+                 Card(
+                     modifier = Modifier.fillMaxWidth(),
+                     colors = CardDefaults.cardColors(
+                         containerColor = MaterialTheme.colorScheme.surfaceVariant
+                     )
+                 ) {
+                     Column(
+                         modifier = Modifier
+                             .fillMaxWidth()
+                             .padding(16.dp)
+                     ) {
+                         Text(
+-                            text = "Wakeve",
++                            text = stringResource(R.string.app_name),
+                             style = MaterialTheme.typography.titleMedium.copy(
+                                 fontWeight = FontWeight.Bold
+                             )
+                         )
+                         Spacer(modifier = Modifier.height(4.dp))
+                         Text(
+                             text = appVersionLabel,
+                             style = MaterialTheme.typography.bodySmall,
+                             color = MaterialTheme.colorScheme.onSurfaceVariant
+                         )
+                         Spacer(modifier = Modifier.height(8.dp))
+                         Text(
+-                            text = "Planification d'événements collaborative avec sondages, gestion de budget, et synchronisation hors ligne.",
++                            text = stringResource(R.string.profile_app_description),
+                             style = MaterialTheme.typography.bodySmall,
+                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                         )
+                     }
+                 }
+             }
+         }
+     }
+ }
+ 
+@@ -398,21 +399,21 @@ private fun ProfileActionItem(
+                     style = MaterialTheme.typography.bodySmall,
+                     color = when {
+                         destructive -> MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f)
+                         highlight -> MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                         else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                     }
+                 )
+             }
+             Icon(
+                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+-                contentDescription = "Accéder",
++                contentDescription = stringResource(R.string.a11y_open_profile_action, title),
+                 tint = when {
+                     destructive -> MaterialTheme.colorScheme.onErrorContainer
+                     highlight -> MaterialTheme.colorScheme.onPrimaryContainer
+                     else -> MaterialTheme.colorScheme.onSurfaceVariant
+                 }
+             )
+         }
+     }
+ }
+ 
+diff --git a/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/AuthCallbacks.kt b/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/AuthCallbacks.kt
+index cb609d05..edd77f49 100644
+--- a/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/AuthCallbacks.kt
++++ b/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/AuthCallbacks.kt
+@@ -25,21 +25,21 @@ interface AuthCallbacks {
+     fun launchAppleSignIn()
+ }
+ 
+ /**
+  * CompositionLocal providing AuthCallbacks from MainActivity.
+  * 
+  * Usage in composables:
+  * ```kotlin
+  * val callbacks = LocalAuthCallbacks.current
+  * Button(onClick = { callbacks.launchGoogleSignIn() }) {
+- *     Text("Sign in with Google")
++ *     Text(textFromResources)
+  * }
+  * ```
+  * 
+  * Must be provided at the root of the composition tree (in MainActivity):
+  * ```kotlin
+  * CompositionLocalProvider(LocalAuthCallbacks provides this) {
+  *     App()
+  * }
+  * ```
+  */
+diff --git a/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/ScreenWrappers.kt b/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/ScreenWrappers.kt
+index ae08c533..e279379d 100644
+--- a/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/ScreenWrappers.kt
++++ b/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/ScreenWrappers.kt
+@@ -16,28 +16,30 @@ import androidx.compose.material3.MaterialTheme
+ import androidx.compose.material3.Text
+ import androidx.compose.runtime.Composable
+ import androidx.compose.runtime.collectAsState
+ import androidx.compose.runtime.getValue
+ import androidx.compose.runtime.mutableStateOf
+ import androidx.compose.runtime.remember
+ import androidx.compose.runtime.setValue
+ import androidx.compose.ui.Alignment
+ import androidx.compose.ui.Modifier
+ import androidx.compose.ui.platform.LocalContext
++import androidx.compose.ui.res.stringResource
+ import androidx.compose.ui.unit.dp
+ import androidx.core.content.ContextCompat
+ import com.guyghost.wakeve.contacts.ContactParticipantCandidate
+ import com.guyghost.wakeve.contacts.loadAndroidContactParticipantCandidates
+ import com.guyghost.wakeve.repository.EventRepositoryInterface
+ import com.guyghost.wakeve.analytics.AnalyticsEvent
+ import com.guyghost.wakeve.analytics.AnalyticsProvider
+ import com.guyghost.wakeve.ParticipantManagementScreen
++import com.guyghost.wakeve.R
+ import com.guyghost.wakeve.PollVotingState
+ import com.guyghost.wakeve.PollResultsScreen
+ import com.guyghost.wakeve.PollVotingScreen
+ import com.guyghost.wakeve.ui.event.toPollResultsUiState
+ import com.guyghost.wakeve.viewmodel.PollViewModel
+ import org.koin.compose.koinInject
+ 
+ /**
+  * Wrapper composables that bridge navigation parameters to screen requirements.
+  * These wrappers fetch Event objects and repositories before calling the actual screens.
+@@ -239,15 +241,15 @@ private fun ErrorPlaceholder(
+             verticalArrangement = Arrangement.Center,
+             modifier = Modifier.padding(32.dp)
+         ) {
+             Text(
+                 text = message,
+                 style = MaterialTheme.typography.titleMedium,
+                 color = MaterialTheme.colorScheme.error
+             )
+             Spacer(modifier = Modifier.height(16.dp))
+             Button(onClick = onBack) {
+-                Text("Retour")
++                Text(stringResource(R.string.back))
+             }
+         }
+     }
+ }
+diff --git a/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/WakeveAdaptiveNavigationScaffold.kt b/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/WakeveAdaptiveNavigationScaffold.kt
+index 76b36bd0..725eb8ac 100644
+--- a/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/WakeveAdaptiveNavigationScaffold.kt
++++ b/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/WakeveAdaptiveNavigationScaffold.kt
+@@ -17,20 +17,22 @@ import androidx.compose.material3.NavigationBarItem
+ import androidx.compose.material3.NavigationRail
+ import androidx.compose.material3.NavigationRailItem
+ import androidx.compose.material3.NavigationRailItemDefaults
+ import androidx.compose.material3.NavigationBarItemDefaults
+ import androidx.compose.material3.Scaffold
+ import androidx.compose.material3.Text
+ import androidx.compose.runtime.Composable
+ import androidx.compose.runtime.getValue
+ import androidx.compose.ui.Modifier
+ import androidx.compose.ui.graphics.vector.ImageVector
++import androidx.compose.ui.res.stringResource
++import com.guyghost.wakeve.R
+ import androidx.compose.ui.platform.testTag
+ import androidx.navigation.NavController
+ import androidx.navigation.NavDestination.Companion.hierarchy
+ import androidx.navigation.compose.currentBackStackEntryAsState
+ import com.guyghost.wakeve.ui.designsystem.WakeveNavigationKind
+ import com.guyghost.wakeve.ui.designsystem.WakeveAdaptiveInfo
+ import com.guyghost.wakeve.ui.designsystem.calculateWakeveAdaptiveInfo
+ 
+ @Composable
+ fun WakeveAdaptiveNavigationScaffold(
+@@ -86,21 +88,21 @@ private fun WakeveNavigationBar(
+     inboxUnreadCount: Int
+ ) {
+     val navBackStackEntry by navController.currentBackStackEntryAsState()
+     val currentDestination = navBackStackEntry?.destination
+ 
+     NavigationBar(
+         modifier = Modifier.testTag("wakeve_bottom_navigation"),
+         containerColor = MaterialTheme.colorScheme.surfaceContainer,
+         contentColor = MaterialTheme.colorScheme.onSurface
+     ) {
+-        wakevePrimaryDestinations.forEach { item ->
++        wakevePrimaryDestinations().forEach { item ->
+             val selected = currentDestination?.hierarchy?.any { it.route == item.screen.route } == true
+             NavigationBarItem(
+                 icon = { WakeveNavIcon(item = item, inboxUnreadCount = inboxUnreadCount) },
+                 label = { Text(text = item.label, style = MaterialTheme.typography.labelMedium) },
+                 selected = selected,
+                 onClick = { navController.navigatePrimary(item.screen.route) },
+                 colors = NavigationBarItemDefaults.colors(
+                     selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                     selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                     indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+@@ -120,21 +122,21 @@ private fun WakeveNavigationRail(
+     val navBackStackEntry by navController.currentBackStackEntryAsState()
+     val currentDestination = navBackStackEntry?.destination
+ 
+     NavigationRail(
+         modifier = Modifier
+             .fillMaxHeight()
+             .testTag("wakeve_navigation_rail"),
+         containerColor = MaterialTheme.colorScheme.surfaceContainer,
+         contentColor = MaterialTheme.colorScheme.onSurface
+     ) {
+-        wakevePrimaryDestinations.forEach { item ->
++        wakevePrimaryDestinations().forEach { item ->
+             val selected = currentDestination?.hierarchy?.any { it.route == item.screen.route } == true
+             NavigationRailItem(
+                 icon = { WakeveNavIcon(item = item, inboxUnreadCount = inboxUnreadCount) },
+                 label = { Text(text = item.label, style = MaterialTheme.typography.labelMedium) },
+                 selected = selected,
+                 onClick = { navController.navigatePrimary(item.screen.route) },
+                 colors = NavigationRailItemDefaults.colors(
+                     selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                     selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                     indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+@@ -176,30 +178,31 @@ private fun NavController.navigatePrimary(route: String) {
+     }
+ }
+ 
+ private data class WakevePrimaryDestination(
+     val screen: Screen,
+     val label: String,
+     val icon: ImageVector,
+     val contentDescription: String
+ )
+ 
+-private val wakevePrimaryDestinations = listOf(
++@Composable
++private fun wakevePrimaryDestinations() = listOf(
+     WakevePrimaryDestination(
+         screen = Screen.Home,
+-        label = "À venir",
++        label = stringResource(R.string.nav_upcoming),
+         icon = Icons.Filled.Home,
+-        contentDescription = "À venir - événements à venir"
++        contentDescription = stringResource(R.string.a11y_nav_upcoming)
+     ),
+     WakevePrimaryDestination(
+         screen = Screen.Inbox,
+-        label = "Notifications",
++        label = stringResource(R.string.notifications),
+         icon = Icons.Filled.Inbox,
+-        contentDescription = "Notifications - alertes et mises à jour"
++        contentDescription = stringResource(R.string.a11y_nav_notifications)
+     ),
+     WakevePrimaryDestination(
+         screen = Screen.Explore,
+-        label = "Explorer",
++        label = stringResource(R.string.tab_ideas),
+         icon = Icons.Filled.Search,
+-        contentDescription = "Explorer - Découvrir des événements et modèles"
++        contentDescription = stringResource(R.string.a11y_nav_ideas)
+     )
+ )
+diff --git a/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/WakeveBottomBar.kt b/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/WakeveBottomBar.kt
+index 3611bdbc..7bb9f7e5 100644
+--- a/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/WakeveBottomBar.kt
++++ b/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/WakeveBottomBar.kt
+@@ -8,20 +8,22 @@ import androidx.compose.material3.Badge
+ import androidx.compose.material3.BadgedBox
+ import androidx.compose.material3.Icon
+ import androidx.compose.material3.MaterialTheme
+ import androidx.compose.material3.NavigationBar
+ import androidx.compose.material3.NavigationBarItem
+ import androidx.compose.material3.NavigationBarItemDefaults
+ import androidx.compose.material3.Text
+ import androidx.compose.runtime.Composable
+ import androidx.compose.runtime.getValue
+ import androidx.compose.ui.graphics.vector.ImageVector
++import androidx.compose.ui.res.stringResource
++import com.guyghost.wakeve.R
+ import androidx.navigation.NavController
+ import androidx.navigation.NavDestination.Companion.hierarchy
+ import androidx.navigation.compose.currentBackStackEntryAsState
+ 
+ /**
+  * Bottom Navigation Bar for Wakeve Android app.
+  *
+  * Implements Material You design with 3 tabs:
+  * - À venir: Upcoming event overview
+  * - Notifications: Event alerts and updates (with unread badge)
+@@ -35,35 +37,35 @@ fun WakeveBottomBar(
+     navController: NavController,
+     inboxUnreadCount: Int = 0
+ ) {
+     val navBackStackEntry by navController.currentBackStackEntryAsState()
+     val currentDestination = navBackStackEntry?.destination
+ 
+     // Define bottom navigation items
+     val items = listOf(
+         BottomNavItem(
+             screen = Screen.Home,
+-            label = "À venir",
++            label = stringResource(R.string.nav_upcoming),
+             icon = Icons.Filled.Home,
+-            contentDescription = "À venir - événements à venir"
++            contentDescription = stringResource(R.string.a11y_nav_upcoming)
+         ),
+         BottomNavItem(
+             screen = Screen.Inbox,
+-            label = "Notifications",
++            label = stringResource(R.string.notifications),
+             icon = Icons.Filled.Inbox,
+-            contentDescription = "Notifications - alertes et mises à jour"
++            contentDescription = stringResource(R.string.a11y_nav_notifications)
+         ),
+         BottomNavItem(
+             screen = Screen.Explore,
+-            label = "Explorer",
++            label = stringResource(R.string.tab_ideas),
+             icon = Icons.Filled.Search,
+-            contentDescription = "Explorer - Découvrir des événements et modèles"
++            contentDescription = stringResource(R.string.a11y_nav_ideas)
+         )
+     )
+ 
+     NavigationBar(
+         containerColor = MaterialTheme.colorScheme.surfaceContainer,
+         contentColor = MaterialTheme.colorScheme.onSurface
+     ) {
+         items.forEach { item ->
+             val selected = currentDestination?.hierarchy?.any {
+                 it.route == item.screen.route
+diff --git a/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/WakeveNavHost.kt b/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/WakeveNavHost.kt
+index b87993a4..12e26a4c 100644
+--- a/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/WakeveNavHost.kt
++++ b/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/WakeveNavHost.kt
+@@ -16,32 +16,34 @@ import androidx.compose.runtime.Composable
+ import androidx.compose.runtime.LaunchedEffect
+ import androidx.compose.runtime.collectAsState
+ import androidx.compose.runtime.getValue
+ import androidx.compose.runtime.mutableStateOf
+ import androidx.compose.runtime.remember
+ import androidx.compose.runtime.rememberCoroutineScope
+ import androidx.compose.runtime.setValue
+ import androidx.compose.ui.Modifier
+ import androidx.compose.ui.platform.LocalContext
+ import androidx.compose.ui.platform.LocalUriHandler
++import androidx.compose.ui.res.stringResource
+ import androidx.compose.ui.unit.dp
+ import androidx.navigation.NavHostController
+ import androidx.navigation.NavType
+ import androidx.navigation.compose.NavHost
+ import androidx.navigation.compose.composable
+ import androidx.navigation.navArgument
+ import com.guyghost.wakeve.EventDetailScreen
+ import com.guyghost.wakeve.ExploreTabScreen
+ import com.guyghost.wakeve.GetStartedScreen
+ import com.guyghost.wakeve.InboxScreen
+ import com.guyghost.wakeve.OnboardingScreen
+ import com.guyghost.wakeve.ProfileTabScreen
++import com.guyghost.wakeve.R
+ import com.guyghost.wakeve.SettingsScreen
+ import com.guyghost.wakeve.SplashScreen
+ import com.guyghost.wakeve.deeplink.AndroidInvitationShareService
+ import com.guyghost.wakeve.deeplink.AndroidNavigationDeepLinkHandler
+ import com.guyghost.wakeve.deeplink.InvitationShareCreationResult
+ import com.guyghost.wakeve.deeplink.normalizeDeepLinkPathSegment
+ import com.guyghost.wakeve.ui.auth.AuthScreen
+ import com.guyghost.wakeve.ui.auth.AuthSideEffect
+ import com.guyghost.wakeve.ui.auth.AuthViewModel
+ import com.guyghost.wakeve.ui.auth.EmailAuthScreen
+@@ -1616,32 +1618,32 @@ private fun EventPhotosFollowUpScreen(
+             } else {
+                 MaterialTheme.colorScheme.onSurface
+             }
+         )
+         Text(
+             text = state.body,
+             style = MaterialTheme.typography.bodyMedium,
+             color = MaterialTheme.colorScheme.onSurfaceVariant
+         )
+         Text(
+-            text = "Prochaine action : ${state.recommendedActionLabel}",
++            text = stringResource(R.string.event_next_action, state.recommendedActionLabel),
+             style = MaterialTheme.typography.bodyMedium,
+             color = MaterialTheme.colorScheme.onSurface
+         )
+         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+             state.checklist.forEach { item ->
+                 Column(
+                     modifier = Modifier.fillMaxWidth(),
+                     verticalArrangement = Arrangement.spacedBy(4.dp)
+                 ) {
+                     Text(
+-                        text = "${item.statusLabel} - ${item.title}",
++                        text = stringResource(R.string.event_status_and_title, item.statusLabel, item.title),
+                         style = MaterialTheme.typography.titleSmall,
+                         color = MaterialTheme.colorScheme.onSurface
+                     )
+                     Text(
+                         text = item.body,
+                         style = MaterialTheme.typography.bodySmall,
+                         color = MaterialTheme.colorScheme.onSurfaceVariant
+                     )
+                 }
+             }
+@@ -1770,23 +1772,23 @@ private fun AccessDenied(
+         modifier = Modifier
+             .fillMaxSize()
+             .padding(24.dp),
+         contentAlignment = androidx.compose.ui.Alignment.Center
+     ) {
+         Column(
+             verticalArrangement = Arrangement.spacedBy(12.dp),
+             horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
+         ) {
+             Text(
+-                text = "Accès restreint",
++                text = stringResource(R.string.restricted_access_title),
+                 style = MaterialTheme.typography.titleLarge
+             )
+             Text(
+                 text = message,
+                 style = MaterialTheme.typography.bodyMedium
+             )
+             Button(onClick = onBack) {
+-                Text("Retour")
++                Text(stringResource(R.string.back))
+             }
+         }
+     }
+ }
+diff --git a/composeApp/src/androidMain/res/values-de/strings.xml b/composeApp/src/androidMain/res/values-de/strings.xml
+index b833c256..2ba8fb65 100644
+--- a/composeApp/src/androidMain/res/values-de/strings.xml
++++ b/composeApp/src/androidMain/res/values-de/strings.xml
+@@ -660,11 +660,16 @@
+     <string name="notification_poll_opened">Umfrage geöffnet</string>
+     <string name="notification_date_confirmed">Datum bestätigt</string>
+     <string name="entity_event">Event</string>
+     <string name="entity_scenario">Option</string>
+     <string name="entity_meeting">Meeting</string>
+     <string name="wakeve_logo_content_description">Wakeve-Logo</string><string name="get_started_tagline">Gemeinsam Veranstaltungen planen</string><string name="get_started_cta">Loslegen</string><string name="get_started_feature_poll">Gemeinsame Umfragen für den besten Termin</string><string name="get_started_feature_plan">Reiseziele und Aktivitäten planen</string><string name="get_started_feature_budget">Budget und gemeinsame Kasse verwalten</string><string name="get_started_feature_offline">Offline verfügbar, automatische Synchronisierung</string>
+     <string name="onboarding_title">Einführung</string><string name="onboarding_create_event_title">Erstellt eure Veranstaltungen</string><string name="onboarding_create_event_description">Plant Veranstaltungen mit Freunden und Kollegen. Legt Termine fest, schlagt Zeitfenster vor und lasst die Gruppe abstimmen.</string><string name="onboarding_create_event_feature_fast">Schnelle Erstellung</string><string name="onboarding_create_event_feature_poll">Verfügbarkeitsumfrage</string><string name="onboarding_create_event_feature_best_slot">Bestes Zeitfenster automatisch ermitteln</string><string name="onboarding_collaborate_title">Koordiniert die Gruppe</string><string name="onboarding_collaborate_description">Behaltet Teilnehmende, Antworten und Zuständigkeiten im Blick, ohne Entscheidungen im Chat zu verlieren.</string><string name="onboarding_collaborate_feature_participants">Teilnehmende verwalten</string><string name="onboarding_collaborate_feature_roles">Klare Zuständigkeiten</string><string name="onboarding_collaborate_feature_progress">Sichtbarer Fortschritt</string><string name="onboarding_organize_title">Bereitet die Details vor</string><string name="onboarding_organize_description">Bündelt Unterkunft, Essen, Aktivitäten, Anreise und Budget, sobald aus der Idee ein Plan wird.</string><string name="onboarding_organize_feature_lodging">Unterkunftsoptionen</string><string name="onboarding_organize_feature_meals">Essensplanung</string><string name="onboarding_organize_feature_budget">Budgetübersicht</string><string name="onboarding_enjoy_title">Entspannt abschließen</string><string name="onboarding_enjoy_description">Behaltet Termin, Erinnerungen und nächste Schritte bis zum Veranstaltungstag im Blick.</string><string name="onboarding_enjoy_feature_overview">Übersicht</string><string name="onboarding_enjoy_feature_reminders">Integrierte Erinnerungen</string><string name="onboarding_enjoy_feature_calendar">Gerätekalender</string>
+     <string name="signing_in">Anmeldung läuft…</string><string name="sign_in_failed">Anmeldung fehlgeschlagen</string><string name="try_again">Erneut versuchen</string><string name="sign_in_terms_prefix">Mit der Anmeldung akzeptierst du unsere</string><string name="privacy_policy">Datenschutzerklärung</string><string name="and_separator"> und unsere </string><string name="terms_of_service">Nutzungsbedingungen</string><string name="generic_error_title">Etwas ist schiefgegangen</string><string name="custom_event_type_example">Z. B. Benefizgala, Produkteinführung</string><string name="custom_event_type_supporting">Beschreibe die Art der Veranstaltung</string><string name="select_event_type">Veranstaltungsart auswählen</string><string name="selected">Ausgewählt</string><string name="unread_notifications_short_label">Zu erledigen</string><string name="unread_notifications_long_label">Ungelesene Einladungen, Abstimmungen und Erinnerungen anzeigen</string>
+     <string name="tab_ideas">Ideen</string><string name="event_state_draft">Entwurf</string><string name="event_state_polling">Umfrage läuft</string><string name="event_state_comparing">Optionen vergleichen</string><string name="event_state_confirmed">Termin bestätigt</string><string name="event_state_organizing">Details vorbereiten</string><string name="event_state_finalized">Bereit</string><string name="notifications_filter_todo">Zu erledigen</string><string name="notifications_filter_information">Informationen</string>
+     <string name="ai_prepare_options">Optionen vorbereiten</string><string name="ai_summarize_responses">Antworten zusammenfassen</string><string name="ai_propose_message">Nachricht vorschlagen</string><string name="ai_complete_list">Liste vervollständigen</string><string name="ai_proposal_to_review">Vorschlag zur Prüfung</string><string name="sync_waiting">Wartet auf Synchronisierung</string><string name="sync_retry">Synchronisierung erneut versuchen</string><string name="sync_change_not_saved">Änderung nicht gespeichert</string><string name="permission_notifications_denied">Benachrichtigungen werden auf diesem Gerät nicht zugestellt</string><string name="permission_open_settings">Einstellungen öffnen</string><string name="permission_notifications_available">Hinweise bleiben unter Benachrichtigungen verfügbar</string><string name="accessibility_open_event_details">Veranstaltungsdetails öffnen</string><string name="accessibility_navigate_back">Zum vorherigen Bildschirm zurückkehren</string><string name="accessibility_more_event_actions">Weitere Veranstaltungsaktionen öffnen</string><string name="accessibility_mark_payment_paid">Zahlung als bezahlt markieren</string><string name="milestone_first_event">Erste Veranstaltung</string><string name="milestone_regular_voting">Regelmäßig abgestimmt</string><string name="milestone_organization_ready">Organisation bereit</string>
++    <string name="nav_upcoming">Demnächst</string><string name="a11y_nav_upcoming">Demnächst öffnen, nicht ausgewählter Tab</string><string name="a11y_nav_notifications">Benachrichtigungen, Hinweise und Updates öffnen</string><string name="a11y_nav_ideas">Ideen und Eventvorschläge öffnen</string>
++    <string name="inbox_filter_by_event">Nach Event filtern</string><string name="inbox_all_events">Alle Events</string><string name="inbox_mark_read">Als gelesen markieren</string><string name="inbox_mark_done">Abschließen</string><string name="inbox_event_filter_value">· %1$s</string><string name="a11y_mark_all_notifications_read">Alle Benachrichtigungen als gelesen markieren</string><string name="a11y_open_notification_preferences">Benachrichtigungseinstellungen öffnen</string>
++    <string name="login_google_initial" translatable="false">G</string><string name="login_google_action">Mit Google anmelden</string><string name="a11y_wakeve_logo">Wakeve-Logo</string><string name="error_symbol" translatable="false">❌</string>
++    <string name="event_next_action">Nächste Aktion: %1$s</string><string name="event_status_and_title">%1$s — %2$s</string><string name="restricted_access_title">Eingeschränkter Zugriff</string><string name="profile_screen_title">Profil</string><string name="a11y_profile_avatar">Profilbild</string><string name="profile_quick_actions">Schnellaktionen</string><string name="profile_account_section">Konto</string><string name="profile_app_description">Gemeinsame Eventplanung mit Umfragen, Budget und Offline-Synchronisierung.</string><string name="a11y_open_profile_action">%1$s öffnen</string>
++    <string name="profile_guest_mode">Gastmodus</string>
+ </resources>
+diff --git a/composeApp/src/androidMain/res/values-en/strings.xml b/composeApp/src/androidMain/res/values-en/strings.xml
+index a87e7f98..bcca824d 100644
+--- a/composeApp/src/androidMain/res/values-en/strings.xml
++++ b/composeApp/src/androidMain/res/values-en/strings.xml
+@@ -702,11 +702,17 @@
+     <string name="entity_meeting">Meeting</string>
+     <string name="signing_in">Signing in…</string><string name="sign_in_failed">Sign-in failed</string><string name="try_again">Try again</string><string name="sign_in_terms_prefix">By signing in, you agree to our</string><string name="privacy_policy">Privacy Policy</string><string name="and_separator"> and our </string><string name="terms_of_service">Terms of Service</string><string name="generic_error_title">Something went wrong</string><string name="custom_event_type_example">E.g. charity gala, product launch</string><string name="custom_event_type_supporting">Describe your event type</string><string name="select_event_type">Select event type</string><string name="selected">Selected</string>
+     <string name="tab_ideas">Ideas</string>
+     <string name="event_state_draft">Draft</string><string name="event_state_polling">Poll in progress</string><string name="event_state_comparing">Options to compare</string><string name="event_state_confirmed">Date confirmed</string><string name="event_state_organizing">Details to prepare</string><string name="event_state_finalized">Ready</string>
+     <string name="notifications_filter_todo">To do</string><string name="notifications_filter_information">Information</string>
+     <string name="ai_prepare_options">Prepare options</string><string name="ai_summarize_responses">Summarize responses</string><string name="ai_propose_message">Propose a message</string><string name="ai_complete_list">Complete the list</string><string name="ai_proposal_to_review">Proposal to review</string>
+     <string name="sync_waiting">Waiting to sync</string><string name="sync_retry">Retry sync</string><string name="sync_change_not_saved">Change not saved</string>
+     <string name="permission_notifications_denied">Alerts will not be delivered on this device</string><string name="permission_open_settings">Open settings</string><string name="permission_notifications_available">Alerts remain available in Notifications</string>
+     <string name="accessibility_open_event_details">Open event details</string><string name="accessibility_navigate_back">Go back to the previous screen</string><string name="accessibility_more_event_actions">Open more event actions</string><string name="accessibility_mark_payment_paid">Mark payment as paid</string>
+     <string name="milestone_first_event">First event</string><string name="milestone_regular_voting">Regular voting</string><string name="milestone_organization_ready">Organization ready</string>
++    <string name="nav_upcoming">Upcoming</string><string name="a11y_nav_upcoming">Open Upcoming, unselected tab</string><string name="a11y_nav_notifications">Open Notifications, alerts and updates</string><string name="a11y_nav_ideas">Open Ideas, event suggestions</string>
++    <string name="inbox_filter_by_event">Filter by event</string><string name="inbox_all_events">All events</string><string name="inbox_mark_read">Mark as read</string><string name="inbox_mark_done">Complete</string><string name="inbox_event_filter_value">· %1$s</string><string name="a11y_mark_all_notifications_read">Mark all notifications as read</string><string name="a11y_open_notification_preferences">Open notification preferences</string>
++    <string name="login_google_initial" translatable="false">G</string><string name="login_google_action">Sign in with Google</string><string name="a11y_wakeve_logo">Wakeve logo</string><string name="error_symbol" translatable="false">❌</string>
++    <string name="event_next_action">Next action: %1$s</string><string name="event_status_and_title">%1$s — %2$s</string><string name="restricted_access_title">Restricted access</string>
++    <string name="profile_screen_title">Profile</string><string name="a11y_profile_avatar">Profile avatar</string><string name="profile_quick_actions">Quick actions</string><string name="profile_account_section">Account</string><string name="profile_app_description">Collaborative event planning with polls, budgets, and offline sync.</string><string name="a11y_open_profile_action">Open %1$s</string>
++    <string name="profile_guest_mode">Guest mode</string>
+ </resources>
+diff --git a/composeApp/src/androidMain/res/values-es/strings.xml b/composeApp/src/androidMain/res/values-es/strings.xml
+index 08a1263c..b866a288 100644
+--- a/composeApp/src/androidMain/res/values-es/strings.xml
++++ b/composeApp/src/androidMain/res/values-es/strings.xml
+@@ -659,11 +659,16 @@
+     <string name="profile_category_special">Especiales</string>
+     <string name="profile_leaderboard_all_time">Todo el tiempo</string>
+ 
+     <!-- Leaderboard Screen (new) -->
+     <string name="leaderboard_title">Clasificación</string>
+     <string name="leaderboard_you">Tú</string>
+     <string name="leaderboard_badges">%1$d insignias</string>
+     <string name="leaderboard_global">Global</string>
+     <string name="wakeve_logo_content_description">Logotipo de Wakeve</string><string name="get_started_tagline">Planificación colaborativa de eventos</string><string name="get_started_cta">Empezar</string><string name="get_started_feature_poll">Encuestas colaborativas para elegir la mejor fecha</string><string name="get_started_feature_plan">Planificación de destinos y actividades</string><string name="get_started_feature_budget">Gestión del presupuesto y fondo común</string><string name="get_started_feature_offline">Disponible sin conexión, sincronización automática</string><string name="onboarding_title">Descubre Wakeve</string><string name="onboarding_create_event_title">Crea tus eventos</string><string name="onboarding_create_event_description">Organiza eventos con amigos y compañeros. Define fechas, propón horarios y deja que el grupo vote.</string><string name="onboarding_create_event_feature_fast">Creación rápida de eventos</string><string name="onboarding_create_event_feature_poll">Encuesta de disponibilidad</string><string name="onboarding_create_event_feature_best_slot">Cálculo automático del mejor horario</string><string name="onboarding_collaborate_title">Coordina al grupo</string><string name="onboarding_collaborate_description">Sigue a los participantes, las respuestas y las responsabilidades sin perder decisiones en el chat.</string><string name="onboarding_collaborate_feature_participants">Gestión de participantes</string><string name="onboarding_collaborate_feature_roles">Responsabilidades claras</string><string name="onboarding_collaborate_feature_progress">Progreso visible</string><string name="onboarding_organize_title">Prepara los detalles</string><string name="onboarding_organize_description">Reúne alojamiento, comidas, actividades, transporte y presupuesto cuando la idea se convierta en plan.</string><string name="onboarding_organize_feature_lodging">Opciones de alojamiento</string><string name="onboarding_organize_feature_meals">Organización de comidas</string><string name="onboarding_organize_feature_budget">Seguimiento del presupuesto</string><string name="onboarding_enjoy_title">Finaliza sin estrés</string><string name="onboarding_enjoy_description">Mantén claras la fecha, los recordatorios y las próximas acciones hasta el día del evento.</string><string name="onboarding_enjoy_feature_overview">Resumen</string><string name="onboarding_enjoy_feature_reminders">Recordatorios integrados</string><string name="onboarding_enjoy_feature_calendar">Calendario del dispositivo</string><string name="signing_in">Iniciando sesión…</string><string name="sign_in_failed">No se pudo iniciar sesión</string><string name="try_again">Reintentar</string><string name="sign_in_terms_prefix">Al iniciar sesión, aceptas nuestra</string><string name="privacy_policy">Política de privacidad</string><string name="and_separator"> y nuestros </string><string name="terms_of_service">Términos de servicio</string><string name="generic_error_title">Algo ha salido mal</string><string name="custom_event_type_example">Ej. gala benéfica, lanzamiento de producto</string><string name="custom_event_type_supporting">Describe el tipo de evento</string><string name="select_event_type">Seleccionar tipo de evento</string><string name="selected">Seleccionado</string><string name="unread_notifications_short_label">Pendientes</string><string name="unread_notifications_long_label">Ver invitaciones, votos y recordatorios sin leer</string>
+     <string name="tab_ideas">Ideas</string><string name="event_state_draft">Borrador</string><string name="event_state_polling">Encuesta en curso</string><string name="event_state_comparing">Opciones para comparar</string><string name="event_state_confirmed">Fecha confirmada</string><string name="event_state_organizing">Detalles por preparar</string><string name="event_state_finalized">Listo</string><string name="notifications_filter_todo">Pendientes</string><string name="notifications_filter_information">Información</string><string name="ai_prepare_options">Preparar opciones</string><string name="ai_summarize_responses">Resumir respuestas</string><string name="ai_propose_message">Proponer un mensaje</string><string name="ai_complete_list">Completar la lista</string><string name="ai_proposal_to_review">Propuesta para revisar</string><string name="sync_waiting">Pendiente de sincronización</string><string name="sync_retry">Reintentar sincronización</string><string name="sync_change_not_saved">Cambio no guardado</string><string name="permission_notifications_denied">Las alertas no se enviarán a este dispositivo</string><string name="permission_open_settings">Abrir ajustes</string><string name="permission_notifications_available">Las alertas siguen disponibles en Notificaciones</string><string name="accessibility_open_event_details">Abrir detalles del evento</string><string name="accessibility_navigate_back">Volver a la pantalla anterior</string><string name="accessibility_more_event_actions">Abrir más acciones del evento</string><string name="accessibility_mark_payment_paid">Marcar el pago como pagado</string><string name="milestone_first_event">Primer evento</string><string name="milestone_regular_voting">Votación habitual</string><string name="milestone_organization_ready">Organización lista</string>
++    <string name="nav_upcoming">Próximos</string><string name="a11y_nav_upcoming">Abrir Próximos, pestaña no seleccionada</string><string name="a11y_nav_notifications">Abrir Notificaciones, alertas y novedades</string><string name="a11y_nav_ideas">Abrir Ideas, sugerencias de eventos</string>
++    <string name="inbox_filter_by_event">Filtrar por evento</string><string name="inbox_all_events">Todos los eventos</string><string name="inbox_mark_read">Marcar como leído</string><string name="inbox_mark_done">Completar</string><string name="inbox_event_filter_value">· %1$s</string><string name="a11y_mark_all_notifications_read">Marcar todas las notificaciones como leídas</string><string name="a11y_open_notification_preferences">Abrir preferencias de notificaciones</string>
++    <string name="login_google_initial" translatable="false">G</string><string name="login_google_action">Iniciar sesión con Google</string><string name="a11y_wakeve_logo">Logotipo de Wakeve</string><string name="error_symbol" translatable="false">❌</string>
++    <string name="event_next_action">Siguiente acción: %1$s</string><string name="event_status_and_title">%1$s — %2$s</string><string name="restricted_access_title">Acceso restringido</string><string name="profile_screen_title">Perfil</string><string name="a11y_profile_avatar">Avatar del perfil</string><string name="profile_quick_actions">Acciones rápidas</string><string name="profile_account_section">Cuenta</string><string name="profile_app_description">Planificación colaborativa de eventos con encuestas, presupuesto y sincronización sin conexión.</string><string name="a11y_open_profile_action">Abrir %1$s</string>
++    <string name="profile_guest_mode">Modo invitado</string>
+ </resources>
+diff --git a/composeApp/src/androidMain/res/values-it/strings.xml b/composeApp/src/androidMain/res/values-it/strings.xml
+index 45145d81..169455a1 100644
+--- a/composeApp/src/androidMain/res/values-it/strings.xml
++++ b/composeApp/src/androidMain/res/values-it/strings.xml
+@@ -657,11 +657,16 @@
+     <string name="try_again_later">Riprova più tardi</string>
+     <string name="loading_more">Caricamento altro…</string>
+     <string name="notification_event_created">Evento creato</string>
+     <string name="notification_poll_opened">Sondaggio aperto</string>
+     <string name="notification_date_confirmed">Data confermata</string>
+     <string name="entity_event">Evento</string>
+     <string name="entity_scenario">Opzione</string>
+     <string name="entity_meeting">Riunione</string>
+     <string name="wakeve_logo_content_description">Logo Wakeve</string><string name="get_started_tagline">Pianificazione collaborativa di eventi</string><string name="get_started_cta">Inizia</string><string name="get_started_feature_poll">Sondaggi collaborativi per trovare la data migliore</string><string name="get_started_feature_plan">Pianificazione di destinazioni e attività</string><string name="get_started_feature_budget">Gestione del budget e fondo condiviso</string><string name="get_started_feature_offline">Disponibile offline, sincronizzazione automatica</string><string name="onboarding_title">Scopri Wakeve</string><string name="onboarding_create_event_title">Crea i tuoi eventi</string><string name="onboarding_create_event_description">Organizza eventi con amici e colleghi. Definisci le date, proponi orari e lascia votare il gruppo.</string><string name="onboarding_create_event_feature_fast">Creazione rapida di eventi</string><string name="onboarding_create_event_feature_poll">Sondaggio sulla disponibilità</string><string name="onboarding_create_event_feature_best_slot">Calcolo automatico dell’orario migliore</string><string name="onboarding_collaborate_title">Coordina il gruppo</string><string name="onboarding_collaborate_description">Segui partecipanti, risposte e responsabilità senza perdere le decisioni nella chat.</string><string name="onboarding_collaborate_feature_participants">Gestione dei partecipanti</string><string name="onboarding_collaborate_feature_roles">Responsabilità chiare</string><string name="onboarding_collaborate_feature_progress">Avanzamento visibile</string><string name="onboarding_organize_title">Prepara i dettagli</string><string name="onboarding_organize_description">Riunisci alloggio, pasti, attività, trasporti e budget quando l’idea diventa un piano.</string><string name="onboarding_organize_feature_lodging">Opzioni di alloggio</string><string name="onboarding_organize_feature_meals">Organizzazione dei pasti</string><string name="onboarding_organize_feature_budget">Controllo del budget</string><string name="onboarding_enjoy_title">Concludi senza stress</string><string name="onboarding_enjoy_description">Mantieni chiari data, promemoria e prossime azioni fino al giorno dell’evento.</string><string name="onboarding_enjoy_feature_overview">Panoramica</string><string name="onboarding_enjoy_feature_reminders">Promemoria integrati</string><string name="onboarding_enjoy_feature_calendar">Calendario del dispositivo</string><string name="signing_in">Accesso in corso…</string><string name="sign_in_failed">Accesso non riuscito</string><string name="try_again">Riprova</string><string name="sign_in_terms_prefix">Accedendo, accetti la nostra</string><string name="privacy_policy">Informativa sulla privacy</string><string name="and_separator"> e i nostri </string><string name="terms_of_service">Termini di servizio</string><string name="generic_error_title">Qualcosa è andato storto</string><string name="custom_event_type_example">Es. gala di beneficenza, lancio di prodotto</string><string name="custom_event_type_supporting">Descrivi il tipo di evento</string><string name="select_event_type">Seleziona il tipo di evento</string><string name="selected">Selezionato</string><string name="unread_notifications_short_label">Da fare</string><string name="unread_notifications_long_label">Mostra inviti, voti e promemoria non letti</string>
+     <string name="tab_ideas">Idee</string><string name="event_state_draft">Bozza</string><string name="event_state_polling">Sondaggio in corso</string><string name="event_state_comparing">Opzioni da confrontare</string><string name="event_state_confirmed">Data confermata</string><string name="event_state_organizing">Dettagli da preparare</string><string name="event_state_finalized">Pronto</string><string name="notifications_filter_todo">Da fare</string><string name="notifications_filter_information">Informazioni</string><string name="ai_prepare_options">Prepara opzioni</string><string name="ai_summarize_responses">Riassumi le risposte</string><string name="ai_propose_message">Proponi un messaggio</string><string name="ai_complete_list">Completa l’elenco</string><string name="ai_proposal_to_review">Proposta da rivedere</string><string name="sync_waiting">In attesa di sincronizzazione</string><string name="sync_retry">Riprova la sincronizzazione</string><string name="sync_change_not_saved">Modifica non salvata</string><string name="permission_notifications_denied">Gli avvisi non saranno inviati su questo dispositivo</string><string name="permission_open_settings">Apri impostazioni</string><string name="permission_notifications_available">Gli avvisi restano disponibili in Notifiche</string><string name="accessibility_open_event_details">Apri i dettagli dell’evento</string><string name="accessibility_navigate_back">Torna alla schermata precedente</string><string name="accessibility_more_event_actions">Apri altre azioni dell’evento</string><string name="accessibility_mark_payment_paid">Segna il pagamento come effettuato</string><string name="milestone_first_event">Primo evento</string><string name="milestone_regular_voting">Voto regolare</string><string name="milestone_organization_ready">Organizzazione pronta</string>
++    <string name="nav_upcoming">In arrivo</string><string name="a11y_nav_upcoming">Apri In arrivo, scheda non selezionata</string><string name="a11y_nav_notifications">Apri Notifiche, avvisi e aggiornamenti</string><string name="a11y_nav_ideas">Apri Idee, suggerimenti per eventi</string>
++    <string name="inbox_filter_by_event">Filtra per evento</string><string name="inbox_all_events">Tutti gli eventi</string><string name="inbox_mark_read">Segna come letto</string><string name="inbox_mark_done">Completa</string><string name="inbox_event_filter_value">· %1$s</string><string name="a11y_mark_all_notifications_read">Segna tutte le notifiche come lette</string><string name="a11y_open_notification_preferences">Apri preferenze notifiche</string>
++    <string name="login_google_initial" translatable="false">G</string><string name="login_google_action">Accedi con Google</string><string name="a11y_wakeve_logo">Logo Wakeve</string><string name="error_symbol" translatable="false">❌</string>
++    <string name="event_next_action">Prossima azione: %1$s</string><string name="event_status_and_title">%1$s — %2$s</string><string name="restricted_access_title">Accesso limitato</string><string name="profile_screen_title">Profilo</string><string name="a11y_profile_avatar">Avatar del profilo</string><string name="profile_quick_actions">Azioni rapide</string><string name="profile_account_section">Account</string><string name="profile_app_description">Pianificazione collaborativa di eventi con sondaggi, budget e sincronizzazione offline.</string><string name="a11y_open_profile_action">Apri %1$s</string>
++    <string name="profile_guest_mode">Modalità ospite</string>
+ </resources>
+diff --git a/composeApp/src/androidMain/res/values-pt/strings.xml b/composeApp/src/androidMain/res/values-pt/strings.xml
+index 380a4d8d..83abbf83 100644
+--- a/composeApp/src/androidMain/res/values-pt/strings.xml
++++ b/composeApp/src/androidMain/res/values-pt/strings.xml
+@@ -657,11 +657,16 @@
+     <string name="try_again_later">Tente novamente mais tarde</string>
+     <string name="loading_more">Carregando mais…</string>
+     <string name="notification_event_created">Evento criado</string>
+     <string name="notification_poll_opened">Enquete aberta</string>
+     <string name="notification_date_confirmed">Data confirmada</string>
+     <string name="entity_event">Evento</string>
+     <string name="entity_scenario">Opção</string>
+     <string name="entity_meeting">Reunião</string>
+     <string name="wakeve_logo_content_description">Logótipo Wakeve</string><string name="get_started_tagline">Planeamento colaborativo de eventos</string><string name="get_started_cta">Começar</string><string name="get_started_feature_poll">Sondagens colaborativas para encontrar a melhor data</string><string name="get_started_feature_plan">Planeamento de destinos e atividades</string><string name="get_started_feature_budget">Gestão do orçamento e fundo partilhado</string><string name="get_started_feature_offline">Disponível offline, sincronização automática</string><string name="onboarding_title">Descobrir</string><string name="onboarding_create_event_title">Cria os teus eventos</string><string name="onboarding_create_event_description">Organiza eventos com amigos e colegas. Define datas, propõe horários e deixa o grupo votar.</string><string name="onboarding_create_event_feature_fast">Criação rápida de eventos</string><string name="onboarding_create_event_feature_poll">Sondagem de disponibilidade</string><string name="onboarding_create_event_feature_best_slot">Cálculo automático do melhor horário</string><string name="onboarding_collaborate_title">Coordena o grupo</string><string name="onboarding_collaborate_description">Acompanha participantes, respostas e responsabilidades sem perder decisões na conversa.</string><string name="onboarding_collaborate_feature_participants">Gestão de participantes</string><string name="onboarding_collaborate_feature_roles">Responsabilidades claras</string><string name="onboarding_collaborate_feature_progress">Progresso visível</string><string name="onboarding_organize_title">Prepara os detalhes</string><string name="onboarding_organize_description">Reúne alojamento, refeições, atividades, transporte e orçamento quando a ideia se torna um plano.</string><string name="onboarding_organize_feature_lodging">Opções de alojamento</string><string name="onboarding_organize_feature_meals">Organização das refeições</string><string name="onboarding_organize_feature_budget">Acompanhamento do orçamento</string><string name="onboarding_enjoy_title">Finaliza sem stress</string><string name="onboarding_enjoy_description">Mantém a data, os lembretes e as próximas ações claros até ao dia do evento.</string><string name="onboarding_enjoy_feature_overview">Visão geral</string><string name="onboarding_enjoy_feature_reminders">Lembretes integrados</string><string name="onboarding_enjoy_feature_calendar">Calendário do dispositivo</string><string name="signing_in">A iniciar sessão…</string><string name="sign_in_failed">Falha ao iniciar sessão</string><string name="try_again">Tentar novamente</string><string name="sign_in_terms_prefix">Ao iniciar sessão, aceitas a nossa</string><string name="privacy_policy">Política de privacidade</string><string name="and_separator"> e os nossos </string><string name="terms_of_service">Termos de serviço</string><string name="generic_error_title">Algo correu mal</string><string name="custom_event_type_example">Ex. gala solidária, lançamento de produto</string><string name="custom_event_type_supporting">Descreve o tipo de evento</string><string name="select_event_type">Selecionar tipo de evento</string><string name="selected">Selecionado</string><string name="unread_notifications_short_label">A tratar</string><string name="unread_notifications_long_label">Ver convites, votos e lembretes por ler</string>
+     <string name="tab_ideas">Ideias</string><string name="event_state_draft">Rascunho</string><string name="event_state_polling">Sondagem em curso</string><string name="event_state_comparing">Opções para comparar</string><string name="event_state_confirmed">Data confirmada</string><string name="event_state_organizing">Detalhes a preparar</string><string name="event_state_finalized">Pronto</string><string name="notifications_filter_todo">A tratar</string><string name="notifications_filter_information">Informações</string><string name="ai_prepare_options">Preparar opções</string><string name="ai_summarize_responses">Resumir respostas</string><string name="ai_propose_message">Propor uma mensagem</string><string name="ai_complete_list">Completar a lista</string><string name="ai_proposal_to_review">Proposta para rever</string><string name="sync_waiting">A aguardar sincronização</string><string name="sync_retry">Tentar sincronizar novamente</string><string name="sync_change_not_saved">Alteração não guardada</string><string name="permission_notifications_denied">Os alertas não serão enviados neste dispositivo</string><string name="permission_open_settings">Abrir definições</string><string name="permission_notifications_available">Os alertas continuam disponíveis em Notificações</string><string name="accessibility_open_event_details">Abrir detalhes do evento</string><string name="accessibility_navigate_back">Voltar ao ecrã anterior</string><string name="accessibility_more_event_actions">Abrir mais ações do evento</string><string name="accessibility_mark_payment_paid">Marcar pagamento como pago</string><string name="milestone_first_event">Primeiro evento</string><string name="milestone_regular_voting">Votação regular</string><string name="milestone_organization_ready">Organização pronta</string>
++    <string name="nav_upcoming">Próximos</string><string name="a11y_nav_upcoming">Abrir Próximos, separador não selecionado</string><string name="a11y_nav_notifications">Abrir Notificações, alertas e atualizações</string><string name="a11y_nav_ideas">Abrir Ideias, sugestões de eventos</string>
++    <string name="inbox_filter_by_event">Filtrar por evento</string><string name="inbox_all_events">Todos os eventos</string><string name="inbox_mark_read">Marcar como lido</string><string name="inbox_mark_done">Concluir</string><string name="inbox_event_filter_value">· %1$s</string><string name="a11y_mark_all_notifications_read">Marcar todas as notificações como lidas</string><string name="a11y_open_notification_preferences">Abrir preferências de notificações</string>
++    <string name="login_google_initial" translatable="false">G</string><string name="login_google_action">Iniciar sessão com Google</string><string name="a11y_wakeve_logo">Logótipo Wakeve</string><string name="error_symbol" translatable="false">❌</string>
++    <string name="event_next_action">Próxima ação: %1$s</string><string name="event_status_and_title">%1$s — %2$s</string><string name="restricted_access_title">Acesso restrito</string><string name="profile_screen_title">Perfil</string><string name="a11y_profile_avatar">Avatar do perfil</string><string name="profile_quick_actions">Ações rápidas</string><string name="profile_account_section">Conta</string><string name="profile_app_description">Planeamento colaborativo de eventos com sondagens, orçamento e sincronização offline.</string><string name="a11y_open_profile_action">Abrir %1$s</string>
++    <string name="profile_guest_mode">Modo convidado</string>
+ </resources>
+diff --git a/composeApp/src/androidMain/res/values/strings.xml b/composeApp/src/androidMain/res/values/strings.xml
+index 3acead92..dc11b03f 100644
+--- a/composeApp/src/androidMain/res/values/strings.xml
++++ b/composeApp/src/androidMain/res/values/strings.xml
+@@ -705,11 +705,17 @@
+     <string name="leaderboard_global">Global</string>
+     <!-- Canonical product language -->
+     <string name="tab_ideas">Idées</string>
+     <string name="event_state_draft">Brouillon</string><string name="event_state_polling">Sondage en cours</string><string name="event_state_comparing">Options à comparer</string><string name="event_state_confirmed">Date confirmée</string><string name="event_state_organizing">Détails à préparer</string><string name="event_state_finalized">Prêt</string>
+     <string name="notifications_filter_todo">À traiter</string><string name="notifications_filter_information">Informations</string>
+     <string name="ai_prepare_options">Préparer des options</string><string name="ai_summarize_responses">Résumer les réponses</string><string name="ai_propose_message">Proposer un message</string><string name="ai_complete_list">Compléter la liste</string><string name="ai_proposal_to_review">Proposition à relire</string>
+     <string name="sync_waiting">En attente de synchronisation</string><string name="sync_retry">Réessayer la synchronisation</string><string name="sync_change_not_saved">Modification non enregistrée</string>
+     <string name="permission_notifications_denied">Les alertes ne seront pas envoyées sur cet appareil</string><string name="permission_open_settings">Ouvrir les réglages</string><string name="permission_notifications_available">Les alertes restent disponibles dans Notifications</string>
+     <string name="accessibility_open_event_details">Ouvrir les détails de l’événement</string><string name="accessibility_navigate_back">Revenir à l’écran précédent</string><string name="accessibility_more_event_actions">Ouvrir les autres actions de l’événement</string><string name="accessibility_mark_payment_paid">Marquer le paiement comme réglé</string>
+     <string name="milestone_first_event">Premier événement</string><string name="milestone_regular_voting">Vote régulier</string><string name="milestone_organization_ready">Organisation prête</string>
++    <string name="nav_upcoming">À venir</string><string name="a11y_nav_upcoming">Ouvrir À venir, onglet non sélectionné</string><string name="a11y_nav_notifications">Ouvrir Notifications, alertes et mises à jour</string><string name="a11y_nav_ideas">Ouvrir Idées, suggestions d’événements</string>
++    <string name="inbox_filter_by_event">Filtrer par événement</string><string name="inbox_all_events">Tous les événements</string><string name="inbox_mark_read">Marquer comme lu</string><string name="inbox_mark_done">Terminer</string><string name="inbox_event_filter_value">· %1$s</string><string name="a11y_mark_all_notifications_read">Marquer toutes les notifications comme lues</string><string name="a11y_open_notification_preferences">Ouvrir les préférences de notifications</string>
++    <string name="login_google_initial" translatable="false">G</string><string name="login_google_action">Se connecter avec Google</string><string name="a11y_wakeve_logo">Logo Wakeve</string><string name="error_symbol" translatable="false">❌</string>
++    <string name="event_next_action">Prochaine action : %1$s</string><string name="event_status_and_title">%1$s — %2$s</string><string name="restricted_access_title">Accès restreint</string>
++    <string name="profile_screen_title">Profil</string><string name="a11y_profile_avatar">Avatar du profil</string><string name="profile_quick_actions">Actions rapides</string><string name="profile_account_section">Compte</string><string name="profile_app_description">Planification collaborative d’événements avec sondages, budget et synchronisation hors ligne.</string><string name="a11y_open_profile_action">Ouvrir %1$s</string>
++    <string name="profile_guest_mode">Mode invité</string>
+ </resources>
+diff --git a/composeApp/src/androidUnitTest/kotlin/com/guyghost/wakeve/productlanguage/AndroidProductLanguageBatch1Test.kt b/composeApp/src/androidUnitTest/kotlin/com/guyghost/wakeve/productlanguage/AndroidProductLanguageBatch1Test.kt
+new file mode 100644
+index 00000000..efadbf6b
+--- /dev/null
++++ b/composeApp/src/androidUnitTest/kotlin/com/guyghost/wakeve/productlanguage/AndroidProductLanguageBatch1Test.kt
+@@ -0,0 +1,66 @@
++package com.guyghost.wakeve.productlanguage
++
++import java.io.File
++import kotlin.test.Test
++import kotlin.test.assertTrue
++
++class AndroidProductLanguageBatch1Test {
++    @Test
++    fun batch1UsesResourcesForVisibleCopyAndSemantics() {
++        val findings = batch1Paths.flatMap { path ->
++            val file = projectRoot.resolve(path)
++            val source = file.readText()
++            patterns.flatMap { (diagnostic, pattern) ->
++                pattern.findAll(source.withoutLineComments()).map { match ->
++                    val line = source.take(match.range.first).count { it == '\n' } + 1
++                    "$path:$line: $diagnostic"
++                }
++            }
++        }
++
++        assertTrue(findings.isEmpty(), findings.joinToString("\n"))
++    }
++
++    @Test
++    fun navigationKeepsInboxRouteAndUsesCanonicalIdeasTab() {
++        val source = projectRoot.resolve(
++            "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/WakeveBottomBar.kt",
++        ).readText()
++
++        assertTrue(source.contains("Screen.Inbox"))
++        assertTrue(source.contains("R.string.tab_ideas"))
++    }
++
++    private fun String.withoutLineComments(): String = lineSequence()
++        .joinToString("\n") { line -> line.substringBefore("//").padEnd(line.length) }
++
++    private companion object {
++        val projectRoot: File by lazy {
++            var current = File(requireNotNull(System.getProperty("user.dir"))).absoluteFile
++            while (!File(current, "settings.gradle.kts").isFile) {
++                current = requireNotNull(current.parentFile)
++            }
++            current
++        }
++
++        val batch1Paths = listOf(
++            "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/InboxScreenWrapper.kt",
++            "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/LoginScreen.android.kt",
++            "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/LoginScreen.kt",
++            "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/AuthCallbacks.kt",
++            "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/ScreenWrappers.kt",
++            "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/WakeveAdaptiveNavigationScaffold.kt",
++            "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/WakeveBottomBar.kt",
++            "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/WakeveNavHost.kt",
++            "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ProfileTabScreen.kt",
++        )
++
++        val patterns = listOf(
++            "hardcoded Text" to Regex("""\bText\s*\(\s*(?:text\s*=\s*)?""" + "\""),
++            "hardcoded named UI argument" to Regex(
++                """\b(?:label|placeholder|supportingText|headlineContent|overlineContent|text)\s*=\s*""" + "\"",
++            ),
++            "hardcoded semantics" to Regex("""\bcontentDescription\s*=\s*""" + "\""),
++        )
++    }
++}
+diff --git a/composeApp/src/androidUnitTest/kotlin/com/guyghost/wakeve/productlanguage/AndroidProductLanguageContractTest.kt b/composeApp/src/androidUnitTest/kotlin/com/guyghost/wakeve/productlanguage/AndroidProductLanguageContractTest.kt
+new file mode 100644
+index 00000000..b5bb76c0
+--- /dev/null
++++ b/composeApp/src/androidUnitTest/kotlin/com/guyghost/wakeve/productlanguage/AndroidProductLanguageContractTest.kt
+@@ -0,0 +1,98 @@
++package com.guyghost.wakeve.productlanguage
++
++import java.io.File
++import kotlin.test.Test
++import kotlin.test.assertFalse
++import kotlin.test.assertTrue
++
++class AndroidProductLanguageContractTest {
++    @Test
++    fun navigationUsesCanonicalResourcesWithoutRenamingRoutes() {
++        val bottomBar = projectFile(
++            "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/WakeveBottomBar.kt",
++        ).readText()
++
++        assertTrue(bottomBar.contains("R.string.tab_ideas"))
++        assertTrue(bottomBar.contains("Screen.Inbox"))
++        assertFalse(bottomBar.contains("label = \"Explorer\""))
++    }
++
++    @Test
++    fun composeTextDoesNotContainHardcodedProductLanguage() {
++        val findings = productionSources().flatMap { source ->
++            source.findingsFor(hardcodedTextCall, "hardcoded Text")
++        }
++
++        assertTrue(findings.isEmpty(), findings.joinToString("\n"))
++    }
++
++    @Test
++    fun namedComposeArgumentsDoNotContainHardcodedProductLanguage() {
++        val findings = productionSources().flatMap { source ->
++            source.findingsFor(hardcodedNamedArgument, "hardcoded named UI argument")
++        }
++
++        assertTrue(findings.isEmpty(), findings.joinToString("\n"))
++    }
++
++    @Test
++    fun ambiguousActionsHaveTargetAndStateKeys() {
++        val findings = productionSources().flatMap { source ->
++            source.findingsFor(hardcodedSemantics, "hardcoded semantics")
++        }
++
++        assertTrue(findings.isEmpty(), findings.joinToString("\n"))
++    }
++
++    private fun File.findingsFor(pattern: Regex, diagnostic: String): List<String> {
++        val relativePath = relativeTo(projectRoot).invariantSeparatorsPath
++        val source = readText()
++        val scanSource = source.lineSequence()
++            .joinToString("\n") { line -> line.substringBefore("//").padEnd(line.length) }
++        return pattern.findAll(scanSource).map { match ->
++            val lineNumber = scanSource.take(match.range.first).count { it == '\n' } + 1
++            val sourceLine = source.lineSequence().drop(lineNumber - 1).first().trim()
++            "$relativePath:$lineNumber: $diagnostic: $sourceLine"
++        }
++            .toList()
++    }
++
++    private fun productionSources(): List<File> =
++        inventoryAndroidKotlinPaths()
++            .filterNot(previewAllowlist::contains)
++            .map(::projectFile)
++            .filter(File::isFile)
++
++    private fun inventoryAndroidKotlinPaths(): List<String> {
++        val inventory = projectFile("models/product-language.inventory.json").readText()
++        return inventoryPath.findAll(inventory)
++            .map { it.groupValues[1] }
++            .filter { it.startsWith("composeApp/src/androidMain/") && it.endsWith(".kt") }
++            .toList()
++    }
++
++    private fun projectFile(path: String): File = projectRoot.resolve(path)
++
++    private companion object {
++        val projectRoot: File by lazy {
++            var current = File(requireNotNull(System.getProperty("user.dir"))).absoluteFile
++            while (!File(current, "settings.gradle.kts").isFile) {
++                current = requireNotNull(current.parentFile) { "Could not locate Wakeve project root" }
++            }
++            current
++        }
++
++        val previewAllowlist = setOf(
++            "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/preview/factories/InboxItemFactory.kt",
++            "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/components/WakeveAsyncImagePreview.kt",
++            "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/inbox/InboxScreenPreview.kt",
++        )
++
++        val inventoryPath = Regex("\\\"path\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"")
++        val hardcodedTextCall = Regex("""\bText\s*\(\s*(?:text\s*=\s*)?""" + "\"")
++        val hardcodedNamedArgument = Regex(
++            """\b(?:label|placeholder|supportingText|headlineContent|overlineContent|text)\s*=\s*""" + "\"",
++        )
++        val hardcodedSemantics = Regex("""\bcontentDescription\s*=\s*""" + "\"")
++    }
++}

@@ -1,0 +1,1156 @@
+# Review package: cbc527b5..95d8f967
+
+## Commits
+95d8f967 feat(android): localize comment collaboration
+
+## Files changed
+ .superpowers/sdd/task-5-report.md                  |   8 ++
+ .../wakeve/ui/collaboration/CommentInput.kt        |  10 +-
+ .../wakeve/ui/collaboration/CommentListScreen.kt   |  32 ++++-
+ .../guyghost/wakeve/ui/comment/CommentsScreen.kt   | 114 ++++++++++-------
+ .../src/androidMain/res/values-de/strings.xml      |   9 ++
+ .../src/androidMain/res/values-en/strings.xml      |   9 ++
+ .../src/androidMain/res/values-es/strings.xml      |   9 ++
+ .../src/androidMain/res/values-it/strings.xml      |   9 ++
+ .../src/androidMain/res/values-pt/strings.xml      |   9 ++
+ composeApp/src/androidMain/res/values/strings.xml  |  10 ++
+ .../AndroidProductLanguageBatch2Test.kt            | 135 +++++++++++++++++++++
+ 11 files changed, 303 insertions(+), 51 deletions(-)
+
+## Diff
+diff --git a/.superpowers/sdd/task-5-report.md b/.superpowers/sdd/task-5-report.md
+index 12859949..36439ec0 100644
+--- a/.superpowers/sdd/task-5-report.md
++++ b/.superpowers/sdd/task-5-report.md
+@@ -157,20 +157,28 @@ Resource families:
+ - `a11y_comment_*` keys naming action, comment/author target, and applicable state.
+ 
+ Targeted test pattern:
+ 
+ ```text
+ ./gradlew :composeApp:testDebugUnitTest --tests '*AndroidProductLanguageBatch2Test*' --tests '*Comments*Test*' --no-daemon --no-configuration-cache
+ ```
+ 
+ Recommended new test class: `AndroidProductLanguageBatch2Test`, restricting the source-contract helper to these three files and checking plural placeholder parity.
+ 
++#### Batch 2 TDD execution — 2026-07-10
++
++- RED: the targeted Batch 2 command executed six tests and failed the three new Batch 2 contracts for the expected reasons: direct and indirect visible literals remained, the reply plural/character-count/a11y formats were absent, and the reviewed translations did not exist.
++- GREEN: the three owned comment/collaboration files now project visible copy through Android resources while comment repository calls, routes, filtering, replies, edits, deletion, mentions, and state behavior remain unchanged.
++- Catalogs: the complete Batch 2 resource family is present in `values`, `values-en`, `values-de`, `values-es`, `values-it`, and `values-pt`; all locale values are natural translations, with placeholder and plural parity guarded by `AndroidProductLanguageBatch2Test` and `ProductLanguageCatalogContractTest`.
++- Accessibility: back, add, filter, send, edit, and delete actions use resource-backed descriptions; destructive edit/delete descriptions identify the comment author target. Reply counts use `comment_reply_count`, and the character counter uses two positional placeholders.
++- Verification: targeted Batch 2 + existing Comments tests + catalog contract passed (`BUILD SUCCESSFUL`); `:composeApp:assembleDebug --no-daemon --no-configuration-cache` passed. The full `AndroidProductLanguageContractTest` intentionally remains RED in its three broad scanner tests for Batches 3–5, with no Batch 2-owned path in the remaining diagnostics.
++
+ ### Batch 3 — Budget, activities, accommodation, and equipment
+ 
+ Owning Kotlin files from current RED findings (6):
+ 
+ - `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/activity/ActivityDialogs.kt`
+ - `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/activity/ActivityPlanningScreen.kt`
+ - `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/budget/BudgetDetailScreen.kt`
+ - `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/budget/BudgetOverviewScreen.kt`
+ - `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/equipment/EquipmentChecklistScreen.kt`
+ - `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/equipment/EquipmentDialogs.kt`
+diff --git a/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/collaboration/CommentInput.kt b/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/collaboration/CommentInput.kt
+index cc373364..e3e31e26 100644
+--- a/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/collaboration/CommentInput.kt
++++ b/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/collaboration/CommentInput.kt
+@@ -9,20 +9,22 @@ import androidx.compose.material.icons.automirrored.filled.Send
+ import androidx.compose.material3.*
+ import androidx.compose.runtime.*
+ import androidx.compose.ui.Alignment
+ import androidx.compose.ui.Modifier
+ import androidx.compose.ui.focus.FocusRequester
+ import androidx.compose.ui.focus.focusRequester
+ import androidx.compose.ui.graphics.Color
+ import androidx.compose.ui.text.TextRange
+ import androidx.compose.ui.text.input.TextFieldValue
+ import androidx.compose.ui.unit.dp
++import androidx.compose.ui.res.stringResource
++import com.guyghost.wakeve.R
+ import com.guyghost.wakeve.theme.WakeveColors
+ import com.guyghost.wakeve.collaboration.MentionParser
+ 
+ /**
+  * Comment Input Component
+  *
+  * Material You design input field with @mention autocomplete support.
+  *
+  * @param text Current comment text
+  * @param mentionedUsers List of mentioned user IDs
+@@ -74,42 +76,42 @@ fun CommentInput(
+ 
+                     // Parse mentions from text
+                     val newMentions = MentionParser.extractUsernames(newValue.text)
+                         .map { it.removePrefix("@") }
+                         .distinct()
+                     onMentionUsersChange(newMentions)
+                 },
+                 modifier = Modifier
+                     .fillMaxWidth()
+                     .focusRequester(focusRequester),
+-                placeholder = { Text(commentInputPlaceholder()) },
++                placeholder = { Text(stringResource(R.string.comment_input_placeholder)) },
+                 minLines = 1,
+                 maxLines = 4,
+                 shape = RoundedCornerShape(24.dp),
+                 colors = OutlinedTextFieldDefaults.colors(
+                     focusedBorderColor = WakeveColors.primary,
+                     unfocusedBorderColor = WakeveColors.outline,
+                     focusedContainerColor = WakeveColors.surfaceVariant,
+                     unfocusedContainerColor = WakeveColors.surfaceVariant
+                 ),
+                 trailingIcon = {
+                     IconButton(
+                         onClick = {
+                             if (text.isNotBlank()) {
+                                 onSend()
+                             }
+                         },
+                         enabled = text.isNotBlank()
+                     ) {
+                         Icon(
+                             imageVector = Icons.AutoMirrored.Filled.Send,
+-                            contentDescription = commentSendContentDescription(),
++                            contentDescription = stringResource(R.string.a11y_comment_send),
+                             tint = if (text.isNotBlank()) {
+                                 WakeveColors.primary
+                             } else {
+                                 WakeveColors.onSurfaceVariant
+                             }
+                         )
+                     }
+                 }
+             )
+ 
+@@ -179,21 +181,21 @@ fun MentionAutocomplete(
+         shape = RoundedCornerShape(12.dp),
+         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+         colors = CardDefaults.cardColors(
+             containerColor = WakeveColors.surface
+         )
+     ) {
+         Column(
+             modifier = Modifier.padding(8.dp)
+         ) {
+             Text(
+-                text = "Mention someone...",
++                text = stringResource(R.string.mention_prompt),
+                 style = MaterialTheme.typography.labelSmall,
+                 color = WakeveColors.onSurfaceVariant,
+                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+             )
+ 
+             allUsers.forEach { username ->
+                 MentionUserItem(
+                     username = username,
+                     onClick = { onUserSelected(username) }
+                 )
+@@ -220,21 +222,21 @@ fun MentionUserItem(
+         // Avatar initials
+         Avatar(
+             initials = getInitials(username),
+             modifier = Modifier.size(32.dp)
+         )
+ 
+         Spacer(modifier = Modifier.width(12.dp))
+ 
+         // Username
+         Text(
+-            text = "@$username",
++            text = stringResource(R.string.mention_user_label, username),
+             style = MaterialTheme.typography.bodyMedium,
+             color = WakeveColors.onSurface
+         )
+     }
+ }
+ 
+ /**
+  * Get initials from username
+  */
+ private fun getInitials(username: String): String {
+diff --git a/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/collaboration/CommentListScreen.kt b/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/collaboration/CommentListScreen.kt
+index 7f09f5f5..890335cb 100644
+--- a/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/collaboration/CommentListScreen.kt
++++ b/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/collaboration/CommentListScreen.kt
+@@ -13,20 +13,23 @@ import androidx.compose.material3.*
+ import androidx.compose.runtime.*
+ import androidx.compose.ui.Alignment
+ import androidx.compose.ui.Modifier
+ import androidx.compose.ui.draw.clip
+ import androidx.compose.ui.graphics.Color
+ import androidx.compose.ui.text.SpanStyle
+ import androidx.compose.ui.text.buildAnnotatedString
+ import androidx.compose.ui.text.font.FontWeight
+ import androidx.compose.ui.text.withStyle
+ import androidx.compose.ui.unit.dp
++import androidx.compose.ui.res.pluralStringResource
++import androidx.compose.ui.res.stringResource
++import com.guyghost.wakeve.R
+ import com.guyghost.wakeve.models.Comment
+ import com.guyghost.wakeve.models.CommentSection
+ import com.guyghost.wakeve.models.CommentThread
+ import com.guyghost.wakeve.theme.WakeveColors
+ import kotlinx.datetime.Clock
+ 
+ /**
+  * Comment List Screen for Wakeve
+  *
+  * Material You design with threaded comment support.
+@@ -63,24 +66,24 @@ fun CommentListScreen(
+     onUserClick: (String) -> Unit = {},
+     onLoadMoreReplies: ((String) -> Unit)? = null
+ ) {
+     var commentText by remember { mutableStateOf("") }
+     var mentionedUsers by remember { mutableStateOf<List<String>>(emptyList()) }
+     var showMentionAutocomplete by remember { mutableStateOf(false) }
+ 
+     Scaffold(
+         topBar = {
+             TopAppBar(
+-                title = { Text(getSectionTitle(section)) },
++                title = { Text(sectionTitle(section)) },
+                 navigationIcon = {
+                     IconButton(onClick = onNavigateBack) {
+-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour")
++                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.a11y_comment_back))
+                     }
+                 },
+                 colors = TopAppBarDefaults.topAppBarColors(
+                     containerColor = WakeveColors.surface
+                 )
+             )
+         }
+     ) { paddingValues ->
+         Column(
+             modifier = Modifier
+@@ -191,21 +194,25 @@ fun CommentThreadItem(
+                         onUserClick = onUserClick
+                     )
+                 }
+             }
+         }
+ 
+         // Load more replies indicator
+         if (thread.hasMoreReplies) {
+             val canLoadMoreReplies = onLoadMoreReplies != null
+             Text(
+-                text = loadMoreRepliesLabel(thread.comment.replyCount),
++                text = pluralStringResource(
++                    R.plurals.comment_reply_count,
++                    thread.comment.replyCount,
++                    thread.comment.replyCount,
++                ),
+                 color = if (canLoadMoreReplies) WakeveColors.primary else WakeveColors.onSurfaceVariant,
+                 style = MaterialTheme.typography.bodyMedium,
+                 modifier = Modifier
+                     .padding(start = 56.dp, top = 4.dp)
+                     .then(
+                         if (canLoadMoreReplies) {
+                             Modifier.clickable { onLoadMoreReplies?.invoke(thread.comment.id) }
+                         } else {
+                             Modifier
+                         }
+@@ -220,33 +227,48 @@ fun CommentThreadItem(
+  */
+ @Composable
+ fun EmptyCommentsSection() {
+     Column(
+         modifier = Modifier
+             .fillMaxWidth()
+             .padding(32.dp),
+         horizontalAlignment = Alignment.CenterHorizontally
+     ) {
+         Text(
+-            text = emptyCommentsTitle(),
++            text = stringResource(R.string.comments_empty),
+             style = MaterialTheme.typography.titleLarge,
+             color = WakeveColors.onSurfaceVariant
+         )
+         Spacer(modifier = Modifier.height(8.dp))
+         Text(
+-            text = emptyCommentsSubtitle(),
++            text = stringResource(R.string.comments_empty_body),
+             style = MaterialTheme.typography.bodyMedium,
+             color = WakeveColors.onSurfaceVariant
+         )
+     }
+ }
+ 
++@Composable
++private fun sectionTitle(section: CommentSection): String = stringResource(
++    when (section) {
++        CommentSection.GENERAL -> R.string.comments_title
++        CommentSection.SCENARIO -> R.string.comments_section_options
++        CommentSection.POLL -> R.string.comments_section_poll
++        CommentSection.TRANSPORT -> R.string.comments_section_transport
++        CommentSection.ACCOMMODATION -> R.string.comments_section_accommodation
++        CommentSection.MEAL -> R.string.comments_section_meal
++        CommentSection.EQUIPMENT -> R.string.comments_section_equipment
++        CommentSection.ACTIVITY -> R.string.comments_section_activity
++        CommentSection.BUDGET -> R.string.comments_section_budget
++    },
++)
++
+ /**
+  * Get localized section title
+  */
+ internal fun getSectionTitle(section: CommentSection): String {
+     return when (section) {
+         CommentSection.GENERAL -> "Commentaires"
+         CommentSection.SCENARIO -> "Commentaires des options"
+         CommentSection.POLL -> "Commentaires du sondage"
+         CommentSection.TRANSPORT -> "Commentaires transport"
+         CommentSection.ACCOMMODATION -> "Commentaires logement"
+diff --git a/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/comment/CommentsScreen.kt b/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/comment/CommentsScreen.kt
+index 8fd09e0f..cd2a1d14 100644
+--- a/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/comment/CommentsScreen.kt
++++ b/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/comment/CommentsScreen.kt
+@@ -48,20 +48,23 @@ import androidx.compose.runtime.mutableStateOf
+ import androidx.compose.runtime.remember
+ import androidx.compose.runtime.rememberCoroutineScope
+ import androidx.compose.runtime.setValue
+ import kotlinx.coroutines.launch
+ import androidx.compose.ui.Alignment
+ import androidx.compose.ui.Modifier
+ import androidx.compose.ui.draw.alpha
+ import androidx.compose.ui.text.font.FontWeight
+ import androidx.compose.ui.unit.dp
+ import androidx.compose.ui.window.Dialog
++import androidx.compose.ui.res.pluralStringResource
++import androidx.compose.ui.res.stringResource
++import com.guyghost.wakeve.R
+ import com.guyghost.wakeve.comment.CommentRepository
+ import com.guyghost.wakeve.models.Comment
+ import com.guyghost.wakeve.models.CommentRequest
+ import com.guyghost.wakeve.models.CommentSection
+ import com.guyghost.wakeve.models.CommentThread
+ import com.guyghost.wakeve.models.CommentsBySection
+ import kotlinx.datetime.Clock
+ import kotlinx.datetime.Instant
+ import kotlin.time.Duration.Companion.days
+ import kotlin.time.Duration.Companion.hours
+@@ -89,20 +92,22 @@ fun CommentsScreen(
+     currentUserName: String,
+     onBack: () -> Unit
+ ) {
+     var commentsState by remember { mutableStateOf<CommentsState>(CommentsState.Loading) }
+     var selectedSection by remember { mutableStateOf(section) }
+     var replyingTo by remember { mutableStateOf<Comment?>(null) }
+     var editingComment by remember { mutableStateOf<Comment?>(null) }
+     var commentToDelete by remember { mutableStateOf<Comment?>(null) }
+     var deleteErrorMessage by remember { mutableStateOf<String?>(null) }
+     var showSectionFilter by remember { mutableStateOf(false) }
++    val loadErrorMessage = stringResource(R.string.comment_load_error)
++    val deleteFailureMessage = stringResource(R.string.comment_delete_error)
+ 
+     // Load comments
+     fun loadComments() {
+         commentsState = CommentsState.Loading
+         try {
+             val commentsWithThreads = if (selectedSection != null) {
+                 commentRepository.getCommentsWithThreads(eventId, selectedSection!!, sectionItemId)
+             } else {
+                 // Get all top-level comments across sections
+                 val allComments = commentRepository.getTopLevelComments(eventId)
+@@ -116,56 +121,55 @@ fun CommentsScreen(
+                 }
+                 CommentsBySection(
+                     section = CommentSection.GENERAL, // Default for mixed view
+                     sectionItemId = null,
+                     comments = threads,
+                     totalComments = threads.sumOf { 1 + it.replies.size }
+                 )
+             }
+             commentsState = CommentsState.Success(commentsWithThreads)
+         } catch (e: Exception) {
+-            commentsState = CommentsState.Error(commentLoadFailureMessage())
++            commentsState = CommentsState.Error(loadErrorMessage)
+         }
+     }
+ 
+     LaunchedEffect(eventId, selectedSection) {
+         loadComments()
+     }
+ 
+-    val title = when {
+-        selectedSection != null -> "Commentaires - ${selectedSection!!.name.lowercase().replaceFirstChar { it.uppercase() }}"
+-        else -> "Commentaires"
+-    }
++    val title = selectedSection?.let {
++        stringResource(R.string.comments_title_for_section, sectionLabel(it))
++    } ?: stringResource(R.string.comments_title)
+ 
+     Scaffold(
+         topBar = {
+             TopAppBar(
+                 title = { Text(title) },
+                 navigationIcon = {
+                     IconButton(onClick = onBack) {
+-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Retour")
++                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.a11y_comment_back))
+                     }
+                 },
+                 actions = {
+                     // Section filter
+                     IconButton(onClick = { showSectionFilter = true }) {
+-                        Icon(Icons.Default.FilterList, "Filtrer par section")
++                        Icon(Icons.Default.FilterList, stringResource(R.string.a11y_comment_filter))
+                     }
+                 }
+             )
+         },
+         floatingActionButton = {
+             if (commentsState is CommentsState.Success) {
+                 FloatingActionButton(
+                     onClick = { replyingTo = null } // New comment
+                 ) {
+-                    Icon(Icons.Default.Add, "Ajouter un commentaire")
++                    Icon(Icons.Default.Add, stringResource(R.string.a11y_comment_add))
+                 }
+             }
+         }
+     ) { padding ->
+         Box(modifier = Modifier.padding(padding)) {
+             when (val state = commentsState) {
+                 is CommentsState.Loading -> {
+                     Box(
+                         modifier = Modifier.fillMaxSize(),
+                         contentAlignment = Alignment.Center
+@@ -236,21 +240,21 @@ fun CommentsScreen(
+                 DeleteCommentDialog(
+                     comment = comment,
+                     errorMessage = deleteErrorMessage,
+                     onConfirm = {
+                         try {
+                             commentRepository.deleteComment(comment.id)
+                             loadComments()
+                             commentToDelete = null
+                             deleteErrorMessage = null
+                         } catch (e: Exception) {
+-                            deleteErrorMessage = commentDeleteFailureMessage()
++                            deleteErrorMessage = deleteFailureMessage
+                         }
+                     },
+                     onDismiss = {
+                         commentToDelete = null
+                         deleteErrorMessage = null
+                     }
+                 )
+             }
+         }
+     }
+@@ -383,21 +387,21 @@ private fun CommentItem(
+                         Text(
+                             text = formatRelativeTime(comment.createdAt),
+                             style = MaterialTheme.typography.bodySmall,
+                             color = MaterialTheme.colorScheme.onSurfaceVariant
+                         )
+                     }
+                 }
+ 
+                 if (comment.isEdited) {
+                     Text(
+-                        text = "modifié",
++                        text = stringResource(R.string.comment_edited),
+                         style = MaterialTheme.typography.bodySmall,
+                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                         modifier = Modifier.alpha(0.7f)
+                     )
+                 }
+             }
+ 
+             // Content
+             Text(
+                 text = comment.content,
+@@ -407,44 +411,52 @@ private fun CommentItem(
+ 
+             // Actions
+             Row(
+                 modifier = Modifier.fillMaxWidth(),
+                 horizontalArrangement = Arrangement.SpaceBetween,
+                 verticalAlignment = Alignment.CenterVertically
+             ) {
+                 // Reply count
+                 if (comment.replyCount > 0) {
+                     Text(
+-                        text = "${comment.replyCount} réponse${if (comment.replyCount > 1) "s" else ""}",
++                        text = pluralStringResource(
++                            R.plurals.comment_reply_count,
++                            comment.replyCount,
++                            comment.replyCount,
++                        ),
+                         style = MaterialTheme.typography.bodySmall,
+                         color = MaterialTheme.colorScheme.primary
+                     )
+                 } else {
+                     Spacer(modifier = Modifier.weight(1f))
+                 }
+ 
+                 // Action buttons
+                 Row(
+                     horizontalArrangement = Arrangement.spacedBy(8.dp)
+                 ) {
+                     TextButton(onClick = { onReply(comment) }) {
+-                        Text("Répondre")
++                        Text(stringResource(R.string.comment_reply))
+                     }
+ 
+                     if (comment.authorId == currentUserId) {
+                         IconButton(onClick = { onEdit(comment) }) {
+-                            Icon(Icons.Default.Edit, "Modifier", modifier = Modifier.size(16.dp))
++                            Icon(
++                                Icons.Default.Edit,
++                                stringResource(R.string.a11y_comment_edit, comment.authorName),
++                                modifier = Modifier.size(16.dp),
++                            )
+                         }
+                         IconButton(onClick = { onDelete(comment) }) {
+                             Icon(
+                                 Icons.Default.Delete,
+-                                "Supprimer",
++                                stringResource(R.string.a11y_comment_delete, comment.authorName),
+                                 modifier = Modifier.size(16.dp),
+                                 tint = MaterialTheme.colorScheme.error
+                             )
+                         }
+                     }
+                 }
+             }
+         }
+     }
+ }
+@@ -496,31 +508,31 @@ private fun EmptyState(
+             Icons.Default.ChatBubbleOutline,
+             contentDescription = null,
+             modifier = Modifier.size(64.dp),
+             tint = MaterialTheme.colorScheme.onSurfaceVariant
+         )
+ 
+         Spacer(modifier = Modifier.height(16.dp))
+ 
+         Text(
+             text = when (selectedSection) {
+-                null -> "Aucun commentaire pour cet événement"
+-                else -> "Aucun commentaire dans cette section"
++                null -> stringResource(R.string.comments_empty_event)
++                else -> stringResource(R.string.comments_empty_section)
+             },
+             style = MaterialTheme.typography.headlineSmall,
+             textAlign = androidx.compose.ui.text.style.TextAlign.Center
+         )
+ 
+         Spacer(modifier = Modifier.height(8.dp))
+ 
+         Text(
+-            text = "Soyez le premier à commenter !",
++            text = stringResource(R.string.comments_empty_call_to_action),
+             style = MaterialTheme.typography.bodyMedium,
+             color = MaterialTheme.colorScheme.onSurfaceVariant,
+             textAlign = androidx.compose.ui.text.style.TextAlign.Center
+         )
+     }
+ }
+ 
+ @Composable
+ private fun ErrorState(
+     message: String,
+@@ -537,86 +549,86 @@ private fun ErrorState(
+         Icon(
+             Icons.Default.ErrorOutline,
+             contentDescription = null,
+             modifier = Modifier.size(64.dp),
+             tint = MaterialTheme.colorScheme.error
+         )
+ 
+         Spacer(modifier = Modifier.height(16.dp))
+ 
+         Text(
+-            text = "Erreur",
++            text = stringResource(R.string.comment_error_title),
+             style = MaterialTheme.typography.headlineSmall,
+             color = MaterialTheme.colorScheme.error
+         )
+ 
+         Spacer(modifier = Modifier.height(8.dp))
+ 
+         Text(
+             text = message,
+             style = MaterialTheme.typography.bodyMedium,
+             color = MaterialTheme.colorScheme.onSurfaceVariant,
+             textAlign = androidx.compose.ui.text.style.TextAlign.Center
+         )
+ 
+         Spacer(modifier = Modifier.height(16.dp))
+ 
+         Button(onClick = onRetry) {
+-            Text("Réessayer")
++            Text(stringResource(R.string.comment_retry))
+         }
+     }
+ }
+ 
+ @Composable
+ private fun SectionFilterDialog(
+     currentSection: CommentSection?,
+     onSectionSelected: (CommentSection?) -> Unit,
+     onDismiss: () -> Unit
+ ) {
+     AlertDialog(
+         onDismissRequest = onDismiss,
+-        title = { Text("Filtrer par section") },
++        title = { Text(stringResource(R.string.comment_filter_title)) },
+         text = {
+             Column {
+                 // All sections option
+                 TextButton(
+                     onClick = { onSectionSelected(null) },
+                     modifier = Modifier.fillMaxWidth()
+                 ) {
+                     Text(
+-                        text = "Toutes les sections",
++                        text = stringResource(R.string.comment_filter_all),
+                         color = if (currentSection == null)
+                             MaterialTheme.colorScheme.primary
+                         else
+                             MaterialTheme.colorScheme.onSurface
+                     )
+                 }
+ 
+                 CommentSection.values().forEach { section ->
+                     TextButton(
+                         onClick = { onSectionSelected(section) },
+                         modifier = Modifier.fillMaxWidth()
+                     ) {
+                         Text(
+-                            text = section.name.lowercase().replaceFirstChar { it.uppercase() },
++                            text = sectionLabel(section),
+                             color = if (currentSection == section)
+                                 MaterialTheme.colorScheme.primary
+                             else
+                                 MaterialTheme.colorScheme.onSurface
+                         )
+                     }
+                 }
+             }
+         },
+         confirmButton = {
+             TextButton(onClick = onDismiss) {
+-                Text("Fermer")
++                Text(stringResource(R.string.comment_close))
+             }
+         }
+     )
+ }
+ 
+ @Composable
+ private fun CommentDialog(
+     eventId: String,
+     repository: CommentRepository,
+     currentUserId: String,
+@@ -628,24 +640,25 @@ private fun CommentDialog(
+     onDismiss: () -> Unit,
+     onCommentPosted: () -> Unit
+ ) {
+     var content by remember { mutableStateOf(editingComment?.content ?: "") }
+     var isSubmitting by remember { mutableStateOf(false) }
+     var submitErrorMessage by remember { mutableStateOf<String?>(null) }
+     val scope = rememberCoroutineScope()
+ 
+     val isReply = parentComment != null
+     val isEdit = editingComment != null
++    val submitFailureMessage = stringResource(R.string.comment_submit_error)
+     val title = when {
+-        isEdit -> "Modifier le commentaire"
+-        isReply -> "Répondre à ${parentComment?.authorName}"
+-        else -> "Ajouter un commentaire"
++        isEdit -> stringResource(R.string.comment_edit_title)
++        isReply -> stringResource(R.string.comment_reply_to, parentComment?.authorName.orEmpty())
++        else -> stringResource(R.string.comment_add)
+     }
+ 
+     Dialog(onDismissRequest = onDismiss) {
+         Card(
+             modifier = Modifier
+                 .fillMaxWidth()
+                 .padding(16.dp),
+             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+         ) {
+             Column(
+@@ -661,28 +674,28 @@ private fun CommentDialog(
+                 )
+ 
+                 OutlinedTextField(
+                     value = content,
+                     onValueChange = {
+                         if (it.length <= 2000) {
+                             content = it
+                             submitErrorMessage = null
+                         }
+                     },
+-                    label = { Text("Commentaire") },
+-                    placeholder = { Text("Écrivez votre commentaire...") },
++                    label = { Text(stringResource(R.string.comment_field_label)) },
++                    placeholder = { Text(stringResource(R.string.comment_field_placeholder)) },
+                     modifier = Modifier.fillMaxWidth(),
+                     minLines = 3,
+                     maxLines = 6,
+                     supportingText = {
+                         Text(
+-                            text = "${content.length}/2000 caractères",
++                            text = stringResource(R.string.comment_character_count, content.length, 2000),
+                             style = MaterialTheme.typography.bodySmall,
+                             color = if (content.length > 1800)
+                                 MaterialTheme.colorScheme.error
+                             else
+                                 MaterialTheme.colorScheme.onSurfaceVariant
+                         )
+                     }
+                 )
+ 
+                 submitErrorMessage?.let { message ->
+@@ -692,21 +705,21 @@ private fun CommentDialog(
+                         color = MaterialTheme.colorScheme.error
+                     )
+                 }
+ 
+                 Row(
+                     modifier = Modifier.fillMaxWidth(),
+                     horizontalArrangement = Arrangement.End,
+                     verticalAlignment = Alignment.CenterVertically
+                 ) {
+                     TextButton(onClick = onDismiss) {
+-                        Text("Annuler")
++                        Text(stringResource(R.string.comment_cancel))
+                     }
+ 
+                     Spacer(modifier = Modifier.width(8.dp))
+ 
+                     Button(
+                         onClick = {
+                             if (content.isNotBlank()) {
+                                 isSubmitting = true
+                                 submitErrorMessage = null
+                                 val request = CommentRequest(
+@@ -725,100 +738,117 @@ private fun CommentDialog(
+                                             // Create new comment or reply
+                                             repository.createComment(
+                                                 eventId = eventId,
+                                                 authorId = currentUserId,
+                                                 authorName = currentUserName,
+                                                 request = request
+                                             )
+                                         }
+                                         onCommentPosted()
+                                     } catch (e: Exception) {
+-                                        submitErrorMessage = commentSubmitFailureMessage()
++                                        submitErrorMessage = submitFailureMessage
+                                         isSubmitting = false
+                                     }
+                                 }
+                             }
+                         },
+                         enabled = content.isNotBlank() && !isSubmitting
+                     ) {
+                         if (isSubmitting) {
+                             CircularProgressIndicator(
+                                 modifier = Modifier.size(16.dp),
+                                 strokeWidth = 2.dp
+                             )
+                         } else {
+-                            Text(if (isEdit) "Modifier" else "Poster")
++                            Text(stringResource(if (isEdit) R.string.comment_edit else R.string.comment_post))
+                         }
+                     }
+                 }
+             }
+         }
+     }
+ }
+ 
+ @Composable
+ private fun DeleteCommentDialog(
+     comment: Comment,
+     errorMessage: String?,
+     onConfirm: () -> Unit,
+     onDismiss: () -> Unit
+ ) {
+     AlertDialog(
+         onDismissRequest = onDismiss,
+-        title = { Text("Supprimer le commentaire") },
++        title = { Text(stringResource(R.string.comment_delete_title)) },
+         text = {
+             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+-                Text("Êtes-vous sûr de vouloir supprimer ce commentaire ? Cette action est irréversible.")
++                Text(stringResource(R.string.comment_delete_body, comment.authorName))
+                 errorMessage?.let { message ->
+                     Text(
+                         text = message,
+                         style = MaterialTheme.typography.bodySmall,
+                         color = MaterialTheme.colorScheme.error
+                     )
+                 }
+             }
+         },
+         confirmButton = {
+             Button(
+                 onClick = onConfirm,
+                 colors = ButtonDefaults.buttonColors(
+                     containerColor = MaterialTheme.colorScheme.error
+                 )
+             ) {
+-                Text("Supprimer")
++                Text(stringResource(R.string.comment_delete))
+             }
+         },
+         dismissButton = {
+             TextButton(onClick = onDismiss) {
+-                Text("Annuler")
++                Text(stringResource(R.string.comment_cancel))
+             }
+         }
+     )
+ }
+ 
++@Composable
+ private fun formatRelativeTime(isoString: String): String {
+-    return try {
++    val resource = try {
+         val instant = Instant.parse(isoString)
+         val now = Clock.System.now()
+         val duration = now - instant
+ 
+         when {
+-            duration < 1.minutes -> "à l'instant"
+-            duration < 1.hours -> "il y a ${duration.inWholeMinutes} min"
+-            duration < 1.days -> "il y a ${duration.inWholeHours} h"
+-            else -> "il y a ${duration.inWholeDays} j"
++            duration < 1.minutes -> R.string.comment_time_now to null
++            duration < 1.hours -> R.string.comment_time_minutes to duration.inWholeMinutes
++            duration < 1.days -> R.string.comment_time_hours to duration.inWholeHours
++            else -> R.string.comment_time_days to duration.inWholeDays
+         }
+     } catch (e: Exception) {
+-        "récemment"
++        R.string.comment_time_recent to null
+     }
++    return resource.second?.let { stringResource(resource.first, it) } ?: stringResource(resource.first)
+ }
+ 
++@Composable
++private fun sectionLabel(section: CommentSection): String = stringResource(
++    when (section) {
++        CommentSection.GENERAL -> R.string.comment_section_general
++        CommentSection.SCENARIO -> R.string.comment_section_options
++        CommentSection.POLL -> R.string.comment_section_poll
++        CommentSection.TRANSPORT -> R.string.comment_section_transport
++        CommentSection.ACCOMMODATION -> R.string.comment_section_accommodation
++        CommentSection.MEAL -> R.string.comment_section_meal
++        CommentSection.EQUIPMENT -> R.string.comment_section_equipment
++        CommentSection.ACTIVITY -> R.string.comment_section_activity
++        CommentSection.BUDGET -> R.string.comment_section_budget
++    },
++)
++
+ // State classes
+ sealed class CommentsState {
+     object Loading : CommentsState()
+     data class Error(val message: String) : CommentsState()
+     data class Success(val data: CommentsBySection) : CommentsState()
+ }
+ 
+ internal fun commentLoadFailureMessage(): String {
+     return "Impossible de charger les commentaires. Reessayez."
+ }
+diff --git a/composeApp/src/androidMain/res/values-de/strings.xml b/composeApp/src/androidMain/res/values-de/strings.xml
+index 2ea77577..79eef4f5 100644
+--- a/composeApp/src/androidMain/res/values-de/strings.xml
++++ b/composeApp/src/androidMain/res/values-de/strings.xml
+@@ -668,11 +668,20 @@
+     <string name="tab_ideas">Ideen</string><string name="event_state_draft">Entwurf</string><string name="event_state_polling">Umfrage läuft</string><string name="event_state_comparing">Optionen vergleichen</string><string name="event_state_confirmed">Termin bestätigt</string><string name="event_state_organizing">Details vorbereiten</string><string name="event_state_finalized">Bereit</string><string name="notifications_filter_todo">Zu erledigen</string><string name="notifications_filter_information">Informationen</string>
+     <string name="ai_prepare_options">Optionen vorbereiten</string><string name="ai_summarize_responses">Antworten zusammenfassen</string><string name="ai_propose_message">Nachricht vorschlagen</string><string name="ai_complete_list">Liste vervollständigen</string><string name="ai_proposal_to_review">Vorschlag zur Prüfung</string><string name="sync_waiting">Wartet auf Synchronisierung</string><string name="sync_retry">Synchronisierung erneut versuchen</string><string name="sync_change_not_saved">Änderung nicht gespeichert</string><string name="permission_notifications_denied">Benachrichtigungen werden auf diesem Gerät nicht zugestellt</string><string name="permission_open_settings">Einstellungen öffnen</string><string name="permission_notifications_available">Hinweise bleiben unter Benachrichtigungen verfügbar</string><string name="accessibility_open_event_details">Veranstaltungsdetails öffnen</string><string name="accessibility_navigate_back">Zum vorherigen Bildschirm zurückkehren</string><string name="accessibility_more_event_actions">Weitere Veranstaltungsaktionen öffnen</string><string name="accessibility_mark_payment_paid">Zahlung als bezahlt markieren</string><string name="milestone_first_event">Erste Veranstaltung</string><string name="milestone_regular_voting">Regelmäßig abgestimmt</string><string name="milestone_organization_ready">Organisation bereit</string>
+ <string name="nav_upcoming">Demnächst</string><string name="a11y_nav_upcoming">Demnächst öffnen, %1$s</string><string name="a11y_nav_notifications">Benachrichtigungen, Hinweise und Updates öffnen, %1$s</string><string name="a11y_nav_ideas">Ideen und Eventvorschläge öffnen, %1$s</string>
+     <string name="inbox_filter_by_event">Nach Event filtern</string><string name="inbox_all_events">Alle Events</string><string name="inbox_mark_read">Als gelesen markieren</string><string name="inbox_mark_done">Abschließen</string><string name="inbox_event_filter_value">· %1$s</string><string name="a11y_mark_all_notifications_read">Alle Benachrichtigungen als gelesen markieren</string><string name="a11y_open_notification_preferences">Benachrichtigungseinstellungen öffnen</string>
+ <string name="login_google_action">Mit Google anmelden</string><string name="a11y_wakeve_logo">Wakeve-Logo</string>
+ <string name="restricted_access_title">Eingeschränkter Zugriff</string><string name="profile_screen_title">Profil</string><string name="a11y_profile_avatar">Profilbild</string><string name="profile_quick_actions">Schnellaktionen</string><string name="profile_account_section">Konto</string><string name="profile_app_description">Gemeinsame Eventplanung mit Umfragen, Budget und Offline-Synchronisierung.</string><string name="a11y_open_profile_action">%1$s öffnen</string>
+     <string name="profile_guest_mode">Gastmodus</string>
+     <string name="a11y_selected">ausgewählt</string><string name="a11y_unselected">nicht ausgewählt</string><string name="inbox_filter_all">Alle</string><string name="inbox_filter_focused">Priorität</string><string name="inbox_filter_unread">Ungelesen</string><string name="inbox_filter_event">Event</string><string name="inbox_context_invitation">Einladung</string><string name="inbox_context_poll">Umfrage</string><string name="inbox_context_vote_reminder">Abstimmungserinnerung</string><string name="inbox_context_confirmation">Bestätigung</string><string name="inbox_context_participant">Teilnehmende</string><string name="inbox_context_vote">Stimme</string><string name="inbox_context_comment">Kommentar</string><string name="inbox_context_reply">Antwort</string><string name="inbox_context_budget">Budget</string><string name="inbox_context_activity">Aktivität</string><string name="inbox_context_accommodation">Unterkunft</string><string name="inbox_context_notification">Benachrichtigung</string><string name="relative_time_now">Gerade eben</string><string name="relative_time_minutes">%1$d Min.</string><string name="relative_time_hours">%1$d Std.</string><string name="relative_time_days">%1$d T.</string><string name="relative_time_weeks">%1$d Wo.</string><string name="relative_time_months">%1$d Mon.</string><string name="relative_time_years">%1$d J.</string><string name="inbox_empty_all_title">Keine Benachrichtigungen</string><string name="inbox_empty_all_body">Alles erledigt. Neue Benachrichtigungen erscheinen hier.</string><string name="inbox_empty_focused_title">Nichts Dringendes</string><string name="inbox_empty_focused_body">Benachrichtigungen, die eine Aktion erfordern, erscheinen hier.</string><string name="inbox_empty_unread_title">Alles gelesen</string><string name="inbox_empty_unread_body">Du hast keine ungelesenen Benachrichtigungen.</string><string name="inbox_empty_event_title">Keine Events</string><string name="inbox_empty_event_body">Event-Benachrichtigungen erscheinen hier.</string><string name="profile_version_unknown">Version unbekannt</string><string name="profile_version">Version %1$s (%2$d)</string><string name="profile_guest_name">Gast</string><string name="profile_default_user_name">Benutzer</string><string name="profile_limited_features">Eingeschränkte Funktionen</string><string name="profile_dashboard_title">Übersicht</string><string name="profile_dashboard_subtitle">Statistiken und Analysen zu deinen Events</string><string name="profile_notifications_subtitle">Benachrichtigungen und Einladungen</string><string name="profile_settings_subtitle">App-Einstellungen</string><string name="profile_logout_subtitle">Dein Konto verlassen</string><string name="profile_create_account_subtitle">Deine Daten speichern</string><string name="event_not_found">Event nicht gefunden</string><string name="event_not_found_sentence">Event nicht gefunden.</string><string name="event_default_title">Event</string><string name="participant_added">Teilnehmende hinzugefügt</string><string name="access_denied_meetings">Bestätige deine Teilnahme, um die Besprechungsdetails aufzurufen.</string><string name="access_denied_payment_pot">Bestätige deine Teilnahme, um die Details der Gruppenkasse aufzurufen.</string><string name="access_denied_tricount">Bestätige deine Teilnahme, um die Tricount-Details zu öffnen.</string><string name="access_denied_budget">Bestätige deine Teilnahme, um die Budgetdetails aufzurufen.</string><string name="access_denied_expenses">Bestätige deine Teilnahme, um die Ausgabendetails aufzurufen.</string>
+     <string name="profile_settings_title">Einstellungen</string><string name="profile_logout_title">Abmelden</string><string name="profile_create_account_title">Konto erstellen</string>
+     <plurals name="inbox_selected_count"><item quantity="one">%1$d ausgewählt</item><item quantity="other">%1$d ausgewählt</item></plurals>
++    <string name="comments_title">Kommentare</string><string name="comments_title_for_section">Kommentare · %1$s</string><string name="comments_section_options">Kommentare zu Optionen</string><string name="comments_section_poll">Kommentare zur Umfrage</string><string name="comments_section_transport">Kommentare zur Anreise</string><string name="comments_section_accommodation">Kommentare zur Unterkunft</string><string name="comments_section_meal">Kommentare zu Mahlzeiten</string><string name="comments_section_equipment">Kommentare zur Ausrüstung</string><string name="comments_section_activity">Kommentare zu Aktivitäten</string><string name="comments_section_budget">Kommentare zum Budget</string>
++    <string name="comment_section_general">Allgemein</string><string name="comment_section_options">Optionen</string><string name="comment_section_poll">Umfrage</string><string name="comment_section_transport">Anreise</string><string name="comment_section_accommodation">Unterkunft</string><string name="comment_section_meal">Mahlzeiten</string><string name="comment_section_equipment">Ausrüstung</string><string name="comment_section_activity">Aktivitäten</string><string name="comment_section_budget">Budget</string>
++    <string name="comment_input_placeholder">Kommentar hinzufügen…</string><string name="mention_prompt">Person erwähnen…</string><string name="comment_add">Kommentar hinzufügen</string><string name="comment_reply">Antworten</string><string name="comment_edit">Bearbeiten</string><string name="comment_post">Veröffentlichen</string><string name="comment_delete">Löschen</string><string name="comment_cancel">Abbrechen</string><string name="comment_close">Schließen</string><string name="comment_retry">Erneut versuchen</string><string name="comment_edited">bearbeitet</string>
++    <string name="comments_empty">Keine Kommentare</string><string name="comments_empty_body">Beginne die Unterhaltung, damit die Gruppe vorankommt.</string><string name="comments_empty_event">Keine Kommentare zu diesem Event</string><string name="comments_empty_section">Keine Kommentare in diesem Bereich</string><string name="comments_empty_call_to_action">Schreibe den ersten Kommentar!</string>
++    <string name="comment_error_title">Fehler</string><string name="comment_load_error">Kommentare konnten nicht geladen werden. Versuche es erneut.</string><string name="comment_filter_title">Nach Bereich filtern</string><string name="comment_filter_all">Alle Bereiche</string><string name="comment_edit_title">Kommentar bearbeiten</string><string name="comment_reply_to">%1$s antworten</string><string name="comment_field_label">Kommentar</string><string name="comment_field_placeholder">Schreibe deinen Kommentar…</string><string name="comment_character_count">%1$d/%2$d Zeichen</string><string name="comment_delete_title">Kommentar löschen</string><string name="comment_delete_body">Kommentar von %1$s löschen? Dies kann nicht rückgängig gemacht werden.</string>
++    <string name="comment_time_now">Gerade eben</string><string name="comment_time_minutes">Vor %1$d Min.</string><string name="comment_time_hours">Vor %1$d Std.</string><string name="comment_time_days">Vor %1$d Tagen</string><string name="comment_time_recent">Kürzlich</string>
++    <string name="a11y_comment_send">Kommentar senden</string><string name="a11y_comment_reply">Auf den Kommentar von %1$s antworten</string><string name="a11y_comment_edit">Kommentar von %1$s bearbeiten</string><string name="a11y_comment_delete">Kommentar von %1$s löschen</string><string name="a11y_comment_filter">Kommentare nach Bereich filtern</string><string name="a11y_comment_back">Zurück zum Event</string><string name="a11y_comment_add">Kommentar zum Event hinzufügen</string>
++    <plurals name="comment_reply_count"><item quantity="one">%1$d Antwort</item><item quantity="other">%1$d Antworten</item></plurals>
++    <string name="mention_user_label">@%1$s</string><string name="comment_submit_error">Der Kommentar konnte nicht gespeichert werden. Versuche es erneut.</string><string name="comment_delete_error">Der Kommentar konnte nicht gelöscht werden. Versuche es erneut.</string>
+ </resources>
+diff --git a/composeApp/src/androidMain/res/values-en/strings.xml b/composeApp/src/androidMain/res/values-en/strings.xml
+index f2dcf344..82ddd738 100644
+--- a/composeApp/src/androidMain/res/values-en/strings.xml
++++ b/composeApp/src/androidMain/res/values-en/strings.xml
+@@ -711,11 +711,20 @@
+     <string name="milestone_first_event">First event</string><string name="milestone_regular_voting">Regular voting</string><string name="milestone_organization_ready">Organization ready</string>
+ <string name="nav_upcoming">Upcoming</string><string name="a11y_nav_upcoming">Open Upcoming, %1$s</string><string name="a11y_nav_notifications">Open Notifications, alerts and updates, %1$s</string><string name="a11y_nav_ideas">Open Ideas, event suggestions, %1$s</string>
+     <string name="inbox_filter_by_event">Filter by event</string><string name="inbox_all_events">All events</string><string name="inbox_mark_read">Mark as read</string><string name="inbox_mark_done">Complete</string><string name="inbox_event_filter_value">· %1$s</string><string name="a11y_mark_all_notifications_read">Mark all notifications as read</string><string name="a11y_open_notification_preferences">Open notification preferences</string>
+ <string name="login_google_action">Sign in with Google</string><string name="a11y_wakeve_logo">Wakeve logo</string>
+ <string name="restricted_access_title">Restricted access</string>
+     <string name="profile_screen_title">Profile</string><string name="a11y_profile_avatar">Profile avatar</string><string name="profile_quick_actions">Quick actions</string><string name="profile_account_section">Account</string><string name="profile_app_description">Collaborative event planning with polls, budgets, and offline sync.</string><string name="a11y_open_profile_action">Open %1$s</string>
+     <string name="profile_guest_mode">Guest mode</string>
+ <string name="a11y_selected">selected</string><string name="a11y_unselected">not selected</string><string name="inbox_filter_all">All</string><string name="inbox_filter_focused">Focused</string><string name="inbox_filter_unread">Unread</string><string name="inbox_filter_event">Event</string><string name="inbox_context_invitation">Invitation</string><string name="inbox_context_poll">Poll</string><string name="inbox_context_vote_reminder">Vote reminder</string><string name="inbox_context_confirmation">Confirmation</string><string name="inbox_context_participant">Participant</string><string name="inbox_context_vote">Vote</string><string name="inbox_context_comment">Comment</string><string name="inbox_context_reply">Reply</string><string name="inbox_context_budget">Budget</string><string name="inbox_context_activity">Activity</string><string name="inbox_context_accommodation">Accommodation</string><string name="inbox_context_notification">Notification</string><string name="relative_time_now">Just now</string><string name="relative_time_minutes">%1$d min</string><string name="relative_time_hours">%1$d h</string><string name="relative_time_days">%1$d d</string><string name="relative_time_weeks">%1$d wk</string><string name="relative_time_months">%1$d mo</string><string name="relative_time_years">%1$d yr</string><string name="inbox_empty_all_title">No notifications</string><string name="inbox_empty_all_body">You’re all caught up. New notifications will appear here.</string><string name="inbox_empty_focused_title">Nothing needs attention</string><string name="inbox_empty_focused_body">Notifications requiring action will appear here.</string><string name="inbox_empty_unread_title">Everything is read</string><string name="inbox_empty_unread_body">You have no unread notifications.</string><string name="inbox_empty_event_title">No events</string><string name="inbox_empty_event_body">Event notifications will appear here.</string><string name="profile_version_unknown">Version unknown</string><string name="profile_version">Version %1$s (%2$d)</string><string name="profile_guest_name">Guest</string><string name="profile_default_user_name">User</string><string name="profile_limited_features">Limited features</string><string name="profile_dashboard_title">Dashboard</string><string name="profile_dashboard_subtitle">Statistics and analytics for your events</string><string name="profile_notifications_subtitle">Notifications and invitations</string><string name="profile_settings_subtitle">App preferences</string><string name="profile_logout_subtitle">Leave your account</string><string name="profile_create_account_subtitle">Save your data</string><string name="event_not_found">Event not found</string><string name="event_not_found_sentence">Event not found.</string><string name="event_default_title">Event</string><string name="participant_added">Participant added</string><string name="access_denied_meetings">Confirm your attendance to access meeting details.</string><string name="access_denied_payment_pot">Confirm your attendance to access payment pot details.</string><string name="access_denied_tricount">Confirm your attendance to open Tricount details.</string><string name="access_denied_budget">Confirm your attendance to access budget details.</string><string name="access_denied_expenses">Confirm your attendance to access expense details.</string>
+     <string name="profile_settings_title">Settings</string><string name="profile_logout_title">Sign out</string><string name="profile_create_account_title">Create account</string>
+     <plurals name="inbox_selected_count"><item quantity="one">%1$d selected</item><item quantity="other">%1$d selected</item></plurals>
++    <string name="comments_title">Comments</string><string name="comments_title_for_section">Comments · %1$s</string><string name="comments_section_options">Option comments</string><string name="comments_section_poll">Poll comments</string><string name="comments_section_transport">Transport comments</string><string name="comments_section_accommodation">Accommodation comments</string><string name="comments_section_meal">Meal comments</string><string name="comments_section_equipment">Equipment comments</string><string name="comments_section_activity">Activity comments</string><string name="comments_section_budget">Budget comments</string>
++    <string name="comment_section_general">General</string><string name="comment_section_options">Options</string><string name="comment_section_poll">Poll</string><string name="comment_section_transport">Transport</string><string name="comment_section_accommodation">Accommodation</string><string name="comment_section_meal">Meals</string><string name="comment_section_equipment">Equipment</string><string name="comment_section_activity">Activities</string><string name="comment_section_budget">Budget</string>
++    <string name="comment_input_placeholder">Add a comment…</string><string name="mention_prompt">Mention someone…</string><string name="comment_add">Add a comment</string><string name="comment_reply">Reply</string><string name="comment_edit">Edit</string><string name="comment_post">Post</string><string name="comment_delete">Delete</string><string name="comment_cancel">Cancel</string><string name="comment_close">Close</string><string name="comment_retry">Try again</string><string name="comment_edited">edited</string>
++    <string name="comments_empty">No comments</string><string name="comments_empty_body">Start the conversation to help the group move forward.</string><string name="comments_empty_event">No comments for this event</string><string name="comments_empty_section">No comments in this section</string><string name="comments_empty_call_to_action">Be the first to comment!</string>
++    <string name="comment_error_title">Error</string><string name="comment_load_error">Comments could not be loaded. Try again.</string><string name="comment_filter_title">Filter by section</string><string name="comment_filter_all">All sections</string><string name="comment_edit_title">Edit comment</string><string name="comment_reply_to">Reply to %1$s</string><string name="comment_field_label">Comment</string><string name="comment_field_placeholder">Write your comment…</string><string name="comment_character_count">%1$d/%2$d characters</string><string name="comment_delete_title">Delete comment</string><string name="comment_delete_body">Delete %1$s’s comment? This action cannot be undone.</string>
++    <string name="comment_time_now">Just now</string><string name="comment_time_minutes">%1$d min ago</string><string name="comment_time_hours">%1$d hr ago</string><string name="comment_time_days">%1$d days ago</string><string name="comment_time_recent">Recently</string>
++    <string name="a11y_comment_send">Send comment</string><string name="a11y_comment_reply">Reply to %1$s’s comment</string><string name="a11y_comment_edit">Edit %1$s’s comment</string><string name="a11y_comment_delete">Delete %1$s’s comment</string><string name="a11y_comment_filter">Filter comments by section</string><string name="a11y_comment_back">Return to the event</string><string name="a11y_comment_add">Add a comment to the event</string>
++    <plurals name="comment_reply_count"><item quantity="one">%1$d reply</item><item quantity="other">%1$d replies</item></plurals>
++    <string name="mention_user_label">@%1$s</string><string name="comment_submit_error">The comment could not be saved. Try again.</string><string name="comment_delete_error">The comment could not be deleted. Try again.</string>
+ </resources>
+diff --git a/composeApp/src/androidMain/res/values-es/strings.xml b/composeApp/src/androidMain/res/values-es/strings.xml
+index 77f68d09..a6ab4f0e 100644
+--- a/composeApp/src/androidMain/res/values-es/strings.xml
++++ b/composeApp/src/androidMain/res/values-es/strings.xml
+@@ -667,11 +667,20 @@
+     <string name="wakeve_logo_content_description">Logotipo de Wakeve</string><string name="get_started_tagline">Planificación colaborativa de eventos</string><string name="get_started_cta">Empezar</string><string name="get_started_feature_poll">Encuestas colaborativas para elegir la mejor fecha</string><string name="get_started_feature_plan">Planificación de destinos y actividades</string><string name="get_started_feature_budget">Gestión del presupuesto y fondo común</string><string name="get_started_feature_offline">Disponible sin conexión, sincronización automática</string><string name="onboarding_title">Descubre Wakeve</string><string name="onboarding_create_event_title">Crea tus eventos</string><string name="onboarding_create_event_description">Organiza eventos con amigos y compañeros. Define fechas, propón horarios y deja que el grupo vote.</string><string name="onboarding_create_event_feature_fast">Creación rápida de eventos</string><string name="onboarding_create_event_feature_poll">Encuesta de disponibilidad</string><string name="onboarding_create_event_feature_best_slot">Cálculo automático del mejor horario</string><string name="onboarding_collaborate_title">Coordina al grupo</string><string name="onboarding_collaborate_description">Sigue a los participantes, las respuestas y las responsabilidades sin perder decisiones en el chat.</string><string name="onboarding_collaborate_feature_participants">Gestión de participantes</string><string name="onboarding_collaborate_feature_roles">Responsabilidades claras</string><string name="onboarding_collaborate_feature_progress">Progreso visible</string><string name="onboarding_organize_title">Prepara los detalles</string><string name="onboarding_organize_description">Reúne alojamiento, comidas, actividades, transporte y presupuesto cuando la idea se convierta en plan.</string><string name="onboarding_organize_feature_lodging">Opciones de alojamiento</string><string name="onboarding_organize_feature_meals">Organización de comidas</string><string name="onboarding_organize_feature_budget">Seguimiento del presupuesto</string><string name="onboarding_enjoy_title">Finaliza sin estrés</string><string name="onboarding_enjoy_description">Mantén claras la fecha, los recordatorios y las próximas acciones hasta el día del evento.</string><string name="onboarding_enjoy_feature_overview">Resumen</string><string name="onboarding_enjoy_feature_reminders">Recordatorios integrados</string><string name="onboarding_enjoy_feature_calendar">Calendario del dispositivo</string><string name="signing_in">Iniciando sesión…</string><string name="sign_in_failed">No se pudo iniciar sesión</string><string name="try_again">Reintentar</string><string name="sign_in_terms_prefix">Al iniciar sesión, aceptas nuestra</string><string name="privacy_policy">Política de privacidad</string><string name="and_separator"> y nuestros </string><string name="terms_of_service">Términos de servicio</string><string name="generic_error_title">Algo ha salido mal</string><string name="custom_event_type_example">Ej. gala benéfica, lanzamiento de producto</string><string name="custom_event_type_supporting">Describe el tipo de evento</string><string name="select_event_type">Seleccionar tipo de evento</string><string name="selected">Seleccionado</string><string name="unread_notifications_short_label">Pendientes</string><string name="unread_notifications_long_label">Ver invitaciones, votos y recordatorios sin leer</string>
+     <string name="tab_ideas">Ideas</string><string name="event_state_draft">Borrador</string><string name="event_state_polling">Encuesta en curso</string><string name="event_state_comparing">Opciones para comparar</string><string name="event_state_confirmed">Fecha confirmada</string><string name="event_state_organizing">Detalles por preparar</string><string name="event_state_finalized">Listo</string><string name="notifications_filter_todo">Pendientes</string><string name="notifications_filter_information">Información</string><string name="ai_prepare_options">Preparar opciones</string><string name="ai_summarize_responses">Resumir respuestas</string><string name="ai_propose_message">Proponer un mensaje</string><string name="ai_complete_list">Completar la lista</string><string name="ai_proposal_to_review">Propuesta para revisar</string><string name="sync_waiting">Pendiente de sincronización</string><string name="sync_retry">Reintentar sincronización</string><string name="sync_change_not_saved">Cambio no guardado</string><string name="permission_notifications_denied">Las alertas no se enviarán a este dispositivo</string><string name="permission_open_settings">Abrir ajustes</string><string name="permission_notifications_available">Las alertas siguen disponibles en Notificaciones</string><string name="accessibility_open_event_details">Abrir detalles del evento</string><string name="accessibility_navigate_back">Volver a la pantalla anterior</string><string name="accessibility_more_event_actions">Abrir más acciones del evento</string><string name="accessibility_mark_payment_paid">Marcar el pago como pagado</string><string name="milestone_first_event">Primer evento</string><string name="milestone_regular_voting">Votación habitual</string><string name="milestone_organization_ready">Organización lista</string>
+ <string name="nav_upcoming">Próximos</string><string name="a11y_nav_upcoming">Abrir Próximos, %1$s</string><string name="a11y_nav_notifications">Abrir Notificaciones, alertas y novedades, %1$s</string><string name="a11y_nav_ideas">Abrir Ideas, sugerencias de eventos, %1$s</string>
+     <string name="inbox_filter_by_event">Filtrar por evento</string><string name="inbox_all_events">Todos los eventos</string><string name="inbox_mark_read">Marcar como leído</string><string name="inbox_mark_done">Completar</string><string name="inbox_event_filter_value">· %1$s</string><string name="a11y_mark_all_notifications_read">Marcar todas las notificaciones como leídas</string><string name="a11y_open_notification_preferences">Abrir preferencias de notificaciones</string>
+ <string name="login_google_action">Iniciar sesión con Google</string><string name="a11y_wakeve_logo">Logotipo de Wakeve</string>
+ <string name="restricted_access_title">Acceso restringido</string><string name="profile_screen_title">Perfil</string><string name="a11y_profile_avatar">Avatar del perfil</string><string name="profile_quick_actions">Acciones rápidas</string><string name="profile_account_section">Cuenta</string><string name="profile_app_description">Planificación colaborativa de eventos con encuestas, presupuesto y sincronización sin conexión.</string><string name="a11y_open_profile_action">Abrir %1$s</string>
+     <string name="profile_guest_mode">Modo invitado</string>
+     <string name="a11y_selected">seleccionado</string><string name="a11y_unselected">no seleccionado</string><string name="inbox_filter_all">Todas</string><string name="inbox_filter_focused">Prioritarias</string><string name="inbox_filter_unread">No leídas</string><string name="inbox_filter_event">Evento</string><string name="inbox_context_invitation">Invitación</string><string name="inbox_context_poll">Encuesta</string><string name="inbox_context_vote_reminder">Recordatorio de voto</string><string name="inbox_context_confirmation">Confirmación</string><string name="inbox_context_participant">Participante</string><string name="inbox_context_vote">Voto</string><string name="inbox_context_comment">Comentario</string><string name="inbox_context_reply">Respuesta</string><string name="inbox_context_budget">Presupuesto</string><string name="inbox_context_activity">Actividad</string><string name="inbox_context_accommodation">Alojamiento</string><string name="inbox_context_notification">Notificación</string><string name="relative_time_now">Ahora mismo</string><string name="relative_time_minutes">%1$d min</string><string name="relative_time_hours">%1$d h</string><string name="relative_time_days">%1$d d</string><string name="relative_time_weeks">%1$d sem</string><string name="relative_time_months">%1$d mes</string><string name="relative_time_years">%1$d año</string><string name="inbox_empty_all_title">No hay notificaciones</string><string name="inbox_empty_all_body">Estás al día. Las nuevas notificaciones aparecerán aquí.</string><string name="inbox_empty_focused_title">Nada prioritario</string><string name="inbox_empty_focused_body">Las notificaciones que requieran una acción aparecerán aquí.</string><string name="inbox_empty_unread_title">Todo está leído</string><string name="inbox_empty_unread_body">No tienes notificaciones sin leer.</string><string name="inbox_empty_event_title">No hay eventos</string><string name="inbox_empty_event_body">Las notificaciones de eventos aparecerán aquí.</string><string name="profile_version_unknown">Versión desconocida</string><string name="profile_version">Versión %1$s (%2$d)</string><string name="profile_guest_name">Invitado</string><string name="profile_default_user_name">Usuario</string><string name="profile_limited_features">Funciones limitadas</string><string name="profile_dashboard_title">Panel</string><string name="profile_dashboard_subtitle">Estadísticas y análisis de tus eventos</string><string name="profile_notifications_subtitle">Notificaciones e invitaciones</string><string name="profile_settings_subtitle">Preferencias de la aplicación</string><string name="profile_logout_subtitle">Salir de tu cuenta</string><string name="profile_create_account_subtitle">Guardar tus datos</string><string name="event_not_found">Evento no encontrado</string><string name="event_not_found_sentence">Evento no encontrado.</string><string name="event_default_title">Evento</string><string name="participant_added">Participante añadido</string><string name="access_denied_meetings">Confirma tu asistencia para acceder a los detalles de las reuniones.</string><string name="access_denied_payment_pot">Confirma tu asistencia para acceder a los detalles del fondo común.</string><string name="access_denied_tricount">Confirma tu asistencia para abrir los detalles de Tricount.</string><string name="access_denied_budget">Confirma tu asistencia para acceder a los detalles del presupuesto.</string><string name="access_denied_expenses">Confirma tu asistencia para acceder a los detalles de los gastos.</string>
+     <string name="profile_settings_title">Ajustes</string><string name="profile_logout_title">Cerrar sesión</string><string name="profile_create_account_title">Crear una cuenta</string>
+     <plurals name="inbox_selected_count"><item quantity="one">%1$d seleccionado</item><item quantity="other">%1$d seleccionados</item></plurals>
++    <string name="comments_title">Comentarios</string><string name="comments_title_for_section">Comentarios · %1$s</string><string name="comments_section_options">Comentarios de opciones</string><string name="comments_section_poll">Comentarios de la encuesta</string><string name="comments_section_transport">Comentarios de transporte</string><string name="comments_section_accommodation">Comentarios de alojamiento</string><string name="comments_section_meal">Comentarios de comidas</string><string name="comments_section_equipment">Comentarios de equipamiento</string><string name="comments_section_activity">Comentarios de actividades</string><string name="comments_section_budget">Comentarios de presupuesto</string>
++    <string name="comment_section_general">General</string><string name="comment_section_options">Opciones</string><string name="comment_section_poll">Encuesta</string><string name="comment_section_transport">Transporte</string><string name="comment_section_accommodation">Alojamiento</string><string name="comment_section_meal">Comidas</string><string name="comment_section_equipment">Equipamiento</string><string name="comment_section_activity">Actividades</string><string name="comment_section_budget">Presupuesto</string>
++    <string name="comment_input_placeholder">Añadir un comentario…</string><string name="mention_prompt">Mencionar a alguien…</string><string name="comment_add">Añadir un comentario</string><string name="comment_reply">Responder</string><string name="comment_edit">Editar</string><string name="comment_post">Publicar</string><string name="comment_delete">Eliminar</string><string name="comment_cancel">Cancelar</string><string name="comment_close">Cerrar</string><string name="comment_retry">Reintentar</string><string name="comment_edited">editado</string>
++    <string name="comments_empty">No hay comentarios</string><string name="comments_empty_body">Inicia la conversación para ayudar al grupo a avanzar.</string><string name="comments_empty_event">No hay comentarios para este evento</string><string name="comments_empty_section">No hay comentarios en esta sección</string><string name="comments_empty_call_to_action">¡Sé la primera persona en comentar!</string>
++    <string name="comment_error_title">Error</string><string name="comment_load_error">No se pudieron cargar los comentarios. Inténtalo de nuevo.</string><string name="comment_filter_title">Filtrar por sección</string><string name="comment_filter_all">Todas las secciones</string><string name="comment_edit_title">Editar comentario</string><string name="comment_reply_to">Responder a %1$s</string><string name="comment_field_label">Comentario</string><string name="comment_field_placeholder">Escribe tu comentario…</string><string name="comment_character_count">%1$d/%2$d caracteres</string><string name="comment_delete_title">Eliminar comentario</string><string name="comment_delete_body">¿Eliminar el comentario de %1$s? Esta acción no se puede deshacer.</string>
++    <string name="comment_time_now">Ahora mismo</string><string name="comment_time_minutes">Hace %1$d min</string><string name="comment_time_hours">Hace %1$d h</string><string name="comment_time_days">Hace %1$d días</string><string name="comment_time_recent">Recientemente</string>
++    <string name="a11y_comment_send">Enviar comentario</string><string name="a11y_comment_reply">Responder al comentario de %1$s</string><string name="a11y_comment_edit">Editar el comentario de %1$s</string><string name="a11y_comment_delete">Eliminar el comentario de %1$s</string><string name="a11y_comment_filter">Filtrar comentarios por sección</string><string name="a11y_comment_back">Volver al evento</string><string name="a11y_comment_add">Añadir un comentario al evento</string>
++    <plurals name="comment_reply_count"><item quantity="one">%1$d respuesta</item><item quantity="other">%1$d respuestas</item></plurals>
++    <string name="mention_user_label">@%1$s</string><string name="comment_submit_error">No se pudo guardar el comentario. Inténtalo de nuevo.</string><string name="comment_delete_error">No se pudo eliminar el comentario. Inténtalo de nuevo.</string>
+ </resources>
+diff --git a/composeApp/src/androidMain/res/values-it/strings.xml b/composeApp/src/androidMain/res/values-it/strings.xml
+index 926ca08f..eaddd4b7 100644
+--- a/composeApp/src/androidMain/res/values-it/strings.xml
++++ b/composeApp/src/androidMain/res/values-it/strings.xml
+@@ -665,11 +665,20 @@
+     <string name="wakeve_logo_content_description">Logo Wakeve</string><string name="get_started_tagline">Pianificazione collaborativa di eventi</string><string name="get_started_cta">Inizia</string><string name="get_started_feature_poll">Sondaggi collaborativi per trovare la data migliore</string><string name="get_started_feature_plan">Pianificazione di destinazioni e attività</string><string name="get_started_feature_budget">Gestione del budget e fondo condiviso</string><string name="get_started_feature_offline">Disponibile offline, sincronizzazione automatica</string><string name="onboarding_title">Scopri Wakeve</string><string name="onboarding_create_event_title">Crea i tuoi eventi</string><string name="onboarding_create_event_description">Organizza eventi con amici e colleghi. Definisci le date, proponi orari e lascia votare il gruppo.</string><string name="onboarding_create_event_feature_fast">Creazione rapida di eventi</string><string name="onboarding_create_event_feature_poll">Sondaggio sulla disponibilità</string><string name="onboarding_create_event_feature_best_slot">Calcolo automatico dell’orario migliore</string><string name="onboarding_collaborate_title">Coordina il gruppo</string><string name="onboarding_collaborate_description">Segui partecipanti, risposte e responsabilità senza perdere le decisioni nella chat.</string><string name="onboarding_collaborate_feature_participants">Gestione dei partecipanti</string><string name="onboarding_collaborate_feature_roles">Responsabilità chiare</string><string name="onboarding_collaborate_feature_progress">Avanzamento visibile</string><string name="onboarding_organize_title">Prepara i dettagli</string><string name="onboarding_organize_description">Riunisci alloggio, pasti, attività, trasporti e budget quando l’idea diventa un piano.</string><string name="onboarding_organize_feature_lodging">Opzioni di alloggio</string><string name="onboarding_organize_feature_meals">Organizzazione dei pasti</string><string name="onboarding_organize_feature_budget">Controllo del budget</string><string name="onboarding_enjoy_title">Concludi senza stress</string><string name="onboarding_enjoy_description">Mantieni chiari data, promemoria e prossime azioni fino al giorno dell’evento.</string><string name="onboarding_enjoy_feature_overview">Panoramica</string><string name="onboarding_enjoy_feature_reminders">Promemoria integrati</string><string name="onboarding_enjoy_feature_calendar">Calendario del dispositivo</string><string name="signing_in">Accesso in corso…</string><string name="sign_in_failed">Accesso non riuscito</string><string name="try_again">Riprova</string><string name="sign_in_terms_prefix">Accedendo, accetti la nostra</string><string name="privacy_policy">Informativa sulla privacy</string><string name="and_separator"> e i nostri </string><string name="terms_of_service">Termini di servizio</string><string name="generic_error_title">Qualcosa è andato storto</string><string name="custom_event_type_example">Es. gala di beneficenza, lancio di prodotto</string><string name="custom_event_type_supporting">Descrivi il tipo di evento</string><string name="select_event_type">Seleziona il tipo di evento</string><string name="selected">Selezionato</string><string name="unread_notifications_short_label">Da fare</string><string name="unread_notifications_long_label">Mostra inviti, voti e promemoria non letti</string>
+     <string name="tab_ideas">Idee</string><string name="event_state_draft">Bozza</string><string name="event_state_polling">Sondaggio in corso</string><string name="event_state_comparing">Opzioni da confrontare</string><string name="event_state_confirmed">Data confermata</string><string name="event_state_organizing">Dettagli da preparare</string><string name="event_state_finalized">Pronto</string><string name="notifications_filter_todo">Da fare</string><string name="notifications_filter_information">Informazioni</string><string name="ai_prepare_options">Prepara opzioni</string><string name="ai_summarize_responses">Riassumi le risposte</string><string name="ai_propose_message">Proponi un messaggio</string><string name="ai_complete_list">Completa l’elenco</string><string name="ai_proposal_to_review">Proposta da rivedere</string><string name="sync_waiting">In attesa di sincronizzazione</string><string name="sync_retry">Riprova la sincronizzazione</string><string name="sync_change_not_saved">Modifica non salvata</string><string name="permission_notifications_denied">Gli avvisi non saranno inviati su questo dispositivo</string><string name="permission_open_settings">Apri impostazioni</string><string name="permission_notifications_available">Gli avvisi restano disponibili in Notifiche</string><string name="accessibility_open_event_details">Apri i dettagli dell’evento</string><string name="accessibility_navigate_back">Torna alla schermata precedente</string><string name="accessibility_more_event_actions">Apri altre azioni dell’evento</string><string name="accessibility_mark_payment_paid">Segna il pagamento come effettuato</string><string name="milestone_first_event">Primo evento</string><string name="milestone_regular_voting">Voto regolare</string><string name="milestone_organization_ready">Organizzazione pronta</string>
+ <string name="nav_upcoming">In arrivo</string><string name="a11y_nav_upcoming">Apri In arrivo, %1$s</string><string name="a11y_nav_notifications">Apri Notifiche, avvisi e aggiornamenti, %1$s</string><string name="a11y_nav_ideas">Apri Idee, suggerimenti per eventi, %1$s</string>
+     <string name="inbox_filter_by_event">Filtra per evento</string><string name="inbox_all_events">Tutti gli eventi</string><string name="inbox_mark_read">Segna come letto</string><string name="inbox_mark_done">Completa</string><string name="inbox_event_filter_value">· %1$s</string><string name="a11y_mark_all_notifications_read">Segna tutte le notifiche come lette</string><string name="a11y_open_notification_preferences">Apri preferenze notifiche</string>
+ <string name="login_google_action">Accedi con Google</string><string name="a11y_wakeve_logo">Logo Wakeve</string>
+ <string name="restricted_access_title">Accesso limitato</string><string name="profile_screen_title">Profilo</string><string name="a11y_profile_avatar">Avatar del profilo</string><string name="profile_quick_actions">Azioni rapide</string><string name="profile_account_section">Account</string><string name="profile_app_description">Pianificazione collaborativa di eventi con sondaggi, budget e sincronizzazione offline.</string><string name="a11y_open_profile_action">Apri %1$s</string>
+     <string name="profile_guest_mode">Modalità ospite</string>
+     <string name="a11y_selected">selezionato</string><string name="a11y_unselected">non selezionato</string><string name="inbox_filter_all">Tutte</string><string name="inbox_filter_focused">In evidenza</string><string name="inbox_filter_unread">Non lette</string><string name="inbox_filter_event">Evento</string><string name="inbox_context_invitation">Invito</string><string name="inbox_context_poll">Sondaggio</string><string name="inbox_context_vote_reminder">Promemoria voto</string><string name="inbox_context_confirmation">Conferma</string><string name="inbox_context_participant">Partecipante</string><string name="inbox_context_vote">Voto</string><string name="inbox_context_comment">Commento</string><string name="inbox_context_reply">Risposta</string><string name="inbox_context_budget">Budget</string><string name="inbox_context_activity">Attività</string><string name="inbox_context_accommodation">Alloggio</string><string name="inbox_context_notification">Notifica</string><string name="relative_time_now">Proprio ora</string><string name="relative_time_minutes">%1$d min</string><string name="relative_time_hours">%1$d h</string><string name="relative_time_days">%1$d g</string><string name="relative_time_weeks">%1$d sett</string><string name="relative_time_months">%1$d mese</string><string name="relative_time_years">%1$d anno</string><string name="inbox_empty_all_title">Nessuna notifica</string><string name="inbox_empty_all_body">È tutto aggiornato. Le nuove notifiche appariranno qui.</string><string name="inbox_empty_focused_title">Niente di prioritario</string><string name="inbox_empty_focused_body">Le notifiche che richiedono un’azione appariranno qui.</string><string name="inbox_empty_unread_title">Tutto letto</string><string name="inbox_empty_unread_body">Non hai notifiche da leggere.</string><string name="inbox_empty_event_title">Nessun evento</string><string name="inbox_empty_event_body">Le notifiche degli eventi appariranno qui.</string><string name="profile_version_unknown">Versione sconosciuta</string><string name="profile_version">Versione %1$s (%2$d)</string><string name="profile_guest_name">Ospite</string><string name="profile_default_user_name">Utente</string><string name="profile_limited_features">Funzionalità limitate</string><string name="profile_dashboard_title">Dashboard</string><string name="profile_dashboard_subtitle">Statistiche e analisi dei tuoi eventi</string><string name="profile_notifications_subtitle">Notifiche e inviti</string><string name="profile_settings_subtitle">Preferenze dell’app</string><string name="profile_logout_subtitle">Esci dal tuo account</string><string name="profile_create_account_subtitle">Salva i tuoi dati</string><string name="event_not_found">Evento non trovato</string><string name="event_not_found_sentence">Evento non trovato.</string><string name="event_default_title">Evento</string><string name="participant_added">Partecipante aggiunto</string><string name="access_denied_meetings">Conferma la tua partecipazione per accedere ai dettagli delle riunioni.</string><string name="access_denied_payment_pot">Conferma la tua partecipazione per accedere ai dettagli della cassa comune.</string><string name="access_denied_tricount">Conferma la tua partecipazione per aprire i dettagli di Tricount.</string><string name="access_denied_budget">Conferma la tua partecipazione per accedere ai dettagli del budget.</string><string name="access_denied_expenses">Conferma la tua partecipazione per accedere ai dettagli delle spese.</string>
+     <string name="profile_settings_title">Impostazioni</string><string name="profile_logout_title">Esci</string><string name="profile_create_account_title">Crea account</string>
+     <plurals name="inbox_selected_count"><item quantity="one">%1$d selezionato</item><item quantity="other">%1$d selezionati</item></plurals>
++    <string name="comments_title">Commenti</string><string name="comments_title_for_section">Commenti · %1$s</string><string name="comments_section_options">Commenti sulle opzioni</string><string name="comments_section_poll">Commenti sul sondaggio</string><string name="comments_section_transport">Commenti sui trasporti</string><string name="comments_section_accommodation">Commenti sull’alloggio</string><string name="comments_section_meal">Commenti sui pasti</string><string name="comments_section_equipment">Commenti sull’attrezzatura</string><string name="comments_section_activity">Commenti sulle attività</string><string name="comments_section_budget">Commenti sul budget</string>
++    <string name="comment_section_general">Generale</string><string name="comment_section_options">Opzioni</string><string name="comment_section_poll">Sondaggio</string><string name="comment_section_transport">Trasporti</string><string name="comment_section_accommodation">Alloggio</string><string name="comment_section_meal">Pasti</string><string name="comment_section_equipment">Attrezzatura</string><string name="comment_section_activity">Attività</string><string name="comment_section_budget">Budget</string>
++    <string name="comment_input_placeholder">Aggiungi un commento…</string><string name="mention_prompt">Menziona una persona…</string><string name="comment_add">Aggiungi un commento</string><string name="comment_reply">Rispondi</string><string name="comment_edit">Modifica</string><string name="comment_post">Pubblica</string><string name="comment_delete">Elimina</string><string name="comment_cancel">Annulla</string><string name="comment_close">Chiudi</string><string name="comment_retry">Riprova</string><string name="comment_edited">modificato</string>
++    <string name="comments_empty">Nessun commento</string><string name="comments_empty_body">Avvia la conversazione per aiutare il gruppo a procedere.</string><string name="comments_empty_event">Nessun commento per questo evento</string><string name="comments_empty_section">Nessun commento in questa sezione</string><string name="comments_empty_call_to_action">Scrivi il primo commento!</string>
++    <string name="comment_error_title">Errore</string><string name="comment_load_error">Impossibile caricare i commenti. Riprova.</string><string name="comment_filter_title">Filtra per sezione</string><string name="comment_filter_all">Tutte le sezioni</string><string name="comment_edit_title">Modifica commento</string><string name="comment_reply_to">Rispondi a %1$s</string><string name="comment_field_label">Commento</string><string name="comment_field_placeholder">Scrivi il tuo commento…</string><string name="comment_character_count">%1$d/%2$d caratteri</string><string name="comment_delete_title">Elimina commento</string><string name="comment_delete_body">Eliminare il commento di %1$s? L’azione non può essere annullata.</string>
++    <string name="comment_time_now">Proprio ora</string><string name="comment_time_minutes">%1$d min fa</string><string name="comment_time_hours">%1$d h fa</string><string name="comment_time_days">%1$d giorni fa</string><string name="comment_time_recent">Di recente</string>
++    <string name="a11y_comment_send">Invia commento</string><string name="a11y_comment_reply">Rispondi al commento di %1$s</string><string name="a11y_comment_edit">Modifica il commento di %1$s</string><string name="a11y_comment_delete">Elimina il commento di %1$s</string><string name="a11y_comment_filter">Filtra i commenti per sezione</string><string name="a11y_comment_back">Torna all’evento</string><string name="a11y_comment_add">Aggiungi un commento all’evento</string>
++    <plurals name="comment_reply_count"><item quantity="one">%1$d risposta</item><item quantity="other">%1$d risposte</item></plurals>
++    <string name="mention_user_label">@%1$s</string><string name="comment_submit_error">Impossibile salvare il commento. Riprova.</string><string name="comment_delete_error">Impossibile eliminare il commento. Riprova.</string>
+ </resources>
+diff --git a/composeApp/src/androidMain/res/values-pt/strings.xml b/composeApp/src/androidMain/res/values-pt/strings.xml
+index fd957910..7de28153 100644
+--- a/composeApp/src/androidMain/res/values-pt/strings.xml
++++ b/composeApp/src/androidMain/res/values-pt/strings.xml
+@@ -665,11 +665,20 @@
+     <string name="wakeve_logo_content_description">Logótipo Wakeve</string><string name="get_started_tagline">Planeamento colaborativo de eventos</string><string name="get_started_cta">Começar</string><string name="get_started_feature_poll">Sondagens colaborativas para encontrar a melhor data</string><string name="get_started_feature_plan">Planeamento de destinos e atividades</string><string name="get_started_feature_budget">Gestão do orçamento e fundo partilhado</string><string name="get_started_feature_offline">Disponível offline, sincronização automática</string><string name="onboarding_title">Descobrir</string><string name="onboarding_create_event_title">Cria os teus eventos</string><string name="onboarding_create_event_description">Organiza eventos com amigos e colegas. Define datas, propõe horários e deixa o grupo votar.</string><string name="onboarding_create_event_feature_fast">Criação rápida de eventos</string><string name="onboarding_create_event_feature_poll">Sondagem de disponibilidade</string><string name="onboarding_create_event_feature_best_slot">Cálculo automático do melhor horário</string><string name="onboarding_collaborate_title">Coordena o grupo</string><string name="onboarding_collaborate_description">Acompanha participantes, respostas e responsabilidades sem perder decisões na conversa.</string><string name="onboarding_collaborate_feature_participants">Gestão de participantes</string><string name="onboarding_collaborate_feature_roles">Responsabilidades claras</string><string name="onboarding_collaborate_feature_progress">Progresso visível</string><string name="onboarding_organize_title">Prepara os detalhes</string><string name="onboarding_organize_description">Reúne alojamento, refeições, atividades, transporte e orçamento quando a ideia se torna um plano.</string><string name="onboarding_organize_feature_lodging">Opções de alojamento</string><string name="onboarding_organize_feature_meals">Organização das refeições</string><string name="onboarding_organize_feature_budget">Acompanhamento do orçamento</string><string name="onboarding_enjoy_title">Finaliza sem stress</string><string name="onboarding_enjoy_description">Mantém a data, os lembretes e as próximas ações claros até ao dia do evento.</string><string name="onboarding_enjoy_feature_overview">Visão geral</string><string name="onboarding_enjoy_feature_reminders">Lembretes integrados</string><string name="onboarding_enjoy_feature_calendar">Calendário do dispositivo</string><string name="signing_in">A iniciar sessão…</string><string name="sign_in_failed">Falha ao iniciar sessão</string><string name="try_again">Tentar novamente</string><string name="sign_in_terms_prefix">Ao iniciar sessão, aceitas a nossa</string><string name="privacy_policy">Política de privacidade</string><string name="and_separator"> e os nossos </string><string name="terms_of_service">Termos de serviço</string><string name="generic_error_title">Algo correu mal</string><string name="custom_event_type_example">Ex. gala solidária, lançamento de produto</string><string name="custom_event_type_supporting">Descreve o tipo de evento</string><string name="select_event_type">Selecionar tipo de evento</string><string name="selected">Selecionado</string><string name="unread_notifications_short_label">A tratar</string><string name="unread_notifications_long_label">Ver convites, votos e lembretes por ler</string>
+     <string name="tab_ideas">Ideias</string><string name="event_state_draft">Rascunho</string><string name="event_state_polling">Sondagem em curso</string><string name="event_state_comparing">Opções para comparar</string><string name="event_state_confirmed">Data confirmada</string><string name="event_state_organizing">Detalhes a preparar</string><string name="event_state_finalized">Pronto</string><string name="notifications_filter_todo">A tratar</string><string name="notifications_filter_information">Informações</string><string name="ai_prepare_options">Preparar opções</string><string name="ai_summarize_responses">Resumir respostas</string><string name="ai_propose_message">Propor uma mensagem</string><string name="ai_complete_list">Completar a lista</string><string name="ai_proposal_to_review">Proposta para rever</string><string name="sync_waiting">A aguardar sincronização</string><string name="sync_retry">Tentar sincronizar novamente</string><string name="sync_change_not_saved">Alteração não guardada</string><string name="permission_notifications_denied">Os alertas não serão enviados neste dispositivo</string><string name="permission_open_settings">Abrir definições</string><string name="permission_notifications_available">Os alertas continuam disponíveis em Notificações</string><string name="accessibility_open_event_details">Abrir detalhes do evento</string><string name="accessibility_navigate_back">Voltar ao ecrã anterior</string><string name="accessibility_more_event_actions">Abrir mais ações do evento</string><string name="accessibility_mark_payment_paid">Marcar pagamento como pago</string><string name="milestone_first_event">Primeiro evento</string><string name="milestone_regular_voting">Votação regular</string><string name="milestone_organization_ready">Organização pronta</string>
+ <string name="nav_upcoming">Próximos</string><string name="a11y_nav_upcoming">Abrir Próximos, %1$s</string><string name="a11y_nav_notifications">Abrir Notificações, alertas e atualizações, %1$s</string><string name="a11y_nav_ideas">Abrir Ideias, sugestões de eventos, %1$s</string>
+     <string name="inbox_filter_by_event">Filtrar por evento</string><string name="inbox_all_events">Todos os eventos</string><string name="inbox_mark_read">Marcar como lido</string><string name="inbox_mark_done">Concluir</string><string name="inbox_event_filter_value">· %1$s</string><string name="a11y_mark_all_notifications_read">Marcar todas as notificações como lidas</string><string name="a11y_open_notification_preferences">Abrir preferências de notificações</string>
+ <string name="login_google_action">Iniciar sessão com Google</string><string name="a11y_wakeve_logo">Logótipo Wakeve</string>
+ <string name="restricted_access_title">Acesso restrito</string><string name="profile_screen_title">Perfil</string><string name="a11y_profile_avatar">Avatar do perfil</string><string name="profile_quick_actions">Ações rápidas</string><string name="profile_account_section">Conta</string><string name="profile_app_description">Planeamento colaborativo de eventos com sondagens, orçamento e sincronização offline.</string><string name="a11y_open_profile_action">Abrir %1$s</string>
+     <string name="profile_guest_mode">Modo convidado</string>
+     <string name="a11y_selected">selecionado</string><string name="a11y_unselected">não selecionado</string><string name="inbox_filter_all">Todas</string><string name="inbox_filter_focused">Prioritárias</string><string name="inbox_filter_unread">Não lidas</string><string name="inbox_filter_event">Evento</string><string name="inbox_context_invitation">Convite</string><string name="inbox_context_poll">Sondagem</string><string name="inbox_context_vote_reminder">Lembrete de voto</string><string name="inbox_context_confirmation">Confirmação</string><string name="inbox_context_participant">Participante</string><string name="inbox_context_vote">Voto</string><string name="inbox_context_comment">Comentário</string><string name="inbox_context_reply">Resposta</string><string name="inbox_context_budget">Orçamento</string><string name="inbox_context_activity">Atividade</string><string name="inbox_context_accommodation">Alojamento</string><string name="inbox_context_notification">Notificação</string><string name="relative_time_now">Agora mesmo</string><string name="relative_time_minutes">%1$d min</string><string name="relative_time_hours">%1$d h</string><string name="relative_time_days">%1$d d</string><string name="relative_time_weeks">%1$d sem</string><string name="relative_time_months">%1$d mês</string><string name="relative_time_years">%1$d ano</string><string name="inbox_empty_all_title">Sem notificações</string><string name="inbox_empty_all_body">Está tudo em dia. As novas notificações aparecerão aqui.</string><string name="inbox_empty_focused_title">Nada prioritário</string><string name="inbox_empty_focused_body">As notificações que exigem uma ação aparecerão aqui.</string><string name="inbox_empty_unread_title">Tudo lido</string><string name="inbox_empty_unread_body">Não tem notificações por ler.</string><string name="inbox_empty_event_title">Sem eventos</string><string name="inbox_empty_event_body">As notificações de eventos aparecerão aqui.</string><string name="profile_version_unknown">Versão desconhecida</string><string name="profile_version">Versão %1$s (%2$d)</string><string name="profile_guest_name">Convidado</string><string name="profile_default_user_name">Utilizador</string><string name="profile_limited_features">Funcionalidades limitadas</string><string name="profile_dashboard_title">Painel</string><string name="profile_dashboard_subtitle">Estatísticas e análises dos seus eventos</string><string name="profile_notifications_subtitle">Notificações e convites</string><string name="profile_settings_subtitle">Preferências da aplicação</string><string name="profile_logout_subtitle">Sair da sua conta</string><string name="profile_create_account_subtitle">Guardar os seus dados</string><string name="event_not_found">Evento não encontrado</string><string name="event_not_found_sentence">Evento não encontrado.</string><string name="event_default_title">Evento</string><string name="participant_added">Participante adicionado</string><string name="access_denied_meetings">Confirme a sua presença para aceder aos detalhes das reuniões.</string><string name="access_denied_payment_pot">Confirme a sua presença para aceder aos detalhes do fundo comum.</string><string name="access_denied_tricount">Confirme a sua presença para abrir os detalhes do Tricount.</string><string name="access_denied_budget">Confirme a sua presença para aceder aos detalhes do orçamento.</string><string name="access_denied_expenses">Confirme a sua presença para aceder aos detalhes das despesas.</string>
+     <string name="profile_settings_title">Definições</string><string name="profile_logout_title">Terminar sessão</string><string name="profile_create_account_title">Criar conta</string>
+     <plurals name="inbox_selected_count"><item quantity="one">%1$d selecionado</item><item quantity="other">%1$d selecionados</item></plurals>
++    <string name="comments_title">Comentários</string><string name="comments_title_for_section">Comentários · %1$s</string><string name="comments_section_options">Comentários das opções</string><string name="comments_section_poll">Comentários da sondagem</string><string name="comments_section_transport">Comentários de transporte</string><string name="comments_section_accommodation">Comentários de alojamento</string><string name="comments_section_meal">Comentários das refeições</string><string name="comments_section_equipment">Comentários do equipamento</string><string name="comments_section_activity">Comentários das atividades</string><string name="comments_section_budget">Comentários do orçamento</string>
++    <string name="comment_section_general">Geral</string><string name="comment_section_options">Opções</string><string name="comment_section_poll">Sondagem</string><string name="comment_section_transport">Transporte</string><string name="comment_section_accommodation">Alojamento</string><string name="comment_section_meal">Refeições</string><string name="comment_section_equipment">Equipamento</string><string name="comment_section_activity">Atividades</string><string name="comment_section_budget">Orçamento</string>
++    <string name="comment_input_placeholder">Adicionar um comentário…</string><string name="mention_prompt">Mencionar alguém…</string><string name="comment_add">Adicionar um comentário</string><string name="comment_reply">Responder</string><string name="comment_edit">Editar</string><string name="comment_post">Publicar</string><string name="comment_delete">Eliminar</string><string name="comment_cancel">Cancelar</string><string name="comment_close">Fechar</string><string name="comment_retry">Tentar novamente</string><string name="comment_edited">editado</string>
++    <string name="comments_empty">Sem comentários</string><string name="comments_empty_body">Inicia a conversa para ajudar o grupo a avançar.</string><string name="comments_empty_event">Sem comentários para este evento</string><string name="comments_empty_section">Sem comentários nesta secção</string><string name="comments_empty_call_to_action">Sê a primeira pessoa a comentar!</string>
++    <string name="comment_error_title">Erro</string><string name="comment_load_error">Não foi possível carregar os comentários. Tenta novamente.</string><string name="comment_filter_title">Filtrar por secção</string><string name="comment_filter_all">Todas as secções</string><string name="comment_edit_title">Editar comentário</string><string name="comment_reply_to">Responder a %1$s</string><string name="comment_field_label">Comentário</string><string name="comment_field_placeholder">Escreve o teu comentário…</string><string name="comment_character_count">%1$d/%2$d caracteres</string><string name="comment_delete_title">Eliminar comentário</string><string name="comment_delete_body">Eliminar o comentário de %1$s? Esta ação não pode ser anulada.</string>
++    <string name="comment_time_now">Agora mesmo</string><string name="comment_time_minutes">Há %1$d min</string><string name="comment_time_hours">Há %1$d h</string><string name="comment_time_days">Há %1$d dias</string><string name="comment_time_recent">Recentemente</string>
++    <string name="a11y_comment_send">Enviar comentário</string><string name="a11y_comment_reply">Responder ao comentário de %1$s</string><string name="a11y_comment_edit">Editar o comentário de %1$s</string><string name="a11y_comment_delete">Eliminar o comentário de %1$s</string><string name="a11y_comment_filter">Filtrar comentários por secção</string><string name="a11y_comment_back">Voltar ao evento</string><string name="a11y_comment_add">Adicionar um comentário ao evento</string>
++    <plurals name="comment_reply_count"><item quantity="one">%1$d resposta</item><item quantity="other">%1$d respostas</item></plurals>
++    <string name="mention_user_label">@%1$s</string><string name="comment_submit_error">Não foi possível guardar o comentário. Tenta novamente.</string><string name="comment_delete_error">Não foi possível eliminar o comentário. Tenta novamente.</string>
+ </resources>
+diff --git a/composeApp/src/androidMain/res/values/strings.xml b/composeApp/src/androidMain/res/values/strings.xml
+index 0e487eb8..c659109b 100644
+--- a/composeApp/src/androidMain/res/values/strings.xml
++++ b/composeApp/src/androidMain/res/values/strings.xml
+@@ -714,11 +714,21 @@
+     <string name="milestone_first_event">Premier événement</string><string name="milestone_regular_voting">Vote régulier</string><string name="milestone_organization_ready">Organisation prête</string>
+ <string name="nav_upcoming">À venir</string><string name="a11y_nav_upcoming">Ouvrir À venir, %1$s</string><string name="a11y_nav_notifications">Ouvrir Notifications, alertes et mises à jour, %1$s</string><string name="a11y_nav_ideas">Ouvrir Idées, suggestions d’événements, %1$s</string>
+     <string name="inbox_filter_by_event">Filtrer par événement</string><string name="inbox_all_events">Tous les événements</string><string name="inbox_mark_read">Marquer comme lu</string><string name="inbox_mark_done">Terminer</string><string name="inbox_event_filter_value">· %1$s</string><string name="a11y_mark_all_notifications_read">Marquer toutes les notifications comme lues</string><string name="a11y_open_notification_preferences">Ouvrir les préférences de notifications</string>
+     <string name="login_google_initial" translatable="false">G</string><string name="login_google_action">Se connecter avec Google</string><string name="a11y_wakeve_logo">Logo Wakeve</string><string name="error_symbol" translatable="false">❌</string>
+ <string name="restricted_access_title">Accès restreint</string>
+     <string name="profile_screen_title">Profil</string><string name="a11y_profile_avatar">Avatar du profil</string><string name="profile_quick_actions">Actions rapides</string><string name="profile_account_section">Compte</string><string name="profile_app_description">Planification collaborative d’événements avec sondages, budget et synchronisation hors ligne.</string><string name="a11y_open_profile_action">Ouvrir %1$s</string>
+     <string name="profile_guest_mode">Mode invité</string>
+ <string name="a11y_selected">sélectionné</string><string name="a11y_unselected">non sélectionné</string><string name="inbox_filter_all">Tout</string><string name="inbox_filter_focused">Focus</string><string name="inbox_filter_unread">Non lues</string><string name="inbox_filter_event">Événement</string><string name="inbox_context_invitation">Invitation</string><string name="inbox_context_poll">Sondage</string><string name="inbox_context_vote_reminder">Rappel de vote</string><string name="inbox_context_confirmation">Confirmation</string><string name="inbox_context_participant">Participant</string><string name="inbox_context_vote">Vote</string><string name="inbox_context_comment">Commentaire</string><string name="inbox_context_reply">Réponse</string><string name="inbox_context_budget">Budget</string><string name="inbox_context_activity">Activité</string><string name="inbox_context_accommodation">Hébergement</string><string name="inbox_context_notification">Notification</string><string name="relative_time_now">À l’instant</string><string name="relative_time_minutes">%1$d min</string><string name="relative_time_hours">%1$d h</string><string name="relative_time_days">%1$d j</string><string name="relative_time_weeks">%1$d sem</string><string name="relative_time_months">%1$d mois</string><string name="relative_time_years">%1$d an</string><string name="inbox_empty_all_title">Aucune notification</string><string name="inbox_empty_all_body">Vous êtes à jour ! Les nouvelles notifications apparaîtront ici.</string><string name="inbox_empty_focused_title">Rien en priorité</string><string name="inbox_empty_focused_body">Les notifications nécessitant une action apparaîtront ici.</string><string name="inbox_empty_unread_title">Tout est lu</string><string name="inbox_empty_unread_body">Vous n’avez aucune notification non lue.</string><string name="inbox_empty_event_title">Aucun événement</string><string name="inbox_empty_event_body">Les notifications liées aux événements apparaîtront ici.</string><string name="profile_version_unknown">Version inconnue</string><string name="profile_version">Version %1$s (%2$d)</string><string name="profile_guest_name">Invité</string><string name="profile_default_user_name">Utilisateur</string><string name="profile_limited_features">Fonctionnalités limitées</string><string name="profile_dashboard_title">Tableau de bord</string><string name="profile_dashboard_subtitle">Statistiques et analyses de vos événements</string><string name="profile_notifications_subtitle">Notifications et invitations</string><string name="profile_settings_subtitle">Préférences de l’application</string><string name="profile_logout_subtitle">Quitter votre compte</string><string name="profile_create_account_subtitle">Sauvegarder vos données</string><string name="event_not_found">Événement non trouvé</string><string name="event_not_found_sentence">Événement introuvable.</string><string name="event_default_title">Événement</string><string name="participant_added">Participant ajouté</string><string name="access_denied_meetings">Confirmez votre présence pour accéder aux détails des réunions.</string><string name="access_denied_payment_pot">Confirmez votre présence pour accéder aux détails de la cagnotte.</string><string name="access_denied_tricount">Confirmez votre présence pour ouvrir les détails Tricount.</string><string name="access_denied_budget">Confirmez votre présence pour accéder aux détails du budget.</string><string name="access_denied_expenses">Confirmez votre présence pour accéder aux détails des dépenses.</string>
+     <string name="profile_settings_title">Paramètres</string><string name="profile_logout_title">Se déconnecter</string><string name="profile_create_account_title">Créer un compte</string>
+     <plurals name="inbox_selected_count"><item quantity="one">%1$d sélectionné</item><item quantity="other">%1$d sélectionnés</item></plurals>
++    <!-- Comments and collaboration -->
++    <string name="comments_title">Commentaires</string><string name="comments_title_for_section">Commentaires · %1$s</string><string name="comments_section_options">Commentaires des options</string><string name="comments_section_poll">Commentaires du sondage</string><string name="comments_section_transport">Commentaires transport</string><string name="comments_section_accommodation">Commentaires logement</string><string name="comments_section_meal">Commentaires repas</string><string name="comments_section_equipment">Commentaires équipement</string><string name="comments_section_activity">Commentaires activités</string><string name="comments_section_budget">Commentaires budget</string>
++    <string name="comment_section_general">Général</string><string name="comment_section_options">Options</string><string name="comment_section_poll">Sondage</string><string name="comment_section_transport">Transport</string><string name="comment_section_accommodation">Logement</string><string name="comment_section_meal">Repas</string><string name="comment_section_equipment">Équipement</string><string name="comment_section_activity">Activités</string><string name="comment_section_budget">Budget</string>
++    <string name="comment_input_placeholder">Ajouter un commentaire…</string><string name="mention_prompt">Mentionner une personne…</string><string name="comment_add">Ajouter un commentaire</string><string name="comment_reply">Répondre</string><string name="comment_edit">Modifier</string><string name="comment_post">Publier</string><string name="comment_delete">Supprimer</string><string name="comment_cancel">Annuler</string><string name="comment_close">Fermer</string><string name="comment_retry">Réessayer</string><string name="comment_edited">modifié</string>
++    <string name="comments_empty">Aucun commentaire</string><string name="comments_empty_body">Lancez la discussion pour aider le groupe à avancer.</string><string name="comments_empty_event">Aucun commentaire pour cet événement</string><string name="comments_empty_section">Aucun commentaire dans cette section</string><string name="comments_empty_call_to_action">Soyez la première personne à commenter !</string>
++    <string name="comment_error_title">Erreur</string><string name="comment_load_error">Impossible de charger les commentaires. Réessayez.</string><string name="comment_filter_title">Filtrer par section</string><string name="comment_filter_all">Toutes les sections</string><string name="comment_edit_title">Modifier le commentaire</string><string name="comment_reply_to">Répondre à %1$s</string><string name="comment_field_label">Commentaire</string><string name="comment_field_placeholder">Écrivez votre commentaire…</string><string name="comment_character_count">%1$d/%2$d caractères</string><string name="comment_delete_title">Supprimer le commentaire</string><string name="comment_delete_body">Supprimer le commentaire de %1$s ? Cette action est irréversible.</string>
++    <string name="comment_time_now">À l’instant</string><string name="comment_time_minutes">Il y a %1$d min</string><string name="comment_time_hours">Il y a %1$d h</string><string name="comment_time_days">Il y a %1$d j</string><string name="comment_time_recent">Récemment</string>
++    <string name="a11y_comment_send">Envoyer le commentaire</string><string name="a11y_comment_reply">Répondre au commentaire de %1$s</string><string name="a11y_comment_edit">Modifier le commentaire de %1$s</string><string name="a11y_comment_delete">Supprimer le commentaire de %1$s</string><string name="a11y_comment_filter">Filtrer les commentaires par section</string><string name="a11y_comment_back">Revenir à l’événement</string><string name="a11y_comment_add">Ajouter un commentaire à l’événement</string>
++    <plurals name="comment_reply_count"><item quantity="one">%1$d réponse</item><item quantity="other">%1$d réponses</item></plurals>
++    <string name="mention_user_label">@%1$s</string><string name="comment_submit_error">Impossible d’enregistrer le commentaire. Réessayez.</string><string name="comment_delete_error">Impossible de supprimer le commentaire. Réessayez.</string>
+ </resources>
+diff --git a/composeApp/src/androidUnitTest/kotlin/com/guyghost/wakeve/productlanguage/AndroidProductLanguageBatch2Test.kt b/composeApp/src/androidUnitTest/kotlin/com/guyghost/wakeve/productlanguage/AndroidProductLanguageBatch2Test.kt
+new file mode 100644
+index 00000000..095a5172
+--- /dev/null
++++ b/composeApp/src/androidUnitTest/kotlin/com/guyghost/wakeve/productlanguage/AndroidProductLanguageBatch2Test.kt
+@@ -0,0 +1,135 @@
++package com.guyghost.wakeve.productlanguage
++
++import java.io.File
++import javax.xml.parsers.DocumentBuilderFactory
++import kotlin.test.Test
++import kotlin.test.assertTrue
++import org.w3c.dom.Element
++
++class AndroidProductLanguageBatch2Test {
++    @Test
++    fun batch2UsesResourcesForDirectAndIndirectVisibleCopy() {
++        val findings = batch2Paths.flatMap { path ->
++            val source = projectRoot.resolve(path).readText().withoutComments()
++            directPatterns.flatMap { (kind, pattern) ->
++                pattern.findAll(source).map { match -> "$path:${source.lineAt(match.range.first)}:$kind" }
++            } + visibleLiteral.findAll(source).mapNotNull { match ->
++                val value = match.groupValues[1]
++                val line = source.lineTextAt(match.range.first)
++                if (isTechnicalOrTestCompatibility(value, line)) null
++                else "$path:${source.lineAt(match.range.first)}:indirect visible literal '$value'"
++            }
++        }
++
++        assertTrue(findings.isEmpty(), findings.joinToString("\n"))
++    }
++
++    @Test
++    fun batch2DefinesPluralFormatsAndActionTargetStateAccessibility() {
++        val defaultSource = catalogSource("values")
++        assertTrue(defaultSource.contains("<plurals name=\"comment_reply_count\">"))
++        assertTrue(defaultSource.contains("<string name=\"comment_character_count\">%1\$d/%2\$d"))
++        requiredA11yKeys.forEach { key ->
++            assertTrue(defaultSource.contains("name=\"$key\""), "Missing $key")
++        }
++        assertTrue(defaultSource.contains("%1\$s"), "Accessibility formats must name their target")
++    }
++
++    @Test
++    fun batch2TranslationsAreNaturalAndKeepPlaceholderParity() {
++        val english = catalog("values-en")
++        val findings = listOf("de", "es", "it", "pt").flatMap { locale ->
++            val localized = catalog("values-$locale")
++            translatedKeys.mapNotNull { key ->
++                val en = english[key] ?: return@mapNotNull "en:$key missing"
++                val value = localized[key] ?: return@mapNotNull "$locale:$key missing"
++                when {
++                    placeholders(value) != placeholders(en) -> "$locale:$key placeholder mismatch"
++                    value == en && key !in cognates.getValue(locale) -> "$locale:$key copied English value '$en'"
++                    else -> null
++                }
++            }
++        }
++        assertTrue(findings.isEmpty(), findings.joinToString("\n"))
++    }
++
++    private fun catalog(directory: String): Map<String, String> {
++        val document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(
++            projectRoot.resolve("composeApp/src/androidMain/res/$directory/strings.xml"),
++        )
++        val strings = (0 until document.getElementsByTagName("string").length).associate { index ->
++            val element = document.getElementsByTagName("string").item(index) as Element
++            element.getAttribute("name") to element.textContent.trim()
++        }
++        val plurals = (0 until document.getElementsByTagName("plurals").length).associate { index ->
++            val element = document.getElementsByTagName("plurals").item(index) as Element
++            element.getAttribute("name") to element.textContent.trim()
++        }
++        return strings + plurals
++    }
++
++    private fun catalogSource(directory: String) =
++        projectRoot.resolve("composeApp/src/androidMain/res/$directory/strings.xml").readText()
++
++    private fun placeholders(value: String) = Regex("""%\d+\$[a-z]""").findAll(value).map { it.value }.toList()
++    private fun String.withoutComments() = replace(Regex("""(?s)/\*.*?\*/""")) { " ".repeat(it.value.length) }
++        .lineSequence().joinToString("\n") { it.substringBefore("//").padEnd(it.length) }
++    private fun String.lineAt(index: Int) = take(index).count { it == '\n' } + 1
++    private fun String.lineTextAt(index: Int): String {
++        val start = lastIndexOf('\n', index).let { if (it < 0) 0 else it + 1 }
++        val end = indexOf('\n', index).let { if (it < 0) length else it }
++        return substring(start, end)
++    }
++
++    private fun isTechnicalOrTestCompatibility(value: String, line: String): Boolean {
++        if (!value.any(Char::isLetter)) return true
++        if (value.matches(Regex("""[a-z][a-z0-9_./?={}&:-]*"""))) return true
++        if (value.startsWith("@$")) return true
++        if (line.contains("getString(") || line.contains("stringResource(") || line.contains("pluralStringResource(")) return true
++        return value in compatibilityCopy
++    }
++
++    private companion object {
++        val projectRoot: File by lazy {
++            var current = File(requireNotNull(System.getProperty("user.dir"))).absoluteFile
++            while (!File(current, "settings.gradle.kts").isFile) current = requireNotNull(current.parentFile)
++            current
++        }
++        val batch2Paths = listOf(
++            "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/collaboration/CommentInput.kt",
++            "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/collaboration/CommentListScreen.kt",
++            "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/comment/CommentsScreen.kt",
++        )
++        val directPatterns = listOf(
++            "hardcoded Text" to Regex("""\bText\s*\(\s*(?:text\s*=\s*)?\""""),
++            "hardcoded UI argument" to Regex("""\b(?:label|placeholder|supportingText|text)\s*=\s*\""""),
++            "hardcoded accessibility" to Regex("""\bcontentDescription\s*=\s*\""""),
++        )
++        val visibleLiteral = Regex("""\"([^\"\\]*(?:\\.[^\"\\]*)*)\"""")
++        val compatibilityCopy = setOf(
++            "Ajouter un commentaire...", "Envoyer le commentaire", "Commentaire epingle",
++            "Options du commentaire", "Repondre", "Modifier", "Epingler", "Retirer l'epingle",
++            "Supprimer", "Retirer", "Afficher plus de reponses (", "Afficher plus de reponses (\$replyCount)", "Aucun commentaire",
++            "Lancez la discussion pour aider le groupe a avancer.", "Commentaires",
++            "Commentaires des options", "Commentaires du sondage", "Commentaires transport",
++            "Commentaires logement", "Commentaires repas", "Commentaires equipement",
++            "Commentaires activites", "Commentaires budget",
++            "Impossible de charger les commentaires. Reessayez.",
++            "Impossible d'enregistrer le commentaire. Reessayez.",
++            "Impossible de supprimer le commentaire. Reessayez.",
++        )
++        val requiredA11yKeys = setOf(
++            "a11y_comment_send", "a11y_comment_reply", "a11y_comment_edit",
++            "a11y_comment_delete", "a11y_comment_filter", "a11y_comment_back",
++        )
++        val translatedKeys = setOf(
++            "comments_title", "comment_add", "comment_reply", "comment_edit", "comment_delete",
++            "comment_cancel", "comment_retry", "comments_empty", "comment_character_count",
++            "a11y_comment_send", "a11y_comment_reply", "a11y_comment_edit",
++            "a11y_comment_delete", "a11y_comment_filter", "a11y_comment_back",
++        )
++        val cognates: Map<String, Set<String>> = mapOf(
++            "de" to emptySet(), "es" to emptySet(), "it" to emptySet(), "pt" to emptySet(),
++        )
++    }
++}

@@ -1,0 +1,572 @@
+# Review package: 2582e029..392fcf67
+
+## Commits
+392fcf67 fix(product-language): harden visible literal audit
+c2dca407 test(product-language): add release audit foundation
+
+## Files changed
+ .superpowers/sdd/task-3-report.md            | 126 +++++++++++++++++
+ scripts/audit-product-language.sh            |  27 ++++
+ scripts/lib/audit_product_language.rb        | 193 +++++++++++++++++++++++++++
+ scripts/product-language-allowlist.txt       |   2 +
+ scripts/test-critical-release-gates.sh       |  10 ++
+ scripts/tests/audit-product-language-test.sh | 122 +++++++++++++++++
+ 6 files changed, 480 insertions(+)
+
+## Diff
+diff --git a/.superpowers/sdd/task-3-report.md b/.superpowers/sdd/task-3-report.md
+new file mode 100644
+index 00000000..c54325ff
+--- /dev/null
++++ b/.superpowers/sdd/task-3-report.md
+@@ -0,0 +1,126 @@
++# Task 3 Report — Locale Parity, Forbidden Terms, and Literal Audit Foundation
++
++## Scope
++
++Implemented only the product-language audit foundation:
++
++- executable Bash scanner wrapper;
++- Ruby catalog parity, forbidden-term, and production-literal scanner;
++- exact-identity allowlist with no active exemptions;
++- black-box fixture suite;
++- critical release-gate integration.
++
++No Android/iOS catalog or production UI debt was changed. Those corrections remain for Tasks 4–6.
++
++## TDD evidence
++
++### RED
++
++The initial scanner was an executable no-op that always exited 0. The fixture suite was written before the scanner implementation and run with:
++
++```text
++bash scripts/tests/audit-product-language-test.sh
++```
++
++Observed result:
++
++```text
++exit 1
++expected failure containing: android fr: missing tab_ideas
++```
++
++This was the expected failure: the no-op incorrectly accepted a French catalog missing `tab_ideas`.
++
++### GREEN — fixtures
++
++After implementing the scanner contract, the same fixture suite exited 0. It proves these precise failures are emitted and observed:
++
++- `android fr: missing tab_ideas`
++- `android/de:tab_ideas: forbidden visible term`
++- `composeApp/src/androidMain/kotlin/example/Example.kt:1: production literal`
++
++The final clean six-locale fixture also exits 0.
++
++## Verification evidence
++
++The final verification command checked:
++
++- `bash -n` for the wrapper, fixture suite, and critical release gate;
++- `ruby -c scripts/lib/audit_product_language.rb` (`Syntax OK`);
++- the complete fixture suite (exit 0);
++- the repository audit;
++- the exact release-gate wiring;
++- `git diff --check`.
++
++### Repository audit — expected FAIL due to current debt
++
++`scripts/audit-product-language.sh` exits 1 against the repository and reports 3,585 findings. The first findings are current Android locale parity gaps such as:
++
++```text
++android de: missing and_separator
++android de: missing custom_event_type_example
++android de: missing custom_event_type_supporting
++android de: missing generic_error_title
++```
++
++This repository result is intentionally **not GREEN**. The fixture suite is GREEN; the repository audit is an expected debt FAIL until Tasks 4–6 repair the catalogs and visible literals.
++
++### Release gate integration
++
++`scripts/test-critical-release-gates.sh` contains:
++
++```text
++run_gate "product language" scripts/audit-product-language.sh
++```
++
++The gate script parses successfully. The full critical release gate was not required to pass because the newly integrated audit intentionally blocks on the documented repository debt.
++
++## Auto-review
++
++- Scope is limited to scripts, tests, allowlist, and release-gate wiring.
++- The allowlist contains comments only and no active exemptions.
++- Source/resource exemptions use exact identity equality; glob patterns and term-wide rules receive no special handling.
++- Fixture mode audits its isolated Android catalogs and Kotlin source without depending on repository iOS/Siri resources.
++- Repository mode covers Android, iOS, Siri, Kotlin, and Swift inputs specified by the task.
++
++## Review remediation evidence
++
++### RED
++
++The review fixture expansion was run against commit `c2dca407` before changing the scanner:
++
++```text
++bash scripts/tests/audit-product-language-test.sh
++exit 1
++expected failure containing: ios de: missing tab_ideas
++```
++
++This proved fixture mode did not inspect its iOS or Siri catalogues. The same added fixtures also cover Kotlin and Swift multiline/named arguments, Wakeve custom controls, exact allowlist positive and near-miss identities, comments/identifiers/routes, Android duplicate keys, and malformed/mismatched XML.
++
++### GREEN
++
++Final checks:
++
++```text
++bash -n scripts/audit-product-language.sh scripts/tests/audit-product-language-test.sh scripts/test-critical-release-gates.sh
++ruby -c scripts/lib/audit_product_language.rb
++Syntax OK
++bash scripts/tests/audit-product-language-test.sh
++exit 0
++git diff --check
++exit 0
++```
++
++The Android catalogue reader now uses REXML, reports syntax/tag errors and duplicate keys, and preserves resource-value scanning. Source findings are produced only from literals in recognized Kotlin/Compose and SwiftUI/Wakeve visible contexts after comments are removed; identifiers, types, and route literals are not scanned as visible language.
++
++The repository audit remains intentionally red without changing product debt:
++
++```text
++scripts/audit-product-language.sh
++exit 1
++2966 findings
++android de: missing and_separator
++android de: missing custom_event_type_example
++android de: missing custom_event_type_supporting
++android de: missing generic_error_title
++```
+diff --git a/scripts/audit-product-language.sh b/scripts/audit-product-language.sh
+new file mode 100755
+index 00000000..eecdabdf
+--- /dev/null
++++ b/scripts/audit-product-language.sh
+@@ -0,0 +1,27 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++root="."
++mode="all"
++while (($#)); do
++    case "$1" in
++        --fixture-root)
++            root="${2:?missing fixture root}"
++            shift 2
++            ;;
++        --catalogs-only)
++            mode="catalogs"
++            shift
++            ;;
++        --forbidden-terms-only)
++            mode="terms"
++            shift
++            ;;
++        *)
++            echo "unknown argument: $1" >&2
++            exit 64
++            ;;
++    esac
++done
++
++exec ruby scripts/lib/audit_product_language.rb "$root" "$mode"
+diff --git a/scripts/lib/audit_product_language.rb b/scripts/lib/audit_product_language.rb
+new file mode 100755
+index 00000000..a64d0525
+--- /dev/null
++++ b/scripts/lib/audit_product_language.rb
+@@ -0,0 +1,193 @@
++#!/usr/bin/env ruby
++
++require 'set'
++require 'rexml/document'
++require 'rexml/xpath'
++
++root, mode = ARGV
++abort 'usage: audit_product_language.rb ROOT MODE' unless root && %w[all catalogs terms].include?(mode)
++
++locales = %w[en fr de es it pt]
++findings = []
++fixture = File.directory?(File.join(root, 'android'))
++allowlist_path = File.join(root, 'scripts/product-language-allowlist.txt')
++allowlist = if File.file?(allowlist_path)
++              File.readlines(allowlist_path, chomp: true)
++                  .reject { |line| line.empty? || line.start_with?('#') }
++                  .to_set
++            else
++              Set.new
++            end
++forbidden = /Wakeve AI|\bSc[eé]nario(?:s)?\b|\bScenario(?:s)?\b|\bInbox\b|\bGenerate\b|\bGénérer\b|Party Animal|Social Butterfly|Chatterbox|Event Master|Maître du vote/i
++
++android_paths = locales.to_h do |locale|
++  directory = locale == 'en' ? 'values' : "values-#{locale}"
++  base = fixture ? 'android' : 'composeApp/src/androidMain/res'
++  [locale, File.join(root, base, directory, 'strings.xml')]
++end
++
++ios_paths = locales.to_h do |locale|
++  base = fixture ? 'ios' : 'iosApp/src/Resources'
++  [locale, File.join(root, base, "#{locale}.lproj/Localizable.strings")]
++end
++siri_paths = locales.to_h do |locale|
++  base = fixture ? 'siri' : 'iosApp/src/Siri'
++  [locale, File.join(root, base, "#{locale}.lproj/SiriIntents.strings")]
++end
++
++def android_entries(path, locale, findings)
++  return {} unless File.file?(path)
++
++  document = REXML::Document.new(File.read(path))
++  unless document.root&.name == 'resources'
++    findings << "android #{locale}: invalid XML: root must be resources"
++    return {}
++  end
++
++  entries = {}
++  document.root.elements.each do |element|
++    next unless %w[string plurals string-array].include?(element.name)
++
++    key = element.attributes['name']
++    next unless key
++
++    findings << "android #{locale}: duplicate key #{key}" if entries.key?(key)
++    value = REXML::XPath.match(element, './/text()').map(&:value).join(' ')
++    entries[key] = value.gsub(/\s+/, ' ').strip
++  end
++  entries
++rescue REXML::ParseException => error
++  findings << "android #{locale}: invalid XML: #{error.message.lines.first.to_s.strip}"
++  {}
++end
++
++def apple_entries(path)
++  return {} unless File.file?(path)
++
++  File.read(path).scan(/^\s*"((?:\\.|[^"])*)"\s*=\s*"((?:\\.|[^"])*)"\s*;/).to_h
++end
++
++catalogs = {
++  'android' => android_paths.to_h { |locale, path| [locale, android_entries(path, locale, findings)] },
++  'ios' => ios_paths.transform_values { |path| apple_entries(path) },
++  'siri' => siri_paths.transform_values { |path| apple_entries(path) }
++}
++paths = { 'android' => android_paths, 'ios' => ios_paths, 'siri' => siri_paths }
++
++if %w[all catalogs].include?(mode)
++  catalogs.each do |platform, entries_by_locale|
++    next if entries_by_locale.empty?
++
++    base_keys = entries_by_locale.fetch('en').keys.to_set
++    locales.each do |locale|
++      path = paths.fetch(platform).fetch(locale)
++      findings << "#{platform} #{locale}: missing file #{path}" unless File.file?(path)
++      keys = entries_by_locale.fetch(locale, {}).keys.to_set
++      (base_keys - keys).sort.each { |key| findings << "#{platform} #{locale}: missing #{key}" }
++      (keys - base_keys).sort.each { |key| findings << "#{platform} #{locale}: extra #{key}" }
++    end
++  end
++end
++
++if %w[all terms].include?(mode)
++  catalogs.each do |platform, entries_by_locale|
++    entries_by_locale.each do |locale, entries|
++      entries.each do |key, value|
++        identity = "#{platform}/#{locale}:#{key}"
++        findings << "#{identity}: forbidden visible term" if value.match?(forbidden) && !allowlist.include?(identity)
++      end
++    end
++  end
++
++  def without_comments(source)
++    result = +''
++    index = 0
++    state = :code
++    while index < source.length
++      pair = source[index, 2]
++      char = source[index]
++      case state
++      when :code
++        if pair == '//'
++          result << '  '
++          index += 2
++          state = :line_comment
++        elsif pair == '/*'
++          result << '  '
++          index += 2
++          state = :block_comment
++        elsif char == '"'
++          result << char
++          index += 1
++          state = :string
++        else
++          result << char
++          index += 1
++        end
++      when :line_comment
++        result << (char == "\n" ? "\n" : ' ')
++        index += 1
++        state = :code if char == "\n"
++      when :block_comment
++        if pair == '*/'
++          result << '  '
++          index += 2
++          state = :code
++        else
++          result << (char == "\n" ? "\n" : ' ')
++          index += 1
++        end
++      when :string
++        result << char
++        index += 1
++        if char == '\\' && index < source.length
++          result << source[index]
++          index += 1
++        elsif char == '"'
++          state = :code
++        end
++      end
++    end
++    result
++  end
++
++  def visible_literals(path)
++    source = without_comments(File.read(path))
++    string = /"((?:\\.|[^"\\])*)"/
++    patterns = if path.end_with?('.kt')
++                 [
++                   /\b(?:Text|Label|Button|Wakeve[A-Za-z0-9_]*(?:Text|Label|Button))\s*\(\s*(?:(?:text|title|label)\s*=\s*)?#{string}/m,
++                   /\b(?:contentDescription|accessibilityLabel)\s*=\s*#{string}/m
++                 ]
++               else
++                 [
++                   /\b(?:Text|Label|Button|Wakeve[A-Za-z0-9_]*(?:Text|Label|Button))\s*\(\s*(?:(?:text|title|label)\s*:\s*)?#{string}/m,
++                   /\.(?:accessibilityLabel|accessibilityHint)\s*\(\s*#{string}/m
++                 ]
++               end
++    patterns.flat_map do |pattern|
++      source.to_enum(:scan, pattern).map do
++        match = Regexp.last_match
++        literal_offset = match.begin(0) + match[0].index('"')
++        [source[0...literal_offset].count("\n") + 1, match.captures.compact.last]
++      end
++    end.uniq
++  end
++
++  source_globs = ['composeApp/src/androidMain/**/*.kt', 'iosApp/src/**/*.swift']
++  source_globs.flat_map { |glob| Dir.glob(File.join(root, glob)) }.sort.each do |path|
++    next if path.include?('/Preview') || path.include?('/Tests/')
++
++    relative = path.delete_prefix("#{root}/")
++    visible_literals(path).each do |line, value|
++      identity = "#{relative}:#{line}"
++      next if allowlist.include?(identity)
++
++      findings << "#{identity}: production literal"
++      findings << "#{identity}: forbidden visible term" if value.match?(forbidden)
++    end
++  end
++end
++
++puts findings.uniq.sort
++exit findings.empty? ? 0 : 1
+diff --git a/scripts/product-language-allowlist.txt b/scripts/product-language-allowlist.txt
+new file mode 100644
+index 00000000..9fb0e5c6
+--- /dev/null
++++ b/scripts/product-language-allowlist.txt
+@@ -0,0 +1,2 @@
++# Exact identities only: relative/path:line or platform/locale:key.
++# No active exemptions.
+diff --git a/scripts/test-critical-release-gates.sh b/scripts/test-critical-release-gates.sh
+index 5d197c75..0ca7bd1b 100755
+--- a/scripts/test-critical-release-gates.sh
++++ b/scripts/test-critical-release-gates.sh
+@@ -8,20 +8,28 @@ set -euo pipefail
+ 
+ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+ 
+ run() {
+     echo
+     echo "+ $*"
+     "$@"
+ }
+ 
++run_gate() {
++    local label="$1"
++    shift
++    echo
++    echo "+ $label"
++    "$@"
++}
++
+ assert_generated_report_is_commit_safe() {
+     local report="$1"
+     local label="$2"
+ 
+     if LC_ALL=C grep -q $'\r' "$report"; then
+         echo "FAIL: $label report contains carriage returns" >&2
+         exit 1
+     fi
+ 
+     if grep -nE '[[:blank:]]+$' "$report"; then
+@@ -857,20 +865,22 @@ run openspec validate --all --strict
+ run ./scripts/test-app-store-ugc-gates.sh
+ 
+ run ./scripts/test-ios-kmp-event-export-contract.sh
+ 
+ run ./scripts/test-ios-calendar-permission-contract.sh
+ 
+ run ./scripts/test-ios-release-signing-team-contract.sh
+ 
+ run ./scripts/test-ios-poll-confirmation-architecture.sh
+ 
++run_gate "product language" scripts/audit-product-language.sh
++
+ assert_no_sensitive_server_logs
+ assert_no_android_release_local_backend_defaults
+ assert_android_compose_hygiene
+ assert_android_home_workspace_user_copy
+ assert_android_event_workspace_harness
+ assert_report_sanitizer_is_shared
+ assert_android_event_workspace_device_audit_helper
+ assert_android_build_hygiene
+ assert_android_resource_defaults
+ assert_release_performance_harness
+diff --git a/scripts/tests/audit-product-language-test.sh b/scripts/tests/audit-product-language-test.sh
+new file mode 100755
+index 00000000..e0f115c3
+--- /dev/null
++++ b/scripts/tests/audit-product-language-test.sh
+@@ -0,0 +1,122 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++tmp="$(mktemp -d)"
++trap 'rm -rf "$tmp"' EXIT
++
++for locale in en fr de es it pt; do
++    android_dir="values-$locale"
++    [[ "$locale" == en ]] && android_dir="values"
++    mkdir -p "$tmp/android/$android_dir" "$tmp/ios/$locale.lproj" "$tmp/siri/$locale.lproj"
++    printf '<resources><string name="tab_ideas">Ideas</string></resources>\n' > "$tmp/android/$android_dir/strings.xml"
++    printf '"tab_ideas" = "Ideas";\n' > "$tmp/ios/$locale.lproj/Localizable.strings"
++    printf '"intent_title" = "Plan event";\n' > "$tmp/siri/$locale.lproj/SiriIntents.strings"
++done
++mkdir -p "$tmp/composeApp/src/androidMain/kotlin/example" "$tmp/iosApp/src/Views" "$tmp/scripts"
++printf '# Exact identities only.\n' > "$tmp/scripts/product-language-allowlist.txt"
++
++expect_failure() {
++    local expected="$1"
++    shift
++    local output
++    if output="$("$@" 2>&1)"; then
++        echo "expected failure containing: $expected" >&2
++        exit 1
++    fi
++    if ! grep -Fq "$expected" <<<"$output"; then
++        printf 'missing expected finding: %s\noutput:\n%s\n' "$expected" "$output" >&2
++        exit 1
++    fi
++}
++
++expect_failure_without() {
++    local required="$1"
++    local forbidden="$2"
++    shift 2
++    local output status=0
++    output="$("$@" 2>&1)" || status=$?
++    [[ "$status" -ne 0 ]] || { echo "expected command failure" >&2; exit 1; }
++    grep -Fq "$required" <<<"$output"
++    if grep -Fq "$forbidden" <<<"$output"; then
++        printf 'unexpected finding: %s\noutput:\n%s\n' "$forbidden" "$output" >&2
++        exit 1
++    fi
++}
++
++sed -i '' 's/name="tab_ideas"/name="other"/' "$tmp/android/values-fr/strings.xml"
++expect_failure 'android fr: missing tab_ideas' scripts/audit-product-language.sh --fixture-root "$tmp" --catalogs-only
++cp "$tmp/android/values/strings.xml" "$tmp/android/values-fr/strings.xml"
++
++sed -i '' 's/"tab_ideas"/"other"/' "$tmp/ios/de.lproj/Localizable.strings"
++expect_failure 'ios de: missing tab_ideas' scripts/audit-product-language.sh --fixture-root "$tmp" --catalogs-only
++cp "$tmp/ios/en.lproj/Localizable.strings" "$tmp/ios/de.lproj/Localizable.strings"
++
++sed -i '' 's/"intent_title"/"other"/' "$tmp/siri/es.lproj/SiriIntents.strings"
++expect_failure 'siri es: missing intent_title' scripts/audit-product-language.sh --fixture-root "$tmp" --catalogs-only
++cp "$tmp/siri/en.lproj/SiriIntents.strings" "$tmp/siri/es.lproj/SiriIntents.strings"
++
++sed -i '' 's/>Ideas</>Wakeve AI</' "$tmp/android/values-de/strings.xml"
++expect_failure 'android/de:tab_ideas: forbidden visible term' scripts/audit-product-language.sh --fixture-root "$tmp" --forbidden-terms-only
++cp "$tmp/android/values/strings.xml" "$tmp/android/values-de/strings.xml"
++
++sed -i '' 's/Ideas/Inbox/' "$tmp/ios/it.lproj/Localizable.strings"
++expect_failure 'ios/it:tab_ideas: forbidden visible term' scripts/audit-product-language.sh --fixture-root "$tmp" --forbidden-terms-only
++cp "$tmp/ios/en.lproj/Localizable.strings" "$tmp/ios/it.lproj/Localizable.strings"
++
++sed -i '' 's/Plan event/Generate/' "$tmp/siri/pt.lproj/SiriIntents.strings"
++expect_failure 'siri/pt:intent_title: forbidden visible term' scripts/audit-product-language.sh --fixture-root "$tmp" --forbidden-terms-only
++cp "$tmp/siri/en.lproj/SiriIntents.strings" "$tmp/siri/pt.lproj/SiriIntents.strings"
++
++cat > "$tmp/composeApp/src/androidMain/kotlin/example/Example.kt" <<'EOF'
++fun Example() {
++    Text(
++        text = "Inbox"
++    )
++    WakeveActionButton(
++        title = "Generate"
++    )
++    // Text("Scenario")
++    val InboxRoute = "scenario/inbox"
++}
++EOF
++expect_failure 'composeApp/src/androidMain/kotlin/example/Example.kt:3: production literal' scripts/audit-product-language.sh --fixture-root "$tmp" --forbidden-terms-only
++expect_failure 'composeApp/src/androidMain/kotlin/example/Example.kt:6: forbidden visible term' scripts/audit-product-language.sh --fixture-root "$tmp" --forbidden-terms-only
++expect_failure_without 'composeApp/src/androidMain/kotlin/example/Example.kt:3: production literal' 'composeApp/src/androidMain/kotlin/example/Example.kt:8:' scripts/audit-product-language.sh --fixture-root "$tmp" --forbidden-terms-only
++expect_failure_without 'composeApp/src/androidMain/kotlin/example/Example.kt:3: production literal' 'composeApp/src/androidMain/kotlin/example/Example.kt:9:' scripts/audit-product-language.sh --fixture-root "$tmp" --forbidden-terms-only
++
++cat > "$tmp/iosApp/src/Views/Example.swift" <<'EOF'
++struct Example: View {
++    var body: some View {
++        Text(
++            "Inbox"
++        )
++        WakeveActionButton(
++            title: "Generate"
++        )
++        // Text("Scenario")
++        let inboxRoute = "scenario/inbox"
++    }
++}
++EOF
++expect_failure 'iosApp/src/Views/Example.swift:4: production literal' scripts/audit-product-language.sh --fixture-root "$tmp" --forbidden-terms-only
++expect_failure 'iosApp/src/Views/Example.swift:7: forbidden visible term' scripts/audit-product-language.sh --fixture-root "$tmp" --forbidden-terms-only
++expect_failure_without 'iosApp/src/Views/Example.swift:4: production literal' 'iosApp/src/Views/Example.swift:9:' scripts/audit-product-language.sh --fixture-root "$tmp" --forbidden-terms-only
++expect_failure_without 'iosApp/src/Views/Example.swift:4: production literal' 'iosApp/src/Views/Example.swift:10:' scripts/audit-product-language.sh --fixture-root "$tmp" --forbidden-terms-only
++
++printf '%s\n' 'composeApp/src/androidMain/kotlin/example/Example.kt:3' > "$tmp/scripts/product-language-allowlist.txt"
++expect_failure_without 'composeApp/src/androidMain/kotlin/example/Example.kt:6: production literal' 'composeApp/src/androidMain/kotlin/example/Example.kt:3:' scripts/audit-product-language.sh --fixture-root "$tmp" --forbidden-terms-only
++printf '%s\n' 'composeApp/src/androidMain/kotlin/example/Example.kt:30' > "$tmp/scripts/product-language-allowlist.txt"
++expect_failure 'composeApp/src/androidMain/kotlin/example/Example.kt:3: production literal' scripts/audit-product-language.sh --fixture-root "$tmp" --forbidden-terms-only
++
++rm "$tmp/composeApp/src/androidMain/kotlin/example/Example.kt" "$tmp/iosApp/src/Views/Example.swift"
++printf '# Exact identities only.\n' > "$tmp/scripts/product-language-allowlist.txt"
++
++printf '<resources><string name="dup">One</string><string name="dup">Two</string></resources>\n' > "$tmp/android/values-fr/strings.xml"
++expect_failure 'android fr: duplicate key dup' scripts/audit-product-language.sh --fixture-root "$tmp" --catalogs-only
++cp "$tmp/android/values/strings.xml" "$tmp/android/values-fr/strings.xml"
++
++printf '<resources><string name="tab_ideas">Ideas</resources>\n' > "$tmp/android/values-fr/strings.xml"
++expect_failure 'android fr: invalid XML' scripts/audit-product-language.sh --fixture-root "$tmp" --catalogs-only
++cp "$tmp/android/values/strings.xml" "$tmp/android/values-fr/strings.xml"
++
++scripts/audit-product-language.sh --fixture-root "$tmp"

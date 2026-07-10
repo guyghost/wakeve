@@ -1,0 +1,211 @@
+# Review package: 392fcf67..8c090a9a
+
+## Commits
+8c090a9a feat(android): complete product language catalogs
+
+## Files changed
+ .../src/androidMain/res/values-de/strings.xml      |  5 ++
+ .../src/androidMain/res/values-en/strings.xml      |  9 +++
+ .../src/androidMain/res/values-es/strings.xml      |  2 +
+ .../src/androidMain/res/values-it/strings.xml      |  2 +
+ .../src/androidMain/res/values-pt/strings.xml      |  2 +
+ composeApp/src/androidMain/res/values/strings.xml  |  9 +++
+ .../ProductLanguageCatalogContractTest.kt          | 64 ++++++++++++++++++++++
+ 7 files changed, 93 insertions(+)
+
+## Diff
+diff --git a/composeApp/src/androidMain/res/values-de/strings.xml b/composeApp/src/androidMain/res/values-de/strings.xml
+index ea006fb8..b833c256 100644
+--- a/composeApp/src/androidMain/res/values-de/strings.xml
++++ b/composeApp/src/androidMain/res/values-de/strings.xml
+@@ -655,11 +655,16 @@
+     <string name="duration_label">Dauer</string>
+     <string name="points_value_label">%1$d Punkte</string>
+     <string name="try_again_later">Versuche es später erneut</string>
+     <string name="loading_more">Mehr wird geladen…</string>
+     <string name="notification_event_created">Event erstellt</string>
+     <string name="notification_poll_opened">Umfrage geöffnet</string>
+     <string name="notification_date_confirmed">Datum bestätigt</string>
+     <string name="entity_event">Event</string>
+     <string name="entity_scenario">Option</string>
+     <string name="entity_meeting">Meeting</string>
++    <string name="wakeve_logo_content_description">Wakeve-Logo</string><string name="get_started_tagline">Gemeinsam Veranstaltungen planen</string><string name="get_started_cta">Loslegen</string><string name="get_started_feature_poll">Gemeinsame Umfragen für den besten Termin</string><string name="get_started_feature_plan">Reiseziele und Aktivitäten planen</string><string name="get_started_feature_budget">Budget und gemeinsame Kasse verwalten</string><string name="get_started_feature_offline">Offline verfügbar, automatische Synchronisierung</string>
++    <string name="onboarding_title">Einführung</string><string name="onboarding_create_event_title">Erstellt eure Veranstaltungen</string><string name="onboarding_create_event_description">Plant Veranstaltungen mit Freunden und Kollegen. Legt Termine fest, schlagt Zeitfenster vor und lasst die Gruppe abstimmen.</string><string name="onboarding_create_event_feature_fast">Schnelle Erstellung</string><string name="onboarding_create_event_feature_poll">Verfügbarkeitsumfrage</string><string name="onboarding_create_event_feature_best_slot">Bestes Zeitfenster automatisch ermitteln</string><string name="onboarding_collaborate_title">Koordiniert die Gruppe</string><string name="onboarding_collaborate_description">Behaltet Teilnehmende, Antworten und Zuständigkeiten im Blick, ohne Entscheidungen im Chat zu verlieren.</string><string name="onboarding_collaborate_feature_participants">Teilnehmende verwalten</string><string name="onboarding_collaborate_feature_roles">Klare Zuständigkeiten</string><string name="onboarding_collaborate_feature_progress">Sichtbarer Fortschritt</string><string name="onboarding_organize_title">Bereitet die Details vor</string><string name="onboarding_organize_description">Bündelt Unterkunft, Essen, Aktivitäten, Anreise und Budget, sobald aus der Idee ein Plan wird.</string><string name="onboarding_organize_feature_lodging">Unterkunftsoptionen</string><string name="onboarding_organize_feature_meals">Essensplanung</string><string name="onboarding_organize_feature_budget">Budgetübersicht</string><string name="onboarding_enjoy_title">Entspannt abschließen</string><string name="onboarding_enjoy_description">Behaltet Termin, Erinnerungen und nächste Schritte bis zum Veranstaltungstag im Blick.</string><string name="onboarding_enjoy_feature_overview">Übersicht</string><string name="onboarding_enjoy_feature_reminders">Integrierte Erinnerungen</string><string name="onboarding_enjoy_feature_calendar">Gerätekalender</string>
++    <string name="signing_in">Anmeldung läuft…</string><string name="sign_in_failed">Anmeldung fehlgeschlagen</string><string name="try_again">Erneut versuchen</string><string name="sign_in_terms_prefix">Mit der Anmeldung akzeptierst du unsere</string><string name="privacy_policy">Datenschutzerklärung</string><string name="and_separator"> und unsere </string><string name="terms_of_service">Nutzungsbedingungen</string><string name="generic_error_title">Etwas ist schiefgegangen</string><string name="custom_event_type_example">Z. B. Benefizgala, Produkteinführung</string><string name="custom_event_type_supporting">Beschreibe die Art der Veranstaltung</string><string name="select_event_type">Veranstaltungsart auswählen</string><string name="selected">Ausgewählt</string><string name="unread_notifications_short_label">Zu erledigen</string><string name="unread_notifications_long_label">Ungelesene Einladungen, Abstimmungen und Erinnerungen anzeigen</string>
++    <string name="tab_ideas">Ideen</string><string name="event_state_draft">Entwurf</string><string name="event_state_polling">Umfrage läuft</string><string name="event_state_comparing">Optionen vergleichen</string><string name="event_state_confirmed">Termin bestätigt</string><string name="event_state_organizing">Details vorbereiten</string><string name="event_state_finalized">Bereit</string><string name="notifications_filter_todo">Zu erledigen</string><string name="notifications_filter_information">Informationen</string>
++    <string name="ai_prepare_options">Optionen vorbereiten</string><string name="ai_summarize_responses">Antworten zusammenfassen</string><string name="ai_propose_message">Nachricht vorschlagen</string><string name="ai_complete_list">Liste vervollständigen</string><string name="ai_proposal_to_review">Vorschlag zur Prüfung</string><string name="sync_waiting">Wartet auf Synchronisierung</string><string name="sync_retry">Synchronisierung erneut versuchen</string><string name="sync_change_not_saved">Änderung nicht gespeichert</string><string name="permission_notifications_denied">Benachrichtigungen werden auf diesem Gerät nicht zugestellt</string><string name="permission_open_settings">Einstellungen öffnen</string><string name="permission_notifications_available">Hinweise bleiben unter Benachrichtigungen verfügbar</string><string name="accessibility_open_event_details">Veranstaltungsdetails öffnen</string><string name="accessibility_navigate_back">Zum vorherigen Bildschirm zurückkehren</string><string name="accessibility_more_event_actions">Weitere Veranstaltungsaktionen öffnen</string><string name="accessibility_mark_payment_paid">Zahlung als bezahlt markieren</string><string name="milestone_first_event">Erste Veranstaltung</string><string name="milestone_regular_voting">Regelmäßig abgestimmt</string><string name="milestone_organization_ready">Organisation bereit</string>
+ </resources>
+diff --git a/composeApp/src/androidMain/res/values-en/strings.xml b/composeApp/src/androidMain/res/values-en/strings.xml
+index 5aed8c29..a87e7f98 100644
+--- a/composeApp/src/androidMain/res/values-en/strings.xml
++++ b/composeApp/src/androidMain/res/values-en/strings.xml
+@@ -693,11 +693,20 @@
+     <string name="duration_label">Duration</string>
+     <string name="points_value_label">%1$d points</string>
+     <string name="try_again_later">Try again later</string>
+     <string name="loading_more">Loading more…</string>
+     <string name="notification_event_created">Event created</string>
+     <string name="notification_poll_opened">Poll opened</string>
+     <string name="notification_date_confirmed">Date confirmed</string>
+     <string name="entity_event">Event</string>
+     <string name="entity_scenario">Option</string>
+     <string name="entity_meeting">Meeting</string>
++    <string name="signing_in">Signing in…</string><string name="sign_in_failed">Sign-in failed</string><string name="try_again">Try again</string><string name="sign_in_terms_prefix">By signing in, you agree to our</string><string name="privacy_policy">Privacy Policy</string><string name="and_separator"> and our </string><string name="terms_of_service">Terms of Service</string><string name="generic_error_title">Something went wrong</string><string name="custom_event_type_example">E.g. charity gala, product launch</string><string name="custom_event_type_supporting">Describe your event type</string><string name="select_event_type">Select event type</string><string name="selected">Selected</string>
++    <string name="tab_ideas">Ideas</string>
++    <string name="event_state_draft">Draft</string><string name="event_state_polling">Poll in progress</string><string name="event_state_comparing">Options to compare</string><string name="event_state_confirmed">Date confirmed</string><string name="event_state_organizing">Details to prepare</string><string name="event_state_finalized">Ready</string>
++    <string name="notifications_filter_todo">To do</string><string name="notifications_filter_information">Information</string>
++    <string name="ai_prepare_options">Prepare options</string><string name="ai_summarize_responses">Summarize responses</string><string name="ai_propose_message">Propose a message</string><string name="ai_complete_list">Complete the list</string><string name="ai_proposal_to_review">Proposal to review</string>
++    <string name="sync_waiting">Waiting to sync</string><string name="sync_retry">Retry sync</string><string name="sync_change_not_saved">Change not saved</string>
++    <string name="permission_notifications_denied">Alerts will not be delivered on this device</string><string name="permission_open_settings">Open settings</string><string name="permission_notifications_available">Alerts remain available in Notifications</string>
++    <string name="accessibility_open_event_details">Open event details</string><string name="accessibility_navigate_back">Go back to the previous screen</string><string name="accessibility_more_event_actions">Open more event actions</string><string name="accessibility_mark_payment_paid">Mark payment as paid</string>
++    <string name="milestone_first_event">First event</string><string name="milestone_regular_voting">Regular voting</string><string name="milestone_organization_ready">Organization ready</string>
+ </resources>
+diff --git a/composeApp/src/androidMain/res/values-es/strings.xml b/composeApp/src/androidMain/res/values-es/strings.xml
+index 42f0f23b..08a1263c 100644
+--- a/composeApp/src/androidMain/res/values-es/strings.xml
++++ b/composeApp/src/androidMain/res/values-es/strings.xml
+@@ -657,11 +657,13 @@
+     <string name="profile_category_participation">Participación</string>
+     <string name="profile_category_engagement">Compromiso</string>
+     <string name="profile_category_special">Especiales</string>
+     <string name="profile_leaderboard_all_time">Todo el tiempo</string>
+ 
+     <!-- Leaderboard Screen (new) -->
+     <string name="leaderboard_title">Clasificación</string>
+     <string name="leaderboard_you">Tú</string>
+     <string name="leaderboard_badges">%1$d insignias</string>
+     <string name="leaderboard_global">Global</string>
++    <string name="wakeve_logo_content_description">Logotipo de Wakeve</string><string name="get_started_tagline">Planificación colaborativa de eventos</string><string name="get_started_cta">Empezar</string><string name="get_started_feature_poll">Encuestas colaborativas para elegir la mejor fecha</string><string name="get_started_feature_plan">Planificación de destinos y actividades</string><string name="get_started_feature_budget">Gestión del presupuesto y fondo común</string><string name="get_started_feature_offline">Disponible sin conexión, sincronización automática</string><string name="onboarding_title">Descubre Wakeve</string><string name="onboarding_create_event_title">Crea tus eventos</string><string name="onboarding_create_event_description">Organiza eventos con amigos y compañeros. Define fechas, propón horarios y deja que el grupo vote.</string><string name="onboarding_create_event_feature_fast">Creación rápida de eventos</string><string name="onboarding_create_event_feature_poll">Encuesta de disponibilidad</string><string name="onboarding_create_event_feature_best_slot">Cálculo automático del mejor horario</string><string name="onboarding_collaborate_title">Coordina al grupo</string><string name="onboarding_collaborate_description">Sigue a los participantes, las respuestas y las responsabilidades sin perder decisiones en el chat.</string><string name="onboarding_collaborate_feature_participants">Gestión de participantes</string><string name="onboarding_collaborate_feature_roles">Responsabilidades claras</string><string name="onboarding_collaborate_feature_progress">Progreso visible</string><string name="onboarding_organize_title">Prepara los detalles</string><string name="onboarding_organize_description">Reúne alojamiento, comidas, actividades, transporte y presupuesto cuando la idea se convierta en plan.</string><string name="onboarding_organize_feature_lodging">Opciones de alojamiento</string><string name="onboarding_organize_feature_meals">Organización de comidas</string><string name="onboarding_organize_feature_budget">Seguimiento del presupuesto</string><string name="onboarding_enjoy_title">Finaliza sin estrés</string><string name="onboarding_enjoy_description">Mantén claras la fecha, los recordatorios y las próximas acciones hasta el día del evento.</string><string name="onboarding_enjoy_feature_overview">Resumen</string><string name="onboarding_enjoy_feature_reminders">Recordatorios integrados</string><string name="onboarding_enjoy_feature_calendar">Calendario del dispositivo</string><string name="signing_in">Iniciando sesión…</string><string name="sign_in_failed">No se pudo iniciar sesión</string><string name="try_again">Reintentar</string><string name="sign_in_terms_prefix">Al iniciar sesión, aceptas nuestra</string><string name="privacy_policy">Política de privacidad</string><string name="and_separator"> y nuestros </string><string name="terms_of_service">Términos de servicio</string><string name="generic_error_title">Algo ha salido mal</string><string name="custom_event_type_example">Ej. gala benéfica, lanzamiento de producto</string><string name="custom_event_type_supporting">Describe el tipo de evento</string><string name="select_event_type">Seleccionar tipo de evento</string><string name="selected">Seleccionado</string><string name="unread_notifications_short_label">Pendientes</string><string name="unread_notifications_long_label">Ver invitaciones, votos y recordatorios sin leer</string>
++    <string name="tab_ideas">Ideas</string><string name="event_state_draft">Borrador</string><string name="event_state_polling">Encuesta en curso</string><string name="event_state_comparing">Opciones para comparar</string><string name="event_state_confirmed">Fecha confirmada</string><string name="event_state_organizing">Detalles por preparar</string><string name="event_state_finalized">Listo</string><string name="notifications_filter_todo">Pendientes</string><string name="notifications_filter_information">Información</string><string name="ai_prepare_options">Preparar opciones</string><string name="ai_summarize_responses">Resumir respuestas</string><string name="ai_propose_message">Proponer un mensaje</string><string name="ai_complete_list">Completar la lista</string><string name="ai_proposal_to_review">Propuesta para revisar</string><string name="sync_waiting">Pendiente de sincronización</string><string name="sync_retry">Reintentar sincronización</string><string name="sync_change_not_saved">Cambio no guardado</string><string name="permission_notifications_denied">Las alertas no se enviarán a este dispositivo</string><string name="permission_open_settings">Abrir ajustes</string><string name="permission_notifications_available">Las alertas siguen disponibles en Notificaciones</string><string name="accessibility_open_event_details">Abrir detalles del evento</string><string name="accessibility_navigate_back">Volver a la pantalla anterior</string><string name="accessibility_more_event_actions">Abrir más acciones del evento</string><string name="accessibility_mark_payment_paid">Marcar el pago como pagado</string><string name="milestone_first_event">Primer evento</string><string name="milestone_regular_voting">Votación habitual</string><string name="milestone_organization_ready">Organización lista</string>
+ </resources>
+diff --git a/composeApp/src/androidMain/res/values-it/strings.xml b/composeApp/src/androidMain/res/values-it/strings.xml
+index 52b2b2ff..45145d81 100644
+--- a/composeApp/src/androidMain/res/values-it/strings.xml
++++ b/composeApp/src/androidMain/res/values-it/strings.xml
+@@ -655,11 +655,13 @@
+     <string name="duration_label">Durata</string>
+     <string name="points_value_label">%1$d punti</string>
+     <string name="try_again_later">Riprova più tardi</string>
+     <string name="loading_more">Caricamento altro…</string>
+     <string name="notification_event_created">Evento creato</string>
+     <string name="notification_poll_opened">Sondaggio aperto</string>
+     <string name="notification_date_confirmed">Data confermata</string>
+     <string name="entity_event">Evento</string>
+     <string name="entity_scenario">Opzione</string>
+     <string name="entity_meeting">Riunione</string>
++    <string name="wakeve_logo_content_description">Logo Wakeve</string><string name="get_started_tagline">Pianificazione collaborativa di eventi</string><string name="get_started_cta">Inizia</string><string name="get_started_feature_poll">Sondaggi collaborativi per trovare la data migliore</string><string name="get_started_feature_plan">Pianificazione di destinazioni e attività</string><string name="get_started_feature_budget">Gestione del budget e fondo condiviso</string><string name="get_started_feature_offline">Disponibile offline, sincronizzazione automatica</string><string name="onboarding_title">Scopri Wakeve</string><string name="onboarding_create_event_title">Crea i tuoi eventi</string><string name="onboarding_create_event_description">Organizza eventi con amici e colleghi. Definisci le date, proponi orari e lascia votare il gruppo.</string><string name="onboarding_create_event_feature_fast">Creazione rapida di eventi</string><string name="onboarding_create_event_feature_poll">Sondaggio sulla disponibilità</string><string name="onboarding_create_event_feature_best_slot">Calcolo automatico dell’orario migliore</string><string name="onboarding_collaborate_title">Coordina il gruppo</string><string name="onboarding_collaborate_description">Segui partecipanti, risposte e responsabilità senza perdere le decisioni nella chat.</string><string name="onboarding_collaborate_feature_participants">Gestione dei partecipanti</string><string name="onboarding_collaborate_feature_roles">Responsabilità chiare</string><string name="onboarding_collaborate_feature_progress">Avanzamento visibile</string><string name="onboarding_organize_title">Prepara i dettagli</string><string name="onboarding_organize_description">Riunisci alloggio, pasti, attività, trasporti e budget quando l’idea diventa un piano.</string><string name="onboarding_organize_feature_lodging">Opzioni di alloggio</string><string name="onboarding_organize_feature_meals">Organizzazione dei pasti</string><string name="onboarding_organize_feature_budget">Controllo del budget</string><string name="onboarding_enjoy_title">Concludi senza stress</string><string name="onboarding_enjoy_description">Mantieni chiari data, promemoria e prossime azioni fino al giorno dell’evento.</string><string name="onboarding_enjoy_feature_overview">Panoramica</string><string name="onboarding_enjoy_feature_reminders">Promemoria integrati</string><string name="onboarding_enjoy_feature_calendar">Calendario del dispositivo</string><string name="signing_in">Accesso in corso…</string><string name="sign_in_failed">Accesso non riuscito</string><string name="try_again">Riprova</string><string name="sign_in_terms_prefix">Accedendo, accetti la nostra</string><string name="privacy_policy">Informativa sulla privacy</string><string name="and_separator"> e i nostri </string><string name="terms_of_service">Termini di servizio</string><string name="generic_error_title">Qualcosa è andato storto</string><string name="custom_event_type_example">Es. gala di beneficenza, lancio di prodotto</string><string name="custom_event_type_supporting">Descrivi il tipo di evento</string><string name="select_event_type">Seleziona il tipo di evento</string><string name="selected">Selezionato</string><string name="unread_notifications_short_label">Da fare</string><string name="unread_notifications_long_label">Mostra inviti, voti e promemoria non letti</string>
++    <string name="tab_ideas">Idee</string><string name="event_state_draft">Bozza</string><string name="event_state_polling">Sondaggio in corso</string><string name="event_state_comparing">Opzioni da confrontare</string><string name="event_state_confirmed">Data confermata</string><string name="event_state_organizing">Dettagli da preparare</string><string name="event_state_finalized">Pronto</string><string name="notifications_filter_todo">Da fare</string><string name="notifications_filter_information">Informazioni</string><string name="ai_prepare_options">Prepara opzioni</string><string name="ai_summarize_responses">Riassumi le risposte</string><string name="ai_propose_message">Proponi un messaggio</string><string name="ai_complete_list">Completa l’elenco</string><string name="ai_proposal_to_review">Proposta da rivedere</string><string name="sync_waiting">In attesa di sincronizzazione</string><string name="sync_retry">Riprova la sincronizzazione</string><string name="sync_change_not_saved">Modifica non salvata</string><string name="permission_notifications_denied">Gli avvisi non saranno inviati su questo dispositivo</string><string name="permission_open_settings">Apri impostazioni</string><string name="permission_notifications_available">Gli avvisi restano disponibili in Notifiche</string><string name="accessibility_open_event_details">Apri i dettagli dell’evento</string><string name="accessibility_navigate_back">Torna alla schermata precedente</string><string name="accessibility_more_event_actions">Apri altre azioni dell’evento</string><string name="accessibility_mark_payment_paid">Segna il pagamento come effettuato</string><string name="milestone_first_event">Primo evento</string><string name="milestone_regular_voting">Voto regolare</string><string name="milestone_organization_ready">Organizzazione pronta</string>
+ </resources>
+diff --git a/composeApp/src/androidMain/res/values-pt/strings.xml b/composeApp/src/androidMain/res/values-pt/strings.xml
+index 76cdbc42..380a4d8d 100644
+--- a/composeApp/src/androidMain/res/values-pt/strings.xml
++++ b/composeApp/src/androidMain/res/values-pt/strings.xml
+@@ -655,11 +655,13 @@
+     <string name="duration_label">Duração</string>
+     <string name="points_value_label">%1$d pontos</string>
+     <string name="try_again_later">Tente novamente mais tarde</string>
+     <string name="loading_more">Carregando mais…</string>
+     <string name="notification_event_created">Evento criado</string>
+     <string name="notification_poll_opened">Enquete aberta</string>
+     <string name="notification_date_confirmed">Data confirmada</string>
+     <string name="entity_event">Evento</string>
+     <string name="entity_scenario">Opção</string>
+     <string name="entity_meeting">Reunião</string>
++    <string name="wakeve_logo_content_description">Logótipo Wakeve</string><string name="get_started_tagline">Planeamento colaborativo de eventos</string><string name="get_started_cta">Começar</string><string name="get_started_feature_poll">Sondagens colaborativas para encontrar a melhor data</string><string name="get_started_feature_plan">Planeamento de destinos e atividades</string><string name="get_started_feature_budget">Gestão do orçamento e fundo partilhado</string><string name="get_started_feature_offline">Disponível offline, sincronização automática</string><string name="onboarding_title">Descobrir</string><string name="onboarding_create_event_title">Cria os teus eventos</string><string name="onboarding_create_event_description">Organiza eventos com amigos e colegas. Define datas, propõe horários e deixa o grupo votar.</string><string name="onboarding_create_event_feature_fast">Criação rápida de eventos</string><string name="onboarding_create_event_feature_poll">Sondagem de disponibilidade</string><string name="onboarding_create_event_feature_best_slot">Cálculo automático do melhor horário</string><string name="onboarding_collaborate_title">Coordena o grupo</string><string name="onboarding_collaborate_description">Acompanha participantes, respostas e responsabilidades sem perder decisões na conversa.</string><string name="onboarding_collaborate_feature_participants">Gestão de participantes</string><string name="onboarding_collaborate_feature_roles">Responsabilidades claras</string><string name="onboarding_collaborate_feature_progress">Progresso visível</string><string name="onboarding_organize_title">Prepara os detalhes</string><string name="onboarding_organize_description">Reúne alojamento, refeições, atividades, transporte e orçamento quando a ideia se torna um plano.</string><string name="onboarding_organize_feature_lodging">Opções de alojamento</string><string name="onboarding_organize_feature_meals">Organização das refeições</string><string name="onboarding_organize_feature_budget">Acompanhamento do orçamento</string><string name="onboarding_enjoy_title">Finaliza sem stress</string><string name="onboarding_enjoy_description">Mantém a data, os lembretes e as próximas ações claros até ao dia do evento.</string><string name="onboarding_enjoy_feature_overview">Visão geral</string><string name="onboarding_enjoy_feature_reminders">Lembretes integrados</string><string name="onboarding_enjoy_feature_calendar">Calendário do dispositivo</string><string name="signing_in">A iniciar sessão…</string><string name="sign_in_failed">Falha ao iniciar sessão</string><string name="try_again">Tentar novamente</string><string name="sign_in_terms_prefix">Ao iniciar sessão, aceitas a nossa</string><string name="privacy_policy">Política de privacidade</string><string name="and_separator"> e os nossos </string><string name="terms_of_service">Termos de serviço</string><string name="generic_error_title">Algo correu mal</string><string name="custom_event_type_example">Ex. gala solidária, lançamento de produto</string><string name="custom_event_type_supporting">Descreve o tipo de evento</string><string name="select_event_type">Selecionar tipo de evento</string><string name="selected">Selecionado</string><string name="unread_notifications_short_label">A tratar</string><string name="unread_notifications_long_label">Ver convites, votos e lembretes por ler</string>
++    <string name="tab_ideas">Ideias</string><string name="event_state_draft">Rascunho</string><string name="event_state_polling">Sondagem em curso</string><string name="event_state_comparing">Opções para comparar</string><string name="event_state_confirmed">Data confirmada</string><string name="event_state_organizing">Detalhes a preparar</string><string name="event_state_finalized">Pronto</string><string name="notifications_filter_todo">A tratar</string><string name="notifications_filter_information">Informações</string><string name="ai_prepare_options">Preparar opções</string><string name="ai_summarize_responses">Resumir respostas</string><string name="ai_propose_message">Propor uma mensagem</string><string name="ai_complete_list">Completar a lista</string><string name="ai_proposal_to_review">Proposta para rever</string><string name="sync_waiting">A aguardar sincronização</string><string name="sync_retry">Tentar sincronizar novamente</string><string name="sync_change_not_saved">Alteração não guardada</string><string name="permission_notifications_denied">Os alertas não serão enviados neste dispositivo</string><string name="permission_open_settings">Abrir definições</string><string name="permission_notifications_available">Os alertas continuam disponíveis em Notificações</string><string name="accessibility_open_event_details">Abrir detalhes do evento</string><string name="accessibility_navigate_back">Voltar ao ecrã anterior</string><string name="accessibility_more_event_actions">Abrir mais ações do evento</string><string name="accessibility_mark_payment_paid">Marcar pagamento como pago</string><string name="milestone_first_event">Primeiro evento</string><string name="milestone_regular_voting">Votação regular</string><string name="milestone_organization_ready">Organização pronta</string>
+ </resources>
+diff --git a/composeApp/src/androidMain/res/values/strings.xml b/composeApp/src/androidMain/res/values/strings.xml
+index 0f7fe09c..3acead92 100644
+--- a/composeApp/src/androidMain/res/values/strings.xml
++++ b/composeApp/src/androidMain/res/values/strings.xml
+@@ -696,11 +696,20 @@
+     <string name="profile_category_participation">Participation</string>
+     <string name="profile_category_engagement">Engagement</string>
+     <string name="profile_category_special">Spéciaux</string>
+     <string name="profile_leaderboard_all_time">Tout temps</string>
+ 
+     <!-- Leaderboard Screen (new) -->
+     <string name="leaderboard_title">Classement</string>
+     <string name="leaderboard_you">Vous</string>
+     <string name="leaderboard_badges">%1$d badges</string>
+     <string name="leaderboard_global">Global</string>
++    <!-- Canonical product language -->
++    <string name="tab_ideas">Idées</string>
++    <string name="event_state_draft">Brouillon</string><string name="event_state_polling">Sondage en cours</string><string name="event_state_comparing">Options à comparer</string><string name="event_state_confirmed">Date confirmée</string><string name="event_state_organizing">Détails à préparer</string><string name="event_state_finalized">Prêt</string>
++    <string name="notifications_filter_todo">À traiter</string><string name="notifications_filter_information">Informations</string>
++    <string name="ai_prepare_options">Préparer des options</string><string name="ai_summarize_responses">Résumer les réponses</string><string name="ai_propose_message">Proposer un message</string><string name="ai_complete_list">Compléter la liste</string><string name="ai_proposal_to_review">Proposition à relire</string>
++    <string name="sync_waiting">En attente de synchronisation</string><string name="sync_retry">Réessayer la synchronisation</string><string name="sync_change_not_saved">Modification non enregistrée</string>
++    <string name="permission_notifications_denied">Les alertes ne seront pas envoyées sur cet appareil</string><string name="permission_open_settings">Ouvrir les réglages</string><string name="permission_notifications_available">Les alertes restent disponibles dans Notifications</string>
++    <string name="accessibility_open_event_details">Ouvrir les détails de l’événement</string><string name="accessibility_navigate_back">Revenir à l’écran précédent</string><string name="accessibility_more_event_actions">Ouvrir les autres actions de l’événement</string><string name="accessibility_mark_payment_paid">Marquer le paiement comme réglé</string>
++    <string name="milestone_first_event">Premier événement</string><string name="milestone_regular_voting">Vote régulier</string><string name="milestone_organization_ready">Organisation prête</string>
+ </resources>
+diff --git a/composeApp/src/androidUnitTest/kotlin/com/guyghost/wakeve/localization/ProductLanguageCatalogContractTest.kt b/composeApp/src/androidUnitTest/kotlin/com/guyghost/wakeve/localization/ProductLanguageCatalogContractTest.kt
+new file mode 100644
+index 00000000..6c2033ed
+--- /dev/null
++++ b/composeApp/src/androidUnitTest/kotlin/com/guyghost/wakeve/localization/ProductLanguageCatalogContractTest.kt
+@@ -0,0 +1,64 @@
++package com.guyghost.wakeve.localization
++
++import java.io.File
++import javax.xml.parsers.DocumentBuilderFactory
++import kotlin.test.Test
++import kotlin.test.assertEquals
++import kotlin.test.assertTrue
++
++class ProductLanguageCatalogContractTest {
++    @Test
++    fun everyAndroidLocaleHasCanonicalKeys() {
++        val required = setOf(
++            "tab_ideas",
++            "event_state_draft",
++            "event_state_polling",
++            "event_state_comparing",
++            "event_state_confirmed",
++            "event_state_organizing",
++            "event_state_finalized",
++            "notifications_filter_todo",
++            "notifications_filter_information",
++            "ai_prepare_options",
++            "ai_proposal_to_review",
++            "sync_waiting",
++            "sync_retry",
++            "milestone_first_event",
++            "milestone_regular_voting",
++            "milestone_organization_ready",
++        )
++        val catalogs = localeDirectories.associateWith(::catalogKeys)
++
++        catalogs.forEach { (locale, keys) ->
++            required.forEach { key -> assertTrue(key in keys, "$key missing from $locale") }
++        }
++
++        val canonicalKeys = catalogs.getValue("values")
++        catalogs.forEach { (locale, keys) ->
++            assertEquals(canonicalKeys, keys, "$locale catalog keys differ from values")
++        }
++    }
++
++    private fun catalogKeys(locale: String): Set<String> {
++        val file = projectFile("composeApp/src/androidMain/res/$locale/strings.xml")
++        val document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(file)
++        return buildSet {
++            listOf("string", "plurals", "string-array").forEach { tag ->
++                val nodes = document.getElementsByTagName(tag)
++                repeat(nodes.length) { index -> add(nodes.item(index).attributes.getNamedItem("name").nodeValue) }
++            }
++        }
++    }
++
++    private fun projectFile(path: String): File {
++        var current = File(requireNotNull(System.getProperty("user.dir"))).absoluteFile
++        while (!File(current, "settings.gradle.kts").isFile) {
++            current = requireNotNull(current.parentFile) { "Could not locate project root for $path" }
++        }
++        return current.resolve(path)
++    }
++
++    private companion object {
++        val localeDirectories = listOf("values", "values-en", "values-de", "values-es", "values-it", "values-pt")
++    }
++}
