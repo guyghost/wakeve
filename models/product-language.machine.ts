@@ -7,7 +7,11 @@ export type ProjectionInput = {
   role: 'ORGANIZER' | 'PARTICIPANT'
   pendingFacts: readonly ('LOCAL_MUTATION' | 'SYNC_CONFLICT')[]
   allowedAction: AllowedAction
-  validation?: 'INVALID_FIELD'
+  validation?: {
+    code: 'INVALID_FIELD'
+    field: 'TITLE' | 'DESCRIPTION' | 'TIME_SLOT'
+    correction: 'FOCUS_FIELD'
+  }
   cancellation?: 'CANCELLED'
   permission?: 'DENIED' | 'RESTRICTED'
   aiOutcome?: 'UNAVAILABLE' | 'REJECTED'
@@ -44,15 +48,21 @@ export function projectProductLanguage(input: ProjectionInput): ProjectionOutput
   } else if (hasConflict) {
     statusKey = 'sync.conflict'
     detailKey = 'sync.conflict.event-details'
-    primaryActionKey = 'sync.resolve'
-    secondaryActionKey = 'sync.retry'
+    primaryActionKey = input.allowedAction === 'RESOLVE_CONFLICT'
+      ? 'sync.resolve'
+      : input.allowedAction === 'RETRY_SYNC'
+        ? 'sync.retry'
+        : null
   } else if (input.permission) {
     statusKey = `permission.${input.permission.toLowerCase()}`
     detailKey = 'permission.impact.event-update'
     primaryActionKey = input.allowedAction === 'OPEN_SETTINGS' ? 'permission.open-settings' : null
   } else if (input.validation) {
     statusKey = 'validation.invalid-field'
-    primaryActionKey = input.allowedAction === 'EDIT' ? 'event.action.continue' : null
+    detailKey = `validation.field.${input.validation.field.toLowerCase().replace('_', '-')}`
+    primaryActionKey = input.allowedAction === 'EDIT' && input.validation.correction === 'FOCUS_FIELD'
+      ? 'validation.focus-field'
+      : null
   } else if (input.cancellation) {
     statusKey = 'operation.cancelled'
   } else if (input.aiOutcome) {
@@ -94,18 +104,25 @@ export const productLanguageMachine = setup({
     wasCancelled: ({ context }) => context.input.cancellation !== undefined,
     needsManualFallback: ({ context }) => context.input.aiOutcome !== undefined,
     hasPendingSync: ({ context }) => context.input.pendingFacts.includes('LOCAL_MUTATION'),
+    canResolveConflict: ({ context }) => context.input.allowedAction === 'RESOLVE_CONFLICT',
+    canRetrySync: ({ context }) => context.input.allowedAction === 'RETRY_SYNC',
   },
   actions: {
     markSynced: assign(({ context }) => {
       const input = {
         ...context.input,
         pendingFacts: context.input.pendingFacts.filter(fact => fact !== 'LOCAL_MUTATION'),
-        allowedAction: 'EDIT' as const,
+        allowedAction: null,
       }
       return { input, projection: projectProductLanguage(input) }
     }),
     markSyncFailed: assign(({ context }) => ({
-      projection: { ...context.projection, statusKey: 'sync.failed', primaryActionKey: 'sync.retry', sharedConfirmation: false },
+      projection: {
+        ...context.projection,
+        statusKey: 'sync.failed',
+        primaryActionKey: context.input.allowedAction === 'RETRY_SYNC' ? 'sync.retry' : null,
+        sharedConfirmation: false,
+      },
     })),
     markRetrying: assign(({ context }) => ({
       projection: { ...context.projection, statusKey: 'sync.waiting', primaryActionKey: 'sync.retry', sharedConfirmation: false },
@@ -114,7 +131,6 @@ export const productLanguageMachine = setup({
       const input = {
         ...context.input,
         pendingFacts: ['LOCAL_MUTATION'] as const,
-        allowedAction: 'RETRY_SYNC' as const,
       }
       return { input, projection: projectProductLanguage(input) }
     }),
@@ -138,11 +154,11 @@ export const productLanguageMachine = setup({
     },
     ready: {},
     pendingSync: { on: { SYNC_SUCCEEDED: { target: 'ready', actions: 'markSynced' }, SYNC_FAILED: { target: 'syncFailed', actions: 'markSyncFailed' } } },
-    syncFailed: { on: { RETRY_SYNC: { target: 'pendingSync', actions: 'markRetrying' } } },
+    syncFailed: { on: { RETRY_SYNC: { guard: 'canRetrySync', target: 'pendingSync', actions: 'markRetrying' } } },
     syncConflict: {
       on: {
-        RESOLVE_CONFLICT: { target: 'pendingSync', actions: 'beginConflictResolution' },
-        RETRY_SYNC: { target: 'pendingSync', actions: 'beginConflictResolution' },
+        RESOLVE_CONFLICT: { guard: 'canResolveConflict', target: 'pendingSync', actions: 'beginConflictResolution' },
+        RETRY_SYNC: { guard: 'canRetrySync', target: 'pendingSync', actions: 'beginConflictResolution' },
       },
     },
     validationError: {},

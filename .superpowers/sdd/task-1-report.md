@@ -97,3 +97,21 @@ Status: FIXED
 - Inventory schema, six-category distribution, and source-count equality checks: PASS; 263/263 paths.
 - `openspec validate standardize-product-language --strict`: PASS.
 - `git diff --check`: PASS.
+
+## Re-review fix report — 2026-07-10
+
+Status: FIXED
+
+### RED / GREEN evidence
+
+- RED full suite: exit 1; 15 tests executed, 10 passed and 5 failed by assertions for typed validation detail, conflict CTA authority, forbidden conflict events, retry permission creation, and APNs categorization.
+- RED targeted offline test: exit 1 because `SYNC_SUCCEEDED` manufactured `event.action.continue` instead of preserving no post-sync authority.
+- GREEN full suite: exit 0; 15/15 passed, including negative no-action/forbidden-event tests and four exact inventory sentinels.
+
+### Changes and final gates
+
+- `allowedAction` now selects the sole visible conflict CTA and guards `RESOLVE_CONFLICT`/`RETRY_SYNC`; sync transitions never manufacture edit, retry, or resolve permission.
+- Validation now carries typed code, field, and correction action and projects field-specific semantics.
+- Inventory categorizes APNs/FCM and notification delivery paths before platform fallback; distribution is AI 9, Android UI 53, delivery/Siri 38, gamification/profile 7, iOS UI 71, shared 85.
+- Inventory schema/count/category/sentinel assertions: PASS (263/263); OpenSpec strict: PASS; `git diff --check`: PASS.
+- Existing Node `MODULE_TYPELESS_PACKAGE_JSON` warning remains outside this bounded fix; OpenSpec tasks 1.1–2.5 remain unchecked.

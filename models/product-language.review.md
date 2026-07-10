@@ -4,15 +4,16 @@
 
 Task 1 models presentation language as a deterministic projection. It does not modify a domain status, permission, route, persistence contract, analytics identifier, or existing workflow transition. `projectProductLanguage` consumes typed facts and an allowed action; it never consumes free text or generated content.
 
-The generated inventory contains 263 non-empty, sorted paths. Path exhaustiveness and semantic category validation are separate checks: the first retains every regex-matched file, while the second asserts all six expected categories are non-empty and prevents the AI bucket from absorbing `main` paths. The resulting distribution is AI 8, Android UI 53, delivery/Siri 36, gamification/profile 9, iOS UI 72, and shared 85. Categories remain discovery aids, not proof that every string in a file has the category's role. String-level and locale-completeness audits remain later OpenSpec work.
+The generated inventory contains 263 non-empty, sorted paths. Path exhaustiveness and semantic category validation are separate checks: the first retains every regex-matched file, while the second asserts all six expected categories are non-empty, prevents the AI bucket from absorbing `main` paths, and checks exact APNs, FCM, AI, and Android sentinels. The resulting distribution is AI 9, Android UI 53, delivery/Siri 38, gamification/profile 7, iOS UI 71, and shared 85. Categories remain discovery aids, not proof that every string in a file has the category's role. String-level and locale-completeness audits remain later OpenSpec work.
 
 ## Projection invariants
 
 - `domainStatus` is returned unchanged for all six `EventStatus` values.
 - Stable title keys are selected only from `EventStatus`.
 - A `LOCAL_MUTATION` projects `sync.waiting`, prevents shared confirmation, and selects `sync.retry` only when retry is allowed.
-- `SYNC_FAILED` changes the projection to `sync.failed`; only explicit `RETRY_SYNC` returns to pending synchronization. External success is ignored while failed.
-- `SYNC_CONFLICT` projects the affected event-details key, prevents shared confirmation, and offers deterministic resolve/retry actions.
+- `SYNC_FAILED` changes the projection to `sync.failed`; only an authorized `RETRY_SYNC` returns to pending synchronization. External success and unauthorized retry are ignored while failed.
+- `SYNC_CONFLICT` projects the affected event-details key, prevents shared confirmation, and exposes and accepts only the single action authorized by `allowedAction`.
+- Machine actions consume existing authority and never manufacture edit, retry, or resolution permission.
 - Validation, cancellation, denied/restricted permission, and unavailable/rejected AI outcomes have typed executable branches without changing `domainStatus`.
 - `FINALIZED` reaches a terminal state and suppresses editing even if the caller provides it.
 - No free text, copy, generated content, or LLM output is accepted as an input or event discriminator.
@@ -22,12 +23,12 @@ The generated inventory contains 263 non-empty, sorted paths. Path exhaustivenes
 | Case | Task 1 evidence | Review result |
 |---|---|---|
 | Nominal success | All six statuses map to stable title keys while preserving identity. | Accepted for status projection. Result-specific explanations remain later registry work. |
-| Validation error | Typed `INVALID_FIELD` enters `validationError`, preserves status, and projects a correction key. | Accepted by executable test. |
+| Validation error | Typed error code, field, and correction enter `validationError`, preserve status, and project field-specific detail and focus action keys. | Accepted by executable test. |
 | Cancellation | Typed cancellation enters `cancelled`, projects no success/persistence action, and clears shared confirmation. | Accepted by executable test. |
-| Retry | Failure projects `sync.failed`; `SYNC_SUCCEEDED` is ignored there and only `RETRY_SYNC` restarts pending synchronization. | Accepted by executable test. |
+| Retry | Failure projects `sync.failed`; `SYNC_SUCCEEDED` is ignored there and `RETRY_SYNC` restarts only when retry was authorized by input. | Accepted by positive and negative executable tests. |
 | Permission denied/restricted | Both facts enter `permissionBlocked`, name the event-update impact, and expose settings only when allowed. | Accepted by two executable tests. |
 | Offline | `LOCAL_MUTATION` enters `pendingSync`, projects `sync.waiting`, and sets `sharedConfirmation` to false. | Accepted. |
-| Sync conflict | Conflict enters `syncConflict`, identifies affected event details, blocks shared confirmation, and exposes resolve/retry. | Accepted by executable test. |
+| Sync conflict | Conflict identifies affected event details, blocks shared confirmation, and guards visible CTA plus resolve/retry events with the exact allowed action. | Accepted by positive and negative executable tests. |
 | Terminal state | `FINALIZED` enters final `terminal` and suppresses a stale caller-provided edit CTA. | Accepted by executable test. |
 | AI unavailable/rejected | Both typed outcomes enter `manualFallback`, preserve status, and expose a manual path; no AI event can transition domain state. | Accepted by two executable tests. |
 | Long text/accessibility | Output is semantic keys, not rendered copy. | Not proven by Task 1; remains platform implementation and verification work. |

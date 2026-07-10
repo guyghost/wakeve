@@ -251,7 +251,7 @@
     },
     {
       "path": "iosApp/src/Components/AIBadgeView.swift",
-      "category": "gamification-or-profile"
+      "category": "ai-entry-point"
     },
     {
       "path": "iosApp/src/Components/BackgroundPickerSheet.swift",
@@ -351,7 +351,7 @@
     },
     {
       "path": "iosApp/src/Services/APNsService.swift",
-      "category": "ios-ui"
+      "category": "delivery-or-siri"
     },
     {
       "path": "iosApp/src/Services/AppDelegate.swift",
@@ -783,7 +783,7 @@
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/gamification/BadgeNotificationService.kt",
-      "category": "gamification-or-profile"
+      "category": "delivery-or-siri"
     },
     {
       "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/meal/MealPlanner.kt",
