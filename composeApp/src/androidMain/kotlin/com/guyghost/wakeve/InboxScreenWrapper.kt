@@ -76,6 +76,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -370,7 +371,11 @@ fun InboxScreen(
                     ) {
                         Text(
                             text = if (isSelectionMode) {
-                                stringResource(R.string.inbox_selected_count, selectedIds.size)
+                                pluralStringResource(
+                                    R.plurals.inbox_selected_count,
+                                    selectedIds.size,
+                                    selectedIds.size,
+                                )
                             } else {
                                 stringResource(R.string.notifications)
                             },

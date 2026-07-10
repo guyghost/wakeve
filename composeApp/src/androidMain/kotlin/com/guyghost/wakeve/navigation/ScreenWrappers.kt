@@ -70,7 +70,7 @@ fun ParticipantManagementScreenWrapper(
         if (granted) {
             callback(runCatching { loadAndroidContactParticipantCandidates(context) })
         } else {
-            callback(Result.failure(IllegalStateException("L'accès aux contacts est optionnel et a été refusé")))
+            callback(Result.failure(IllegalStateException("Contact permission denied by user")))
         }
     }
     

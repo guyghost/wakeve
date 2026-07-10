@@ -1,11 +1,30 @@
 package com.guyghost.wakeve.productlanguage
 
 import java.io.File
+import javax.xml.parsers.DocumentBuilderFactory
+import org.w3c.dom.Element
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class AndroidProductLanguageBatch1Test {
+    @Test
+    fun batch1TranslationsAreNotEnglishCopies() {
+        val english = catalog("values-en")
+        val findings = listOf("de", "es", "it", "pt").flatMap { locale ->
+            val localized = catalog("values-$locale")
+            batch1TranslatedKeys.mapNotNull { key ->
+                val englishValue = english.getValue(key)
+                val localizedValue = localized.getValue(key)
+                if (localizedValue == englishValue && key !in reviewedEnglishCognates.getValue(locale)) {
+                    "$locale:$key copied English value '$englishValue'"
+                } else null
+            }
+        }
+
+        assertTrue(findings.isEmpty(), findings.joinToString("\n"))
+    }
+
     @Test
     fun batch1UsesResourcesForVisibleCopyAndSemantics() {
         val findings = batch1Paths.flatMap { path ->
@@ -88,9 +107,19 @@ class AndroidProductLanguageBatch1Test {
         if (literal.startsWith("$")) return true
         if (literal.startsWith("http") || literal.startsWith("event-")) return true
         if (line.contains("testTag(") || line.contains("navArgument(") || line.contains("getString(")) return true
-        if (line.contains("IllegalStateException(") || line.contains("error(")) return true
+        if (line.contains("error(")) return true
         if (line.contains("@Suppress(")) return true
         return literal in allowedTechnicalLiterals
+    }
+
+    private fun catalog(directory: String): Map<String, String> {
+        val document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(
+            projectRoot.resolve("composeApp/src/androidMain/res/$directory/strings.xml"),
+        )
+        return (0 until document.getElementsByTagName("string").length).associate { index ->
+            val element = document.getElementsByTagName("string").item(index) as Element
+            element.getAttribute("name") to element.textContent.trim()
+        }
     }
 
     private companion object {
@@ -127,7 +156,36 @@ class AndroidProductLanguageBatch1Test {
         val allowedTechnicalLiterals = setOf(
             "Google",
             "Wakeve",
-            "User",
+            "Contact permission denied by user",
+        )
+
+        val batch1TranslatedKeys = setOf(
+            "a11y_selected", "a11y_unselected", "inbox_filter_all", "inbox_filter_focused",
+            "inbox_filter_unread", "inbox_filter_event", "inbox_context_invitation",
+            "inbox_context_poll", "inbox_context_vote_reminder", "inbox_context_confirmation",
+            "inbox_context_participant", "inbox_context_vote", "inbox_context_comment",
+            "inbox_context_reply", "inbox_context_budget", "inbox_context_activity",
+            "inbox_context_accommodation", "inbox_context_notification", "relative_time_now",
+            "relative_time_minutes", "relative_time_hours", "relative_time_days",
+            "relative_time_weeks", "relative_time_months", "relative_time_years",
+            "inbox_empty_all_title", "inbox_empty_all_body", "inbox_empty_focused_title",
+            "inbox_empty_focused_body", "inbox_empty_unread_title", "inbox_empty_unread_body",
+            "inbox_empty_event_title", "inbox_empty_event_body", "profile_version_unknown",
+            "profile_version", "profile_guest_name", "profile_default_user_name",
+            "profile_limited_features", "profile_dashboard_title", "profile_dashboard_subtitle",
+            "profile_notifications_subtitle", "profile_settings_subtitle", "profile_logout_subtitle",
+            "profile_create_account_subtitle", "event_not_found", "event_not_found_sentence",
+            "event_default_title", "participant_added", "access_denied_meetings",
+            "access_denied_payment_pot", "access_denied_tricount", "access_denied_budget",
+            "access_denied_expenses", "profile_settings_title", "profile_logout_title",
+            "profile_create_account_title",
+        )
+
+        val reviewedEnglishCognates = mapOf(
+            "de" to setOf("inbox_filter_event", "inbox_context_budget", "event_default_title", "profile_version"),
+            "es" to setOf("relative_time_minutes", "relative_time_hours", "relative_time_days", "profile_version"),
+            "it" to setOf("inbox_context_budget", "relative_time_minutes", "relative_time_hours", "profile_dashboard_title", "profile_version"),
+            "pt" to setOf("relative_time_minutes", "relative_time_hours", "relative_time_days", "profile_version"),
         )
     }
 }

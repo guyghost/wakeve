@@ -132,6 +132,15 @@ Recommended new test class: `AndroidProductLanguageBatch1Test`, asserting canoni
 - Catalog structure: visible Batch 1 keys are defined in all six catalogs. Default-only `translatable="false"` glyph/brand resources are no longer duplicated in localized catalogs; `ProductLanguageCatalogContractTest` now explicitly permits only those canonical non-translatable omissions while preserving kind, quantity, array, and placeholder parity for translatable resources.
 - Verification: targeted Batch 1 + catalog tests pass; `:composeApp:assembleDebug --no-daemon --no-configuration-cache` passes. The global Android contract remains RED only for later-batch ownership, including the restored Batch 5 `EventPhotosFollowUpScreen` literals and Batches 2–5 screens.
 
+#### Batch 1 translation re-review correction — 2026-07-10
+
+- RED: added `batch1TranslationsAreNotEnglishCopies` before editing catalogs. The isolated command executed 1 test and failed 1, reporting the wholesale English copies in DE/ES/IT/PT.
+- Translation guard: checks the exact reviewed set of 56 Batch 1 string keys in each of the four non-English catalogs against EN. Identical values are accepted only through per-locale cognate/unit/brand allowlists (for example `Event`, `Budget`, `Dashboard`, compact time units, `Version`, and placeholders).
+- GREEN: all 224 reviewed DE/ES/IT/PT string values now use natural locale copy except those explicit cognates/units/brands. The targeted command executes 6 tests with zero failures.
+- Plural correction: `inbox_selected_count` is now a real `plurals` resource with `one` and `other` in all six catalogs (12 quantity entries), consumed with `pluralStringResource`; the catalog contract verifies quantity and `%1$d` signature parity.
+- Fallback/error correction: the visible `currentUserName` fallback resolves through `profile_default_user_name`; `User` was removed from the source allowlist. Contact-permission presentation remains mapped by `contactAccessFailureMessage()`, while the Android exception carries the exact stable internal diagnostic `Contact permission denied by user`; the scanner allows that single reviewed diagnostic instead of all `IllegalStateException` text.
+- Verification: Batch 1, canonical navigation, and catalog tests pass; `assembleDebug --no-daemon --no-configuration-cache` passes. The full Android product-language contract remains intentionally RED in 3 scanner tests only for Batches 2–5.
+
 ### Batch 2 — Comments and collaboration
 
 Owning Kotlin files (3):
