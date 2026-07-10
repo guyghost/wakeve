@@ -55,6 +55,9 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import com.guyghost.wakeve.R
 import com.guyghost.wakeve.comment.CommentRepository
 import com.guyghost.wakeve.models.Comment
 import com.guyghost.wakeve.models.CommentRequest
@@ -96,6 +99,8 @@ fun CommentsScreen(
     var commentToDelete by remember { mutableStateOf<Comment?>(null) }
     var deleteErrorMessage by remember { mutableStateOf<String?>(null) }
     var showSectionFilter by remember { mutableStateOf(false) }
+    val loadErrorMessage = stringResource(R.string.comment_load_error)
+    val deleteFailureMessage = stringResource(R.string.comment_delete_error)
 
     // Load comments
     fun loadComments() {
@@ -123,7 +128,7 @@ fun CommentsScreen(
             }
             commentsState = CommentsState.Success(commentsWithThreads)
         } catch (e: Exception) {
-            commentsState = CommentsState.Error(commentLoadFailureMessage())
+            commentsState = CommentsState.Error(loadErrorMessage)
         }
     }
 
@@ -131,10 +136,9 @@ fun CommentsScreen(
         loadComments()
     }
 
-    val title = when {
-        selectedSection != null -> "Commentaires - ${selectedSection!!.name.lowercase().replaceFirstChar { it.uppercase() }}"
-        else -> "Commentaires"
-    }
+    val title = selectedSection?.let {
+        stringResource(R.string.comments_title_for_section, sectionLabel(it))
+    } ?: stringResource(R.string.comments_title)
 
     Scaffold(
         topBar = {
@@ -142,13 +146,13 @@ fun CommentsScreen(
                 title = { Text(title) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Retour")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.a11y_comment_back))
                     }
                 },
                 actions = {
                     // Section filter
                     IconButton(onClick = { showSectionFilter = true }) {
-                        Icon(Icons.Default.FilterList, "Filtrer par section")
+                        Icon(Icons.Default.FilterList, stringResource(R.string.a11y_comment_filter))
                     }
                 }
             )
@@ -158,7 +162,7 @@ fun CommentsScreen(
                 FloatingActionButton(
                     onClick = { replyingTo = null } // New comment
                 ) {
-                    Icon(Icons.Default.Add, "Ajouter un commentaire")
+                    Icon(Icons.Default.Add, stringResource(R.string.a11y_comment_add))
                 }
             }
         }
@@ -243,7 +247,7 @@ fun CommentsScreen(
                             commentToDelete = null
                             deleteErrorMessage = null
                         } catch (e: Exception) {
-                            deleteErrorMessage = commentDeleteFailureMessage()
+                            deleteErrorMessage = deleteFailureMessage
                         }
                     },
                     onDismiss = {
@@ -390,7 +394,7 @@ private fun CommentItem(
 
                 if (comment.isEdited) {
                     Text(
-                        text = "modifié",
+                        text = stringResource(R.string.comment_edited),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.alpha(0.7f)
@@ -414,7 +418,11 @@ private fun CommentItem(
                 // Reply count
                 if (comment.replyCount > 0) {
                     Text(
-                        text = "${comment.replyCount} réponse${if (comment.replyCount > 1) "s" else ""}",
+                        text = pluralStringResource(
+                            R.plurals.comment_reply_count,
+                            comment.replyCount,
+                            comment.replyCount,
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -427,17 +435,21 @@ private fun CommentItem(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     TextButton(onClick = { onReply(comment) }) {
-                        Text("Répondre")
+                        Text(stringResource(R.string.comment_reply))
                     }
 
                     if (comment.authorId == currentUserId) {
                         IconButton(onClick = { onEdit(comment) }) {
-                            Icon(Icons.Default.Edit, "Modifier", modifier = Modifier.size(16.dp))
+                            Icon(
+                                Icons.Default.Edit,
+                                stringResource(R.string.a11y_comment_edit, comment.authorName),
+                                modifier = Modifier.size(16.dp),
+                            )
                         }
                         IconButton(onClick = { onDelete(comment) }) {
                             Icon(
                                 Icons.Default.Delete,
-                                "Supprimer",
+                                stringResource(R.string.a11y_comment_delete, comment.authorName),
                                 modifier = Modifier.size(16.dp),
                                 tint = MaterialTheme.colorScheme.error
                             )
@@ -503,8 +515,8 @@ private fun EmptyState(
 
         Text(
             text = when (selectedSection) {
-                null -> "Aucun commentaire pour cet événement"
-                else -> "Aucun commentaire dans cette section"
+                null -> stringResource(R.string.comments_empty_event)
+                else -> stringResource(R.string.comments_empty_section)
             },
             style = MaterialTheme.typography.headlineSmall,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -513,7 +525,7 @@ private fun EmptyState(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Soyez le premier à commenter !",
+            text = stringResource(R.string.comments_empty_call_to_action),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -544,7 +556,7 @@ private fun ErrorState(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "Erreur",
+            text = stringResource(R.string.comment_error_title),
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.error
         )
@@ -561,7 +573,7 @@ private fun ErrorState(
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(onClick = onRetry) {
-            Text("Réessayer")
+            Text(stringResource(R.string.comment_retry))
         }
     }
 }
@@ -574,7 +586,7 @@ private fun SectionFilterDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Filtrer par section") },
+        title = { Text(stringResource(R.string.comment_filter_title)) },
         text = {
             Column {
                 // All sections option
@@ -583,7 +595,7 @@ private fun SectionFilterDialog(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "Toutes les sections",
+                        text = stringResource(R.string.comment_filter_all),
                         color = if (currentSection == null)
                             MaterialTheme.colorScheme.primary
                         else
@@ -597,7 +609,7 @@ private fun SectionFilterDialog(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = section.name.lowercase().replaceFirstChar { it.uppercase() },
+                            text = sectionLabel(section),
                             color = if (currentSection == section)
                                 MaterialTheme.colorScheme.primary
                             else
@@ -609,7 +621,7 @@ private fun SectionFilterDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Fermer")
+                Text(stringResource(R.string.comment_close))
             }
         }
     )
@@ -635,10 +647,11 @@ private fun CommentDialog(
 
     val isReply = parentComment != null
     val isEdit = editingComment != null
+    val submitFailureMessage = stringResource(R.string.comment_submit_error)
     val title = when {
-        isEdit -> "Modifier le commentaire"
-        isReply -> "Répondre à ${parentComment?.authorName}"
-        else -> "Ajouter un commentaire"
+        isEdit -> stringResource(R.string.comment_edit_title)
+        isReply -> stringResource(R.string.comment_reply_to, parentComment?.authorName.orEmpty())
+        else -> stringResource(R.string.comment_add)
     }
 
     Dialog(onDismissRequest = onDismiss) {
@@ -668,14 +681,14 @@ private fun CommentDialog(
                             submitErrorMessage = null
                         }
                     },
-                    label = { Text("Commentaire") },
-                    placeholder = { Text("Écrivez votre commentaire...") },
+                    label = { Text(stringResource(R.string.comment_field_label)) },
+                    placeholder = { Text(stringResource(R.string.comment_field_placeholder)) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3,
                     maxLines = 6,
                     supportingText = {
                         Text(
-                            text = "${content.length}/2000 caractères",
+                            text = stringResource(R.string.comment_character_count, content.length, 2000),
                             style = MaterialTheme.typography.bodySmall,
                             color = if (content.length > 1800)
                                 MaterialTheme.colorScheme.error
@@ -699,7 +712,7 @@ private fun CommentDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text("Annuler")
+                        Text(stringResource(R.string.comment_cancel))
                     }
 
                     Spacer(modifier = Modifier.width(8.dp))
@@ -732,7 +745,7 @@ private fun CommentDialog(
                                         }
                                         onCommentPosted()
                                     } catch (e: Exception) {
-                                        submitErrorMessage = commentSubmitFailureMessage()
+                                        submitErrorMessage = submitFailureMessage
                                         isSubmitting = false
                                     }
                                 }
@@ -746,7 +759,7 @@ private fun CommentDialog(
                                 strokeWidth = 2.dp
                             )
                         } else {
-                            Text(if (isEdit) "Modifier" else "Poster")
+                            Text(stringResource(if (isEdit) R.string.comment_edit else R.string.comment_post))
                         }
                     }
                 }
@@ -764,10 +777,10 @@ private fun DeleteCommentDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Supprimer le commentaire") },
+        title = { Text(stringResource(R.string.comment_delete_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Êtes-vous sûr de vouloir supprimer ce commentaire ? Cette action est irréversible.")
+                Text(stringResource(R.string.comment_delete_body, comment.authorName))
                 errorMessage?.let { message ->
                     Text(
                         text = message,
@@ -784,33 +797,50 @@ private fun DeleteCommentDialog(
                     containerColor = MaterialTheme.colorScheme.error
                 )
             ) {
-                Text("Supprimer")
+                Text(stringResource(R.string.comment_delete))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Annuler")
+                Text(stringResource(R.string.comment_cancel))
             }
         }
     )
 }
 
+@Composable
 private fun formatRelativeTime(isoString: String): String {
-    return try {
+    val resource = try {
         val instant = Instant.parse(isoString)
         val now = Clock.System.now()
         val duration = now - instant
 
         when {
-            duration < 1.minutes -> "à l'instant"
-            duration < 1.hours -> "il y a ${duration.inWholeMinutes} min"
-            duration < 1.days -> "il y a ${duration.inWholeHours} h"
-            else -> "il y a ${duration.inWholeDays} j"
+            duration < 1.minutes -> R.string.comment_time_now to null
+            duration < 1.hours -> R.string.comment_time_minutes to duration.inWholeMinutes
+            duration < 1.days -> R.string.comment_time_hours to duration.inWholeHours
+            else -> R.string.comment_time_days to duration.inWholeDays
         }
     } catch (e: Exception) {
-        "récemment"
+        R.string.comment_time_recent to null
     }
+    return resource.second?.let { stringResource(resource.first, it) } ?: stringResource(resource.first)
 }
+
+@Composable
+private fun sectionLabel(section: CommentSection): String = stringResource(
+    when (section) {
+        CommentSection.GENERAL -> R.string.comment_section_general
+        CommentSection.SCENARIO -> R.string.comment_section_options
+        CommentSection.POLL -> R.string.comment_section_poll
+        CommentSection.TRANSPORT -> R.string.comment_section_transport
+        CommentSection.ACCOMMODATION -> R.string.comment_section_accommodation
+        CommentSection.MEAL -> R.string.comment_section_meal
+        CommentSection.EQUIPMENT -> R.string.comment_section_equipment
+        CommentSection.ACTIVITY -> R.string.comment_section_activity
+        CommentSection.BUDGET -> R.string.comment_section_budget
+    },
+)
 
 // State classes
 sealed class CommentsState {

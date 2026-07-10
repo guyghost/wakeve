@@ -164,6 +164,14 @@ Targeted test pattern:
 
 Recommended new test class: `AndroidProductLanguageBatch2Test`, restricting the source-contract helper to these three files and checking plural placeholder parity.
 
+#### Batch 2 TDD execution — 2026-07-10
+
+- RED: the targeted Batch 2 command executed six tests and failed the three new Batch 2 contracts for the expected reasons: direct and indirect visible literals remained, the reply plural/character-count/a11y formats were absent, and the reviewed translations did not exist.
+- GREEN: the three owned comment/collaboration files now project visible copy through Android resources while comment repository calls, routes, filtering, replies, edits, deletion, mentions, and state behavior remain unchanged.
+- Catalogs: the complete Batch 2 resource family is present in `values`, `values-en`, `values-de`, `values-es`, `values-it`, and `values-pt`; all locale values are natural translations, with placeholder and plural parity guarded by `AndroidProductLanguageBatch2Test` and `ProductLanguageCatalogContractTest`.
+- Accessibility: back, add, filter, send, edit, and delete actions use resource-backed descriptions; destructive edit/delete descriptions identify the comment author target. Reply counts use `comment_reply_count`, and the character counter uses two positional placeholders.
+- Verification: targeted Batch 2 + existing Comments tests + catalog contract passed (`BUILD SUCCESSFUL`); `:composeApp:assembleDebug --no-daemon --no-configuration-cache` passed. The full `AndroidProductLanguageContractTest` intentionally remains RED in its three broad scanner tests for Batches 3–5, with no Batch 2-owned path in the remaining diagnostics.
+
 ### Batch 3 — Budget, activities, accommodation, and equipment
 
 Owning Kotlin files from current RED findings (6):

@@ -20,6 +20,9 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import com.guyghost.wakeve.R
 import com.guyghost.wakeve.models.Comment
 import com.guyghost.wakeve.models.CommentSection
 import com.guyghost.wakeve.models.CommentThread
@@ -70,10 +73,10 @@ fun CommentListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(getSectionTitle(section)) },
+                title = { Text(sectionTitle(section)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.a11y_comment_back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -198,7 +201,11 @@ fun CommentThreadItem(
         if (thread.hasMoreReplies) {
             val canLoadMoreReplies = onLoadMoreReplies != null
             Text(
-                text = loadMoreRepliesLabel(thread.comment.replyCount),
+                text = pluralStringResource(
+                    R.plurals.comment_reply_count,
+                    thread.comment.replyCount,
+                    thread.comment.replyCount,
+                ),
                 color = if (canLoadMoreReplies) WakeveColors.primary else WakeveColors.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier
@@ -227,18 +234,33 @@ fun EmptyCommentsSection() {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = emptyCommentsTitle(),
+            text = stringResource(R.string.comments_empty),
             style = MaterialTheme.typography.titleLarge,
             color = WakeveColors.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = emptyCommentsSubtitle(),
+            text = stringResource(R.string.comments_empty_body),
             style = MaterialTheme.typography.bodyMedium,
             color = WakeveColors.onSurfaceVariant
         )
     }
 }
+
+@Composable
+private fun sectionTitle(section: CommentSection): String = stringResource(
+    when (section) {
+        CommentSection.GENERAL -> R.string.comments_title
+        CommentSection.SCENARIO -> R.string.comments_section_options
+        CommentSection.POLL -> R.string.comments_section_poll
+        CommentSection.TRANSPORT -> R.string.comments_section_transport
+        CommentSection.ACCOMMODATION -> R.string.comments_section_accommodation
+        CommentSection.MEAL -> R.string.comments_section_meal
+        CommentSection.EQUIPMENT -> R.string.comments_section_equipment
+        CommentSection.ACTIVITY -> R.string.comments_section_activity
+        CommentSection.BUDGET -> R.string.comments_section_budget
+    },
+)
 
 /**
  * Get localized section title
