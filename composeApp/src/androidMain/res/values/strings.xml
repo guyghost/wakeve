@@ -703,4 +703,13 @@
     <string name="leaderboard_you">Vous</string>
     <string name="leaderboard_badges">%1$d badges</string>
     <string name="leaderboard_global">Global</string>
+    <!-- Canonical product language -->
+    <string name="tab_ideas">Idées</string>
+    <string name="event_state_draft">Brouillon</string><string name="event_state_polling">Sondage en cours</string><string name="event_state_comparing">Options à comparer</string><string name="event_state_confirmed">Date confirmée</string><string name="event_state_organizing">Détails à préparer</string><string name="event_state_finalized">Prêt</string>
+    <string name="notifications_filter_todo">À traiter</string><string name="notifications_filter_information">Informations</string>
+    <string name="ai_prepare_options">Préparer des options</string><string name="ai_summarize_responses">Résumer les réponses</string><string name="ai_propose_message">Proposer un message</string><string name="ai_complete_list">Compléter la liste</string><string name="ai_proposal_to_review">Proposition à relire</string>
+    <string name="sync_waiting">En attente de synchronisation</string><string name="sync_retry">Réessayer la synchronisation</string><string name="sync_change_not_saved">Modification non enregistrée</string>
+    <string name="permission_notifications_denied">Les alertes ne seront pas envoyées sur cet appareil</string><string name="permission_open_settings">Ouvrir les réglages</string><string name="permission_notifications_available">Les alertes restent disponibles dans Notifications</string>
+    <string name="accessibility_open_event_details">Ouvrir les détails de l’événement</string><string name="accessibility_navigate_back">Revenir à l’écran précédent</string><string name="accessibility_more_event_actions">Ouvrir les autres actions de l’événement</string><string name="accessibility_mark_payment_paid">Marquer le paiement comme réglé</string>
+    <string name="milestone_first_event">Premier événement</string><string name="milestone_regular_voting">Vote régulier</string><string name="milestone_organization_ready">Organisation prête</string>
 </resources>

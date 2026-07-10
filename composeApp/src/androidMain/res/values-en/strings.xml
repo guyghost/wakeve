@@ -700,4 +700,13 @@
     <string name="entity_event">Event</string>
     <string name="entity_scenario">Option</string>
     <string name="entity_meeting">Meeting</string>
+    <string name="signing_in">Signing in…</string><string name="sign_in_failed">Sign-in failed</string><string name="try_again">Try again</string><string name="sign_in_terms_prefix">By signing in, you agree to our</string><string name="privacy_policy">Privacy Policy</string><string name="and_separator"> and our </string><string name="terms_of_service">Terms of Service</string><string name="generic_error_title">Something went wrong</string><string name="custom_event_type_example">E.g. charity gala, product launch</string><string name="custom_event_type_supporting">Describe your event type</string><string name="select_event_type">Select event type</string><string name="selected">Selected</string>
+    <string name="tab_ideas">Ideas</string>
+    <string name="event_state_draft">Draft</string><string name="event_state_polling">Poll in progress</string><string name="event_state_comparing">Options to compare</string><string name="event_state_confirmed">Date confirmed</string><string name="event_state_organizing">Details to prepare</string><string name="event_state_finalized">Ready</string>
+    <string name="notifications_filter_todo">To do</string><string name="notifications_filter_information">Information</string>
+    <string name="ai_prepare_options">Prepare options</string><string name="ai_summarize_responses">Summarize responses</string><string name="ai_propose_message">Propose a message</string><string name="ai_complete_list">Complete the list</string><string name="ai_proposal_to_review">Proposal to review</string>
+    <string name="sync_waiting">Waiting to sync</string><string name="sync_retry">Retry sync</string><string name="sync_change_not_saved">Change not saved</string>
+    <string name="permission_notifications_denied">Alerts will not be delivered on this device</string><string name="permission_open_settings">Open settings</string><string name="permission_notifications_available">Alerts remain available in Notifications</string>
+    <string name="accessibility_open_event_details">Open event details</string><string name="accessibility_navigate_back">Go back to the previous screen</string><string name="accessibility_more_event_actions">Open more event actions</string><string name="accessibility_mark_payment_paid">Mark payment as paid</string>
+    <string name="milestone_first_event">First event</string><string name="milestone_regular_voting">Regular voting</string><string name="milestone_organization_ready">Organization ready</string>
 </resources>
