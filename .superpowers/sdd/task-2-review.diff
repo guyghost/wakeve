@@ -1,0 +1,118 @@
+# Review package: 292b79ed..396b60c5
+
+## Commits
+396b60c5 feat(product-language): add canonical projection core
+
+## Files changed
+ .../wakeve/productlanguage/ProductLanguage.kt      | 45 ++++++++++++++++++++++
+ .../productlanguage/SupportedProductLocales.kt     |  5 +++
+ .../wakeve/productlanguage/ProductLanguageTest.kt  | 38 ++++++++++++++++++
+ 3 files changed, 88 insertions(+)
+
+## Diff
+diff --git a/shared/src/commonMain/kotlin/com/guyghost/wakeve/productlanguage/ProductLanguage.kt b/shared/src/commonMain/kotlin/com/guyghost/wakeve/productlanguage/ProductLanguage.kt
+new file mode 100644
+index 00000000..3c6ef332
+--- /dev/null
++++ b/shared/src/commonMain/kotlin/com/guyghost/wakeve/productlanguage/ProductLanguage.kt
+@@ -0,0 +1,45 @@
++package com.guyghost.wakeve.productlanguage
++
++import com.guyghost.wakeve.models.EventStatus
++
++@JvmInline
++value class SemanticKey(val value: String)
++
++enum class UserRole { ORGANIZER, PARTICIPANT }
++
++enum class PendingFact { LOCAL_MUTATION, SYNC_CONFLICT }
++
++enum class AllowedAction { CONTINUE, RETRY_SYNC }
++
++data class ProductLanguageInput(
++    val status: EventStatus,
++    val role: UserRole,
++    val confirmedFacts: Set<String>,
++    val pendingFacts: Set<PendingFact>,
++    val allowedAction: AllowedAction?,
++)
++
++data class ProductLanguageProjection(
++    val domainStatus: EventStatus,
++    val title: SemanticKey,
++    val status: SemanticKey?,
++    val primaryAction: SemanticKey?,
++    val sharedConfirmation: Boolean,
++)
++
++fun projectEventState(input: ProductLanguageInput): ProductLanguageProjection {
++    val title = SemanticKey("event.state.${input.status.name.lowercase()}")
++    val pending = PendingFact.LOCAL_MUTATION in input.pendingFacts
++
++    return ProductLanguageProjection(
++        domainStatus = input.status,
++        title = title,
++        status = if (pending) SemanticKey("sync.waiting") else null,
++        primaryAction = when (input.allowedAction) {
++            AllowedAction.CONTINUE -> SemanticKey("event.action.continue")
++            AllowedAction.RETRY_SYNC -> SemanticKey("sync.retry")
++            null -> null
++        },
++        sharedConfirmation = !pending,
++    )
++}
+diff --git a/shared/src/commonMain/kotlin/com/guyghost/wakeve/productlanguage/SupportedProductLocales.kt b/shared/src/commonMain/kotlin/com/guyghost/wakeve/productlanguage/SupportedProductLocales.kt
+new file mode 100644
+index 00000000..0a3ed1f6
+--- /dev/null
++++ b/shared/src/commonMain/kotlin/com/guyghost/wakeve/productlanguage/SupportedProductLocales.kt
+@@ -0,0 +1,5 @@
++package com.guyghost.wakeve.productlanguage
++
++val SUPPORTED_PRODUCT_LOCALES = setOf("en", "fr", "de", "es", "it", "pt")
++
++const val FALLBACK_PRODUCT_LOCALE = "en"
+diff --git a/shared/src/commonTest/kotlin/com/guyghost/wakeve/productlanguage/ProductLanguageTest.kt b/shared/src/commonTest/kotlin/com/guyghost/wakeve/productlanguage/ProductLanguageTest.kt
+new file mode 100644
+index 00000000..2fa09790
+--- /dev/null
++++ b/shared/src/commonTest/kotlin/com/guyghost/wakeve/productlanguage/ProductLanguageTest.kt
+@@ -0,0 +1,38 @@
++package com.guyghost.wakeve.productlanguage
++
++import com.guyghost.wakeve.models.EventStatus
++import kotlin.test.Test
++import kotlin.test.assertEquals
++
++class ProductLanguageTest {
++    @Test
++    fun canonicalStatesKeepDomainIdentity() {
++        val expected = mapOf(
++            EventStatus.DRAFT to "event.state.draft",
++            EventStatus.POLLING to "event.state.polling",
++            EventStatus.COMPARING to "event.state.comparing",
++            EventStatus.CONFIRMED to "event.state.confirmed",
++            EventStatus.ORGANIZING to "event.state.organizing",
++            EventStatus.FINALIZED to "event.state.finalized",
++        )
++
++        expected.forEach { (status, key) ->
++            val result = projectEventState(
++                ProductLanguageInput(
++                    status = status,
++                    role = UserRole.ORGANIZER,
++                    confirmedFacts = emptySet(),
++                    pendingFacts = emptySet(),
++                    allowedAction = if (status == EventStatus.FINALIZED) null else AllowedAction.CONTINUE,
++                ),
++            )
++
++            assertEquals(status, result.domainStatus)
++            assertEquals(key, result.title.value)
++            assertEquals(status == EventStatus.FINALIZED, result.primaryAction == null)
++        }
++
++        assertEquals(setOf("en", "fr", "de", "es", "it", "pt"), SUPPORTED_PRODUCT_LOCALES)
++        assertEquals("en", FALLBACK_PRODUCT_LOCALE)
++    }
++}

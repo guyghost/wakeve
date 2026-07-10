@@ -1,0 +1,1489 @@
+# Review package: 4a946db6..00372333
+
+## Commits
+00372333 fix(product-language): complete projection branches
+0cde7719 docs(product-language): model deterministic projections
+
+## Files changed
+ .superpowers/sdd/task-1-report.md       |   99 +++
+ models/product-language.inventory.json  | 1057 +++++++++++++++++++++++++++++++
+ models/product-language.machine.test.ts |   97 +++
+ models/product-language.machine.ts      |  154 +++++
+ models/product-language.review.md       |   37 ++
+ 5 files changed, 1444 insertions(+)
+
+## Diff
+diff --git a/.superpowers/sdd/task-1-report.md b/.superpowers/sdd/task-1-report.md
+new file mode 100644
+index 00000000..e2d11ce6
+--- /dev/null
++++ b/.superpowers/sdd/task-1-report.md
+@@ -0,0 +1,99 @@
++# Task 1 Report — Executable Projection Model and Review Matrix
++
++## Status
++
++DONE_WITH_CONCERNS
++
++Commit: `0cde7719` (`docs(product-language): model deterministic projections`)
++
++The deterministic product-language projection foundation is implemented and reviewed. No platform code, existing business transition, permission, route, persistence contract, analytics identifier, or domain status was changed.
++
++## Changes
++
++- Added `models/product-language.machine.ts` with the typed pure projection and XState v5 classifier.
++- Added `models/product-language.machine.test.ts` with the two exact behavioral tests from the brief.
++- Generated `models/product-language.inventory.json` using the exact deterministic command from the brief; it contains 263 sorted non-empty paths.
++- Added `models/product-language.review.md` with invariants, inventory disposition, and all ten required review cases.
++- Reviewed `openspec/changes/standardize-product-language/tasks.md`; no checkbox in 1.1–2.5 was changed because Task 1 does not prove the broader full-string/locale registry, notification/accessibility models, or cross-discipline reviews those items require.
++
++## TDD evidence
++
++### RED
++
++Command:
++
++`node --experimental-strip-types --test models/product-language.machine.test.ts`
++
++Result: exit 1; 2 tests executed, 0 passed, 2 failed. The failures were the expected behavioral assertions:
++
++- actual `unmodeled` versus expected `event.state.draft`;
++- actual machine state `ready` versus expected `pendingSync`.
++
++The neutral scaffold was limited to the exact compilable API described in the brief. There was no module-resolution or test-infrastructure failure.
++
++### GREEN
++
++Command:
++
++`node --experimental-strip-types --test models/product-language.machine.test.ts`
++
++Result: exit 0; 2 tests passed, 0 failed. Node emitted the existing package-level `MODULE_TYPELESS_PACKAGE_JSON` warning; changing package module configuration was outside Task 1.
++
++## Final verification
++
++- `node --experimental-strip-types --test models/product-language.machine.test.ts` — PASS, 2/2.
++- `openspec validate standardize-product-language --strict` — PASS, change valid.
++- `jq -e '.version == 1 and (.files | length > 0) and all(.files[]; (.path | length > 0) and (.category | length > 0))' models/product-language.inventory.json` — PASS.
++- `git diff --check` — PASS.
++
++## Files
++
++- `models/product-language.machine.ts`
++- `models/product-language.machine.test.ts`
++- `models/product-language.review.md`
++- `models/product-language.inventory.json`
++- `openspec/changes/standardize-product-language/tasks.md` reviewed, intentionally unchanged
++
++## Self-review
++
++- The projection preserves all six domain status identities.
++- Copy is represented by stable semantic keys, not literals used as state discriminators.
++- Offline local mutation is distinguished from shared confirmation.
++- Sync success recomputes from typed facts and removes only `LOCAL_MUTATION`.
++- The terminal branch is final and the tested terminal input has no action.
++- No LLM or free text can select a branch.
++- The implementation is exactly bounded to the brief's API and does not alter existing workflow machines.
++
++## Concerns
++
++- The exact inventory categorization command matches `AI` case-insensitively inside common path segments such as `main`, so many paths receive `ai-entry-point`. The inventory remains deterministic and complete as requested, but categories are discovery heuristics rather than semantic proof.
++- `SYNC_CONFLICT`, validation, cancellation, permission, AI failure/manual fallback, and long-text/accessibility rendering are reviewed as explicit gaps, not falsely claimed as implemented branches.
++- OpenSpec tasks 1.1–2.5 remain open because their acceptance criteria exceed the evidence produced by this bounded task.
++
++## Review-fix report — 2026-07-10
++
++Status: FIXED
++
++### RED evidence
++
++- Full focused suite after adding branch tests: exit 1; 11 tests executed, 2 passed and 9 failed by expected assertions for conflict, failure copy/retry, validation, cancellation, denied/restricted permission, terminal CTA suppression, and AI unavailable/rejected manual fallback.
++- Conflict transition test after initial GREEN: `--test-name-pattern='sync conflict names'` exited 1 by assertion (`sync.conflict` vs expected `sync.waiting`), proving resolution had not recomputed the projection.
++
++### GREEN evidence
++
++- Full focused suite after minimal implementation: exit 0; 11/11 passed.
++- Conflict-only suite after deterministic resolution action: exit 0; 1/1 passed.
++- Node continued to emit the existing `MODULE_TYPELESS_PACKAGE_JSON` warning; package-wide module configuration remains outside this bounded fix.
++
++### Fix scope
++
++- Added executable conflict, sync failure/retry, validation, cancellation, permission, terminal, and AI manual-fallback branches; domain status is immutable and no text/LLM input selects a transition.
++- Regenerated the 263-path inventory with semantic AI boundaries and verified distribution: AI 8, Android UI 53, delivery/Siri 36, gamification/profile 9, iOS UI 72, shared 85.
++- Updated the review matrix to state only executable evidence; long-text/accessibility and broader registry/locale/cross-discipline acceptance remain unproven, so OpenSpec tasks 1.1–2.5 remain unchecked.
++
++### Fresh final verification
++
++- Model suite: PASS, 11/11.
++- Inventory schema, six-category distribution, and source-count equality checks: PASS; 263/263 paths.
++- `openspec validate standardize-product-language --strict`: PASS.
++- `git diff --check`: PASS.
+diff --git a/models/product-language.inventory.json b/models/product-language.inventory.json
+new file mode 100644
+index 00000000..19e3c48b
+--- /dev/null
++++ b/models/product-language.inventory.json
+@@ -0,0 +1,1057 @@
++{
++  "version": 1,
++  "files": [
++    {
++      "path": "composeApp/src/androidMain/AndroidManifest.xml",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/App.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/deeplink/DeepLinkHandler.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/di/PlatformModule.android.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ExploreTabScreen.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/gamification/BadgeDismissReceiver.kt",
++      "category": "gamification-or-profile"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/InboxScreenWrapper.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/LoginScreen.android.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/LoginScreen.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/MainActivity.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/AuthCallbacks.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/Screen.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/ScreenWrappers.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/WakeveAdaptiveNavigationScaffold.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/WakeveBottomBar.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/WakeveNavHost.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/WakeveNavKey.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/notification/NotificationChannelManager.kt",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/notification/NotificationClickTarget.kt",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/notification/RichNotificationManager.kt",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/preview/factories/InboxItemFactory.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ProfileTabScreen.kt",
++      "category": "gamification-or-profile"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/security/AndroidSecureTokenStorage.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/service/FCMService.kt",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/SyncStatusIndicator.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/accommodation/AccommodationScreen.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/activity/ActivityDialogs.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/activity/ActivityPlanningScreen.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/auth/GetStartedScreen.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/budget/BudgetDetailScreen.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/budget/BudgetOverviewScreen.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/collaboration/CommentInput.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/collaboration/CommentItem.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/collaboration/CommentListScreen.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/comment/CommentFab.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/comment/CommentsScreen.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/components/TimeSlotInputAndroid.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/components/WakeveAsyncImage.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/components/WakeveAsyncImagePreview.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/equipment/EquipmentChecklistScreen.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/equipment/EquipmentDialogs.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/event/CalendarIntegrationCard.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/event/DraftEventWizard.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/event/ModernEventDetailView.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/inbox/InboxScreenPreview.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/invitation/InvitationShareScreen.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/meal/MealDialogs.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/meal/MealPlanningScreen.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/notification/NotificationPreferencesScreen.kt",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/notification/NotificationsScreen.kt",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/screens/AlbumsScreen.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/screens/SettingsScreen.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/sync/ConflictResolutionDialog.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/WakeveApplication.kt",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/res/values-de/strings.xml",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/res/values-en/strings.xml",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/res/values-es/strings.xml",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/res/values-it/strings.xml",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/res/values-pt/strings.xml",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/res/values/strings.xml",
++      "category": "android-ui"
++    },
++    {
++      "path": "composeApp/src/androidMain/res/xml/shortcuts.xml",
++      "category": "android-ui"
++    },
++    {
++      "path": "iosApp/src/Components/AddToCalendarButton.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Components/AIBadgeView.swift",
++      "category": "gamification-or-profile"
++    },
++    {
++      "path": "iosApp/src/Components/BackgroundPickerSheet.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Components/DesignSystem/BrandedContentPreviewComponents.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Components/DesignSystem/PremiumLiquidGlassComponents.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Components/DesignSystem/WakeveDesignSystemComponents.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Components/EventInfoSheet.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Components/EventWeatherMapCard.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Components/GlassBadge.swift",
++      "category": "gamification-or-profile"
++    },
++    {
++      "path": "iosApp/src/Components/InvitationShareSheet.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Components/LiquidGlassAnimations.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Components/LiquidGlassTextField.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Components/LocationSelectionSheet.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Components/SharedComponents.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Extensions/ViewExtensions.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/iOSApp.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Models/AISuggestionModels.swift",
++      "category": "ai-entry-point"
++    },
++    {
++      "path": "iosApp/src/Models/WakeveTab.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/PhotoPickerPermissionHandler.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Preview/Factories/InboxItemFactory.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Preview/Factories/ScenarioFactory.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Resources/en.lproj/Localizable.strings",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Resources/es.lproj/Localizable.strings",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Resources/fr.lproj/Localizable.strings",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Resources/it.lproj/Localizable.strings",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Resources/pt.lproj/Localizable.strings",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Services/APNsService.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Services/AppDelegate.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Services/AppleSignInHelper.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Services/AuthStateManager.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Services/IosNotificationRegistrationAdapter.swift",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "iosApp/src/Services/ModerationService.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Shared.framework/Headers/Shared.h",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Siri/WakeveSiriManager.swift",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "iosApp/src/Theme/DesignSystem.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Theme/LiquidGlassModifier.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Theme/SemanticColor.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/ViewModels/BudgetViewModel.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/ViewModels/CreateEventViewModel.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/ViewModels/EventDetailViewModel.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/ViewModels/EventPollStartController.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/ViewModels/ExploreViewModel.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/ViewModels/InboxViewModel.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/ViewModels/MeetingDetailViewModel.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/ViewModels/MeetingListViewModel.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/ViewModels/NotificationPreferencesViewModel.swift",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "iosApp/src/ViewModels/PollConfirmationViewModel.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/ViewModels/ProfileViewModel.swift",
++      "category": "gamification-or-profile"
++    },
++    {
++      "path": "iosApp/src/ViewModels/ScenarioDetailViewModel.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/ViewModels/ScenarioListViewModel.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/ViewModels/TransportPlanningViewModel.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Views/App/ContentView.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Views/Auth/LoginView.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Views/Auth/OnboardingView.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Views/Budget/AddBudgetItemSheet.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Views/Budget/BudgetDetailView.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Views/Budget/BudgetItemRow.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Views/Budget/BudgetOverviewView.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Views/Collaboration/CommentItemView.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Views/Collaboration/CommentListView.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Views/EventDetailExperienceView.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Views/Events/CreateEventSheet.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Views/Events/EventSecondaryRouteViews.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Views/Events/HomeView.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Views/Events/MealPlanningSheets.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Views/Events/ParticipantManagementView.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Views/Events/ScenarioOrganizationView.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Views/Events/TransportPlanningView.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Views/Explore/ExploreScenarioDetailView.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Views/Explore/ExploreTabView.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Views/Explore/LeaderboardView.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Views/Inbox/InboxDetailView.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Views/Inbox/InboxView.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Views/Meeting/MeetingDetailView.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Views/Meeting/MeetingGenerateLinkSheet.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Views/Meeting/MeetingListView.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Views/Moderation/ModerationActionSheet.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Views/Notifications/NotificationPreferencesView.swift",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "iosApp/src/Views/Polls/PollResultsView.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Views/Polls/PollVotingView.swift",
++      "category": "ios-ui"
++    },
++    {
++      "path": "iosApp/src/Views/Profile/ProfileTabView.swift",
++      "category": "gamification-or-profile"
++    },
++    {
++      "path": "iosApp/src/WakeveAI/WakeveAIModels.swift",
++      "category": "ai-entry-point"
++    },
++    {
++      "path": "iosApp/src/WakeveAI/WakeveAIValidation.swift",
++      "category": "ai-entry-point"
++    },
++    {
++      "path": "server/src/main/kotlin/com/guyghost/wakeve/Application.kt",
++      "category": "shared"
++    },
++    {
++      "path": "server/src/main/kotlin/com/guyghost/wakeve/auth/AuthenticationService.kt",
++      "category": "shared"
++    },
++    {
++      "path": "server/src/main/kotlin/com/guyghost/wakeve/i18n/ServerLocalization.kt",
++      "category": "shared"
++    },
++    {
++      "path": "server/src/main/kotlin/com/guyghost/wakeve/models/EquipmentDTOs.kt",
++      "category": "shared"
++    },
++    {
++      "path": "server/src/main/kotlin/com/guyghost/wakeve/notification/APNsProductionContracts.kt",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "server/src/main/kotlin/com/guyghost/wakeve/notification/EventNotificationTrigger.kt",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "server/src/main/kotlin/com/guyghost/wakeve/notification/NotificationScheduler.kt",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "server/src/main/kotlin/com/guyghost/wakeve/notification/PushNotificationSender.kt",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "server/src/main/kotlin/com/guyghost/wakeve/notification/SqliteBackendNotificationDeliveryStore.kt",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "server/src/main/kotlin/com/guyghost/wakeve/routes/AnalyticsRoutes.kt",
++      "category": "shared"
++    },
++    {
++      "path": "server/src/main/kotlin/com/guyghost/wakeve/routes/AuthRoutes.kt",
++      "category": "shared"
++    },
++    {
++      "path": "server/src/main/kotlin/com/guyghost/wakeve/routes/BudgetRoutes.kt",
++      "category": "shared"
++    },
++    {
++      "path": "server/src/main/kotlin/com/guyghost/wakeve/routes/CalendarRoutes.kt",
++      "category": "shared"
++    },
++    {
++      "path": "server/src/main/kotlin/com/guyghost/wakeve/routes/CommentRoutes.kt",
++      "category": "shared"
++    },
++    {
++      "path": "server/src/main/kotlin/com/guyghost/wakeve/routes/EquipmentRoutes.kt",
++      "category": "shared"
++    },
++    {
++      "path": "server/src/main/kotlin/com/guyghost/wakeve/routes/EventRoutes.kt",
++      "category": "shared"
++    },
++    {
++      "path": "server/src/main/kotlin/com/guyghost/wakeve/routes/InvitationRoutes.kt",
++      "category": "shared"
++    },
++    {
++      "path": "server/src/main/kotlin/com/guyghost/wakeve/routes/MealRoutes.kt",
++      "category": "shared"
++    },
++    {
++      "path": "server/src/main/kotlin/com/guyghost/wakeve/routes/ModerationRouteGuards.kt",
++      "category": "shared"
++    },
++    {
++      "path": "server/src/main/kotlin/com/guyghost/wakeve/routes/NotificationRoutes.kt",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "server/src/main/kotlin/com/guyghost/wakeve/routes/ParticipantRoutes.kt",
++      "category": "shared"
++    },
++    {
++      "path": "server/src/main/kotlin/com/guyghost/wakeve/routes/PotentialLocationRoutes.kt",
++      "category": "shared"
++    },
++    {
++      "path": "server/src/main/kotlin/com/guyghost/wakeve/routes/ScenarioRoutes.kt",
++      "category": "shared"
++    },
++    {
++      "path": "server/src/main/kotlin/com/guyghost/wakeve/routes/TransportRoutes.kt",
++      "category": "shared"
++    },
++    {
++      "path": "server/src/main/kotlin/com/guyghost/wakeve/routes/VoteRoutes.kt",
++      "category": "shared"
++    },
++    {
++      "path": "server/src/main/kotlin/com/guyghost/wakeve/routing/ChatService.kt",
++      "category": "shared"
++    },
++    {
++      "path": "server/src/main/kotlin/com/guyghost/wakeve/routing/ChatWebSocket.kt",
++      "category": "shared"
++    },
++    {
++      "path": "server/src/main/resources/META-INF/services/com.guyghost.wakeve.notification.BackendNotificationDeliveryStoreFactory",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/activity/ActivityManager.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/activity/ActivityRepository.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/ai/AiInteractionMetadata.kt",
++      "category": "ai-entry-point"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/ai/AndroidAiWorkflows.kt",
++      "category": "ai-entry-point"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/analytics/AnalyticsEvent.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/analytics/AnalyticsQueue.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/auth/AuthStateManager.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/auth/core/logic/validateOTP.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/auth/core/validation/AuthValidators.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/auth/SessionManager.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/auth/SessionRepository.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/auth/shell/services/EmailAuthService.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/auth/shell/services/GuestModeService.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/budget/BudgetCalculator.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/budget/BudgetRepository.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/collaboration/MentionParser.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/comment/CommentNotificationRetryService.kt",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/comment/CommentNotificationService.kt",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/comment/CommentRepository.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/deeplink/DeepLink.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/deeplink/DeepLinkFactory.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/equipment/EquipmentManager.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/gamification/BadgeAssets.kt",
++      "category": "gamification-or-profile"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/gamification/BadgeNotificationService.kt",
++      "category": "gamification-or-profile"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/meal/MealPlanner.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/meeting/MeetingService.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/ml/DefaultSharingSuggestionService.kt",
++      "category": "ai-entry-point"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/models/Album.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/models/AlbumModels.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/models/ApiModels.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/models/BadgeModels.kt",
++      "category": "gamification-or-profile"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/models/CommentModels.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/models/EquipmentModels.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/models/InboxModels.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/models/NotificationModels.kt",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/models/ScenarioModels.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/models/TransportModels.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/models/UserModels.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/AdvancedNotificationScheduler.kt",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/NotificationCategory.kt",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/NotificationDeepLinkIntegration.kt",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/NotificationDeliveryPolicy.kt",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/NotificationPreferences.kt",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/NotificationPreferencesRepository.kt",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/NotificationPriority.kt",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/NotificationRequest.kt",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/NotificationScheduler.kt",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/NotificationScheduleValidation.kt",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/NotificationService.kt",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/NotificationServiceInterface.kt",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/NotificationTypes.kt",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/RichNotification.kt",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/RichNotificationService.kt",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/organization/EventOrganizationReadinessRepository.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/Platform.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/state/EventManagementContract.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/state/MeetingManagementContract.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/state/ScenarioManagementContract.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/statemachine/MeetingServiceStateMachine.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/statemachine/ScenarioManagementStateMachine.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/usecase/CreateScenarioUseCase.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/usecase/DeleteScenarioUseCase.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/usecase/GenerateMeetingLinkUseCase.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/usecase/LoadScenariosUseCase.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/usecase/UpdateScenarioUseCase.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/usecase/VoteScenarioUseCase.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/repository/AlbumRepository.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/repository/DatabaseEventRepository.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/repository/EventRepository.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/repository/ScenarioRepository.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/repository/UserPreferencesRepository.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/repository/UserRepository.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/sample/SampleEventFactory.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/scenario/ScenarioMatrixGenerationService.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/services/PhotoRecognitionService.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/services/SmartSharingService.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/services/VoiceAssistantServiceImpl.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/suggestions/DatabaseSuggestionPreferencesRepository.kt",
++      "category": "ai-entry-point"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/suggestions/RecommendationEngine.kt",
++      "category": "ai-entry-point"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/transport/TransportRepository.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/voice/handlers/VoiceActionHandlers.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/weather/EventWeatherModels.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/weather/EventWeatherService.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/kotlin/com/guyghost/wakeve/weather/ScenarioEventWeatherRepository.kt",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/resources/README.md",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/sqldelight/com/guyghost/wakeve/Activity.sq",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/sqldelight/com/guyghost/wakeve/Album.sq",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/sqldelight/com/guyghost/wakeve/Notification.sq",
++      "category": "delivery-or-siri"
++    },
++    {
++      "path": "shared/src/commonMain/sqldelight/com/guyghost/wakeve/Scenario.sq",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/sqldelight/com/guyghost/wakeve/ScenarioVote.sq",
++      "category": "shared"
++    },
++    {
++      "path": "shared/src/commonMain/sqldelight/com/guyghost/wakeve/User.sq",
++      "category": "shared"
++    }
++  ]
++}
+diff --git a/models/product-language.machine.test.ts b/models/product-language.machine.test.ts
+new file mode 100644
+index 00000000..9b50b938
+--- /dev/null
++++ b/models/product-language.machine.test.ts
+@@ -0,0 +1,97 @@
++import assert from 'node:assert/strict'
++import test from 'node:test'
++import { createActor } from 'xstate'
++import { productLanguageMachine, projectProductLanguage } from './product-language.machine.ts'
++
++const statuses = [
++  ['DRAFT', 'event.state.draft'], ['POLLING', 'event.state.polling'],
++  ['COMPARING', 'event.state.comparing'], ['CONFIRMED', 'event.state.confirmed'],
++  ['ORGANIZING', 'event.state.organizing'], ['FINALIZED', 'event.state.finalized'],
++] as const
++
++test('machine projects every domain status without changing its identity', () => {
++  for (const [status, titleKey] of statuses) {
++    const actor = createActor(productLanguageMachine, { input: { status, role: 'ORGANIZER', pendingFacts: [], allowedAction: status === 'FINALIZED' ? null : 'EDIT' } }).start()
++    assert.equal(actor.getSnapshot().value, status === 'FINALIZED' ? 'terminal' : 'ready')
++    assert.equal(actor.getSnapshot().context.projection.titleKey, titleKey)
++    assert.equal(actor.getSnapshot().context.projection.domainStatus, status)
++  }
++})
++
++test('offline mutation enters pendingSync and retry recomputes deterministically', () => {
++  const input = { status: 'CONFIRMED', role: 'ORGANIZER', pendingFacts: ['LOCAL_MUTATION'], allowedAction: 'RETRY_SYNC' } as const
++  const actor = createActor(productLanguageMachine, { input }).start()
++  assert.equal(actor.getSnapshot().value, 'pendingSync')
++  assert.deepEqual(projectProductLanguage(input), { domainStatus: 'CONFIRMED', titleKey: 'event.state.confirmed', statusKey: 'sync.waiting', detailKey: null, primaryActionKey: 'sync.retry', secondaryActionKey: null, sharedConfirmation: false })
++  actor.send({ type: 'SYNC_SUCCEEDED' })
++  assert.equal(actor.getSnapshot().value, 'ready')
++})
++
++test('sync conflict names affected data and offers deterministic resolution', () => {
++  const input = { status: 'CONFIRMED', role: 'ORGANIZER', pendingFacts: ['SYNC_CONFLICT'], allowedAction: 'RESOLVE_CONFLICT' } as const
++  const actor = createActor(productLanguageMachine, { input }).start()
++  assert.equal(actor.getSnapshot().value, 'syncConflict')
++  assert.deepEqual(actor.getSnapshot().context.projection, {
++    domainStatus: 'CONFIRMED', titleKey: 'event.state.confirmed', statusKey: 'sync.conflict',
++    detailKey: 'sync.conflict.event-details', primaryActionKey: 'sync.resolve', secondaryActionKey: 'sync.retry', sharedConfirmation: false,
++  })
++  actor.send({ type: 'RESOLVE_CONFLICT' })
++  assert.equal(actor.getSnapshot().value, 'pendingSync')
++  assert.equal(actor.getSnapshot().context.projection.statusKey, 'sync.waiting')
++})
++
++test('sync failure exposes retry and only retry can restart synchronization', () => {
++  const input = { status: 'CONFIRMED', role: 'ORGANIZER', pendingFacts: ['LOCAL_MUTATION'], allowedAction: 'RETRY_SYNC' } as const
++  const actor = createActor(productLanguageMachine, { input }).start()
++  actor.send({ type: 'SYNC_FAILED' })
++  assert.equal(actor.getSnapshot().value, 'syncFailed')
++  assert.equal(actor.getSnapshot().context.projection.statusKey, 'sync.failed')
++  assert.equal(actor.getSnapshot().context.projection.primaryActionKey, 'sync.retry')
++  actor.send({ type: 'SYNC_SUCCEEDED' })
++  assert.equal(actor.getSnapshot().value, 'syncFailed')
++  actor.send({ type: 'RETRY_SYNC' })
++  assert.equal(actor.getSnapshot().value, 'pendingSync')
++})
++
++test('validation failure is explicit and preserves domain status', () => {
++  const input = { status: 'DRAFT', role: 'ORGANIZER', pendingFacts: [], allowedAction: 'EDIT', validation: 'INVALID_FIELD' } as const
++  const actor = createActor(productLanguageMachine, { input }).start()
++  assert.equal(actor.getSnapshot().value, 'validationError')
++  assert.equal(actor.getSnapshot().context.projection.statusKey, 'validation.invalid-field')
++  assert.equal(actor.getSnapshot().context.projection.domainStatus, 'DRAFT')
++})
++
++test('cancelled operation never projects persistence or success', () => {
++  const input = { status: 'ORGANIZING', role: 'ORGANIZER', pendingFacts: [], allowedAction: null, cancellation: 'CANCELLED' } as const
++  const actor = createActor(productLanguageMachine, { input }).start()
++  assert.equal(actor.getSnapshot().value, 'cancelled')
++  assert.equal(actor.getSnapshot().context.projection.statusKey, 'operation.cancelled')
++  assert.equal(actor.getSnapshot().context.projection.sharedConfirmation, false)
++})
++
++for (const permission of ['DENIED', 'RESTRICTED'] as const) {
++  test(`permission ${permission.toLowerCase()} names impact and recovery`, () => {
++    const input = { status: 'CONFIRMED', role: 'PARTICIPANT', pendingFacts: [], allowedAction: 'OPEN_SETTINGS', permission } as const
++    const actor = createActor(productLanguageMachine, { input }).start()
++    assert.equal(actor.getSnapshot().value, 'permissionBlocked')
++    assert.equal(actor.getSnapshot().context.projection.statusKey, `permission.${permission.toLowerCase()}`)
++    assert.equal(actor.getSnapshot().context.projection.detailKey, 'permission.impact.event-update')
++    assert.equal(actor.getSnapshot().context.projection.primaryActionKey, 'permission.open-settings')
++  })
++}
++
++test('terminal state suppresses caller-provided editing action', () => {
++  const projection = projectProductLanguage({ status: 'FINALIZED', role: 'ORGANIZER', pendingFacts: [], allowedAction: 'EDIT' })
++  assert.equal(projection.primaryActionKey, null)
++})
++
++for (const aiOutcome of ['UNAVAILABLE', 'REJECTED'] as const) {
++  test(`AI ${aiOutcome.toLowerCase()} keeps manual path without state transition`, () => {
++    const input = { status: 'COMPARING', role: 'ORGANIZER', pendingFacts: [], allowedAction: 'CONTINUE_MANUALLY', aiOutcome } as const
++    const actor = createActor(productLanguageMachine, { input }).start()
++    assert.equal(actor.getSnapshot().value, 'manualFallback')
++    assert.equal(actor.getSnapshot().context.projection.statusKey, `ai.${aiOutcome.toLowerCase()}`)
++    assert.equal(actor.getSnapshot().context.projection.primaryActionKey, 'ai.continue-manually')
++    assert.equal(actor.getSnapshot().context.projection.domainStatus, 'COMPARING')
++  })
++}
+diff --git a/models/product-language.machine.ts b/models/product-language.machine.ts
+new file mode 100644
+index 00000000..7c636df3
+--- /dev/null
++++ b/models/product-language.machine.ts
+@@ -0,0 +1,154 @@
++import { assign, setup } from 'xstate'
++
++export type EventStatus = 'DRAFT' | 'POLLING' | 'COMPARING' | 'CONFIRMED' | 'ORGANIZING' | 'FINALIZED'
++export type AllowedAction = 'EDIT' | 'RETRY_SYNC' | 'RESOLVE_CONFLICT' | 'OPEN_SETTINGS' | 'CONTINUE_MANUALLY' | null
++export type ProjectionInput = {
++  status: EventStatus
++  role: 'ORGANIZER' | 'PARTICIPANT'
++  pendingFacts: readonly ('LOCAL_MUTATION' | 'SYNC_CONFLICT')[]
++  allowedAction: AllowedAction
++  validation?: 'INVALID_FIELD'
++  cancellation?: 'CANCELLED'
++  permission?: 'DENIED' | 'RESTRICTED'
++  aiOutcome?: 'UNAVAILABLE' | 'REJECTED'
++}
++export type ProjectionOutput = {
++  domainStatus: EventStatus
++  titleKey: string
++  statusKey: string | null
++  detailKey: string | null
++  primaryActionKey: string | null
++  secondaryActionKey: string | null
++  sharedConfirmation: boolean
++}
++
++const titleKeys: Record<EventStatus, string> = {
++  DRAFT: 'event.state.draft',
++  POLLING: 'event.state.polling',
++  COMPARING: 'event.state.comparing',
++  CONFIRMED: 'event.state.confirmed',
++  ORGANIZING: 'event.state.organizing',
++  FINALIZED: 'event.state.finalized',
++}
++
++export function projectProductLanguage(input: ProjectionInput): ProjectionOutput {
++  const hasConflict = input.pendingFacts.includes('SYNC_CONFLICT')
++  const pendingSync = input.pendingFacts.includes('LOCAL_MUTATION')
++  let statusKey: string | null = null
++  let detailKey: string | null = null
++  let primaryActionKey: string | null = null
++  let secondaryActionKey: string | null = null
++
++  if (input.status === 'FINALIZED') {
++    // Terminal projection always wins over stale caller actions.
++  } else if (hasConflict) {
++    statusKey = 'sync.conflict'
++    detailKey = 'sync.conflict.event-details'
++    primaryActionKey = 'sync.resolve'
++    secondaryActionKey = 'sync.retry'
++  } else if (input.permission) {
++    statusKey = `permission.${input.permission.toLowerCase()}`
++    detailKey = 'permission.impact.event-update'
++    primaryActionKey = input.allowedAction === 'OPEN_SETTINGS' ? 'permission.open-settings' : null
++  } else if (input.validation) {
++    statusKey = 'validation.invalid-field'
++    primaryActionKey = input.allowedAction === 'EDIT' ? 'event.action.continue' : null
++  } else if (input.cancellation) {
++    statusKey = 'operation.cancelled'
++  } else if (input.aiOutcome) {
++    statusKey = `ai.${input.aiOutcome.toLowerCase()}`
++    primaryActionKey = input.allowedAction === 'CONTINUE_MANUALLY' ? 'ai.continue-manually' : null
++  } else if (pendingSync) {
++    statusKey = 'sync.waiting'
++    primaryActionKey = input.allowedAction === 'RETRY_SYNC' ? 'sync.retry' : null
++  } else if (input.allowedAction === 'EDIT') {
++    primaryActionKey = 'event.action.continue'
++  }
++
++  return {
++    domainStatus: input.status,
++    titleKey: titleKeys[input.status],
++    statusKey,
++    detailKey,
++    primaryActionKey,
++    secondaryActionKey,
++    sharedConfirmation: !pendingSync && !hasConflict && !input.cancellation,
++  }
++}
++
++export const productLanguageMachine = setup({
++  types: {
++    context: {} as { input: ProjectionInput; projection: ProjectionOutput },
++    input: {} as ProjectionInput,
++    events: {} as
++      | { type: 'SYNC_SUCCEEDED' }
++      | { type: 'SYNC_FAILED' }
++      | { type: 'RETRY_SYNC' }
++      | { type: 'RESOLVE_CONFLICT' },
++  },
++  guards: {
++    isTerminal: ({ context }) => context.input.status === 'FINALIZED',
++    hasConflict: ({ context }) => context.input.pendingFacts.includes('SYNC_CONFLICT'),
++    hasPermissionBlock: ({ context }) => context.input.permission !== undefined,
++    hasValidationError: ({ context }) => context.input.validation !== undefined,
++    wasCancelled: ({ context }) => context.input.cancellation !== undefined,
++    needsManualFallback: ({ context }) => context.input.aiOutcome !== undefined,
++    hasPendingSync: ({ context }) => context.input.pendingFacts.includes('LOCAL_MUTATION'),
++  },
++  actions: {
++    markSynced: assign(({ context }) => {
++      const input = {
++        ...context.input,
++        pendingFacts: context.input.pendingFacts.filter(fact => fact !== 'LOCAL_MUTATION'),
++        allowedAction: 'EDIT' as const,
++      }
++      return { input, projection: projectProductLanguage(input) }
++    }),
++    markSyncFailed: assign(({ context }) => ({
++      projection: { ...context.projection, statusKey: 'sync.failed', primaryActionKey: 'sync.retry', sharedConfirmation: false },
++    })),
++    markRetrying: assign(({ context }) => ({
++      projection: { ...context.projection, statusKey: 'sync.waiting', primaryActionKey: 'sync.retry', sharedConfirmation: false },
++    })),
++    beginConflictResolution: assign(({ context }) => {
++      const input = {
++        ...context.input,
++        pendingFacts: ['LOCAL_MUTATION'] as const,
++        allowedAction: 'RETRY_SYNC' as const,
++      }
++      return { input, projection: projectProductLanguage(input) }
++    }),
++  },
++}).createMachine({
++  id: 'productLanguage',
++  context: ({ input }) => ({ input, projection: projectProductLanguage(input) }),
++  initial: 'classify',
++  states: {
++    classify: {
++      always: [
++        { guard: 'isTerminal', target: 'terminal' },
++        { guard: 'hasConflict', target: 'syncConflict' },
++        { guard: 'hasPermissionBlock', target: 'permissionBlocked' },
++        { guard: 'hasValidationError', target: 'validationError' },
++        { guard: 'wasCancelled', target: 'cancelled' },
++        { guard: 'needsManualFallback', target: 'manualFallback' },
++        { guard: 'hasPendingSync', target: 'pendingSync' },
++        { target: 'ready' },
++      ],
++    },
++    ready: {},
++    pendingSync: { on: { SYNC_SUCCEEDED: { target: 'ready', actions: 'markSynced' }, SYNC_FAILED: { target: 'syncFailed', actions: 'markSyncFailed' } } },
++    syncFailed: { on: { RETRY_SYNC: { target: 'pendingSync', actions: 'markRetrying' } } },
++    syncConflict: {
++      on: {
++        RESOLVE_CONFLICT: { target: 'pendingSync', actions: 'beginConflictResolution' },
++        RETRY_SYNC: { target: 'pendingSync', actions: 'beginConflictResolution' },
++      },
++    },
++    validationError: {},
++    cancelled: {},
++    permissionBlocked: {},
++    manualFallback: {},
++    terminal: { type: 'final' },
++  },
++})
+diff --git a/models/product-language.review.md b/models/product-language.review.md
+new file mode 100644
+index 00000000..4674bda7
+--- /dev/null
++++ b/models/product-language.review.md
+@@ -0,0 +1,37 @@
++# Product Language Projection Review
++
++## Scope and inventory review
++
++Task 1 models presentation language as a deterministic projection. It does not modify a domain status, permission, route, persistence contract, analytics identifier, or existing workflow transition. `projectProductLanguage` consumes typed facts and an allowed action; it never consumes free text or generated content.
++
++The generated inventory contains 263 non-empty, sorted paths. Path exhaustiveness and semantic category validation are separate checks: the first retains every regex-matched file, while the second asserts all six expected categories are non-empty and prevents the AI bucket from absorbing `main` paths. The resulting distribution is AI 8, Android UI 53, delivery/Siri 36, gamification/profile 9, iOS UI 72, and shared 85. Categories remain discovery aids, not proof that every string in a file has the category's role. String-level and locale-completeness audits remain later OpenSpec work.
++
++## Projection invariants
++
++- `domainStatus` is returned unchanged for all six `EventStatus` values.
++- Stable title keys are selected only from `EventStatus`.
++- A `LOCAL_MUTATION` projects `sync.waiting`, prevents shared confirmation, and selects `sync.retry` only when retry is allowed.
++- `SYNC_FAILED` changes the projection to `sync.failed`; only explicit `RETRY_SYNC` returns to pending synchronization. External success is ignored while failed.
++- `SYNC_CONFLICT` projects the affected event-details key, prevents shared confirmation, and offers deterministic resolve/retry actions.
++- Validation, cancellation, denied/restricted permission, and unavailable/rejected AI outcomes have typed executable branches without changing `domainStatus`.
++- `FINALIZED` reaches a terminal state and suppresses editing even if the caller provides it.
++- No free text, copy, generated content, or LLM output is accepted as an input or event discriminator.
++
++## Required review matrix
++
++| Case | Task 1 evidence | Review result |
++|---|---|---|
++| Nominal success | All six statuses map to stable title keys while preserving identity. | Accepted for status projection. Result-specific explanations remain later registry work. |
++| Validation error | Typed `INVALID_FIELD` enters `validationError`, preserves status, and projects a correction key. | Accepted by executable test. |
++| Cancellation | Typed cancellation enters `cancelled`, projects no success/persistence action, and clears shared confirmation. | Accepted by executable test. |
++| Retry | Failure projects `sync.failed`; `SYNC_SUCCEEDED` is ignored there and only `RETRY_SYNC` restarts pending synchronization. | Accepted by executable test. |
++| Permission denied/restricted | Both facts enter `permissionBlocked`, name the event-update impact, and expose settings only when allowed. | Accepted by two executable tests. |
++| Offline | `LOCAL_MUTATION` enters `pendingSync`, projects `sync.waiting`, and sets `sharedConfirmation` to false. | Accepted. |
++| Sync conflict | Conflict enters `syncConflict`, identifies affected event details, blocks shared confirmation, and exposes resolve/retry. | Accepted by executable test. |
++| Terminal state | `FINALIZED` enters final `terminal` and suppresses a stale caller-provided edit CTA. | Accepted by executable test. |
++| AI unavailable/rejected | Both typed outcomes enter `manualFallback`, preserve status, and expose a manual path; no AI event can transition domain state. | Accepted by two executable tests. |
++| Long text/accessibility | Output is semantic keys, not rendered copy. | Not proven by Task 1; remains platform implementation and verification work. |
++
++## Review decision
++
++Accepted for the executable projection branches listed above. This does not prove the broader OpenSpec checklist items 1.1–2.5: full string and locale coverage, notification/accessibility models, glossary review, product-excellence review, and cross-discipline approvals are absent. Their checkboxes remain open.

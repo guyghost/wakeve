@@ -1,0 +1,265 @@
+# Review package: 2582e029..c2dca407
+
+## Commits
+c2dca407 test(product-language): add release audit foundation
+
+## Files changed
+ scripts/audit-product-language.sh            |  27 +++++++
+ scripts/lib/audit_product_language.rb        | 104 +++++++++++++++++++++++++++
+ scripts/product-language-allowlist.txt       |   2 +
+ scripts/test-critical-release-gates.sh       |  10 +++
+ scripts/tests/audit-product-language-test.sh |  38 ++++++++++
+ 5 files changed, 181 insertions(+)
+
+## Diff
+diff --git a/scripts/audit-product-language.sh b/scripts/audit-product-language.sh
+new file mode 100755
+index 00000000..eecdabdf
+--- /dev/null
++++ b/scripts/audit-product-language.sh
+@@ -0,0 +1,27 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++root="."
++mode="all"
++while (($#)); do
++    case "$1" in
++        --fixture-root)
++            root="${2:?missing fixture root}"
++            shift 2
++            ;;
++        --catalogs-only)
++            mode="catalogs"
++            shift
++            ;;
++        --forbidden-terms-only)
++            mode="terms"
++            shift
++            ;;
++        *)
++            echo "unknown argument: $1" >&2
++            exit 64
++            ;;
++    esac
++done
++
++exec ruby scripts/lib/audit_product_language.rb "$root" "$mode"
+diff --git a/scripts/lib/audit_product_language.rb b/scripts/lib/audit_product_language.rb
+new file mode 100755
+index 00000000..6f1440c4
+--- /dev/null
++++ b/scripts/lib/audit_product_language.rb
+@@ -0,0 +1,104 @@
++#!/usr/bin/env ruby
++
++require 'set'
++
++root, mode = ARGV
++abort 'usage: audit_product_language.rb ROOT MODE' unless root && %w[all catalogs terms].include?(mode)
++
++locales = %w[en fr de es it pt]
++findings = []
++fixture = File.directory?(File.join(root, 'android'))
++allowlist_path = File.join(root, 'scripts/product-language-allowlist.txt')
++allowlist = if File.file?(allowlist_path)
++              File.readlines(allowlist_path, chomp: true)
++                  .reject { |line| line.empty? || line.start_with?('#') }
++                  .to_set
++            else
++              Set.new
++            end
++forbidden = /Wakeve AI|\bSc[eé]nario(?:s)?\b|\bScenario(?:s)?\b|\bInbox\b|\bGenerate\b|\bGénérer\b|Party Animal|Social Butterfly|Chatterbox|Event Master|Maître du vote/i
++
++android_paths = locales.to_h do |locale|
++  directory = locale == 'en' ? 'values' : "values-#{locale}"
++  base = fixture ? 'android' : 'composeApp/src/androidMain/res'
++  [locale, File.join(root, base, directory, 'strings.xml')]
++end
++
++ios_paths = if fixture
++              {}
++            else
++              locales.to_h do |locale|
++                [locale, File.join(root, "iosApp/src/Resources/#{locale}.lproj/Localizable.strings")]
++              end
++            end
++siri_paths = if fixture
++               {}
++             else
++               locales.to_h do |locale|
++                 [locale, File.join(root, "iosApp/src/Siri/#{locale}.lproj/SiriIntents.strings")]
++               end
++             end
++
++def android_entries(path)
++  return {} unless File.file?(path)
++
++  File.read(path)
++      .scan(/<(?:string|plurals|string-array)\b[^>]*\bname="([^"]+)"[^>]*>(.*?)<\/(?:string|plurals|string-array)>/m)
++      .to_h
++      .transform_values { |value| value.gsub(/<[^>]+>/, ' ').gsub(/\s+/, ' ').strip }
++end
++
++def apple_entries(path)
++  return {} unless File.file?(path)
++
++  File.read(path).scan(/^\s*"((?:\\.|[^"])*)"\s*=\s*"((?:\\.|[^"])*)"\s*;/).to_h
++end
++
++catalogs = {
++  'android' => android_paths.transform_values { |path| android_entries(path) },
++  'ios' => ios_paths.transform_values { |path| apple_entries(path) },
++  'siri' => siri_paths.transform_values { |path| apple_entries(path) }
++}
++paths = { 'android' => android_paths, 'ios' => ios_paths, 'siri' => siri_paths }
++
++if %w[all catalogs].include?(mode)
++  catalogs.each do |platform, entries_by_locale|
++    next if entries_by_locale.empty?
++
++    base_keys = entries_by_locale.fetch('en').keys.to_set
++    locales.each do |locale|
++      path = paths.fetch(platform).fetch(locale)
++      findings << "#{platform} #{locale}: missing file #{path}" unless File.file?(path)
++      keys = entries_by_locale.fetch(locale, {}).keys.to_set
++      (base_keys - keys).sort.each { |key| findings << "#{platform} #{locale}: missing #{key}" }
++      (keys - base_keys).sort.each { |key| findings << "#{platform} #{locale}: extra #{key}" }
++    end
++  end
++end
++
++if %w[all terms].include?(mode)
++  catalogs.each do |platform, entries_by_locale|
++    entries_by_locale.each do |locale, entries|
++      entries.each do |key, value|
++        identity = "#{platform}/#{locale}:#{key}"
++        findings << "#{identity}: forbidden visible term" if value.match?(forbidden) && !allowlist.include?(identity)
++      end
++    end
++  end
++
++  source_globs = ['composeApp/src/androidMain/**/*.kt', 'iosApp/src/**/*.swift']
++  source_globs.flat_map { |glob| Dir.glob(File.join(root, glob)) }.sort.each do |path|
++    next if path.include?('/Preview') || path.include?('/Tests/')
++
++    File.readlines(path, chomp: true).each_with_index do |line, index|
++      relative = path.delete_prefix("#{root}/")
++      identity = "#{relative}:#{index + 1}"
++      findings << "#{identity}: forbidden visible term" if line.match?(forbidden) && !allowlist.include?(identity)
++      literal = line.match?(/(?:Text|Button|accessibilityLabel|contentDescription)\s*[=(]\s*"[^"\\]+"/)
++      findings << "#{identity}: production literal" if literal && !allowlist.include?(identity)
++    end
++  end
++end
++
++puts findings.uniq.sort
++exit findings.empty? ? 0 : 1
+diff --git a/scripts/product-language-allowlist.txt b/scripts/product-language-allowlist.txt
+new file mode 100644
+index 00000000..9fb0e5c6
+--- /dev/null
++++ b/scripts/product-language-allowlist.txt
+@@ -0,0 +1,2 @@
++# Exact identities only: relative/path:line or platform/locale:key.
++# No active exemptions.
+diff --git a/scripts/test-critical-release-gates.sh b/scripts/test-critical-release-gates.sh
+index 5d197c75..0ca7bd1b 100755
+--- a/scripts/test-critical-release-gates.sh
++++ b/scripts/test-critical-release-gates.sh
+@@ -8,20 +8,28 @@ set -euo pipefail
+ 
+ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+ 
+ run() {
+     echo
+     echo "+ $*"
+     "$@"
+ }
+ 
++run_gate() {
++    local label="$1"
++    shift
++    echo
++    echo "+ $label"
++    "$@"
++}
++
+ assert_generated_report_is_commit_safe() {
+     local report="$1"
+     local label="$2"
+ 
+     if LC_ALL=C grep -q $'\r' "$report"; then
+         echo "FAIL: $label report contains carriage returns" >&2
+         exit 1
+     fi
+ 
+     if grep -nE '[[:blank:]]+$' "$report"; then
+@@ -857,20 +865,22 @@ run openspec validate --all --strict
+ run ./scripts/test-app-store-ugc-gates.sh
+ 
+ run ./scripts/test-ios-kmp-event-export-contract.sh
+ 
+ run ./scripts/test-ios-calendar-permission-contract.sh
+ 
+ run ./scripts/test-ios-release-signing-team-contract.sh
+ 
+ run ./scripts/test-ios-poll-confirmation-architecture.sh
+ 
++run_gate "product language" scripts/audit-product-language.sh
++
+ assert_no_sensitive_server_logs
+ assert_no_android_release_local_backend_defaults
+ assert_android_compose_hygiene
+ assert_android_home_workspace_user_copy
+ assert_android_event_workspace_harness
+ assert_report_sanitizer_is_shared
+ assert_android_event_workspace_device_audit_helper
+ assert_android_build_hygiene
+ assert_android_resource_defaults
+ assert_release_performance_harness
+diff --git a/scripts/tests/audit-product-language-test.sh b/scripts/tests/audit-product-language-test.sh
+new file mode 100755
+index 00000000..c3d1034b
+--- /dev/null
++++ b/scripts/tests/audit-product-language-test.sh
+@@ -0,0 +1,38 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++tmp="$(mktemp -d)"
++trap 'rm -rf "$tmp"' EXIT
++
++for locale in en fr de es it pt; do
++    dir="values-$locale"
++    [[ "$locale" == en ]] && dir="values"
++    mkdir -p "$tmp/android/$dir"
++    printf '<resources><string name="tab_ideas">Ideas</string></resources>' > "$tmp/android/$dir/strings.xml"
++done
++mkdir -p "$tmp/composeApp/src/androidMain/kotlin/example"
++
++expect_failure() {
++    local expected="$1"
++    shift
++    local output
++    if output="$("$@" 2>&1)"; then
++        echo "expected failure containing: $expected" >&2
++        exit 1
++    fi
++    grep -Fq "$expected" <<<"$output"
++}
++
++sed -i '' 's/name="tab_ideas"/name="other"/' "$tmp/android/values-fr/strings.xml"
++expect_failure 'android fr: missing tab_ideas' scripts/audit-product-language.sh --fixture-root "$tmp" --catalogs-only
++cp "$tmp/android/values/strings.xml" "$tmp/android/values-fr/strings.xml"
++
++sed -i '' 's/>Ideas</>Wakeve AI</' "$tmp/android/values-de/strings.xml"
++expect_failure 'android/de:tab_ideas: forbidden visible term' scripts/audit-product-language.sh --fixture-root "$tmp" --forbidden-terms-only
++cp "$tmp/android/values/strings.xml" "$tmp/android/values-de/strings.xml"
++
++printf 'fun Example() { Text("Inbox") }\n' > "$tmp/composeApp/src/androidMain/kotlin/example/Example.kt"
++expect_failure 'composeApp/src/androidMain/kotlin/example/Example.kt:1: production literal' scripts/audit-product-language.sh --fixture-root "$tmp" --forbidden-terms-only
++rm "$tmp/composeApp/src/androidMain/kotlin/example/Example.kt"
++
++scripts/audit-product-language.sh --fixture-root "$tmp"

@@ -1,0 +1,2665 @@
+# Review package: 6673d15f..afb8995d
+
+## Commits
+afb8995d fix(android): expose meal card actions separately
+1cfa9568 fix(android): harden meal localization semantics
+d1916d75 feat(android): localize meal planning screen
+aea1aa10 feat(android): localize meal dialogs
+
+## Files changed
+ .superpowers/sdd/task-5d-findings.md               |  33 ++++
+ .../wakeve/ui/meal/MealCardSemanticsTest.kt        |  88 +++++++++
+ .../com/guyghost/wakeve/ui/meal/MealDialogs.kt     | 217 ++++++++++++---------
+ .../guyghost/wakeve/ui/meal/MealPlanningScreen.kt  | 164 +++++++++++-----
+ .../src/androidMain/res/values-de/strings.xml      | 110 ++++++++++-
+ .../src/androidMain/res/values-en/strings.xml      | 110 ++++++++++-
+ .../src/androidMain/res/values-es/strings.xml      | 110 ++++++++++-
+ .../src/androidMain/res/values-it/strings.xml      | 110 ++++++++++-
+ .../src/androidMain/res/values-pt/strings.xml      | 110 ++++++++++-
+ composeApp/src/androidMain/res/values/strings.xml  | 110 ++++++++++-
+ .../AndroidProductLanguageBatch4Test.kt            | 211 ++++++++++++++++++++
+ 11 files changed, 1229 insertions(+), 144 deletions(-)
+
+## Diff
+diff --git a/.superpowers/sdd/task-5d-findings.md b/.superpowers/sdd/task-5d-findings.md
+new file mode 100644
+index 00000000..b15a0f09
+--- /dev/null
++++ b/.superpowers/sdd/task-5d-findings.md
+@@ -0,0 +1,33 @@
++# Task 5D Batch 4 Meal Dialogs Report
++
++Base: `6673d15f`
++
++## Model and review
++
++- Preserved meal/restriction domain enums, validation branches, repository calls, request construction, dismissal, deletion, and generation behavior.
++- Modeled localization as a presentation projection only: domain values remain stable and resource keys supply visible labels, validation feedback, formats, and accessibility descriptions.
++- Reviewed add/edit, generated-plan preview, dietary restriction empty/list/add/delete, invalid input, cancellation, and terminal save/generate paths.
++- Action semantics identify action, target, and selected state for type, status, restriction, and deletion controls.
++
++## TDD and implementation
++
++- Added partitioned `AndroidProductLanguageBatch4Test` contracts for `MealDialogs.kt` and `MealPlanningScreen.kt`.
++- RED proved both partitions contained direct/indirect visible literals and that dialogs lacked target/state semantic resources.
++- GREEN migrated `MealDialogs.kt` fields, hints, dates, times, locations, people, costs, notes, validations, confirmations, enum projections, preview formatting, and actions to Android resources.
++- Added six-locale catalogs, placeholder parity checks, and an anti-copy guard with an exact reviewed format/identifier cognate set.
++
++## Verification
++
++- Dialog-only Batch 4 source, semantics, catalog parity and anti-copy tests pass.
++- Android production Kotlin compilation passes.
++- Full Batch 4 remains intentionally RED only on `mealPlanningScreenUsesResourcesForEveryVisibleLiteral`; this is the next micro-lot.
++- `git diff --check` passes.
++
++## Batch 4 MealPlanningScreen completion
++
++Base: `aea1aa10`
++
++- Migrated the screen title, navigation, empty state, filters, summary, delete confirmation, meal cards, comments, constraints, costs, counts, servings, status/type projections, and locale-aware date headings to Android resources.
++- Added action-target-state semantics for constraints, preparation, comments, adding, type/status filters, opening a named meal with its status, and deleting a named meal.
++- Added natural French, English, German, Spanish, Italian, and Portuguese catalogs with plural and positional-placeholder parity.
++- Preserved repository operations, filtering, dialog behavior, generated-plan behavior, and meal state rules.
+diff --git a/composeApp/src/androidInstrumentedTest/kotlin/com/guyghost/wakeve/ui/meal/MealCardSemanticsTest.kt b/composeApp/src/androidInstrumentedTest/kotlin/com/guyghost/wakeve/ui/meal/MealCardSemanticsTest.kt
+new file mode 100644
+index 00000000..fac9ccc0
+--- /dev/null
++++ b/composeApp/src/androidInstrumentedTest/kotlin/com/guyghost/wakeve/ui/meal/MealCardSemanticsTest.kt
+@@ -0,0 +1,88 @@
++package com.guyghost.wakeve.ui.meal
++
++import android.content.Intent
++import androidx.activity.compose.setContent
++import androidx.compose.material3.MaterialTheme
++import androidx.compose.ui.test.assertCountEquals
++import androidx.compose.ui.test.hasClickAction
++import androidx.compose.ui.test.hasContentDescription
++import androidx.compose.ui.test.junit4.createEmptyComposeRule
++import androidx.test.core.app.ActivityScenario
++import androidx.test.ext.junit.runners.AndroidJUnit4
++import androidx.test.platform.app.InstrumentationRegistry
++import com.guyghost.wakeve.R
++import com.guyghost.wakeve.models.Meal
++import com.guyghost.wakeve.models.MealStatus
++import com.guyghost.wakeve.models.MealType
++import com.guyghost.wakeve.ui.event.ComposeTestHostActivity
++import org.junit.After
++import org.junit.Rule
++import org.junit.Test
++import org.junit.runner.RunWith
++import kotlin.test.assertNotEquals
++
++@RunWith(AndroidJUnit4::class)
++class MealCardSemanticsTest {
++
++    @get:Rule
++    val composeTestRule = createEmptyComposeRule()
++
++    private val scenarios = mutableListOf<ActivityScenario<ComposeTestHostActivity>>()
++
++    @After
++    fun tearDown() {
++        scenarios.forEach { it.close() }
++        scenarios.clear()
++    }
++
++    @Test
++    fun mealCard_exposesOneLocalizedClickableActionForOpenAndDelete() {
++        val context = InstrumentationRegistry.getInstrumentation().targetContext
++        val mealName = "Dîner du samedi"
++        val openLabel = context.getString(
++            R.string.a11y_meal_open,
++            mealName,
++            context.getString(R.string.meal_status_planned)
++        )
++        val deleteLabel = context.getString(R.string.a11y_meal_delete, mealName)
++        assertNotEquals(openLabel, deleteLabel)
++
++        val intent = Intent().setClassName(
++            "com.guyghost.wakeve",
++            ComposeTestHostActivity::class.java.name
++        )
++        val scenario = ActivityScenario.launch<ComposeTestHostActivity>(intent)
++        scenarios += scenario
++        scenario.onActivity { activity ->
++            activity.setContent {
++                MaterialTheme {
++                    MealCard(
++                        meal = Meal(
++                            id = "meal-1",
++                            eventId = "event-1",
++                            type = MealType.DINNER,
++                            name = mealName,
++                            date = "2026-07-11",
++                            time = "19:00",
++                            responsibleParticipantIds = emptyList(),
++                            estimatedCost = 12_500,
++                            servings = 8,
++                            status = MealStatus.PLANNED,
++                            createdAt = "2026-07-10T10:00:00Z",
++                            updatedAt = "2026-07-10T10:00:00Z"
++                        ),
++                        onClick = {},
++                        onDeleteClick = {}
++                    )
++                }
++            }
++        }
++
++        composeTestRule
++            .onAllNodes(hasClickAction() and hasContentDescription(openLabel), useUnmergedTree = true)
++            .assertCountEquals(1)
++        composeTestRule
++            .onAllNodes(hasClickAction() and hasContentDescription(deleteLabel), useUnmergedTree = true)
++            .assertCountEquals(1)
++    }
++}
+diff --git a/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/meal/MealDialogs.kt b/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/meal/MealDialogs.kt
+index 0078bf39..149f8192 100644
+--- a/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/meal/MealDialogs.kt
++++ b/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/meal/MealDialogs.kt
+@@ -27,22 +27,26 @@ import androidx.compose.material3.MaterialTheme
+ import androidx.compose.material3.OutlinedTextField
+ import androidx.compose.material3.Text
+ import androidx.compose.material3.TextButton
+ import androidx.compose.runtime.Composable
+ import androidx.compose.runtime.getValue
+ import androidx.compose.runtime.mutableStateOf
+ import androidx.compose.runtime.remember
+ import androidx.compose.runtime.setValue
+ import androidx.compose.ui.Alignment
+ import androidx.compose.ui.Modifier
++import androidx.compose.ui.res.stringResource
++import androidx.compose.ui.semantics.contentDescription
++import androidx.compose.ui.semantics.clearAndSetSemantics
+ import androidx.compose.ui.text.input.KeyboardType
+ import androidx.compose.ui.unit.dp
++import com.guyghost.wakeve.R
+ import com.guyghost.wakeve.meal.MealRepository
+ import com.guyghost.wakeve.models.AutoMealPlanRequest
+ import com.guyghost.wakeve.models.DietaryRestriction
+ import com.guyghost.wakeve.models.DietaryRestrictionRequest
+ import com.guyghost.wakeve.models.Meal
+ import com.guyghost.wakeve.models.MealRequest
+ import com.guyghost.wakeve.models.MealStatus
+ import com.guyghost.wakeve.models.MealType
+ import com.guyghost.wakeve.models.ParticipantDietaryRestriction
+ import java.time.LocalDate
+@@ -51,191 +55,208 @@ import java.time.LocalDate
+  * Dialog for adding/editing a meal
+  */
+ @OptIn(ExperimentalMaterial3Api::class)
+ @Composable
+ fun AddEditMealDialog(
+     meal: Meal?,
+     eventId: String,
+     onDismiss: () -> Unit,
+     onSave: (MealRequest) -> Unit
+ ) {
++    val requiredName = stringResource(R.string.meal_error_name_required)
++    val requiredDate = stringResource(R.string.meal_error_date_required)
++    val requiredTime = stringResource(R.string.meal_error_time_required)
++    val invalidServings = stringResource(R.string.meal_error_people_invalid)
++    val invalidEstimatedCost = stringResource(R.string.meal_error_estimated_cost_invalid)
+     var selectedType by remember { mutableStateOf(meal?.type ?: MealType.DINNER) }
+     var name by remember { mutableStateOf(meal?.name ?: "") }
+     var date by remember { mutableStateOf(meal?.date ?: LocalDate.now().toString()) }
+     var time by remember { mutableStateOf(meal?.time ?: "19:00") }
+     var location by remember { mutableStateOf(meal?.location ?: "") }
+     var estimatedCost by remember { mutableStateOf((meal?.estimatedCost ?: 0L).toString()) }
+     var actualCost by remember { mutableStateOf((meal?.actualCost ?: 0L).toString()) }
+     var servings by remember { mutableStateOf((meal?.servings ?: 4).toString()) }
+     var selectedStatus by remember { mutableStateOf(meal?.status ?: MealStatus.PLANNED) }
+     var notes by remember { mutableStateOf(meal?.notes ?: "") }
+     var errorMessage by remember { mutableStateOf<String?>(null) }
+     
+     AlertDialog(
+         onDismissRequest = onDismiss,
+-        title = { Text(if (meal == null) "Ajouter un repas" else "Modifier le repas") },
++        title = { Text(stringResource(if (meal == null) R.string.meal_add_title else R.string.meal_edit_title)) },
+         text = {
+             LazyColumn(
+                 verticalArrangement = Arrangement.spacedBy(12.dp),
+                 modifier = Modifier.fillMaxWidth()
+             ) {
+                 // Type selector
+                 item {
+                     Text(
+-                        "Type de repas",
++                        stringResource(R.string.meal_type_label),
+                         style = MaterialTheme.typography.labelMedium
+                     )
+                     Row(
+                         modifier = Modifier.fillMaxWidth(),
+                         horizontalArrangement = Arrangement.spacedBy(8.dp)
+                     ) {
+                         MealType.entries.take(3).forEach { type ->
++                            val typeLabel = getMealTypeLabel(type)
++                            val selectedState = stringResource(if (selectedType == type) R.string.meal_selected_state else R.string.meal_unselected_state)
++                            val typeDescription = stringResource(R.string.a11y_meal_type_selection, typeLabel, selectedState)
+                             FilterChip(
++                                modifier = Modifier.clearAndSetSemantics { contentDescription = typeDescription },
+                                 selected = selectedType == type,
+                                 onClick = { selectedType = type },
+-                                label = { Text(getMealTypeLabel(type)) }
++                                label = { Text(typeLabel) }
+                             )
+                         }
+                     }
+                     Row(
+                         modifier = Modifier.fillMaxWidth(),
+                         horizontalArrangement = Arrangement.spacedBy(8.dp)
+                     ) {
+                         MealType.entries.drop(3).forEach { type ->
++                            val typeLabel = getMealTypeLabel(type)
++                            val selectedState = stringResource(if (selectedType == type) R.string.meal_selected_state else R.string.meal_unselected_state)
++                            val typeDescription = stringResource(R.string.a11y_meal_type_selection, typeLabel, selectedState)
+                             FilterChip(
++                                modifier = Modifier.clearAndSetSemantics { contentDescription = typeDescription },
+                                 selected = selectedType == type,
+                                 onClick = { selectedType = type },
+-                                label = { Text(getMealTypeLabel(type)) }
++                                label = { Text(typeLabel) }
+                             )
+                         }
+                     }
+                 }
+                 
+                 // Name
+                 item {
+                     OutlinedTextField(
+                         value = name,
+                         onValueChange = { name = it },
+-                        label = { Text("Nom du repas") },
+-                        placeholder = { Text("Ex: Barbecue du samedi soir") },
++                        label = { Text(stringResource(R.string.meal_name_label)) },
++                        placeholder = { Text(stringResource(R.string.meal_name_placeholder)) },
+                         modifier = Modifier.fillMaxWidth(),
+                         singleLine = true
+                     )
+                 }
+                 
+                 // Date
+                 item {
+                     OutlinedTextField(
+                         value = date,
+                         onValueChange = { date = it },
+-                        label = { Text("Date (YYYY-MM-DD)") },
+-                        placeholder = { Text("2025-12-25") },
++                        label = { Text(stringResource(R.string.meal_date_label)) },
++                        placeholder = { Text(stringResource(R.string.meal_date_placeholder)) },
+                         modifier = Modifier.fillMaxWidth(),
+                         singleLine = true
+                     )
+                 }
+                 
+                 // Time
+                 item {
+                     OutlinedTextField(
+                         value = time,
+                         onValueChange = { time = it },
+-                        label = { Text("Heure (HH:MM)") },
+-                        placeholder = { Text("19:00") },
++                        label = { Text(stringResource(R.string.meal_time_label)) },
++                        placeholder = { Text(stringResource(R.string.meal_time_placeholder)) },
+                         modifier = Modifier.fillMaxWidth(),
+                         singleLine = true
+                     )
+                 }
+                 
+                 // Location (optional)
+                 item {
+                     OutlinedTextField(
+                         value = location,
+                         onValueChange = { location = it },
+-                        label = { Text("Lieu (optionnel)") },
+-                        placeholder = { Text("Restaurant, maison, etc.") },
++                        label = { Text(stringResource(R.string.meal_location_label)) },
++                        placeholder = { Text(stringResource(R.string.meal_location_placeholder)) },
+                         modifier = Modifier.fillMaxWidth(),
+                         singleLine = true
+                     )
+                 }
+                 
+                 // Servings
+                 item {
+                     OutlinedTextField(
+                         value = servings,
+                         onValueChange = { servings = it },
+-                        label = { Text("Nombre de personnes") },
+-                        placeholder = { Text("4") },
++                        label = { Text(stringResource(R.string.meal_people_label)) },
++                        placeholder = { Text(stringResource(R.string.meal_people_placeholder)) },
+                         modifier = Modifier.fillMaxWidth(),
+                         singleLine = true,
+                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                     )
+                 }
+                 
+                 // Estimated cost
+                 item {
+                     OutlinedTextField(
+                         value = estimatedCost,
+                         onValueChange = { estimatedCost = it },
+-                        label = { Text("Coût estimé (centimes)") },
+-                        placeholder = { Text("2000 = 20€") },
++                        label = { Text(stringResource(R.string.meal_estimated_cost_label)) },
++                        placeholder = { Text(stringResource(R.string.meal_estimated_cost_placeholder)) },
+                         modifier = Modifier.fillMaxWidth(),
+                         singleLine = true,
+                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                         supportingText = { 
+-                            Text("${estimatedCost.toLongOrNull()?.div(100.0) ?: 0.0}€") 
++                            Text(stringResource(R.string.meal_currency_amount, estimatedCost.toLongOrNull()?.div(100.0) ?: 0.0))
+                         }
+                     )
+                 }
+                 
+                 // Actual cost (optional)
+                 item {
+                     OutlinedTextField(
+                         value = actualCost,
+                         onValueChange = { actualCost = it },
+-                        label = { Text("Coût réel (optionnel, en centimes)") },
+-                        placeholder = { Text("2150") },
++                        label = { Text(stringResource(R.string.meal_actual_cost_label)) },
++                        placeholder = { Text(stringResource(R.string.meal_actual_cost_placeholder)) },
+                         modifier = Modifier.fillMaxWidth(),
+                         singleLine = true,
+                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                         supportingText = { 
+-                            Text("${actualCost.toLongOrNull()?.div(100.0) ?: 0.0}€") 
++                            Text(stringResource(R.string.meal_currency_amount, actualCost.toLongOrNull()?.div(100.0) ?: 0.0))
+                         }
+                     )
+                 }
+                 
+                 // Status selector
+                 item {
+                     Text(
+-                        "Statut",
++                        stringResource(R.string.meal_status_label),
+                         style = MaterialTheme.typography.labelMedium
+                     )
+                     Column(
+                         verticalArrangement = Arrangement.spacedBy(4.dp)
+                     ) {
+                         MealStatus.entries.forEach { status ->
++                            val statusLabel = getMealStatusLabel(status)
++                            val selectedState = stringResource(if (selectedStatus == status) R.string.meal_selected_state else R.string.meal_unselected_state)
++                            val statusDescription = stringResource(R.string.a11y_meal_status_selection, statusLabel, selectedState)
+                             FilterChip(
++                                modifier = Modifier.clearAndSetSemantics { contentDescription = statusDescription },
+                                 selected = selectedStatus == status,
+                                 onClick = { selectedStatus = status },
+-                                label = { Text(getMealStatusLabel(status)) }
++                                label = { Text(statusLabel) }
+                             )
+                         }
+                     }
+                 }
+                 
+                 // Notes (optional)
+                 item {
+                     OutlinedTextField(
+                         value = notes,
+                         onValueChange = { notes = it },
+-                        label = { Text("Notes (optionnel)") },
+-                        placeholder = { Text("Menu, préparation, etc.") },
++                        label = { Text(stringResource(R.string.meal_notes_label)) },
++                        placeholder = { Text(stringResource(R.string.meal_notes_placeholder)) },
+                         modifier = Modifier.fillMaxWidth(),
+                         minLines = 2,
+                         maxLines = 4
+                     )
+                 }
+                 
+                 // Error message
+                 errorMessage?.let { error ->
+                     item {
+                         Text(
+@@ -249,172 +270,181 @@ fun AddEditMealDialog(
+         },
+         confirmButton = {
+             TextButton(
+                 onClick = {
+                     // Validate
+                     val servingsInt = servings.toIntOrNull()
+                     val estimatedCostLong = estimatedCost.toLongOrNull()
+                     val actualCostLong = actualCost.toLongOrNull()
+                     
+                     when {
+-                        name.isBlank() -> errorMessage = "Le nom est requis"
+-                        date.isBlank() -> errorMessage = "La date est requise"
+-                        time.isBlank() -> errorMessage = "L'heure est requise"
+-                        servingsInt == null || servingsInt <= 0 -> errorMessage = "Nombre de personnes invalide"
+-                        estimatedCostLong == null || estimatedCostLong < 0 -> errorMessage = "Coût estimé invalide"
++                        name.isBlank() -> errorMessage = requiredName
++                        date.isBlank() -> errorMessage = requiredDate
++                        time.isBlank() -> errorMessage = requiredTime
++                        servingsInt == null || servingsInt <= 0 -> errorMessage = invalidServings
++                        estimatedCostLong == null || estimatedCostLong < 0 -> errorMessage = invalidEstimatedCost
+                         else -> {
+                             val request = MealRequest(
+                                 eventId = eventId,
+                                 type = selectedType,
+                                 name = name.trim(),
+                                 date = date.trim(),
+                                 time = time.trim(),
+                                 location = location.trim().ifBlank { null },
+                                 responsibleParticipantIds = emptyList(), // TODO: Add participant selector
+                                 estimatedCost = estimatedCostLong,
+                                 actualCost = actualCostLong,
+                                 servings = servingsInt,
+                                 status = selectedStatus,
+                                 notes = notes.trim().ifBlank { null }
+                             )
+                             onSave(request)
+                         }
+                     }
+                 }
+             ) {
+-                Text(if (meal == null) "Ajouter" else "Enregistrer")
++                Text(stringResource(if (meal == null) R.string.meal_action_add else R.string.meal_action_save))
+             }
+         },
+         dismissButton = {
+             TextButton(onClick = onDismiss) {
+-                Text("Annuler")
++                Text(stringResource(R.string.meal_action_cancel))
+             }
+         }
+     )
+ }
+ 
+ /**
+  * Dialog for auto-generating meals
+  */
+ @Composable
+ fun AutoGenerateMealsDialog(
+     eventId: String,
+     onDismiss: () -> Unit,
+     onGenerate: (AutoMealPlanRequest) -> Unit
+ ) {
++    val requiredStartDate = stringResource(R.string.meal_error_start_date_required)
++    val requiredEndDate = stringResource(R.string.meal_error_end_date_required)
++    val invalidParticipants = stringResource(R.string.meal_error_participants_invalid)
++    val invalidCost = stringResource(R.string.meal_error_cost_invalid)
++    val requiredType = stringResource(R.string.meal_error_type_required)
+     var startDate by remember { mutableStateOf(LocalDate.now().toString()) }
+     var endDate by remember { mutableStateOf(LocalDate.now().plusDays(3).toString()) }
+     var participantCount by remember { mutableStateOf("4") }
+     var costPerMeal by remember { mutableStateOf("1500") } // 15€ per person
+     var selectedTypes by remember { mutableStateOf(setOf(MealType.BREAKFAST, MealType.LUNCH, MealType.DINNER)) }
+     var errorMessage by remember { mutableStateOf<String?>(null) }
+     
+     AlertDialog(
+         onDismissRequest = onDismiss,
+-        title = { Text("Préparer un plan de repas") },
++        title = { Text(stringResource(R.string.meal_generate_title)) },
+         text = {
+             Column(
+                 verticalArrangement = Arrangement.spacedBy(12.dp),
+                 modifier = Modifier.fillMaxWidth()
+             ) {
+                 // Start date
+                 OutlinedTextField(
+                     value = startDate,
+                     onValueChange = { startDate = it },
+-                    label = { Text("Date de début") },
+-                    placeholder = { Text("2025-12-25") },
++                    label = { Text(stringResource(R.string.meal_start_date_label)) },
++                    placeholder = { Text(stringResource(R.string.meal_start_date_placeholder)) },
+                     modifier = Modifier.fillMaxWidth(),
+                     singleLine = true
+                 )
+                 
+                 // End date
+                 OutlinedTextField(
+                     value = endDate,
+                     onValueChange = { endDate = it },
+-                    label = { Text("Date de fin") },
+-                    placeholder = { Text("2025-12-28") },
++                    label = { Text(stringResource(R.string.meal_end_date_label)) },
++                    placeholder = { Text(stringResource(R.string.meal_end_date_placeholder)) },
+                     modifier = Modifier.fillMaxWidth(),
+                     singleLine = true
+                 )
+                 
+                 // Participant count
+                 OutlinedTextField(
+                     value = participantCount,
+                     onValueChange = { participantCount = it },
+-                    label = { Text("Nombre de participants") },
+-                    placeholder = { Text("4") },
++                    label = { Text(stringResource(R.string.meal_participant_count_label)) },
++                    placeholder = { Text(stringResource(R.string.meal_people_placeholder)) },
+                     modifier = Modifier.fillMaxWidth(),
+                     singleLine = true,
+                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                 )
+                 
+                 // Cost per meal per person
+                 OutlinedTextField(
+                     value = costPerMeal,
+                     onValueChange = { costPerMeal = it },
+-                    label = { Text("Coût par repas/personne (centimes)") },
+-                    placeholder = { Text("1500 = 15€") },
++                    label = { Text(stringResource(R.string.meal_cost_per_person_label)) },
++                    placeholder = { Text(stringResource(R.string.meal_cost_per_person_placeholder)) },
+                     modifier = Modifier.fillMaxWidth(),
+                     singleLine = true,
+                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                     supportingText = { 
+-                        Text("${costPerMeal.toLongOrNull()?.div(100.0) ?: 0.0}€ par personne") 
++                        Text(stringResource(R.string.meal_cost_per_person_value, costPerMeal.toLongOrNull()?.div(100.0) ?: 0.0))
+                     }
+                 )
+                 
+                 // Meal types to include
+                 Text(
+-                    "Types de repas à générer",
++                    stringResource(R.string.meal_types_to_generate),
+                     style = MaterialTheme.typography.labelMedium
+                 )
+                 
+                 MealType.entries.forEach { type ->
++                    val typeLabel = getMealTypeLabel(type)
++                    val selectedState = stringResource(if (selectedTypes.contains(type)) R.string.meal_selected_state else R.string.meal_unselected_state)
++                    val typeDescription = stringResource(R.string.a11y_meal_type_selection, typeLabel, selectedState)
+                     Row(
+                         verticalAlignment = Alignment.CenterVertically,
+                         horizontalArrangement = Arrangement.spacedBy(8.dp)
+                     ) {
+                         Checkbox(
++                            modifier = Modifier.clearAndSetSemantics { contentDescription = typeDescription },
+                             checked = selectedTypes.contains(type),
+                             onCheckedChange = { checked ->
+                                 selectedTypes = if (checked) {
+                                     selectedTypes + type
+                                 } else {
+                                     selectedTypes - type
+                                 }
+                             }
+                         )
+-                        Text(getMealTypeLabel(type))
++                        Text(typeLabel)
+                     }
+                 }
+                 
+                 // Preview
+                 if (selectedTypes.isNotEmpty()) {
+                     val days = try {
+                         val start = LocalDate.parse(startDate)
+                         val end = LocalDate.parse(endDate)
+                         java.time.temporal.ChronoUnit.DAYS.between(start, end).toInt() + 1
+                     } catch (e: Exception) {
+                         0
+                     }
+                     
+                     if (days > 0) {
+                         val totalMeals = days * selectedTypes.size
+                         val totalCost = totalMeals * (costPerMeal.toLongOrNull() ?: 0L) * (participantCount.toIntOrNull() ?: 0)
+                         
+                         HorizontalDivider()
+                         
+                         Text(
+-                            "Aperçu",
++                            stringResource(R.string.meal_preview_title),
+                             style = MaterialTheme.typography.labelMedium
+                         )
+                         Text(
+-                            "• $days jour(s)\n• $totalMeals repas au total\n• Coût total estimé: ${totalCost / 100.0}€",
++                            stringResource(R.string.meal_preview_summary, days, totalMeals, totalCost / 100.0),
+                             style = MaterialTheme.typography.bodySmall,
+                             color = MaterialTheme.colorScheme.onSurfaceVariant
+                         )
+                     }
+                 }
+                 
+                 // Error message
+                 errorMessage?.let { error ->
+                     Text(
+                         error,
+@@ -424,45 +454,45 @@ fun AutoGenerateMealsDialog(
+                 }
+             }
+         },
+         confirmButton = {
+             TextButton(
+                 onClick = {
+                     val participantCountInt = participantCount.toIntOrNull()
+                     val costPerMealLong = costPerMeal.toLongOrNull()
+                     
+                     when {
+-                        startDate.isBlank() -> errorMessage = "Date de début requise"
+-                        endDate.isBlank() -> errorMessage = "Date de fin requise"
+-                        participantCountInt == null || participantCountInt <= 0 -> errorMessage = "Nombre de participants invalide"
+-                        costPerMealLong == null || costPerMealLong <= 0 -> errorMessage = "Coût invalide"
+-                        selectedTypes.isEmpty() -> errorMessage = "Sélectionnez au moins un type de repas"
++                        startDate.isBlank() -> errorMessage = requiredStartDate
++                        endDate.isBlank() -> errorMessage = requiredEndDate
++                        participantCountInt == null || participantCountInt <= 0 -> errorMessage = invalidParticipants
++                        costPerMealLong == null || costPerMealLong <= 0 -> errorMessage = invalidCost
++                        selectedTypes.isEmpty() -> errorMessage = requiredType
+                         else -> {
+                             val request = AutoMealPlanRequest(
+                                 eventId = eventId,
+                                 startDate = startDate.trim(),
+                                 endDate = endDate.trim(),
+                                 participantCount = participantCountInt,
+                                 includeMealTypes = selectedTypes.toList(),
+                                 estimatedCostPerMeal = costPerMealLong
+                             )
+                             onGenerate(request)
+                         }
+                     }
+                 }
+             ) {
+-                Text("Préparer")
++                Text(stringResource(R.string.meal_action_generate))
+             }
+         },
+         dismissButton = {
+             TextButton(onClick = onDismiss) {
+-                Text("Annuler")
++                Text(stringResource(R.string.meal_action_cancel))
+             }
+         }
+     )
+ }
+ 
+ /**
+  * Dialog for managing dietary restrictions
+  */
+ @OptIn(ExperimentalMaterial3Api::class)
+ @Composable
+@@ -470,236 +500,247 @@ fun DietaryRestrictionsDialog(
+     eventId: String,
+     restrictions: List<ParticipantDietaryRestriction>,
+     mealRepository: MealRepository,
+     onDismiss: () -> Unit
+ ) {
+     var showAddDialog by remember { mutableStateOf(false) }
+     var restrictionToDelete by remember { mutableStateOf<ParticipantDietaryRestriction?>(null) }
+     
+     AlertDialog(
+         onDismissRequest = onDismiss,
+-        title = { Text("Contraintes alimentaires") },
++        title = { Text(stringResource(R.string.meal_restrictions_title)) },
+         text = {
+             Column(
+                 modifier = Modifier.fillMaxWidth(),
+                 verticalArrangement = Arrangement.spacedBy(8.dp)
+             ) {
+                 if (restrictions.isEmpty()) {
+                     Text(
+-                        "Aucune contrainte alimentaire enregistrée",
++                        stringResource(R.string.meal_restrictions_empty),
+                         style = MaterialTheme.typography.bodyMedium,
+                         color = MaterialTheme.colorScheme.onSurfaceVariant
+                     )
+                 } else {
+                     LazyColumn(
+                         modifier = Modifier.fillMaxWidth(),
+                         verticalArrangement = Arrangement.spacedBy(8.dp)
+                     ) {
+                         items(restrictions) { restriction ->
++                            val restrictionLabel = getDietaryRestrictionLabel(restriction.restriction)
++                            val deleteDescription = stringResource(R.string.a11y_meal_delete_restriction, restrictionLabel, restriction.participantId)
+                             Card(
+                                 modifier = Modifier.fillMaxWidth()
+                             ) {
+                                 Row(
+                                     modifier = Modifier
+                                         .fillMaxWidth()
+                                         .padding(12.dp),
+                                     horizontalArrangement = Arrangement.SpaceBetween,
+                                     verticalAlignment = Alignment.CenterVertically
+                                 ) {
+                                     Column(
+                                         modifier = Modifier.weight(1f)
+                                     ) {
+                                         Text(
+-                                            getDietaryRestrictionLabel(restriction.restriction),
++                                            restrictionLabel,
+                                             style = MaterialTheme.typography.bodyMedium,
+                                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                         )
+                                         Text(
+-                                            "Participant: ${restriction.participantId}",
++                                            stringResource(R.string.meal_participant_value, restriction.participantId),
+                                             style = MaterialTheme.typography.bodySmall,
+                                             color = MaterialTheme.colorScheme.onSurfaceVariant
+                                         )
+                                         restriction.notes?.let { notes ->
+                                             Text(
+                                                 notes,
+                                                 style = MaterialTheme.typography.bodySmall,
+                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
+                                             )
+                                         }
+                                     }
+                                     
+-                                    IconButton(onClick = { restrictionToDelete = restriction }) {
++                                    IconButton(
++                                        onClick = { restrictionToDelete = restriction },
++                                        modifier = Modifier.clearAndSetSemantics { contentDescription = deleteDescription }
++                                    ) {
+                                         Icon(
+                                             Icons.Default.Delete,
+-                                            contentDescription = "Supprimer",
++                                            contentDescription = null,
+                                             tint = MaterialTheme.colorScheme.error
+                                         )
+                                     }
+                                 }
+                             }
+                         }
+                     }
+                 }
+                 
+                 Button(
+                     onClick = { showAddDialog = true },
+                     modifier = Modifier.fillMaxWidth()
+                 ) {
+                     Icon(Icons.Default.Add, contentDescription = null)
+                     Spacer(Modifier.width(8.dp))
+-                    Text("Ajouter une contrainte")
++                    Text(stringResource(R.string.meal_add_restriction_action))
+                 }
+             }
+         },
+         confirmButton = {
+             TextButton(onClick = onDismiss) {
+-                Text("Fermer")
++                Text(stringResource(R.string.meal_action_close))
+             }
+         }
+     )
+     
+     // Add restriction dialog
+     if (showAddDialog) {
+         AddDietaryRestrictionDialog(
+             eventId = eventId,
+             onDismiss = { showAddDialog = false },
+             onAdd = { request ->
+                 mealRepository.addDietaryRestriction(request)
+                 showAddDialog = false
+             }
+         )
+     }
+     
+     // Delete confirmation
+     restrictionToDelete?.let { restriction ->
+         AlertDialog(
+             onDismissRequest = { restrictionToDelete = null },
+-            title = { Text("Supprimer la contrainte ?") },
+-            text = { Text("Voulez-vous vraiment supprimer cette contrainte alimentaire ?") },
++            title = { Text(stringResource(R.string.meal_delete_restriction_title)) },
++            text = { Text(stringResource(R.string.meal_delete_restriction_message, getDietaryRestrictionLabel(restriction.restriction), restriction.participantId)) },
+             confirmButton = {
+                 TextButton(
+                     onClick = {
+                         mealRepository.deleteDietaryRestriction(restriction.id)
+                         restrictionToDelete = null
+                     },
+                     colors = ButtonDefaults.textButtonColors(
+                         contentColor = MaterialTheme.colorScheme.error
+                     )
+                 ) {
+-                    Text("Supprimer")
++                    Text(stringResource(R.string.meal_action_delete))
+                 }
+             },
+             dismissButton = {
+                 TextButton(onClick = { restrictionToDelete = null }) {
+-                    Text("Annuler")
++                    Text(stringResource(R.string.meal_action_cancel))
+                 }
+             }
+         )
+     }
+ }
+ 
+ /**
+  * Dialog for adding a dietary restriction
+  */
+ @Composable
+ fun AddDietaryRestrictionDialog(
+     eventId: String,
+     onDismiss: () -> Unit,
+     onAdd: (DietaryRestrictionRequest) -> Unit
+ ) {
++    val participantRequired = stringResource(R.string.meal_error_participant_required)
+     var participantId by remember { mutableStateOf("") }
+     var selectedRestriction by remember { mutableStateOf(DietaryRestriction.VEGETARIAN) }
+     var notes by remember { mutableStateOf("") }
+     var errorMessage by remember { mutableStateOf<String?>(null) }
+     
+     AlertDialog(
+         onDismissRequest = onDismiss,
+-        title = { Text("Ajouter une contrainte") },
++        title = { Text(stringResource(R.string.meal_add_restriction_title)) },
+         text = {
+             Column(
+                 verticalArrangement = Arrangement.spacedBy(12.dp),
+                 modifier = Modifier.fillMaxWidth()
+             ) {
+                 OutlinedTextField(
+                     value = participantId,
+                     onValueChange = { participantId = it },
+-                    label = { Text("ID du participant") },
+-                    placeholder = { Text("participant-123") },
++                    label = { Text(stringResource(R.string.meal_participant_id_label)) },
++                    placeholder = { Text(stringResource(R.string.meal_participant_id_placeholder)) },
+                     modifier = Modifier.fillMaxWidth(),
+                     singleLine = true
+                 )
+                 
+                 Text(
+-                    "Type de contrainte",
++                    stringResource(R.string.meal_restriction_type_label),
+                     style = MaterialTheme.typography.labelMedium
+                 )
+                 
+                 Column(
+                     verticalArrangement = Arrangement.spacedBy(4.dp)
+                 ) {
+-                    DietaryRestriction.entries.forEach { restriction ->
+-                        FilterChip(
++                        DietaryRestriction.entries.forEach { restriction ->
++                            val restrictionLabel = getDietaryRestrictionLabel(restriction)
++                            val selectedState = stringResource(if (selectedRestriction == restriction) R.string.meal_selected_state else R.string.meal_unselected_state)
++                            val restrictionDescription = stringResource(R.string.a11y_meal_restriction_selection, restrictionLabel, selectedState)
++                            FilterChip(
++                            modifier = Modifier.clearAndSetSemantics { contentDescription = restrictionDescription },
+                             selected = selectedRestriction == restriction,
+                             onClick = { selectedRestriction = restriction },
+-                            label = { Text(getDietaryRestrictionLabel(restriction)) }
++                            label = { Text(restrictionLabel) }
+                         )
+                     }
+                 }
+                 
+                 OutlinedTextField(
+                     value = notes,
+                     onValueChange = { notes = it },
+-                    label = { Text("Notes (optionnel)") },
+-                    placeholder = { Text("Détails supplémentaires") },
++                    label = { Text(stringResource(R.string.meal_notes_label)) },
++                    placeholder = { Text(stringResource(R.string.meal_restriction_notes_placeholder)) },
+                     modifier = Modifier.fillMaxWidth(),
+                     minLines = 2
+                 )
+                 
+                 errorMessage?.let { error ->
+                     Text(
+                         error,
+                         color = MaterialTheme.colorScheme.error,
+                         style = MaterialTheme.typography.bodySmall
+                     )
+                 }
+             }
+         },
+         confirmButton = {
+             TextButton(
+                 onClick = {
+                     when {
+-                        participantId.isBlank() -> errorMessage = "ID participant requis"
++                        participantId.isBlank() -> errorMessage = participantRequired
+                         else -> {
+                             val request = DietaryRestrictionRequest(
+                                 participantId = participantId.trim(),
+                                 eventId = eventId,
+                                 restriction = selectedRestriction,
+                                 notes = notes.trim().ifBlank { null }
+                             )
+                             onAdd(request)
+                         }
+                     }
+                 }
+             ) {
+-                Text("Ajouter")
++                Text(stringResource(R.string.meal_action_add))
+             }
+         },
+         dismissButton = {
+             TextButton(onClick = onDismiss) {
+-                Text("Annuler")
++                Text(stringResource(R.string.meal_action_cancel))
+             }
+         }
+     )
+ }
+ 
+-fun getDietaryRestrictionLabel(restriction: DietaryRestriction): String = when (restriction) {
+-    DietaryRestriction.VEGETARIAN -> "Végétarien"
+-    DietaryRestriction.VEGAN -> "Végétalien"
+-    DietaryRestriction.GLUTEN_FREE -> "Sans gluten"
+-    DietaryRestriction.LACTOSE_INTOLERANT -> "Intolérant lactose"
+-    DietaryRestriction.NUT_ALLERGY -> "Allergie noix"
+-    DietaryRestriction.SHELLFISH_ALLERGY -> "Allergie fruits de mer"
+-    DietaryRestriction.KOSHER -> "Casher"
+-    DietaryRestriction.HALAL -> "Halal"
+-    DietaryRestriction.DIABETIC -> "Diabétique"
+-    DietaryRestriction.OTHER -> "Autre"
+-}
++@Composable
++fun getDietaryRestrictionLabel(restriction: DietaryRestriction): String = stringResource(when (restriction) {
++    DietaryRestriction.VEGETARIAN -> R.string.meal_restriction_vegetarian
++    DietaryRestriction.VEGAN -> R.string.meal_restriction_vegan
++    DietaryRestriction.GLUTEN_FREE -> R.string.meal_restriction_gluten_free
++    DietaryRestriction.LACTOSE_INTOLERANT -> R.string.meal_restriction_lactose_intolerant
++    DietaryRestriction.NUT_ALLERGY -> R.string.meal_restriction_nut_allergy
++    DietaryRestriction.SHELLFISH_ALLERGY -> R.string.meal_restriction_shellfish_allergy
++    DietaryRestriction.KOSHER -> R.string.meal_restriction_kosher
++    DietaryRestriction.HALAL -> R.string.meal_restriction_halal
++    DietaryRestriction.DIABETIC -> R.string.meal_restriction_diabetic
++    DietaryRestriction.OTHER -> R.string.meal_restriction_other
++})
+diff --git a/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/meal/MealPlanningScreen.kt b/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/meal/MealPlanningScreen.kt
+index 74f5e00f..71826ed2 100644
+--- a/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/meal/MealPlanningScreen.kt
++++ b/composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/meal/MealPlanningScreen.kt
+@@ -52,34 +52,42 @@ import androidx.compose.material3.TextButton
+ import androidx.compose.material3.TopAppBar
+ import androidx.compose.runtime.Composable
+ import androidx.compose.runtime.LaunchedEffect
+ import androidx.compose.runtime.getValue
+ import androidx.compose.runtime.mutableIntStateOf
+ import androidx.compose.runtime.mutableStateOf
+ import androidx.compose.runtime.remember
+ import androidx.compose.runtime.setValue
+ import androidx.compose.ui.Alignment
+ import androidx.compose.ui.Modifier
++import androidx.compose.ui.platform.LocalConfiguration
++import androidx.compose.ui.res.pluralStringResource
++import androidx.compose.ui.res.stringResource
++import androidx.compose.ui.semantics.contentDescription
++import androidx.compose.ui.semantics.clearAndSetSemantics
++import androidx.compose.ui.semantics.semantics
+ import androidx.compose.ui.text.font.FontWeight
+ import androidx.compose.ui.unit.dp
+ import com.guyghost.wakeve.comment.CommentRepository
++import com.guyghost.wakeve.R
+ import com.guyghost.wakeve.meal.MealPlanner
+ import com.guyghost.wakeve.meal.MealRepository
+ import com.guyghost.wakeve.models.CommentSection
+ import com.guyghost.wakeve.models.DailyMealSchedule
+ import com.guyghost.wakeve.models.Meal
+ import com.guyghost.wakeve.models.MealRequest
+ import com.guyghost.wakeve.models.MealStatus
+ import com.guyghost.wakeve.models.MealType
+ import com.guyghost.wakeve.models.ParticipantDietaryRestriction
+ import java.time.LocalDate
+ import java.time.format.DateTimeFormatter
++import java.time.format.FormatStyle
+ 
+ /**
+  * Meal Planning Screen
+  * 
+  * Features:
+  * - List meals grouped by date (Daily Schedule)
+  * - Filter by type and status
+  * - Add/Edit/Delete meals
+  * - Auto-generate meal plan
+  * - Manage dietary restrictions
+@@ -123,52 +131,65 @@ fun MealPlanningScreen(
+         val statusMatch = selectedStatus == null || meal.status == selectedStatus
+         typeMatch && statusMatch
+     }
+     
+     // Regroup filtered meals by date
+     val filteredSchedules = MealPlanner.groupMealsByDate(filteredMeals)
+     
+     Scaffold(
+         topBar = {
+             TopAppBar(
+-                title = { Text("Planification des repas") },
++                title = { Text(stringResource(R.string.meal_screen_title)) },
+                 navigationIcon = {
+                     IconButton(onClick = onNavigateBack) {
+-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Retour")
++                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.a11y_meal_back))
+                     }
+                 },
+                 actions = {
+                     // Dietary restrictions button
+-                    IconButton(onClick = { showDietaryRestrictionsDialog = true }) {
++                    val constraintsDescription = stringResource(
++                        R.string.a11y_meal_open_constraints,
++                        dietaryRestrictions.size
++                    )
++                    IconButton(
++                        onClick = { showDietaryRestrictionsDialog = true },
++                        modifier = Modifier.clearAndSetSemantics {
++                            contentDescription = constraintsDescription
++                        }
++                    ) {
+                         Badge(
+                             containerColor = if (dietaryRestrictions.isNotEmpty()) 
+                                 MaterialTheme.colorScheme.error 
+                             else 
+                                 MaterialTheme.colorScheme.surfaceVariant
+                         ) {
+                             Text(dietaryRestrictions.size.toString())
+                         }
+                     }
+                     
+                     // Auto-generate button
+                     IconButton(onClick = { showAutoGenerateDialog = true }) {
+-                        Icon(Icons.Default.AutoAwesome, "Préparer automatiquement")
++                        Icon(Icons.Default.AutoAwesome, stringResource(R.string.a11y_meal_prepare_plan))
+                     }
+ 
+                     // Comments icon with badge
+                     IconButton(onClick = {
+                         onNavigateToComments(eventId, CommentSection.MEAL, null)
+                     }) {
+                         Box {
+                             Icon(
+                                 Icons.AutoMirrored.Outlined.Comment,
+-                                contentDescription = if (commentCount == 0) "Aucun commentaire" else "$commentCount commentaires"
++                                contentDescription = pluralStringResource(
++                                    R.plurals.a11y_meal_comments,
++                                    commentCount,
++                                    commentCount
++                                )
+                             )
+                             if (commentCount > 0) {
+                                 Box(
+                                     modifier = Modifier
+                                         .size(16.dp)
+                                         .background(
+                                             color = MaterialTheme.colorScheme.error,
+                                             shape = CircleShape
+                                         )
+                                         .align(Alignment.TopEnd),
+@@ -184,21 +205,21 @@ fun MealPlanningScreen(
+                             }
+                         }
+                     }
+                 }
+             )
+         },
+         floatingActionButton = {
+             FloatingActionButton(
+                 onClick = { showAddMealDialog = true }
+             ) {
+-                Icon(Icons.Default.Add, "Ajouter un repas")
++                Icon(Icons.Default.Add, stringResource(R.string.a11y_meal_add))
+             }
+         }
+     ) { padding ->
+         Column(
+             modifier = Modifier
+                 .fillMaxSize()
+                 .padding(padding)
+         ) {
+             // Summary card
+             if (allMeals.isNotEmpty()) {
+@@ -227,40 +248,40 @@ fun MealPlanningScreen(
+                         horizontalAlignment = Alignment.CenterHorizontally,
+                         verticalArrangement = Arrangement.spacedBy(16.dp)
+                     ) {
+                         Icon(
+                             Icons.Default.Restaurant,
+                             contentDescription = null,
+                             modifier = Modifier.size(64.dp),
+                             tint = MaterialTheme.colorScheme.primary
+                         )
+                         Text(
+-                            "Aucun repas planifié",
++                            stringResource(R.string.meal_empty_title),
+                             style = MaterialTheme.typography.titleLarge
+                         )
+                         Text(
+-                            "Ajoutez votre premier repas ou préparez un plan automatiquement",
++                            stringResource(R.string.meal_empty_description),
+                             style = MaterialTheme.typography.bodyMedium,
+                             color = MaterialTheme.colorScheme.onSurfaceVariant
+                         )
+                         Row(
+                             horizontalArrangement = Arrangement.spacedBy(8.dp)
+                         ) {
+                             Button(onClick = { showAutoGenerateDialog = true }) {
+                                 Icon(Icons.Default.AutoAwesome, contentDescription = null)
+                                 Spacer(Modifier.width(8.dp))
+-                                Text("Préparer")
++                                Text(stringResource(R.string.meal_action_generate))
+                             }
+                             OutlinedButton(onClick = { showAddMealDialog = true }) {
+                                 Icon(Icons.Default.Add, contentDescription = null)
+                                 Spacer(Modifier.width(8.dp))
+-                                Text("Ajouter")
++                                Text(stringResource(R.string.meal_action_add))
+                             }
+                         }
+                     }
+                 }
+             } else {
+                 LazyColumn(
+                     modifier = Modifier.fillMaxSize(),
+                     contentPadding = PaddingValues(16.dp),
+                     verticalArrangement = Arrangement.spacedBy(16.dp)
+                 ) {
+@@ -314,39 +335,39 @@ fun MealPlanningScreen(
+                 mealRepository.updateMeal(updated)
+                 loadData()
+                 mealToEdit = null
+             }
+         )
+     }
+     
+     mealToDelete?.let { meal ->
+         AlertDialog(
+             onDismissRequest = { mealToDelete = null },
+-            title = { Text("Supprimer le repas ?") },
+-            text = { Text("Voulez-vous vraiment supprimer \"${meal.name}\" ?") },
++            title = { Text(stringResource(R.string.meal_delete_title)) },
++            text = { Text(stringResource(R.string.meal_delete_message, meal.name)) },
+             confirmButton = {
+                 TextButton(
+                     onClick = {
+                         mealRepository.deleteMeal(meal.id)
+                         loadData()
+                         mealToDelete = null
+                     },
+                     colors = ButtonDefaults.textButtonColors(
+                         contentColor = MaterialTheme.colorScheme.error
+                     )
+                 ) {
+-                    Text("Supprimer")
++                    Text(stringResource(R.string.meal_action_delete))
+                 }
+             },
+             dismissButton = {
+                 TextButton(onClick = { mealToDelete = null }) {
+-                    Text("Annuler")
++                    Text(stringResource(R.string.meal_action_cancel))
+                 }
+             }
+         )
+     }
+     
+     if (showAutoGenerateDialog) {
+         AutoGenerateMealsDialog(
+             eventId = eventId,
+             onDismiss = { showAutoGenerateDialog = false },
+             onGenerate = { request ->
+@@ -400,75 +421,79 @@ fun MealSummaryCard(
+     Card(
+         modifier = Modifier
+             .fillMaxWidth()
+             .padding(16.dp)
+     ) {
+         Column(
+             modifier = Modifier.padding(16.dp),
+             verticalArrangement = Arrangement.spacedBy(12.dp)
+         ) {
+             Text(
+-                "Résumé",
++                stringResource(R.string.meal_summary_title),
+                 style = MaterialTheme.typography.titleMedium,
+                 fontWeight = FontWeight.Bold
+             )
+             
+             Row(
+                 modifier = Modifier.fillMaxWidth(),
+                 horizontalArrangement = Arrangement.SpaceBetween
+             ) {
+                 Column {
+                     Text(
+-                        "Total repas",
++                        stringResource(R.string.meal_total_label),
+                         style = MaterialTheme.typography.bodySmall,
+                         color = MaterialTheme.colorScheme.onSurfaceVariant
+                     )
+                     Text(
+-                        summary.totalMeals.toString(),
++                        pluralStringResource(R.plurals.meal_count, summary.totalMeals, summary.totalMeals),
+                         style = MaterialTheme.typography.titleLarge,
+                         fontWeight = FontWeight.Bold
+                     )
+                 }
+                 
+                 Column {
+                     Text(
+-                        "Coût estimé",
++                        stringResource(R.string.meal_estimated_total_label),
+                         style = MaterialTheme.typography.bodySmall,
+                         color = MaterialTheme.colorScheme.onSurfaceVariant
+                     )
+                     Text(
+-                        "${summary.totalEstimatedCost / 100.0}€",
++                        stringResource(R.string.meal_currency_amount, summary.totalEstimatedCost / 100.0),
+                         style = MaterialTheme.typography.titleLarge,
+                         fontWeight = FontWeight.Bold,
+                         color = MaterialTheme.colorScheme.primary
+                     )
+                 }
+                 
+                 Column {
+                     Text(
+-                        "Terminés",
++                        stringResource(R.string.meal_completed_label),
+                         style = MaterialTheme.typography.bodySmall,
+                         color = MaterialTheme.colorScheme.onSurfaceVariant
+                     )
+                     Text(
+-                        "${summary.mealsCompleted}/${summary.totalMeals}",
++                        stringResource(R.string.meal_completed_ratio, summary.mealsCompleted, summary.totalMeals),
+                         style = MaterialTheme.typography.titleLarge,
+                         fontWeight = FontWeight.Bold,
+                         color = MaterialTheme.colorScheme.tertiary
+                     )
+                 }
+             }
+             
+             if (dietaryRestrictions.isNotEmpty()) {
+                 HorizontalDivider()
+                 Text(
+-                    "${dietaryRestrictions.size} contrainte(s) alimentaire(s)",
++                    pluralStringResource(
++                        R.plurals.meal_constraint_count,
++                        dietaryRestrictions.size,
++                        dietaryRestrictions.size
++                    ),
+                     style = MaterialTheme.typography.bodySmall,
+                     color = MaterialTheme.colorScheme.error
+                 )
+             }
+         }
+     }
+ }
+ 
+ /**
+  * Filter chips row
+@@ -482,54 +507,74 @@ fun MealFiltersRow(
+     onStatusSelected: (MealStatus) -> Unit
+ ) {
+     Column(
+         modifier = Modifier
+             .fillMaxWidth()
+             .padding(horizontal = 16.dp),
+         verticalArrangement = Arrangement.spacedBy(8.dp)
+     ) {
+         // Type filters
+         Text(
+-            "Type",
++            stringResource(R.string.meal_type_label),
+             style = MaterialTheme.typography.labelMedium,
+             color = MaterialTheme.colorScheme.onSurfaceVariant
+         )
+         
+         Row(
+             modifier = Modifier.fillMaxWidth(),
+             horizontalArrangement = Arrangement.spacedBy(8.dp)
+         ) {
+             MealType.entries.forEach { type ->
++                val typeLabel = getMealTypeLabel(type)
++                val selectedState = stringResource(if (selectedType == type) R.string.meal_selected_state else R.string.meal_unselected_state)
++                val typeDescription = stringResource(
++                    R.string.a11y_meal_filter_type,
++                    typeLabel,
++                    selectedState
++                )
+                 FilterChip(
+                     selected = selectedType == type,
+                     onClick = { onTypeSelected(type) },
+-                    label = { Text(getMealTypeLabel(type)) }
++                    modifier = Modifier.clearAndSetSemantics {
++                        contentDescription = typeDescription
++                    },
++                    label = { Text(typeLabel) }
+                 )
+             }
+         }
+         
+         // Status filters
+         Text(
+-            "Statut",
++            stringResource(R.string.meal_status_label),
+             style = MaterialTheme.typography.labelMedium,
+             color = MaterialTheme.colorScheme.onSurfaceVariant
+         )
+         
+         Row(
+             modifier = Modifier.fillMaxWidth(),
+             horizontalArrangement = Arrangement.spacedBy(8.dp)
+         ) {
+             MealStatus.entries.forEach { status ->
++                val statusLabel = getMealStatusLabel(status)
++                val selectedState = stringResource(if (selectedStatus == status) R.string.meal_selected_state else R.string.meal_unselected_state)
++                val statusDescription = stringResource(
++                    R.string.a11y_meal_filter_status,
++                    statusLabel,
++                    selectedState
++                )
+                 FilterChip(
+                     selected = selectedStatus == status,
+                     onClick = { onStatusSelected(status) },
+-                    label = { Text(getMealStatusLabel(status)) }
++                    modifier = Modifier.clearAndSetSemantics {
++                        contentDescription = statusDescription
++                    },
++                    label = { Text(statusLabel) }
+                 )
+             }
+         }
+     }
+     
+     Spacer(Modifier.height(8.dp))
+ }
+ 
+ /**
+  * Daily schedule section (meals grouped by date)
+@@ -537,21 +582,22 @@ fun MealFiltersRow(
+ @Composable
+ fun DailyScheduleSection(
+     schedule: DailyMealSchedule,
+     onMealClick: (Meal) -> Unit,
+     onDeleteClick: (Meal) -> Unit
+ ) {
+     Column(
+         verticalArrangement = Arrangement.spacedBy(8.dp)
+     ) {
+         // Date header
+-        val dateFormatter = DateTimeFormatter.ofPattern("EEEE d MMMM yyyy")
++        val dateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL)
++            .withLocale(LocalConfiguration.current.locales[0])
+         val formattedDate = try {
+             LocalDate.parse(schedule.date).format(dateFormatter)
+         } catch (e: Exception) {
+             schedule.date
+         }
+         
+         Text(
+             formattedDate,
+             style = MaterialTheme.typography.titleMedium,
+             fontWeight = FontWeight.Bold,
+@@ -572,42 +618,49 @@ fun DailyScheduleSection(
+ /**
+  * Individual meal card
+  */
+ @OptIn(ExperimentalMaterial3Api::class)
+ @Composable
+ fun MealCard(
+     meal: Meal,
+     onClick: () -> Unit,
+     onDeleteClick: () -> Unit
+ ) {
++    val statusLabel = getMealStatusLabel(meal.status)
++    val openDescription = stringResource(R.string.a11y_meal_open, meal.name, statusLabel)
++    val deleteDescription = stringResource(R.string.a11y_meal_delete, meal.name)
+     Card(
+         modifier = Modifier
+-            .fillMaxWidth()
+-            .clickable(onClick = onClick),
++            .fillMaxWidth(),
+         colors = CardDefaults.cardColors(
+             containerColor = when (meal.status) {
+                 MealStatus.COMPLETED -> MaterialTheme.colorScheme.tertiaryContainer
+                 MealStatus.IN_PROGRESS -> MaterialTheme.colorScheme.primaryContainer
+                 MealStatus.CANCELLED -> MaterialTheme.colorScheme.errorContainer
+                 else -> MaterialTheme.colorScheme.surfaceVariant
+             }
+         )
+     ) {
+         Row(
+             modifier = Modifier
+                 .fillMaxWidth()
+                 .padding(16.dp),
+             horizontalArrangement = Arrangement.SpaceBetween,
+             verticalAlignment = Alignment.CenterVertically
+         ) {
+             Column(
+-                modifier = Modifier.weight(1f),
++                modifier = Modifier
++                    .weight(1f)
++                    .clickable(onClick = onClick)
++                    .clearAndSetSemantics {
++                        contentDescription = openDescription
++                    },
+                 verticalArrangement = Arrangement.spacedBy(4.dp)
+             ) {
+                 // Time + Type badge
+                 Row(
+                     horizontalArrangement = Arrangement.spacedBy(8.dp),
+                     verticalAlignment = Alignment.CenterVertically
+                 ) {
+                     Text(
+                         meal.time,
+                         style = MaterialTheme.typography.titleMedium,
+@@ -663,100 +716,111 @@ fun MealCard(
+                             horizontalArrangement = Arrangement.spacedBy(4.dp),
+                             verticalAlignment = Alignment.CenterVertically
+                         ) {
+                             Icon(
+                                 Icons.Default.Person,
+                                 contentDescription = null,
+                                 modifier = Modifier.size(14.dp),
+                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
+                             )
+                             Text(
+-                                "${meal.responsibleParticipantIds.size}",
++                                pluralStringResource(
++                                    R.plurals.meal_responsible_count,
++                                    meal.responsibleParticipantIds.size,
++                                    meal.responsibleParticipantIds.size
++                                ),
+                                 style = MaterialTheme.typography.bodySmall,
+                                 color = MaterialTheme.colorScheme.onSurfaceVariant
+                             )
+                         }
+                     }
+                     
+                     Row(
+                         horizontalArrangement = Arrangement.spacedBy(4.dp),
+                         verticalAlignment = Alignment.CenterVertically
+                     ) {
+                         Icon(
+                             Icons.Default.Restaurant,
+                             contentDescription = null,
+                             modifier = Modifier.size(14.dp),
+                             tint = MaterialTheme.colorScheme.onSurfaceVariant
+                         )
+                         Text(
+-                            "${meal.servings}",
++                            pluralStringResource(R.plurals.meal_serving_count, meal.servings, meal.servings),
+                             style = MaterialTheme.typography.bodySmall,
+                             color = MaterialTheme.colorScheme.onSurfaceVariant
+                         )
+                     }
+                     
+                     Text(
+-                        "${meal.estimatedCost / 100.0}€",
++                        stringResource(R.string.meal_currency_amount, meal.estimatedCost / 100.0),
+                         style = MaterialTheme.typography.bodySmall,
+                         fontWeight = FontWeight.Bold,
+                         color = MaterialTheme.colorScheme.primary
+                     )
+                 }
+                 
+                 // Status badge
+                 AssistChip(
+                     onClick = {},
+-                    label = { Text(getMealStatusLabel(meal.status)) },
++                    label = { Text(statusLabel) },
+                     colors = AssistChipDefaults.assistChipColors(
+                         containerColor = when (meal.status) {
+                             MealStatus.COMPLETED -> MaterialTheme.colorScheme.tertiary
+                             MealStatus.IN_PROGRESS -> MaterialTheme.colorScheme.primary
+                             MealStatus.CANCELLED -> MaterialTheme.colorScheme.error
+                             else -> MaterialTheme.colorScheme.secondary
+                         },
+                         labelColor = when (meal.status) {
+                             MealStatus.COMPLETED -> MaterialTheme.colorScheme.onTertiary
+                             MealStatus.IN_PROGRESS -> MaterialTheme.colorScheme.onPrimary
+                             MealStatus.CANCELLED -> MaterialTheme.colorScheme.onError
+                             else -> MaterialTheme.colorScheme.onSecondary
+                         }
+                     )
+                 )
+             }
+             
+             // Delete button
+-            IconButton(onClick = onDeleteClick) {
++            IconButton(
++                onClick = onDeleteClick,
++                modifier = Modifier.semantics {
++                    contentDescription = deleteDescription
++                }
++            ) {
+                 Icon(
+                     Icons.Default.Delete,
+-                    contentDescription = "Supprimer",
++                    contentDescription = null,
+                     tint = MaterialTheme.colorScheme.error
+                 )
+             }
+         }
+     }
+ }
+ 
+ // Helper functions
+ 
+-fun getMealTypeLabel(type: MealType): String = when (type) {
+-    MealType.BREAKFAST -> "Petit-déj"
+-    MealType.LUNCH -> "Déjeuner"
+-    MealType.DINNER -> "Dîner"
+-    MealType.SNACK -> "Goûter"
+-    MealType.APERITIF -> "Apéritif"
+-}
++@Composable
++fun getMealTypeLabel(type: MealType): String = stringResource(when (type) {
++    MealType.BREAKFAST -> R.string.meal_type_breakfast
++    MealType.LUNCH -> R.string.meal_type_lunch
++    MealType.DINNER -> R.string.meal_type_dinner
++    MealType.SNACK -> R.string.meal_type_snack
++    MealType.APERITIF -> R.string.meal_type_aperitif
++})
+ 
+ fun getMealTypeIcon(type: MealType) = when (type) {
+     MealType.BREAKFAST -> Icons.Default.Egg
+     MealType.LUNCH -> Icons.Default.LunchDining
+     MealType.DINNER -> Icons.Default.DinnerDining
+     MealType.SNACK -> Icons.Default.Cake
+     MealType.APERITIF -> Icons.Default.LocalBar
+ }
+ 
+-fun getMealStatusLabel(status: MealStatus): String = when (status) {
+-    MealStatus.PLANNED -> "Planifié"
+-    MealStatus.ASSIGNED -> "Assigné"
+-    MealStatus.IN_PROGRESS -> "En cours"
+-    MealStatus.COMPLETED -> "Terminé"
+-    MealStatus.CANCELLED -> "Annulé"
+-}
++@Composable
++fun getMealStatusLabel(status: MealStatus): String = stringResource(when (status) {
++    MealStatus.PLANNED -> R.string.meal_status_planned
++    MealStatus.ASSIGNED -> R.string.meal_status_assigned
++    MealStatus.IN_PROGRESS -> R.string.meal_status_in_progress
++    MealStatus.COMPLETED -> R.string.meal_status_completed
++    MealStatus.CANCELLED -> R.string.meal_status_cancelled
++})
+diff --git a/composeApp/src/androidMain/res/values-de/strings.xml b/composeApp/src/androidMain/res/values-de/strings.xml
+index f6c5ca8d..d5a13f5e 100644
+--- a/composeApp/src/androidMain/res/values-de/strings.xml
++++ b/composeApp/src/androidMain/res/values-de/strings.xml
+@@ -411,21 +411,22 @@
+     <string name="smart_sharing">Intelligentes Teilen</string>
+     <string name="cover_photo">Titelbild: %1$s</string>
+     <string name="auto_generated">Auto</string>
+     <string name="favorite">Favorit</string>
+     <string name="caption_without">ohne Beschriftung</string>
+ 
+     <!-- PRD Features -->
+     <string name="scenario_planning">Optionen vergleichen</string>
+     <string name="budget_overview">Budgetuebersicht</string>
+     <string name="accommodation">Unterkunft</string>
+-    <string name="meal_planning">Essensplanung</string>
++
++<string name="meal_planning">Essensplanung</string>
+     <string name="equipment_checklist">Ausstattungsliste</string>
+     <string name="activity_planning">Aktivitaetenplanung</string>
+     <string name="manage_participants">Teilnehmer verwalten</string>
+     <string name="view_results">Ergebnisse anzeigen</string>
+ 
+     <!-- Location Type Hints -->
+     <string name="location_hint_city">Ideal fuer flexible Events, die ueberall in der Stadt stattfinden koennen</string>
+     <string name="location_hint_region">Perfekt fuer regionale Events (z.B.: \"Sueddeutschland\")</string>
+     <string name="location_hint_specific_venue">Verwende dies fuer eine bestimmte Adresse oder einen bestimmten Ort</string>
+     <string name="location_hint_online">Fuer virtuelle Events ueber Zoom, Meet usw.</string>
+@@ -700,11 +701,118 @@
+     <string name="budget_category_breakdown">Aufteilung nach Kategorie</string><string name="budget_total_title">Gesamtbudget</string><string name="budget_estimated_label">Geschätzt</string><string name="budget_spent_label">Ausgegeben</string><string name="budget_usage">%1$.1f%% verwendet</string><string name="budget_status_over">Budget überschritten</string><string name="budget_status_nearly_used">Budget fast aufgebraucht</string><string name="budget_status_empty">Keine Ausgaben erfasst</string><string name="budget_status_within">Im Budget</string><string name="budget_remaining">Verfügbar: %1$.2f €</string><string name="budget_overspend">Überschreitung: %1$.2f €</string>
+     <plurals name="a11y_budget_comments_count"><item quantity="one">%1$d Budgetkommentar</item><item quantity="other">%1$d Budgetkommentare</item></plurals><plurals name="budget_shared_by"><item quantity="one">Mit %1$d Teilnehmer geteilt</item><item quantity="other">Mit %1$d Teilnehmern geteilt</item></plurals><plurals name="budget_settlement_count"><item quantity="one">%1$d Erstattung offen</item><item quantity="other">%1$d Erstattungen offen</item></plurals><plurals name="budget_settlement_body"><item quantity="one">%1$d Erstattung ist noch auszugleichen.</item><item quantity="other">%1$d Erstattungen sind noch auszugleichen.</item></plurals><plurals name="budget_per_person_title"><item quantity="one">Pro Person (%1$d Teilnehmer)</item><item quantity="other">Pro Person (%1$d Teilnehmer)</item></plurals>
+     <string name="budget_tricount_verified">geprüft</string>
+     <!-- Batch 3: equipment -->
+     <string name="equipment_screen_title">Ausstattungsliste</string><string name="equipment_back_action">Zurück</string><string name="a11y_equipment_auto_generate">Ausstattungsliste automatisch vorbereiten</string><string name="a11y_equipment_comments_empty">Keine Kommentare zur Ausstattung</string><string name="a11y_equipment_add">Ausstattung hinzufügen</string><string name="equipment_all_statuses">Alle</string><string name="equipment_empty_list">Keine Ausstattung hinzugefügt</string><string name="equipment_empty_filtered">Keine Ausstattung mit diesem Status</string><string name="equipment_prepare_list_action">Liste vorbereiten</string>
+     <string name="equipment_delete_title">Ausstattung löschen?</string><string name="equipment_delete_message">„%1$s“ aus der Ausstattungsliste entfernen?</string><string name="equipment_delete_action">Löschen</string><string name="equipment_cancel_action">Abbrechen</string><string name="equipment_progress_title">Fortschritt</string><string name="equipment_progress_ratio">%1$d / %2$d Gegenstände bereit (%3$d%%)</string><string name="equipment_assigned_summary">Zugewiesen</string><string name="equipment_confirmed_summary">Bestätigt</string><string name="equipment_total_cost">Gesamtkosten</string><string name="equipment_per_person">Pro Person</string><string name="equipment_quantity_value"> × %1$d</string><string name="equipment_assign_action">Zuweisen</string><string name="equipment_edit_action">Bearbeiten</string>
+     <string name="equipment_add_title">Ausstattung hinzufügen</string><string name="equipment_edit_title">Ausstattung bearbeiten</string><string name="equipment_name_required">Name erforderlich</string><string name="equipment_notes_label">Notizen</string><string name="equipment_quantity_required">Menge erforderlich</string><string name="equipment_shared_cost_label">Geteilte Kosten (€)</string><string name="equipment_category_label">Kategorie</string><string name="equipment_status_label">Status</string><string name="equipment_assigned_to_label">Verantwortliche Person</string><string name="equipment_unassigned">Nicht zugewiesen</string><string name="equipment_add_action">Hinzufügen</string><string name="equipment_confirm_action">Bestätigen</string><string name="equipment_assign_title">„%1$s“ zuweisen</string>
+     <string name="equipment_auto_generate_title">Ausstattungsliste vorbereiten</string><string name="equipment_auto_generate_description">Wähle die Veranstaltungsart aus, um eine passende Liste für die Gruppe vorzubereiten.</string><string name="equipment_prepare_action">Vorbereiten</string><string name="equipment_event_type_camping">Zelten</string><string name="equipment_event_type_beach">Strand</string><string name="equipment_event_type_ski">Skifahren / Berge</string><string name="equipment_event_type_hiking">Wandern</string><string name="equipment_event_type_picnic">Picknick</string><string name="equipment_event_type_indoor">Drinnen</string>
+     <string name="equipment_category_camping">Zelten</string><string name="equipment_category_sports">Sport</string><string name="equipment_category_cooking">Kochen</string><string name="equipment_category_electronics">Elektronik</string><string name="equipment_category_safety">Sicherheit</string><string name="equipment_category_other">Sonstiges</string><string name="equipment_status_needed">Benötigt</string><string name="equipment_status_assigned">Zugewiesen</string><string name="equipment_status_confirmed">Bestätigt</string><string name="equipment_status_packed">Bereit</string><string name="equipment_status_cancelled">Storniert</string><string name="equipment_packed_state">bereit</string><string name="equipment_not_packed_state">noch nicht bereit</string>
+     <string name="a11y_equipment_assign">%1$s einer Person zuweisen</string><string name="a11y_equipment_edit">Ausstattung %1$s bearbeiten</string><string name="a11y_equipment_delete">Ausstattung %1$s löschen</string><string name="a11y_equipment_set_packed">Status von %1$s ändern, %2$s</string><plurals name="a11y_equipment_comments_count"><item quantity="one">%1$d Kommentar zur Ausstattung</item><item quantity="other">%1$d Kommentare zur Ausstattung</item></plurals>
++
++<string name="meal_add_title">Mahlzeit hinzufügen</string>
++<string name="meal_edit_title">Mahlzeit bearbeiten</string>
++<string name="meal_type_label">Art der Mahlzeit</string>
++<string name="meal_name_label">Name der Mahlzeit</string>
++<string name="meal_name_placeholder">Z. B. Grillabend am Samstag</string>
++<string name="meal_date_label">Datum (JJJJ-MM-TT)</string>
++<string name="meal_date_placeholder">2025-12-25</string>
++<string name="meal_time_label">Uhrzeit (HH:MM)</string>
++<string name="meal_time_placeholder">19:00</string>
++<string name="meal_location_label">Ort (optional)</string>
++<string name="meal_location_placeholder">Restaurant, zu Hause usw.</string>
++<string name="meal_people_label">Anzahl der Personen</string>
++<string name="meal_people_placeholder">4</string>
++<string name="meal_estimated_cost_label">Geschätzte Kosten (Cent)</string>
++<string name="meal_estimated_cost_placeholder">2000 = 20 €</string>
++<string name="meal_actual_cost_label">Tatsächliche Kosten (optional, in Cent)</string>
++<string name="meal_actual_cost_placeholder">2150</string>
++<string name="meal_currency_amount">%1$.2f €</string>
++<string name="meal_status_label">Bearbeitungsstand</string>
++<string name="meal_notes_label">Notizen (optional)</string>
++<string name="meal_notes_placeholder">Menü, Vorbereitung usw.</string>
++<string name="meal_action_add">Hinzufügen</string>
++<string name="meal_action_save">Speichern</string>
++<string name="meal_action_cancel">Abbrechen</string>
++<string name="meal_action_generate">Erstellen</string>
++<string name="meal_action_close">Schließen</string>
++<string name="meal_action_delete">Löschen</string>
++<string name="meal_error_name_required">Name ist erforderlich</string>
++<string name="meal_error_date_required">Datum ist erforderlich</string>
++<string name="meal_error_time_required">Uhrzeit ist erforderlich</string>
++<string name="meal_error_people_invalid">Ungültige Personenzahl</string>
++<string name="meal_error_estimated_cost_invalid">Ungültige Kostenschätzung</string>
++<string name="meal_generate_title">Essensplan erstellen</string>
++<string name="meal_start_date_label">Startdatum</string>
++<string name="meal_start_date_placeholder">2025-12-25</string>
++<string name="meal_end_date_label">Enddatum</string>
++<string name="meal_end_date_placeholder">2025-12-28</string>
++<string name="meal_participant_count_label">Anzahl der Teilnehmenden</string>
++<string name="meal_cost_per_person_label">Kosten pro Mahlzeit und Person (Cent)</string>
++<string name="meal_cost_per_person_placeholder">1500 = 15 €</string>
++<string name="meal_cost_per_person_value">%1$.2f € pro Person</string>
++<string name="meal_types_to_generate">Zu erstellende Mahlzeiten</string>
++<string name="meal_preview_title">Vorschau</string>
++<string name="meal_preview_summary">• %1$d Tage\n• %2$d Mahlzeiten insgesamt\n• Geschätzte Gesamtkosten: %3$.2f €</string>
++<string name="meal_error_start_date_required">Startdatum ist erforderlich</string>
++<string name="meal_error_end_date_required">Enddatum ist erforderlich</string>
++<string name="meal_error_participants_invalid">Ungültige Teilnehmerzahl</string>
++<string name="meal_error_cost_invalid">Ungültige Kosten</string>
++<string name="meal_error_type_required">Mindestens eine Mahlzeit auswählen</string>
++<string name="meal_restrictions_title">Ernährungseinschränkung</string>
++<string name="meal_restrictions_empty">Keine Ernährungseinschränkungen gespeichert</string>
++<string name="meal_participant_value">Teilnehmer: %1$s</string>
++<string name="meal_add_restriction_action">Einschränkung hinzufügen</string>
++<string name="meal_delete_restriction_title">Einschränkung löschen?</string>
++<string name="meal_delete_restriction_message">%1$s für %2$s löschen?</string>
++<string name="meal_add_restriction_title">Einschränkung hinzufügen</string>
++<string name="meal_participant_id_label">Teilnehmer-ID</string>
++<string name="meal_participant_id_placeholder">participant-123</string>
++<string name="meal_restriction_type_label">Art der Einschränkung</string>
++<string name="meal_restriction_notes_placeholder">Zusätzliche Angaben</string>
++<string name="meal_error_participant_required">Teilnehmer-ID ist erforderlich</string>
++<string name="meal_restriction_vegetarian">Vegetarisch</string>
++<string name="meal_restriction_vegan">Vegan</string>
++<string name="meal_restriction_gluten_free">Glutenfrei</string>
++<string name="meal_restriction_lactose_intolerant">Laktoseintolerant</string>
++<string name="meal_restriction_nut_allergy">Nussallergie</string>
++<string name="meal_restriction_shellfish_allergy">Schalentierallergie</string>
++<string name="meal_restriction_kosher">Koscher</string>
++<string name="meal_restriction_halal">Halal</string>
++<string name="meal_restriction_diabetic">Diabetikergeeignet</string>
++<string name="meal_restriction_other">Sonstige</string>
++<string name="meal_selected_state">ausgewählt</string>
++<string name="meal_unselected_state">nicht ausgewählt</string>
++<string name="a11y_meal_type_selection">%1$s auswählen, %2$s</string>
++<string name="a11y_meal_status_selection">Status %1$s auswählen, %2$s</string>
++<string name="a11y_meal_restriction_selection">%1$s auswählen, %2$s</string>
++<string name="a11y_meal_delete_restriction">%1$s für %2$s löschen</string>
++
++<string name="meal_screen_title">Essensplanung</string>
++<string name="meal_empty_title">Keine Mahlzeiten geplant</string>
++<string name="meal_empty_description">Füge die erste Mahlzeit hinzu oder erstelle automatisch einen Plan.</string>
++<string name="meal_delete_title">Mahlzeit löschen?</string>
++<string name="meal_delete_message">Soll „%1$s“ wirklich gelöscht werden?</string>
++<string name="meal_summary_title">Übersicht</string>
++<string name="meal_total_label">Mahlzeiten gesamt</string>
++<string name="meal_estimated_total_label">Geschätzte Kosten</string>
++<string name="meal_completed_label">Abgeschlossen</string>
++<string name="meal_completed_ratio">%1$d von %2$d</string>
++<string name="meal_type_breakfast">Frühstück</string>
++<string name="meal_type_lunch">Mittagessen</string>
++<string name="meal_type_dinner">Abendessen</string>
++<string name="meal_type_snack">Zwischenmahlzeit</string>
++<string name="meal_type_aperitif">Aperitif</string>
++<string name="meal_status_planned">Geplant</string>
++<string name="meal_status_assigned">Zugewiesen</string>
++<string name="meal_status_in_progress">In Vorbereitung</string>
++<string name="meal_status_completed">Abgeschlossen</string>
++<string name="meal_status_cancelled">Abgesagt</string>
++<string name="a11y_meal_back">Zur Veranstaltung zurückkehren</string>
++<string name="a11y_meal_open_constraints">Ernährungseinschränkungen öffnen, %1$d gespeichert</string>
++<string name="a11y_meal_prepare_plan">Essensplan automatisch erstellen</string>
++<string name="a11y_meal_add">Mahlzeit hinzufügen</string>
++<string name="a11y_meal_filter_type">Nach %1$s filtern, %2$s</string>
++<string name="a11y_meal_filter_status">Nach Status %1$s filtern, %2$s</string>
++<string name="a11y_meal_open">Mahlzeit %1$s bearbeiten, Status %2$s</string>
++<string name="a11y_meal_delete">Mahlzeit %1$s löschen</string><plurals name="meal_count"><item quantity="one">%1$d Mahlzeit</item><item quantity="other">%1$d Mahlzeiten</item></plurals><plurals name="meal_constraint_count"><item quantity="one">%1$d Ernährungseinschränkung</item><item quantity="other">%1$d Ernährungseinschränkungen</item></plurals><plurals name="meal_responsible_count"><item quantity="one">%1$d verantwortliche Person</item><item quantity="other">%1$d verantwortliche Personen</item></plurals><plurals name="meal_serving_count"><item quantity="one">%1$d Portion</item><item quantity="other">%1$d Portionen</item></plurals><plurals name="a11y_meal_comments"><item quantity="one">%1$d Essenskommentar öffnen</item><item quantity="other">%1$d Essenskommentare öffnen</item></plurals>
+ </resources>
+diff --git a/composeApp/src/androidMain/res/values-en/strings.xml b/composeApp/src/androidMain/res/values-en/strings.xml
+index 4901dbaf..98890b39 100644
+--- a/composeApp/src/androidMain/res/values-en/strings.xml
++++ b/composeApp/src/androidMain/res/values-en/strings.xml
+@@ -366,21 +366,22 @@
+     <string name="smart_sharing">Sharing suggestions</string>
+     <string name="cover_photo">Cover photo: %1$s</string>
+     <string name="auto_generated">Auto</string>
+     <string name="favorite">Favorite</string>
+     <string name="caption_without">without caption</string>
+ 
+     <!-- PRD Features -->
+     <string name="scenario_planning">Option comparison</string>
+     <string name="budget_overview">Budget Overview</string>
+     <string name="accommodation">Accommodation</string>
+-    <string name="meal_planning">Meal Planning</string>
++
++<string name="meal_planning">Meal Planning</string>
+     <string name="equipment_checklist">Equipment Checklist</string>
+     <string name="activity_planning">Activity Planning</string>
+     <string name="manage_participants">Manage Participants</string>
+     <string name="view_results">View Results</string>
+ 
+     <!-- Location Type Hints -->
+     <string name="location_hint_city">Great for flexible events that can happen anywhere in the city</string>
+     <string name="location_hint_region">Perfect for regional events (e.g., \"South of France\")</string>
+     <string name="location_hint_specific_venue">Use this for a specific address or venue</string>
+     <string name="location_hint_online">For virtual events via Zoom, Meet, etc.</string>
+@@ -744,11 +745,118 @@
+     <string name="budget_category_breakdown">Breakdown by category</string><string name="budget_total_title">Total budget</string><string name="budget_estimated_label">Estimated</string><string name="budget_spent_label">Spent</string><string name="budget_usage">%1$.1f%% used</string><string name="budget_status_over">Over budget</string><string name="budget_status_nearly_used">Budget nearly used</string><string name="budget_status_empty">No expenses recorded</string><string name="budget_status_within">Within budget</string><string name="budget_remaining">Available: €%1$.2f</string><string name="budget_overspend">Overspend: €%1$.2f</string>
+     <plurals name="a11y_budget_comments_count"><item quantity="one">%1$d budget comment</item><item quantity="other">%1$d budget comments</item></plurals><plurals name="budget_shared_by"><item quantity="one">Shared by %1$d participant</item><item quantity="other">Shared by %1$d participants</item></plurals><plurals name="budget_settlement_count"><item quantity="one">%1$d reimbursement to settle</item><item quantity="other">%1$d reimbursements to settle</item></plurals><plurals name="budget_settlement_body"><item quantity="one">%1$d reimbursement must be settled so everyone pays their actual share.</item><item quantity="other">%1$d reimbursements must be settled so everyone pays their actual share.</item></plurals><plurals name="budget_per_person_title"><item quantity="one">Per person (%1$d participant)</item><item quantity="other">Per person (%1$d participants)</item></plurals>
+     <string name="budget_tricount_verified">Verified</string>
+     <!-- Batch 3: equipment -->
+     <string name="equipment_screen_title">Equipment list</string><string name="equipment_back_action">Back</string><string name="a11y_equipment_auto_generate">Automatically prepare an equipment list</string><string name="a11y_equipment_comments_empty">No equipment comments</string><string name="a11y_equipment_add">Add equipment</string><string name="equipment_all_statuses">All</string><string name="equipment_empty_list">No equipment added</string><string name="equipment_empty_filtered">No equipment with this status</string><string name="equipment_prepare_list_action">Prepare a list</string>
+     <string name="equipment_delete_title">Delete equipment?</string><string name="equipment_delete_message">Remove “%1$s” from the equipment list?</string><string name="equipment_delete_action">Delete</string><string name="equipment_cancel_action">Cancel</string><string name="equipment_progress_title">Progress</string><string name="equipment_progress_ratio">%1$d / %2$d items ready (%3$d%%)</string><string name="equipment_assigned_summary">Assigned</string><string name="equipment_confirmed_summary">Confirmed</string><string name="equipment_total_cost">Total cost</string><string name="equipment_per_person">Per person</string><string name="equipment_quantity_value"> × %1$d</string><string name="equipment_assign_action">Assign</string><string name="equipment_edit_action">Edit</string>
+     <string name="equipment_add_title">Add equipment</string><string name="equipment_edit_title">Edit equipment</string><string name="equipment_name_required">Name required</string><string name="equipment_notes_label">Notes</string><string name="equipment_quantity_required">Quantity required</string><string name="equipment_shared_cost_label">Shared cost (€)</string><string name="equipment_category_label">Category</string><string name="equipment_status_label">Status</string><string name="equipment_assigned_to_label">Person responsible</string><string name="equipment_unassigned">Unassigned</string><string name="equipment_add_action">Add</string><string name="equipment_confirm_action">Confirm</string><string name="equipment_assign_title">Assign “%1$s”</string>
+     <string name="equipment_auto_generate_title">Prepare an equipment list</string><string name="equipment_auto_generate_description">Select the event type to prepare a list suited to the group.</string><string name="equipment_prepare_action">Prepare</string><string name="equipment_event_type_camping">Camping</string><string name="equipment_event_type_beach">Beach</string><string name="equipment_event_type_ski">Skiing / Mountains</string><string name="equipment_event_type_hiking">Hiking</string><string name="equipment_event_type_picnic">Picnic</string><string name="equipment_event_type_indoor">Indoor</string>
+     <string name="equipment_category_camping">Camping</string><string name="equipment_category_sports">Sports</string><string name="equipment_category_cooking">Cooking</string><string name="equipment_category_electronics">Electronics</string><string name="equipment_category_safety">Safety</string><string name="equipment_category_other">Other</string><string name="equipment_status_needed">Needed</string><string name="equipment_status_assigned">Assigned</string><string name="equipment_status_confirmed">Confirmed</string><string name="equipment_status_packed">Ready</string><string name="equipment_status_cancelled">Cancelled</string><string name="equipment_packed_state">ready</string><string name="equipment_not_packed_state">not ready yet</string>
+     <string name="a11y_equipment_assign">Assign %1$s to someone</string><string name="a11y_equipment_edit">Edit equipment item %1$s</string><string name="a11y_equipment_delete">Delete equipment item %1$s</string><string name="a11y_equipment_set_packed">Change the state of %1$s, %2$s</string><plurals name="a11y_equipment_comments_count"><item quantity="one">%1$d equipment comment</item><item quantity="other">%1$d equipment comments</item></plurals>
++
++<string name="meal_add_title">Add meal</string>
++<string name="meal_edit_title">Edit meal</string>
++<string name="meal_type_label">Meal type</string>
++<string name="meal_name_label">Meal name</string>
++<string name="meal_name_placeholder">E.g. Saturday evening barbecue</string>
++<string name="meal_date_label">Date (YYYY-MM-DD)</string>
++<string name="meal_date_placeholder">2025-12-25</string>
++<string name="meal_time_label">Time (HH:MM)</string>
++<string name="meal_time_placeholder">19:00</string>
++<string name="meal_location_label">Location (optional)</string>
++<string name="meal_location_placeholder">Restaurant, home, etc.</string>
++<string name="meal_people_label">Number of people</string>
++<string name="meal_people_placeholder">4</string>
++<string name="meal_estimated_cost_label">Estimated cost (cents)</string>
++<string name="meal_estimated_cost_placeholder">2000 = €20</string>
++<string name="meal_actual_cost_label">Actual cost (optional, in cents)</string>
++<string name="meal_actual_cost_placeholder">2150</string>
++<string name="meal_currency_amount">€%1$.2f</string>
++<string name="meal_status_label">Status</string>
++<string name="meal_notes_label">Notes (optional)</string>
++<string name="meal_notes_placeholder">Menu, preparation, etc.</string>
++<string name="meal_action_add">Add</string>
++<string name="meal_action_save">Save</string>
++<string name="meal_action_cancel">Cancel</string>
++<string name="meal_action_generate">Prepare</string>
++<string name="meal_action_close">Close</string>
++<string name="meal_action_delete">Delete</string>
++<string name="meal_error_name_required">Name is required</string>
++<string name="meal_error_date_required">Date is required</string>
++<string name="meal_error_time_required">Time is required</string>
++<string name="meal_error_people_invalid">Invalid number of people</string>
++<string name="meal_error_estimated_cost_invalid">Invalid estimated cost</string>
++<string name="meal_generate_title">Prepare a meal plan</string>
++<string name="meal_start_date_label">Start date</string>
++<string name="meal_start_date_placeholder">2025-12-25</string>
++<string name="meal_end_date_label">End date</string>
++<string name="meal_end_date_placeholder">2025-12-28</string>
++<string name="meal_participant_count_label">Number of participants</string>
++<string name="meal_cost_per_person_label">Cost per meal and person (cents)</string>
++<string name="meal_cost_per_person_placeholder">1500 = €15</string>
++<string name="meal_cost_per_person_value">€%1$.2f per person</string>
++<string name="meal_types_to_generate">Meal types to generate</string>
++<string name="meal_preview_title">Preview</string>
++<string name="meal_preview_summary">• %1$d days\n• %2$d meals in total\n• Estimated total cost: €%3$.2f</string>
++<string name="meal_error_start_date_required">Start date is required</string>
++<string name="meal_error_end_date_required">End date is required</string>
++<string name="meal_error_participants_invalid">Invalid number of participants</string>
++<string name="meal_error_cost_invalid">Invalid cost</string>
++<string name="meal_error_type_required">Select at least one meal type</string>
++<string name="meal_restrictions_title">Dietary restrictions</string>
++<string name="meal_restrictions_empty">No dietary restrictions saved</string>
++<string name="meal_participant_value">Participant: %1$s</string>
++<string name="meal_add_restriction_action">Add restriction</string>
++<string name="meal_delete_restriction_title">Delete restriction?</string>
++<string name="meal_delete_restriction_message">Delete %1$s restriction for %2$s?</string>
++<string name="meal_add_restriction_title">Add restriction</string>
++<string name="meal_participant_id_label">Participant ID</string>
++<string name="meal_participant_id_placeholder">participant-123</string>
++<string name="meal_restriction_type_label">Restriction type</string>
++<string name="meal_restriction_notes_placeholder">Additional details</string>
++<string name="meal_error_participant_required">Participant ID is required</string>
++<string name="meal_restriction_vegetarian">Vegetarian</string>
++<string name="meal_restriction_vegan">Vegan</string>
++<string name="meal_restriction_gluten_free">Gluten-free</string>
++<string name="meal_restriction_lactose_intolerant">Lactose intolerant</string>
++<string name="meal_restriction_nut_allergy">Nut allergy</string>
++<string name="meal_restriction_shellfish_allergy">Shellfish allergy</string>
++<string name="meal_restriction_kosher">Kosher</string>
++<string name="meal_restriction_halal">Halal</string>
++<string name="meal_restriction_diabetic">Diabetic</string>
++<string name="meal_restriction_other">Other</string>
++<string name="meal_selected_state">selected</string>
++<string name="meal_unselected_state">not selected</string>
++<string name="a11y_meal_type_selection">Choose %1$s, %2$s</string>
++<string name="a11y_meal_status_selection">Choose status %1$s, %2$s</string>
++<string name="a11y_meal_restriction_selection">Choose %1$s, %2$s</string>
++<string name="a11y_meal_delete_restriction">Delete %1$s restriction for %2$s</string>
++
++<string name="meal_screen_title">Meal planning</string>
++<string name="meal_empty_title">No meals planned</string>
++<string name="meal_empty_description">Add your first meal or automatically prepare a plan.</string>
++<string name="meal_delete_title">Delete meal?</string>
++<string name="meal_delete_message">Are you sure you want to delete “%1$s”?</string>
++<string name="meal_summary_title">Summary</string>
++<string name="meal_total_label">Total meals</string>
++<string name="meal_estimated_total_label">Estimated cost</string>
++<string name="meal_completed_label">Completed</string>
++<string name="meal_completed_ratio">%1$d of %2$d</string>
++<string name="meal_type_breakfast">Breakfast</string>
++<string name="meal_type_lunch">Lunch</string>
++<string name="meal_type_dinner">Dinner</string>
++<string name="meal_type_snack">Snack</string>
++<string name="meal_type_aperitif">Drinks</string>
++<string name="meal_status_planned">Planned</string>
++<string name="meal_status_assigned">Assigned</string>
++<string name="meal_status_in_progress">In progress</string>
++<string name="meal_status_completed">Completed</string>
++<string name="meal_status_cancelled">Cancelled</string>
++<string name="a11y_meal_back">Return to event</string>
++<string name="a11y_meal_open_constraints">Open dietary restrictions, %1$d saved</string>
++<string name="a11y_meal_prepare_plan">Automatically prepare a meal plan</string>
++<string name="a11y_meal_add">Add a meal</string>
++<string name="a11y_meal_filter_type">Filter by %1$s, %2$s</string>
++<string name="a11y_meal_filter_status">Filter by status %1$s, %2$s</string>
++<string name="a11y_meal_open">Edit meal %1$s, status %2$s</string>
++<string name="a11y_meal_delete">Delete meal %1$s</string><plurals name="meal_count"><item quantity="one">%1$d meal</item><item quantity="other">%1$d meals</item></plurals><plurals name="meal_constraint_count"><item quantity="one">%1$d dietary restriction</item><item quantity="other">%1$d dietary restrictions</item></plurals><plurals name="meal_responsible_count"><item quantity="one">%1$d person responsible</item><item quantity="other">%1$d people responsible</item></plurals><plurals name="meal_serving_count"><item quantity="one">%1$d serving</item><item quantity="other">%1$d servings</item></plurals><plurals name="a11y_meal_comments"><item quantity="one">Open %1$d meal comment</item><item quantity="other">Open %1$d meal comments</item></plurals>
+ </resources>
+diff --git a/composeApp/src/androidMain/res/values-es/strings.xml b/composeApp/src/androidMain/res/values-es/strings.xml
+index 41432d52..a657dd2f 100644
+--- a/composeApp/src/androidMain/res/values-es/strings.xml
++++ b/composeApp/src/androidMain/res/values-es/strings.xml
+@@ -300,21 +300,22 @@
+     <string name="smart_sharing">Sugerencias para compartir</string>
+     <string name="cover_photo">Foto de portada: %1$s</string>
+     <string name="auto_generated">Auto</string>
+     <string name="favorite">Favorito</string>
+     <string name="caption_without">sin subtítulo</string>
+ 
+     <!-- PRD Features -->
+     <string name="scenario_planning">Comparación de opciones</string>
+     <string name="budget_overview">Resumen del presupuesto</string>
+     <string name="accommodation">Alojamiento</string>
+-    <string name="meal_planning">Planificación de comidas</string>
++
++<string name="meal_planning">Planificación de comidas</string>
+     <string name="equipment_checklist">Lista de equipamiento</string>
+     <string name="activity_planning">Planificación de actividades</string>
+     <string name="manage_participants">Gestionar participantes</string>
+     <string name="view_results">Ver resultados</string>
+ 
+     <!-- Location Type Hints -->
+     <string name="location_hint_city">Ideal para eventos flexibles que pueden ocurrir en cualquier parte de la ciudad</string>
+     <string name="location_hint_region">Perfecto para eventos regionales (ej: "Sur de España")</string>
+     <string name="location_hint_specific_venue">Usa esto para una dirección o lugar específico</string>
+     <string name="location_hint_online">Para eventos virtuales vía Zoom, Meet, etc.</string>
+@@ -699,11 +700,118 @@
+     <string name="budget_category_breakdown">Desglose por categoría</string><string name="budget_total_title">Presupuesto total</string><string name="budget_estimated_label">Estimado</string><string name="budget_spent_label">Gastado</string><string name="budget_usage">%1$.1f%% utilizado</string><string name="budget_status_over">Presupuesto superado</string><string name="budget_status_nearly_used">Presupuesto casi agotado</string><string name="budget_status_empty">No hay gastos registrados</string><string name="budget_status_within">Dentro del presupuesto</string><string name="budget_remaining">Disponible: %1$.2f €</string><string name="budget_overspend">Exceso: %1$.2f €</string>
+     <plurals name="a11y_budget_comments_count"><item quantity="one">%1$d comentario del presupuesto</item><item quantity="other">%1$d comentarios del presupuesto</item></plurals><plurals name="budget_shared_by"><item quantity="one">Compartido por %1$d participante</item><item quantity="other">Compartido por %1$d participantes</item></plurals><plurals name="budget_settlement_count"><item quantity="one">%1$d reembolso pendiente</item><item quantity="other">%1$d reembolsos pendientes</item></plurals><plurals name="budget_settlement_body"><item quantity="one">Queda %1$d reembolso por saldar.</item><item quantity="other">Quedan %1$d reembolsos por saldar.</item></plurals><plurals name="budget_per_person_title"><item quantity="one">Por persona (%1$d participante)</item><item quantity="other">Por persona (%1$d participantes)</item></plurals>
+     <string name="budget_tricount_verified">verificado</string>
+     <!-- Batch 3: equipment -->
+     <string name="equipment_screen_title">Lista de equipamiento</string><string name="equipment_back_action">Volver</string><string name="a11y_equipment_auto_generate">Preparar automáticamente una lista de equipamiento</string><string name="a11y_equipment_comments_empty">No hay comentarios sobre el equipamiento</string><string name="a11y_equipment_add">Añadir equipamiento</string><string name="equipment_all_statuses">Todos</string><string name="equipment_empty_list">No se ha añadido equipamiento</string><string name="equipment_empty_filtered">No hay equipamiento con este estado</string><string name="equipment_prepare_list_action">Preparar una lista</string>
+     <string name="equipment_delete_title">¿Eliminar equipamiento?</string><string name="equipment_delete_message">¿Quitar «%1$s» de la lista de equipamiento?</string><string name="equipment_delete_action">Eliminar</string><string name="equipment_cancel_action">Cancelar</string><string name="equipment_progress_title">Progreso</string><string name="equipment_progress_ratio">%1$d / %2$d artículos listos (%3$d%%)</string><string name="equipment_assigned_summary">Asignados</string><string name="equipment_confirmed_summary">Confirmados</string><string name="equipment_total_cost">Coste total</string><string name="equipment_per_person">Por persona</string><string name="equipment_quantity_value"> × %1$d</string><string name="equipment_assign_action">Asignar</string><string name="equipment_edit_action">Editar</string>
+     <string name="equipment_add_title">Añadir equipamiento</string><string name="equipment_edit_title">Editar equipamiento</string><string name="equipment_name_required">Nombre obligatorio</string><string name="equipment_notes_label">Notas</string><string name="equipment_quantity_required">Cantidad obligatoria</string><string name="equipment_shared_cost_label">Coste compartido (€)</string><string name="equipment_category_label">Categoría</string><string name="equipment_status_label">Estado</string><string name="equipment_assigned_to_label">Responsable</string><string name="equipment_unassigned">Sin asignar</string><string name="equipment_add_action">Añadir</string><string name="equipment_confirm_action">Confirmar</string><string name="equipment_assign_title">Asignar «%1$s»</string>
+     <string name="equipment_auto_generate_title">Preparar una lista de equipamiento</string><string name="equipment_auto_generate_description">Selecciona el tipo de evento para preparar una lista adaptada al grupo.</string><string name="equipment_prepare_action">Preparar</string><string name="equipment_event_type_camping">Acampada</string><string name="equipment_event_type_beach">Playa</string><string name="equipment_event_type_ski">Esquí / Montaña</string><string name="equipment_event_type_hiking">Senderismo</string><string name="equipment_event_type_picnic">Comida campestre</string><string name="equipment_event_type_indoor">Interior</string>
+     <string name="equipment_category_camping">Acampada</string><string name="equipment_category_sports">Deporte</string><string name="equipment_category_cooking">Cocina</string><string name="equipment_category_electronics">Electrónica</string><string name="equipment_category_safety">Seguridad</string><string name="equipment_category_other">Otro</string><string name="equipment_status_needed">Necesario</string><string name="equipment_status_assigned">Asignado</string><string name="equipment_status_confirmed">Confirmado</string><string name="equipment_status_packed">Listo</string><string name="equipment_status_cancelled">Cancelado</string><string name="equipment_packed_state">listo</string><string name="equipment_not_packed_state">aún no está listo</string>
+     <string name="a11y_equipment_assign">Asignar %1$s a una persona</string><string name="a11y_equipment_edit">Editar el artículo %1$s</string><string name="a11y_equipment_delete">Eliminar el artículo %1$s</string><string name="a11y_equipment_set_packed">Cambiar el estado de %1$s, %2$s</string><plurals name="a11y_equipment_comments_count"><item quantity="one">%1$d comentario sobre el equipamiento</item><item quantity="other">%1$d comentarios sobre el equipamiento</item></plurals>
++
++<string name="meal_add_title">Añadir comida</string>
++<string name="meal_edit_title">Editar comida</string>
++<string name="meal_type_label">Tipo de comida</string>
++<string name="meal_name_label">Nombre de la comida</string>
++<string name="meal_name_placeholder">Ej. barbacoa del sábado por la noche</string>
++<string name="meal_date_label">Fecha (AAAA-MM-DD)</string>
++<string name="meal_date_placeholder">2025-12-25</string>
++<string name="meal_time_label">Hora (HH:MM)</string>
++<string name="meal_time_placeholder">19:00</string>
++<string name="meal_location_label">Lugar (opcional)</string>
++<string name="meal_location_placeholder">Restaurante, casa, etc.</string>
++<string name="meal_people_label">Número de personas</string>
++<string name="meal_people_placeholder">4</string>
++<string name="meal_estimated_cost_label">Coste estimado (céntimos)</string>
++<string name="meal_estimated_cost_placeholder">2000 = 20 €</string>
++<string name="meal_actual_cost_label">Coste real (opcional, en céntimos)</string>
++<string name="meal_actual_cost_placeholder">2150</string>
++<string name="meal_currency_amount">%1$.2f €</string>
++<string name="meal_status_label">Situación</string>
++<string name="meal_notes_label">Notas (opcionales)</string>
++<string name="meal_notes_placeholder">Menú, preparación, etc.</string>
++<string name="meal_action_add">Añadir</string>
++<string name="meal_action_save">Guardar</string>
++<string name="meal_action_cancel">Cancelar</string>
++<string name="meal_action_generate">Preparar</string>
++<string name="meal_action_close">Cerrar</string>
++<string name="meal_action_delete">Eliminar</string>
++<string name="meal_error_name_required">El nombre es obligatorio</string>
++<string name="meal_error_date_required">La fecha es obligatoria</string>
++<string name="meal_error_time_required">La hora es obligatoria</string>
++<string name="meal_error_people_invalid">Número de personas no válido</string>
++<string name="meal_error_estimated_cost_invalid">Coste estimado no válido</string>
++<string name="meal_generate_title">Preparar un plan de comidas</string>
++<string name="meal_start_date_label">Fecha de inicio</string>
++<string name="meal_start_date_placeholder">2025-12-25</string>
++<string name="meal_end_date_label">Fecha de fin</string>
++<string name="meal_end_date_placeholder">2025-12-28</string>
++<string name="meal_participant_count_label">Número de participantes</string>
++<string name="meal_cost_per_person_label">Coste por comida y persona (céntimos)</string>
++<string name="meal_cost_per_person_placeholder">1500 = 15 €</string>
++<string name="meal_cost_per_person_value">%1$.2f € por persona</string>
++<string name="meal_types_to_generate">Comidas que se prepararán</string>
++<string name="meal_preview_title">Vista previa</string>
++<string name="meal_preview_summary">• %1$d días\n• %2$d comidas en total\n• Coste total estimado: %3$.2f €</string>
++<string name="meal_error_start_date_required">La fecha de inicio es obligatoria</string>
++<string name="meal_error_end_date_required">La fecha de fin es obligatoria</string>
++<string name="meal_error_participants_invalid">Número de participantes no válido</string>
++<string name="meal_error_cost_invalid">Coste no válido</string>
++<string name="meal_error_type_required">Selecciona al menos un tipo de comida</string>
++<string name="meal_restrictions_title">restricción alimentaria</string>
++<string name="meal_restrictions_empty">No hay restricciones alimentarias guardadas</string>
++<string name="meal_participant_value">Participante: %1$s</string>
++<string name="meal_add_restriction_action">Añadir restricción</string>
++<string name="meal_delete_restriction_title">¿Eliminar la restricción?</string>
++<string name="meal_delete_restriction_message">¿Eliminar %1$s para %2$s?</string>
++<string name="meal_add_restriction_title">Añadir restricción</string>
++<string name="meal_participant_id_label">ID del participante</string>
++<string name="meal_participant_id_placeholder">participant-123</string>
++<string name="meal_restriction_type_label">Tipo de restricción</string>
++<string name="meal_restriction_notes_placeholder">Información adicional</string>
++<string name="meal_error_participant_required">El ID del participante es obligatorio</string>
++<string name="meal_restriction_vegetarian">Vegetariana</string>
++<string name="meal_restriction_vegan">Vegana</string>
++<string name="meal_restriction_gluten_free">Sin gluten</string>
++<string name="meal_restriction_lactose_intolerant">Intolerancia a la lactosa</string>
++<string name="meal_restriction_nut_allergy">Alergia a los frutos secos</string>
++<string name="meal_restriction_shellfish_allergy">Alergia al marisco</string>
++<string name="meal_restriction_kosher">Kosher</string>
++<string name="meal_restriction_halal">Halal</string>
++<string name="meal_restriction_diabetic">Para diabéticos</string>
++<string name="meal_restriction_other">Otra</string>
++<string name="meal_selected_state">seleccionado</string>
++<string name="meal_unselected_state">no seleccionado</string>
++<string name="a11y_meal_type_selection">Elegir %1$s, %2$s</string>
++<string name="a11y_meal_status_selection">Elegir el estado %1$s, %2$s</string>
++<string name="a11y_meal_restriction_selection">Elegir %1$s, %2$s</string>
++<string name="a11y_meal_delete_restriction">Eliminar %1$s para %2$s</string>
++
++<string name="meal_screen_title">Planificación de comidas</string>
++<string name="meal_empty_title">No hay comidas planificadas</string>
++<string name="meal_empty_description">Añade la primera comida o prepara un plan automáticamente.</string>
++<string name="meal_delete_title">¿Eliminar comida?</string>
++<string name="meal_delete_message">¿Seguro que quieres eliminar «%1$s»?</string>
++<string name="meal_summary_title">Resumen</string>
++<string name="meal_total_label">Total de comidas</string>
++<string name="meal_estimated_total_label">Coste estimado</string>
++<string name="meal_completed_label">Completadas</string>
++<string name="meal_completed_ratio">%1$d de %2$d</string>
++<string name="meal_type_breakfast">Desayuno</string>
++<string name="meal_type_lunch">Almuerzo</string>
++<string name="meal_type_dinner">Cena</string>
++<string name="meal_type_snack">Merienda</string>
++<string name="meal_type_aperitif">Aperitivo</string>
++<string name="meal_status_planned">Planificada</string>
++<string name="meal_status_assigned">Asignada</string>
++<string name="meal_status_in_progress">En preparación</string>
++<string name="meal_status_completed">Completada</string>
++<string name="meal_status_cancelled">Cancelada</string>
++<string name="a11y_meal_back">Volver al evento</string>
++<string name="a11y_meal_open_constraints">Abrir restricciones alimentarias, %1$d guardadas</string>
++<string name="a11y_meal_prepare_plan">Preparar automáticamente un plan de comidas</string>
++<string name="a11y_meal_add">Añadir una comida</string>
++<string name="a11y_meal_filter_type">Filtrar por %1$s, %2$s</string>
++<string name="a11y_meal_filter_status">Filtrar por estado %1$s, %2$s</string>
++<string name="a11y_meal_open">Editar la comida %1$s, estado %2$s</string>
++<string name="a11y_meal_delete">Eliminar la comida %1$s</string><plurals name="meal_count"><item quantity="one">%1$d comida</item><item quantity="other">%1$d comidas</item></plurals><plurals name="meal_constraint_count"><item quantity="one">%1$d restricción alimentaria</item><item quantity="other">%1$d restricciones alimentarias</item></plurals><plurals name="meal_responsible_count"><item quantity="one">%1$d responsable</item><item quantity="other">%1$d responsables</item></plurals><plurals name="meal_serving_count"><item quantity="one">%1$d ración</item><item quantity="other">%1$d raciones</item></plurals><plurals name="a11y_meal_comments"><item quantity="one">Abrir %1$d comentario sobre comidas</item><item quantity="other">Abrir %1$d comentarios sobre comidas</item></plurals>
+ </resources>
+diff --git a/composeApp/src/androidMain/res/values-it/strings.xml b/composeApp/src/androidMain/res/values-it/strings.xml
+index 5364d80a..26dc927c 100644
+--- a/composeApp/src/androidMain/res/values-it/strings.xml
++++ b/composeApp/src/androidMain/res/values-it/strings.xml
+@@ -411,21 +411,22 @@
+     <string name="smart_sharing">Suggerimenti di condivisione</string>
+     <string name="cover_photo">Foto di copertina: %1$s</string>
+     <string name="auto_generated">Auto</string>
+     <string name="favorite">Preferito</string>
+     <string name="caption_without">senza didascalia</string>
+ 
+     <!-- PRD Features -->
+     <string name="scenario_planning">Confronto opzioni</string>
+     <string name="budget_overview">Panoramica budget</string>
+     <string name="accommodation">Alloggio</string>
+-    <string name="meal_planning">Pianificazione pasti</string>
++
++<string name="meal_planning">Pianificazione pasti</string>
+     <string name="equipment_checklist">Lista attrezzature</string>
+     <string name="activity_planning">Pianificazione attività</string>
+     <string name="manage_participants">Gestisci partecipanti</string>
+     <string name="view_results">Visualizza risultati</string>
+ 
+     <!-- Location Type Hints -->
+     <string name="location_hint_city">Ideale per eventi flessibili che possono svolgersi ovunque in città</string>
+     <string name="location_hint_region">Perfetto per eventi regionali (es: « Nord Italia »)</string>
+     <string name="location_hint_specific_venue">Usa questo per un indirizzo o luogo specifico</string>
+     <string name="location_hint_online">Per eventi virtuali tramite Zoom, Meet, ecc.</string>
+@@ -697,11 +698,118 @@
+     <string name="budget_category_breakdown">Ripartizione per categoria</string><string name="budget_total_title">Budget totale</string><string name="budget_estimated_label">Stimato</string><string name="budget_spent_label">Speso</string><string name="budget_usage">%1$.1f%% utilizzato</string><string name="budget_status_over">Budget superato</string><string name="budget_status_nearly_used">Budget quasi esaurito</string><string name="budget_status_empty">Nessuna spesa registrata</string><string name="budget_status_within">Nel budget</string><string name="budget_remaining">Disponibile: %1$.2f €</string><string name="budget_overspend">Sforamento: %1$.2f €</string>
+     <plurals name="a11y_budget_comments_count"><item quantity="one">%1$d commento sul budget</item><item quantity="other">%1$d commenti sul budget</item></plurals><plurals name="budget_shared_by"><item quantity="one">Condivisa da %1$d partecipante</item><item quantity="other">Condivisa da %1$d partecipanti</item></plurals><plurals name="budget_settlement_count"><item quantity="one">%1$d rimborso da saldare</item><item quantity="other">%1$d rimborsi da saldare</item></plurals><plurals name="budget_settlement_body"><item quantity="one">Resta %1$d rimborso da saldare.</item><item quantity="other">Restano %1$d rimborsi da saldare.</item></plurals><plurals name="budget_per_person_title"><item quantity="one">A persona (%1$d partecipante)</item><item quantity="other">A persona (%1$d partecipanti)</item></plurals>
+     <string name="budget_tricount_verified">verificato</string>
+     <!-- Batch 3: equipment -->
+     <string name="equipment_screen_title">Lista delle attrezzature</string><string name="equipment_back_action">Indietro</string><string name="a11y_equipment_auto_generate">Prepara automaticamente una lista delle attrezzature</string><string name="a11y_equipment_comments_empty">Nessun commento sulle attrezzature</string><string name="a11y_equipment_add">Aggiungi attrezzatura</string><string name="equipment_all_statuses">Tutti</string><string name="equipment_empty_list">Nessuna attrezzatura aggiunta</string><string name="equipment_empty_filtered">Nessuna attrezzatura con questo stato</string><string name="equipment_prepare_list_action">Prepara una lista</string>
+     <string name="equipment_delete_title">Eliminare l’attrezzatura?</string><string name="equipment_delete_message">Rimuovere «%1$s» dalla lista delle attrezzature?</string><string name="equipment_delete_action">Elimina</string><string name="equipment_cancel_action">Annulla</string><string name="equipment_progress_title">Avanzamento</string><string name="equipment_progress_ratio">%1$d / %2$d articoli pronti (%3$d%%)</string><string name="equipment_assigned_summary">Assegnati</string><string name="equipment_confirmed_summary">Confermati</string><string name="equipment_total_cost">Costo totale</string><string name="equipment_per_person">A persona</string><string name="equipment_quantity_value"> × %1$d</string><string name="equipment_assign_action">Assegna</string><string name="equipment_edit_action">Modifica</string>
+     <string name="equipment_add_title">Aggiungi attrezzatura</string><string name="equipment_edit_title">Modifica attrezzatura</string><string name="equipment_name_required">Nome obbligatorio</string><string name="equipment_notes_label">Note</string><string name="equipment_quantity_required">Quantità obbligatoria</string><string name="equipment_shared_cost_label">Costo condiviso (€)</string><string name="equipment_category_label">Categoria</string><string name="equipment_status_label">Stato</string><string name="equipment_assigned_to_label">Responsabile</string><string name="equipment_unassigned">Non assegnato</string><string name="equipment_add_action">Aggiungi</string><string name="equipment_confirm_action">Conferma</string><string name="equipment_assign_title">Assegna «%1$s»</string>
+     <string name="equipment_auto_generate_title">Prepara una lista delle attrezzature</string><string name="equipment_auto_generate_description">Seleziona il tipo di evento per preparare una lista adatta al gruppo.</string><string name="equipment_prepare_action">Prepara</string><string name="equipment_event_type_camping">Campeggio</string><string name="equipment_event_type_beach">Spiaggia</string><string name="equipment_event_type_ski">Sci / Montagna</string><string name="equipment_event_type_hiking">Escursione</string><string name="equipment_event_type_picnic">Pranzo all’aperto</string><string name="equipment_event_type_indoor">Al chiuso</string>
+     <string name="equipment_category_camping">Campeggio</string><string name="equipment_category_sports">Sport</string><string name="equipment_category_cooking">Cucina</string><string name="equipment_category_electronics">Elettronica</string><string name="equipment_category_safety">Sicurezza</string><string name="equipment_category_other">Altro</string><string name="equipment_status_needed">Necessario</string><string name="equipment_status_assigned">Assegnato</string><string name="equipment_status_confirmed">Confermato</string><string name="equipment_status_packed">Pronto</string><string name="equipment_status_cancelled">Annullato</string><string name="equipment_packed_state">pronto</string><string name="equipment_not_packed_state">non ancora pronto</string>
+     <string name="a11y_equipment_assign">Assegna %1$s a una persona</string><string name="a11y_equipment_edit">Modifica l’articolo %1$s</string><string name="a11y_equipment_delete">Elimina l’articolo %1$s</string><string name="a11y_equipment_set_packed">Cambia lo stato di %1$s, %2$s</string><plurals name="a11y_equipment_comments_count"><item quantity="one">%1$d commento sulle attrezzature</item><item quantity="other">%1$d commenti sulle attrezzature</item></plurals>
++
++<string name="meal_add_title">Aggiungi pasto</string>
++<string name="meal_edit_title">Modifica pasto</string>
++<string name="meal_type_label">Tipo di pasto</string>
++<string name="meal_name_label">Nome del pasto</string>
++<string name="meal_name_placeholder">Es. grigliata del sabato sera</string>
++<string name="meal_date_label">Data (AAAA-MM-GG)</string>
++<string name="meal_date_placeholder">2025-12-25</string>
++<string name="meal_time_label">Ora (HH:MM)</string>
++<string name="meal_time_placeholder">19:00</string>
++<string name="meal_location_label">Luogo (facoltativo)</string>
++<string name="meal_location_placeholder">Ristorante, casa, ecc.</string>
++<string name="meal_people_label">Numero di persone</string>
++<string name="meal_people_placeholder">4</string>
++<string name="meal_estimated_cost_label">Costo stimato (centesimi)</string>
++<string name="meal_estimated_cost_placeholder">2000 = 20 €</string>
++<string name="meal_actual_cost_label">Costo effettivo (facoltativo, in centesimi)</string>
++<string name="meal_actual_cost_placeholder">2150</string>
++<string name="meal_currency_amount">%1$.2f €</string>
++<string name="meal_status_label">Avanzamento</string>
++<string name="meal_notes_label">Note (facoltative)</string>
++<string name="meal_notes_placeholder">Menù, preparazione, ecc.</string>
++<string name="meal_action_add">Aggiungi</string>
++<string name="meal_action_save">Salva</string>
++<string name="meal_action_cancel">Annulla</string>
++<string name="meal_action_generate">Prepara</string>
++<string name="meal_action_close">Chiudi</string>
++<string name="meal_action_delete">Elimina</string>
++<string name="meal_error_name_required">Il nome è obbligatorio</string>
++<string name="meal_error_date_required">La data è obbligatoria</string>
++<string name="meal_error_time_required">L’ora è obbligatoria</string>
++<string name="meal_error_people_invalid">Numero di persone non valido</string>
++<string name="meal_error_estimated_cost_invalid">Costo stimato non valido</string>
++<string name="meal_generate_title">Prepara un piano dei pasti</string>
++<string name="meal_start_date_label">Data di inizio</string>
++<string name="meal_start_date_placeholder">2025-12-25</string>
++<string name="meal_end_date_label">Data di fine</string>
++<string name="meal_end_date_placeholder">2025-12-28</string>
++<string name="meal_participant_count_label">Numero di partecipanti</string>
++<string name="meal_cost_per_person_label">Costo per pasto e persona (centesimi)</string>
++<string name="meal_cost_per_person_placeholder">1500 = 15 €</string>
++<string name="meal_cost_per_person_value">%1$.2f € a persona</string>
++<string name="meal_types_to_generate">Pasti da preparare</string>
++<string name="meal_preview_title">Anteprima</string>
++<string name="meal_preview_summary">• %1$d giorni\n• %2$d pasti in totale\n• Costo totale stimato: %3$.2f €</string>
++<string name="meal_error_start_date_required">La data di inizio è obbligatoria</string>
++<string name="meal_error_end_date_required">La data di fine è obbligatoria</string>
++<string name="meal_error_participants_invalid">Numero di partecipanti non valido</string>
++<string name="meal_error_cost_invalid">Costo non valido</string>
++<string name="meal_error_type_required">Seleziona almeno un tipo di pasto</string>
++<string name="meal_restrictions_title">restrizione alimentare</string>
++<string name="meal_restrictions_empty">Nessuna restrizione alimentare salvata</string>
++<string name="meal_participant_value">Partecipante: %1$s</string>
++<string name="meal_add_restriction_action">Aggiungi restrizione</string>
++<string name="meal_delete_restriction_title">Eliminare la restrizione?</string>
++<string name="meal_delete_restriction_message">Eliminare %1$s per %2$s?</string>
++<string name="meal_add_restriction_title">Aggiungi restrizione</string>
++<string name="meal_participant_id_label">ID partecipante</string>
++<string name="meal_participant_id_placeholder">participant-123</string>
++<string name="meal_restriction_type_label">Tipo di restrizione</string>
++<string name="meal_restriction_notes_placeholder">Informazioni aggiuntive</string>
++<string name="meal_error_participant_required">L’ID del partecipante è obbligatorio</string>
++<string name="meal_restriction_vegetarian">Vegetariana</string>
++<string name="meal_restriction_vegan">Vegana</string>
++<string name="meal_restriction_gluten_free">Senza glutine</string>
++<string name="meal_restriction_lactose_intolerant">Intolleranza al lattosio</string>
++<string name="meal_restriction_nut_allergy">Allergia alla frutta a guscio</string>
++<string name="meal_restriction_shellfish_allergy">Allergia ai crostacei</string>
++<string name="meal_restriction_kosher">Kosher</string>
++<string name="meal_restriction_halal">Halal</string>
++<string name="meal_restriction_diabetic">Per diabetici</string>
++<string name="meal_restriction_other">Altra</string>
++<string name="meal_selected_state">selezionato</string>
++<string name="meal_unselected_state">non selezionato</string>
++<string name="a11y_meal_type_selection">Scegli %1$s, %2$s</string>
++<string name="a11y_meal_status_selection">Scegli lo stato %1$s, %2$s</string>
++<string name="a11y_meal_restriction_selection">Scegli %1$s, %2$s</string>
++<string name="a11y_meal_delete_restriction">Elimina %1$s per %2$s</string>
++
++<string name="meal_screen_title">Pianificazione dei pasti</string>
++<string name="meal_empty_title">Nessun pasto pianificato</string>
++<string name="meal_empty_description">Aggiungi il primo pasto o prepara automaticamente un piano.</string>
++<string name="meal_delete_title">Eliminare il pasto?</string>
++<string name="meal_delete_message">Vuoi davvero eliminare «%1$s»?</string>
++<string name="meal_summary_title">Riepilogo</string>
++<string name="meal_total_label">Pasti totali</string>
++<string name="meal_estimated_total_label">Costo stimato</string>
++<string name="meal_completed_label">Completati</string>
++<string name="meal_completed_ratio">%1$d di %2$d</string>
++<string name="meal_type_breakfast">Colazione</string>
++<string name="meal_type_lunch">Pranzo</string>
++<string name="meal_type_dinner">Cena</string>
++<string name="meal_type_snack">Merenda</string>
++<string name="meal_type_aperitif">Aperitivo</string>
++<string name="meal_status_planned">Pianificato</string>
++<string name="meal_status_assigned">Assegnato</string>
++<string name="meal_status_in_progress">In preparazione</string>
++<string name="meal_status_completed">Completato</string>
++<string name="meal_status_cancelled">Annullato</string>
++<string name="a11y_meal_back">Torna all’evento</string>
++<string name="a11y_meal_open_constraints">Apri le restrizioni alimentari, %1$d salvate</string>
++<string name="a11y_meal_prepare_plan">Prepara automaticamente un piano dei pasti</string>
++<string name="a11y_meal_add">Aggiungi un pasto</string>
++<string name="a11y_meal_filter_type">Filtra per %1$s, %2$s</string>
++<string name="a11y_meal_filter_status">Filtra per stato %1$s, %2$s</string>
++<string name="a11y_meal_open">Modifica il pasto %1$s, stato %2$s</string>
++<string name="a11y_meal_delete">Elimina il pasto %1$s</string><plurals name="meal_count"><item quantity="one">%1$d pasto</item><item quantity="other">%1$d pasti</item></plurals><plurals name="meal_constraint_count"><item quantity="one">%1$d restrizione alimentare</item><item quantity="other">%1$d restrizioni alimentari</item></plurals><plurals name="meal_responsible_count"><item quantity="one">%1$d responsabile</item><item quantity="other">%1$d responsabili</item></plurals><plurals name="meal_serving_count"><item quantity="one">%1$d porzione</item><item quantity="other">%1$d porzioni</item></plurals><plurals name="a11y_meal_comments"><item quantity="one">Apri %1$d commento sui pasti</item><item quantity="other">Apri %1$d commenti sui pasti</item></plurals>
+ </resources>
+diff --git a/composeApp/src/androidMain/res/values-pt/strings.xml b/composeApp/src/androidMain/res/values-pt/strings.xml
+index 8490aa95..1ea451ec 100644
+--- a/composeApp/src/androidMain/res/values-pt/strings.xml
++++ b/composeApp/src/androidMain/res/values-pt/strings.xml
+@@ -411,21 +411,22 @@
+     <string name="smart_sharing">Sugestões de compartilhamento</string>
+     <string name="cover_photo">Foto de capa: %1$s</string>
+     <string name="auto_generated">Auto</string>
+     <string name="favorite">Favorito</string>
+     <string name="caption_without">sem legenda</string>
+ 
+     <!-- PRD Features -->
+     <string name="scenario_planning">Comparação de opções</string>
+     <string name="budget_overview">Visão geral do orçamento</string>
+     <string name="accommodation">Hospedagem</string>
+-    <string name="meal_planning">Planejamento de refeições</string>
++
++<string name="meal_planning">Planejamento de refeições</string>
+     <string name="equipment_checklist">Lista de equipamentos</string>
+     <string name="activity_planning">Planejamento de atividades</string>
+     <string name="manage_participants">Gerenciar participantes</string>
+     <string name="view_results">Ver resultados</string>
+ 
+     <!-- Location Type Hints -->
+     <string name="location_hint_city">Ideal para eventos flexíveis que podem acontecer em qualquer lugar da cidade</string>
+     <string name="location_hint_region">Perfeito para eventos regionais (ex: « Sul do Brasil »)</string>
+     <string name="location_hint_specific_venue">Use para um endereço ou local específico</string>
+     <string name="location_hint_online">Para eventos virtuais via Zoom, Meet, etc.</string>
+@@ -697,11 +698,118 @@
+     <string name="budget_category_breakdown">Distribuição por categoria</string><string name="budget_total_title">Orçamento total</string><string name="budget_estimated_label">Estimado</string><string name="budget_spent_label">Gasto</string><string name="budget_usage">%1$.1f%% utilizado</string><string name="budget_status_over">Orçamento excedido</string><string name="budget_status_nearly_used">Orçamento quase esgotado</string><string name="budget_status_empty">Nenhuma despesa registada</string><string name="budget_status_within">Dentro do orçamento</string><string name="budget_remaining">Disponível: %1$.2f €</string><string name="budget_overspend">Excesso: %1$.2f €</string>
+     <plurals name="a11y_budget_comments_count"><item quantity="one">%1$d comentário sobre o orçamento</item><item quantity="other">%1$d comentários sobre o orçamento</item></plurals><plurals name="budget_shared_by"><item quantity="one">Partilhada por %1$d participante</item><item quantity="other">Partilhada por %1$d participantes</item></plurals><plurals name="budget_settlement_count"><item quantity="one">%1$d reembolso por liquidar</item><item quantity="other">%1$d reembolsos por liquidar</item></plurals><plurals name="budget_settlement_body"><item quantity="one">Falta liquidar %1$d reembolso.</item><item quantity="other">Faltam liquidar %1$d reembolsos.</item></plurals><plurals name="budget_per_person_title"><item quantity="one">Por pessoa (%1$d participante)</item><item quantity="other">Por pessoa (%1$d participantes)</item></plurals>
+     <string name="budget_tricount_verified">verificada</string>
+     <!-- Batch 3: equipment -->
+     <string name="equipment_screen_title">Lista de equipamentos</string><string name="equipment_back_action">Voltar</string><string name="a11y_equipment_auto_generate">Preparar automaticamente uma lista de equipamentos</string><string name="a11y_equipment_comments_empty">Sem comentários sobre equipamentos</string><string name="a11y_equipment_add">Adicionar equipamento</string><string name="equipment_all_statuses">Todos</string><string name="equipment_empty_list">Nenhum equipamento adicionado</string><string name="equipment_empty_filtered">Nenhum equipamento com este estado</string><string name="equipment_prepare_list_action">Preparar uma lista</string>
+     <string name="equipment_delete_title">Eliminar equipamento?</string><string name="equipment_delete_message">Remover «%1$s» da lista de equipamentos?</string><string name="equipment_delete_action">Eliminar</string><string name="equipment_cancel_action">Cancelar</string><string name="equipment_progress_title">Progresso</string><string name="equipment_progress_ratio">%1$d / %2$d itens prontos (%3$d%%)</string><string name="equipment_assigned_summary">Atribuídos</string><string name="equipment_confirmed_summary">Confirmados</string><string name="equipment_total_cost">Custo total</string><string name="equipment_per_person">Por pessoa</string><string name="equipment_quantity_value"> × %1$d</string><string name="equipment_assign_action">Atribuir</string><string name="equipment_edit_action">Editar</string>
+     <string name="equipment_add_title">Adicionar equipamento</string><string name="equipment_edit_title">Editar equipamento</string><string name="equipment_name_required">Nome obrigatório</string><string name="equipment_notes_label">Notas</string><string name="equipment_quantity_required">Quantidade obrigatória</string><string name="equipment_shared_cost_label">Custo partilhado (€)</string><string name="equipment_category_label">Categoria</string><string name="equipment_status_label">Estado</string><string name="equipment_assigned_to_label">Responsável</string><string name="equipment_unassigned">Não atribuído</string><string name="equipment_add_action">Adicionar</string><string name="equipment_confirm_action">Confirmar</string><string name="equipment_assign_title">Atribuir «%1$s»</string>
+     <string name="equipment_auto_generate_title">Preparar uma lista de equipamentos</string><string name="equipment_auto_generate_description">Selecione o tipo de evento para preparar uma lista adequada ao grupo.</string><string name="equipment_prepare_action">Preparar</string><string name="equipment_event_type_camping">Campismo</string><string name="equipment_event_type_beach">Praia</string><string name="equipment_event_type_ski">Esqui / Montanha</string><string name="equipment_event_type_hiking">Caminhada</string><string name="equipment_event_type_picnic">Refeição ao ar livre</string><string name="equipment_event_type_indoor">Interior</string>
+     <string name="equipment_category_camping">Campismo</string><string name="equipment_category_sports">Desporto</string><string name="equipment_category_cooking">Cozinha</string><string name="equipment_category_electronics">Eletrónica</string><string name="equipment_category_safety">Segurança</string><string name="equipment_category_other">Outro</string><string name="equipment_status_needed">Necessário</string><string name="equipment_status_assigned">Atribuído</string><string name="equipment_status_confirmed">Confirmado</string><string name="equipment_status_packed">Pronto</string><string name="equipment_status_cancelled">Cancelado</string><string name="equipment_packed_state">pronto</string><string name="equipment_not_packed_state">ainda não está pronto</string>
+     <string name="a11y_equipment_assign">Atribuir %1$s a uma pessoa</string><string name="a11y_equipment_edit">Editar o item %1$s</string><string name="a11y_equipment_delete">Eliminar o item %1$s</string><string name="a11y_equipment_set_packed">Alterar o estado de %1$s, %2$s</string><plurals name="a11y_equipment_comments_count"><item quantity="one">%1$d comentário sobre equipamentos</item><item quantity="other">%1$d comentários sobre equipamentos</item></plurals>
++
++<string name="meal_add_title">Adicionar refeição</string>
++<string name="meal_edit_title">Editar refeição</string>
++<string name="meal_type_label">Tipo de refeição</string>
++<string name="meal_name_label">Nome da refeição</string>
++<string name="meal_name_placeholder">Ex. churrasco no sábado à noite</string>
++<string name="meal_date_label">Data (AAAA-MM-DD)</string>
++<string name="meal_date_placeholder">2025-12-25</string>
++<string name="meal_time_label">Hora (HH:MM)</string>
++<string name="meal_time_placeholder">19:00</string>
++<string name="meal_location_label">Local (opcional)</string>
++<string name="meal_location_placeholder">Restaurante, casa, etc.</string>
++<string name="meal_people_label">Número de pessoas</string>
++<string name="meal_people_placeholder">4</string>
++<string name="meal_estimated_cost_label">Custo estimado (cêntimos)</string>
++<string name="meal_estimated_cost_placeholder">2000 = 20 €</string>
++<string name="meal_actual_cost_label">Custo real (opcional, em cêntimos)</string>
++<string name="meal_actual_cost_placeholder">2150</string>
++<string name="meal_currency_amount">%1$.2f €</string>
++<string name="meal_status_label">Situação</string>
++<string name="meal_notes_label">Notas (opcionais)</string>
++<string name="meal_notes_placeholder">Menu, preparação, etc.</string>
++<string name="meal_action_add">Adicionar</string>
++<string name="meal_action_save">Guardar</string>
++<string name="meal_action_cancel">Cancelar</string>
++<string name="meal_action_generate">Preparar</string>
++<string name="meal_action_close">Fechar</string>
++<string name="meal_action_delete">Eliminar</string>
++<string name="meal_error_name_required">O nome é obrigatório</string>
++<string name="meal_error_date_required">A data é obrigatória</string>
++<string name="meal_error_time_required">A hora é obrigatória</string>
++<string name="meal_error_people_invalid">Número de pessoas inválido</string>
++<string name="meal_error_estimated_cost_invalid">Custo estimado inválido</string>
++<string name="meal_generate_title">Preparar um plano de refeições</string>
++<string name="meal_start_date_label">Data de início</string>
++<string name="meal_start_date_placeholder">2025-12-25</string>
++<string name="meal_end_date_label">Data de fim</string>
++<string name="meal_end_date_placeholder">2025-12-28</string>
++<string name="meal_participant_count_label">Número de participantes</string>
++<string name="meal_cost_per_person_label">Custo por refeição e pessoa (cêntimos)</string>
++<string name="meal_cost_per_person_placeholder">1500 = 15 €</string>
++<string name="meal_cost_per_person_value">%1$.2f € por pessoa</string>
++<string name="meal_types_to_generate">Refeições a preparar</string>
++<string name="meal_preview_title">Pré-visualização</string>
++<string name="meal_preview_summary">• %1$d dias\n• %2$d refeições no total\n• Custo total estimado: %3$.2f €</string>
++<string name="meal_error_start_date_required">A data de início é obrigatória</string>
++<string name="meal_error_end_date_required">A data de fim é obrigatória</string>
++<string name="meal_error_participants_invalid">Número de participantes inválido</string>
++<string name="meal_error_cost_invalid">Custo inválido</string>
++<string name="meal_error_type_required">Selecione pelo menos um tipo de refeição</string>
++<string name="meal_restrictions_title">restrição alimentar</string>
++<string name="meal_restrictions_empty">Nenhuma restrição alimentar guardada</string>
++<string name="meal_participant_value">Participante: %1$s</string>
++<string name="meal_add_restriction_action">Adicionar restrição</string>
++<string name="meal_delete_restriction_title">Eliminar restrição?</string>
++<string name="meal_delete_restriction_message">Eliminar %1$s para %2$s?</string>
++<string name="meal_add_restriction_title">Adicionar restrição</string>
++<string name="meal_participant_id_label">ID do participante</string>
++<string name="meal_participant_id_placeholder">participant-123</string>
++<string name="meal_restriction_type_label">Tipo de restrição</string>
++<string name="meal_restriction_notes_placeholder">Informação adicional</string>
++<string name="meal_error_participant_required">O ID do participante é obrigatório</string>
++<string name="meal_restriction_vegetarian">Vegetariana</string>
++<string name="meal_restriction_vegan">Vegana</string>
++<string name="meal_restriction_gluten_free">Sem glúten</string>
++<string name="meal_restriction_lactose_intolerant">Intolerância à lactose</string>
++<string name="meal_restriction_nut_allergy">Alergia a frutos secos</string>
++<string name="meal_restriction_shellfish_allergy">Alergia a marisco</string>
++<string name="meal_restriction_kosher">Kosher</string>
++<string name="meal_restriction_halal">Halal</string>
++<string name="meal_restriction_diabetic">Para diabéticos</string>
++<string name="meal_restriction_other">Outra</string>
++<string name="meal_selected_state">selecionado</string>
++<string name="meal_unselected_state">não selecionado</string>
++<string name="a11y_meal_type_selection">Escolher %1$s, %2$s</string>
++<string name="a11y_meal_status_selection">Escolher o estado %1$s, %2$s</string>
++<string name="a11y_meal_restriction_selection">Escolher %1$s, %2$s</string>
++<string name="a11y_meal_delete_restriction">Eliminar %1$s para %2$s</string>
++
++<string name="meal_screen_title">Planeamento de refeições</string>
++<string name="meal_empty_title">Nenhuma refeição planeada</string>
++<string name="meal_empty_description">Adicione a primeira refeição ou prepare um plano automaticamente.</string>
++<string name="meal_delete_title">Eliminar refeição?</string>
++<string name="meal_delete_message">Tem a certeza de que pretende eliminar «%1$s»?</string>
++<string name="meal_summary_title">Resumo</string>
++<string name="meal_total_label">Total de refeições</string>
++<string name="meal_estimated_total_label">Custo estimado</string>
++<string name="meal_completed_label">Concluídas</string>
++<string name="meal_completed_ratio">%1$d de %2$d</string>
++<string name="meal_type_breakfast">Pequeno-almoço</string>
++<string name="meal_type_lunch">Almoço</string>
++<string name="meal_type_dinner">Jantar</string>
++<string name="meal_type_snack">Lanche</string>
++<string name="meal_type_aperitif">Aperitivo</string>
++<string name="meal_status_planned">Planeada</string>
++<string name="meal_status_assigned">Atribuída</string>
++<string name="meal_status_in_progress">Em preparação</string>
++<string name="meal_status_completed">Concluída</string>
++<string name="meal_status_cancelled">Cancelada</string>
++<string name="a11y_meal_back">Voltar ao evento</string>
++<string name="a11y_meal_open_constraints">Abrir restrições alimentares, %1$d guardadas</string>
++<string name="a11y_meal_prepare_plan">Preparar automaticamente um plano de refeições</string>
++<string name="a11y_meal_add">Adicionar uma refeição</string>
++<string name="a11y_meal_filter_type">Filtrar por %1$s, %2$s</string>
++<string name="a11y_meal_filter_status">Filtrar por estado %1$s, %2$s</string>
++<string name="a11y_meal_open">Editar a refeição %1$s, estado %2$s</string>
++<string name="a11y_meal_delete">Eliminar a refeição %1$s</string><plurals name="meal_count"><item quantity="one">%1$d refeição</item><item quantity="other">%1$d refeições</item></plurals><plurals name="meal_constraint_count"><item quantity="one">%1$d restrição alimentar</item><item quantity="other">%1$d restrições alimentares</item></plurals><plurals name="meal_responsible_count"><item quantity="one">%1$d responsável</item><item quantity="other">%1$d responsáveis</item></plurals><plurals name="meal_serving_count"><item quantity="one">%1$d dose</item><item quantity="other">%1$d doses</item></plurals><plurals name="a11y_meal_comments"><item quantity="one">Abrir %1$d comentário sobre refeições</item><item quantity="other">Abrir %1$d comentários sobre refeições</item></plurals>
+ </resources>
+diff --git a/composeApp/src/androidMain/res/values/strings.xml b/composeApp/src/androidMain/res/values/strings.xml
+index 80a417b9..75da65e8 100644
+--- a/composeApp/src/androidMain/res/values/strings.xml
++++ b/composeApp/src/androidMain/res/values/strings.xml
+@@ -452,21 +452,22 @@
+     <string name="smart_sharing">Suggestions de partage</string>
+     <string name="cover_photo">Photo de couverture : %1$s</string>
+     <string name="auto_generated">Auto</string>
+     <string name="favorite">Favori</string>
+     <string name="caption_without">sans légende</string>
+ 
+     <!-- PRD Features -->
+     <string name="scenario_planning">Comparaison des options</string>
+     <string name="budget_overview">Aperçu du budget</string>
+     <string name="accommodation">Hébergement</string>
+-    <string name="meal_planning">Planification des repas</string>
++
++<string name="meal_planning">Planification des repas</string>
+     <string name="equipment_checklist">Liste d\'équipement</string>
+     <string name="activity_planning">Planification des activités</string>
+     <string name="manage_participants">Gérer les participants</string>
+     <string name="view_results">Voir les résultats</string>
+ 
+     <!-- Location Type Hints -->
+     <string name="location_hint_city">Parfait pour les événements flexibles qui peuvent se dérouler n\'importe où dans la ville</string>
+     <string name="location_hint_region">Idéal pour les événements régionaux (ex: « Sud de la France »)</string>
+     <string name="location_hint_specific_venue">Utilisez ceci pour une adresse ou un lieu spécifique</string>
+     <string name="location_hint_online">Pour les événements virtuels via Zoom, Meet, etc.</string>
+@@ -748,11 +749,118 @@
+     <string name="budget_category_breakdown">Répartition par catégorie</string><string name="budget_total_title">Budget total</string><string name="budget_estimated_label">Estimé</string><string name="budget_spent_label">Dépensé</string><string name="budget_usage">%1$.1f%% utilisé</string><string name="budget_status_over">Dépassement de budget</string><string name="budget_status_nearly_used">Budget presque épuisé</string><string name="budget_status_empty">Aucune dépense enregistrée</string><string name="budget_status_within">Dans le budget</string><string name="budget_remaining">Reste disponible : %1$.2f €</string><string name="budget_overspend">Dépassement : %1$.2f €</string>
+     <plurals name="a11y_budget_comments_count"><item quantity="one">%1$d commentaire budget</item><item quantity="other">%1$d commentaires budget</item></plurals><plurals name="budget_shared_by"><item quantity="one">Partagée par %1$d participant</item><item quantity="other">Partagée par %1$d participants</item></plurals><plurals name="budget_settlement_count"><item quantity="one">%1$d remboursement à régler</item><item quantity="other">%1$d remboursements à régler</item></plurals><plurals name="budget_settlement_body"><item quantity="one">%1$d remboursement à solder pour que chacun paie sa part réelle.</item><item quantity="other">%1$d remboursements à solder pour que chacun paie sa part réelle.</item></plurals><plurals name="budget_per_person_title"><item quantity="one">Par personne (%1$d participant)</item><item quantity="other">Par personne (%1$d participants)</item></plurals>
+     <string name="budget_tricount_verified">vérifié</string>
+     <!-- Batch 3: equipment -->
+     <string name="equipment_screen_title">Liste d’équipement</string><string name="equipment_back_action">Retour</string><string name="a11y_equipment_auto_generate">Préparer automatiquement une liste d’équipement</string><string name="a11y_equipment_comments_empty">Aucun commentaire équipement</string><string name="a11y_equipment_add">Ajouter un équipement</string><string name="equipment_all_statuses">Tous</string><string name="equipment_empty_list">Aucun équipement ajouté</string><string name="equipment_empty_filtered">Aucun équipement avec ce statut</string><string name="equipment_prepare_list_action">Préparer une liste</string>
+     <string name="equipment_delete_title">Supprimer l’équipement ?</string><string name="equipment_delete_message">Supprimer « %1$s » de la liste d’équipement ?</string><string name="equipment_delete_action">Supprimer</string><string name="equipment_cancel_action">Annuler</string><string name="equipment_progress_title">Progression</string><string name="equipment_progress_ratio">%1$d / %2$d équipements prêts (%3$d%%)</string><string name="equipment_assigned_summary">Assignés</string><string name="equipment_confirmed_summary">Confirmés</string><string name="equipment_total_cost">Coût total</string><string name="equipment_per_person">Par personne</string><string name="equipment_quantity_value"> × %1$d</string><string name="equipment_assign_action">Assigner</string><string name="equipment_edit_action">Modifier</string>
+     <string name="equipment_add_title">Ajouter un équipement</string><string name="equipment_edit_title">Modifier l’équipement</string><string name="equipment_name_required">Nom requis</string><string name="equipment_notes_label">Notes</string><string name="equipment_quantity_required">Quantité requise</string><string name="equipment_shared_cost_label">Coût partagé (€)</string><string name="equipment_category_label">Catégorie</string><string name="equipment_status_label">Statut</string><string name="equipment_assigned_to_label">Responsable</string><string name="equipment_unassigned">Non assigné</string><string name="equipment_add_action">Ajouter</string><string name="equipment_confirm_action">Confirmer</string><string name="equipment_assign_title">Assigner « %1$s »</string>
+     <string name="equipment_auto_generate_title">Préparer une liste d’équipement</string><string name="equipment_auto_generate_description">Sélectionnez le type d’événement pour préparer une liste adaptée au groupe.</string><string name="equipment_prepare_action">Préparer</string><string name="equipment_event_type_camping">Camping</string><string name="equipment_event_type_beach">Plage</string><string name="equipment_event_type_ski">Ski / Montagne</string><string name="equipment_event_type_hiking">Randonnée</string><string name="equipment_event_type_picnic">Pique-nique</string><string name="equipment_event_type_indoor">Intérieur</string>
+     <string name="equipment_category_camping">Camping</string><string name="equipment_category_sports">Sport</string><string name="equipment_category_cooking">Cuisine</string><string name="equipment_category_electronics">Électronique</string><string name="equipment_category_safety">Sécurité</string><string name="equipment_category_other">Autre</string><string name="equipment_status_needed">Requis</string><string name="equipment_status_assigned">Assigné</string><string name="equipment_status_confirmed">Confirmé</string><string name="equipment_status_packed">Prêt</string><string name="equipment_status_cancelled">Annulé</string><string name="equipment_packed_state">prêt</string><string name="equipment_not_packed_state">pas encore prêt</string>
+     <string name="a11y_equipment_assign">Assigner %1$s à une personne</string><string name="a11y_equipment_edit">Modifier l’équipement %1$s</string><string name="a11y_equipment_delete">Supprimer l’équipement %1$s</string><string name="a11y_equipment_set_packed">Changer l’état de %1$s, %2$s</string><plurals name="a11y_equipment_comments_count"><item quantity="one">%1$d commentaire équipement</item><item quantity="other">%1$d commentaires équipement</item></plurals>
++
++<string name="meal_add_title">Ajouter un repas</string>
++<string name="meal_edit_title">Modifier le repas</string>
++<string name="meal_type_label">Type de repas</string>
++<string name="meal_name_label">Nom du repas</string>
++<string name="meal_name_placeholder">Ex. barbecue du samedi soir</string>
++<string name="meal_date_label">Date (AAAA-MM-JJ)</string>
++<string name="meal_date_placeholder">2025-12-25</string>
++<string name="meal_time_label">Heure (HH:MM)</string>
++<string name="meal_time_placeholder">19:00</string>
++<string name="meal_location_label">Lieu (facultatif)</string>
++<string name="meal_location_placeholder">Restaurant, maison, etc.</string>
++<string name="meal_people_label">Nombre de personnes</string>
++<string name="meal_people_placeholder">4</string>
++<string name="meal_estimated_cost_label">Coût estimé (centimes)</string>
++<string name="meal_estimated_cost_placeholder">2000 = 20 €</string>
++<string name="meal_actual_cost_label">Coût réel (facultatif, en centimes)</string>
++<string name="meal_actual_cost_placeholder">2150</string>
++<string name="meal_currency_amount">%1$.2f €</string>
++<string name="meal_status_label">Statut</string>
++<string name="meal_notes_label">Notes (facultatif)</string>
++<string name="meal_notes_placeholder">Menu, préparation, etc.</string>
++<string name="meal_action_add">Ajouter</string>
++<string name="meal_action_save">Enregistrer</string>
++<string name="meal_action_cancel">Annuler</string>
++<string name="meal_action_generate">Préparer</string>
++<string name="meal_action_close">Fermer</string>
++<string name="meal_action_delete">Supprimer</string>
++<string name="meal_error_name_required">Le nom est requis</string>
++<string name="meal_error_date_required">La date est requise</string>
++<string name="meal_error_time_required">Heure requise</string>
++<string name="meal_error_people_invalid">Nombre de personnes invalide</string>
++<string name="meal_error_estimated_cost_invalid">Coût estimé invalide</string>
++<string name="meal_generate_title">Préparer un plan de repas</string>
++<string name="meal_start_date_label">Date de début</string>
++<string name="meal_start_date_placeholder">2025-12-25</string>
++<string name="meal_end_date_label">Date de fin</string>
++<string name="meal_end_date_placeholder">2025-12-28</string>
++<string name="meal_participant_count_label">Nombre de participants</string>
++<string name="meal_cost_per_person_label">Coût par repas et par personne (centimes)</string>
++<string name="meal_cost_per_person_placeholder">1500 = 15 €</string>
++<string name="meal_cost_per_person_value">%1$.2f € par personne</string>
++<string name="meal_types_to_generate">Types de repas à générer</string>
++<string name="meal_preview_title">Aperçu</string>
++<string name="meal_preview_summary">• %1$d jours\n• %2$d repas au total\n• Coût total estimé : %3$.2f €</string>
++<string name="meal_error_start_date_required">Date de début requise</string>
++<string name="meal_error_end_date_required">Date de fin requise</string>
++<string name="meal_error_participants_invalid">Nombre de participants invalide</string>
++<string name="meal_error_cost_invalid">Coût invalide</string>
++<string name="meal_error_type_required">Sélectionnez au moins un type de repas</string>
++<string name="meal_restrictions_title">Contraintes alimentaires</string>
++<string name="meal_restrictions_empty">Aucune contrainte alimentaire enregistrée</string>
++<string name="meal_participant_value">Participant : %1$s</string>
++<string name="meal_add_restriction_action">Ajouter une contrainte</string>
++<string name="meal_delete_restriction_title">Supprimer la contrainte ?</string>
++<string name="meal_delete_restriction_message">Supprimer la contrainte %1$s de %2$s ?</string>
++<string name="meal_add_restriction_title">Ajouter une contrainte</string>
++<string name="meal_participant_id_label">Identifiant du participant</string>
++<string name="meal_participant_id_placeholder">participant-123</string>
++<string name="meal_restriction_type_label">Type de contrainte</string>
++<string name="meal_restriction_notes_placeholder">Détails supplémentaires</string>
++<string name="meal_error_participant_required">Identifiant du participant requis</string>
++<string name="meal_restriction_vegetarian">Végétarien</string>
++<string name="meal_restriction_vegan">Végétalien</string>
++<string name="meal_restriction_gluten_free">Sans gluten</string>
++<string name="meal_restriction_lactose_intolerant">Intolérance au lactose</string>
++<string name="meal_restriction_nut_allergy">Allergie aux fruits à coque</string>
++<string name="meal_restriction_shellfish_allergy">Allergie aux fruits de mer</string>
++<string name="meal_restriction_kosher">Casher</string>
++<string name="meal_restriction_halal">Halal</string>
++<string name="meal_restriction_diabetic">Diabétique</string>
++<string name="meal_restriction_other">Autre</string>
++    <string name="meal_selected_state">sélectionné</string>
++    <string name="meal_unselected_state">non sélectionné</string>
++    <string name="a11y_meal_type_selection">Choisir %1$s, %2$s</string>
++    <string name="a11y_meal_status_selection">Choisir le statut %1$s, %2$s</string>
++    <string name="a11y_meal_restriction_selection">Choisir %1$s, %2$s</string>
++<string name="a11y_meal_delete_restriction">Supprimer la contrainte %1$s de %2$s</string>
++
++<string name="meal_screen_title">Planification des repas</string>
++<string name="meal_empty_title">Aucun repas planifié</string>
++<string name="meal_empty_description">Ajoutez votre premier repas ou préparez un plan automatiquement.</string>
++<string name="meal_delete_title">Supprimer le repas ?</string>
++<string name="meal_delete_message">Voulez-vous vraiment supprimer « %1$s » ?</string>
++<string name="meal_summary_title">Résumé</string>
++<string name="meal_total_label">Total repas</string>
++<string name="meal_estimated_total_label">Coût estimé</string>
++<string name="meal_completed_label">Terminés</string>
++<string name="meal_completed_ratio">%1$d sur %2$d</string>
++<string name="meal_type_breakfast">Petit-déjeuner</string>
++<string name="meal_type_lunch">Déjeuner</string>
++<string name="meal_type_dinner">Dîner</string>
++<string name="meal_type_snack">Goûter</string>
++<string name="meal_type_aperitif">Apéritif</string>
++<string name="meal_status_planned">Planifié</string>
++<string name="meal_status_assigned">Assigné</string>
++<string name="meal_status_in_progress">En cours</string>
++<string name="meal_status_completed">Terminé</string>
++<string name="meal_status_cancelled">Annulé</string>
++<string name="a11y_meal_back">Revenir à l’événement</string>
++<string name="a11y_meal_open_constraints">Ouvrir les contraintes alimentaires, %1$d enregistrées</string>
++<string name="a11y_meal_prepare_plan">Préparer automatiquement un plan de repas</string>
++<string name="a11y_meal_add">Ajouter un repas</string>
++<string name="a11y_meal_filter_type">Filtrer par %1$s, %2$s</string>
++<string name="a11y_meal_filter_status">Filtrer par statut %1$s, %2$s</string>
++<string name="a11y_meal_open">Modifier le repas %1$s, statut %2$s</string>
++<string name="a11y_meal_delete">Supprimer le repas %1$s</string><plurals name="meal_count"><item quantity="one">%1$d repas</item><item quantity="other">%1$d repas</item></plurals><plurals name="meal_constraint_count"><item quantity="one">%1$d contrainte alimentaire</item><item quantity="other">%1$d contraintes alimentaires</item></plurals><plurals name="meal_responsible_count"><item quantity="one">%1$d responsable</item><item quantity="other">%1$d responsables</item></plurals><plurals name="meal_serving_count"><item quantity="one">%1$d portion</item><item quantity="other">%1$d portions</item></plurals><plurals name="a11y_meal_comments"><item quantity="one">Ouvrir %1$d commentaire sur les repas</item><item quantity="other">Ouvrir %1$d commentaires sur les repas</item></plurals>
+ </resources>
+diff --git a/composeApp/src/androidUnitTest/kotlin/com/guyghost/wakeve/productlanguage/AndroidProductLanguageBatch4Test.kt b/composeApp/src/androidUnitTest/kotlin/com/guyghost/wakeve/productlanguage/AndroidProductLanguageBatch4Test.kt
+new file mode 100644
+index 00000000..a9912441
+--- /dev/null
++++ b/composeApp/src/androidUnitTest/kotlin/com/guyghost/wakeve/productlanguage/AndroidProductLanguageBatch4Test.kt
+@@ -0,0 +1,211 @@
++package com.guyghost.wakeve.productlanguage
++
++import java.io.File
++import javax.xml.parsers.DocumentBuilderFactory
++import kotlin.test.Test
++import kotlin.test.assertEquals
++import kotlin.test.assertTrue
++import org.w3c.dom.Element
++
++class AndroidProductLanguageBatch4Test {
++    @Test
++    fun mealDialogsUseResourcesForEveryVisibleLiteral() {
++        assertTrue(findings(dialogsPath).isEmpty(), findings(dialogsPath).joinToString("\n"))
++    }
++
++    @Test
++    fun mealPlanningScreenUsesResourcesForEveryVisibleLiteral() {
++        assertTrue(findings(screenPath).isEmpty(), findings(screenPath).joinToString("\n"))
++    }
++
++    @Test
++    fun mealDialogsDefineTargetAndStateAwareSemantics() {
++        val source = root.resolve(dialogsPath).readText()
++        listOf("a11y_meal_type_selection", "a11y_meal_status_selection", "a11y_meal_restriction_selection", "a11y_meal_delete_restriction").forEach {
++            assertTrue(source.contains("R.string.$it"), "MealDialogs must consume $it")
++        }
++    }
++
++    @Test
++    fun mealPlanningDefinesActionTargetAndStateAwareSemantics() {
++        val source = root.resolve(screenPath).readText()
++        listOf(
++            "a11y_meal_open_constraints",
++            "a11y_meal_filter_type",
++            "a11y_meal_filter_status",
++            "a11y_meal_open",
++            "a11y_meal_delete",
++        ).forEach {
++            assertTrue(source.contains("R.string.$it"), "MealPlanningScreen must consume $it")
++        }
++        listOf(
++            "meal_count",
++            "meal_constraint_count",
++            "meal_responsible_count",
++            "meal_serving_count",
++            "a11y_meal_comments",
++        ).forEach {
++            assertTrue(source.contains("R.plurals.$it"), "MealPlanningScreen must consume plural $it")
++        }
++    }
++
++    @Test
++    fun everyDerivedMealKeyHasNaturalSixLocaleParity() {
++        val expected = keys("values")
++        assertEquals(reviewedMealKeys, expected, "Batch 4 must keep the complete reviewed key set")
++        val english = catalog("values-en")
++        listOf("values-en", "values-de", "values-es", "values-it", "values-pt").forEach { directory ->
++            assertEquals(expected, keys(directory), "$directory Batch 4 keys")
++            catalog(directory).filterKeys { it in expected }.forEach { (key, value) ->
++                assertEquals(placeholders(english.getValue(key)), placeholders(value), "$directory:$key placeholders")
++            }
++        }
++        listOf("de", "es", "it", "pt").forEach { locale ->
++            val localized = catalog("values-$locale")
++            expected.filterNot { it in narrowCognates }.forEach { key ->
++                assertTrue(localized.getValue(key) != english.getValue(key), "$locale:$key copied English")
++            }
++            localized.filterKeys { it in expected }.forEach { (key, value) ->
++                forbiddenEnglishLexicon.getValue(locale).forEach { word ->
++                    assertTrue(!Regex("(?i)(?<![\\p{L}])${Regex.escape(word)}(?![\\p{L}])").containsMatchIn(value), "$locale:$key contains English token '$word': $value")
++                }
++                forbiddenMixedLanguageFragments.forEach { fragment ->
++                    assertTrue(!value.contains(fragment, ignoreCase = true), "$locale:$key contains mixed-language fragment '$fragment': $value")
++                }
++            }
++        }
++    }
++
++    @Test
++    fun selectedStateIsLocalizedAndComposedWithoutBooleanFormattingInAllSixLocales() {
++        localeDirectories.forEach { directory ->
++            val strings = catalog(directory)
++            assertTrue(strings.getValue("meal_selected_state").isNotBlank(), "$directory selected state")
++            assertTrue(strings.getValue("meal_unselected_state").isNotBlank(), "$directory unselected state")
++            selectionSemanticKeys.forEach { key ->
++                val value = strings.getValue(key)
++                assertEquals(listOf("%1\$s", "%2\$s"), placeholders(value), "$directory:$key composes target and localized state")
++                assertTrue("%b" !in value, "$directory:$key must not render a raw boolean")
++            }
++        }
++        val sources = listOf(dialogsPath, screenPath).associateWith { root.resolve(it).readText() }
++        sources.values.forEach { source ->
++            assertTrue(source.contains("R.string.meal_selected_state"), "meal semantics must resolve selected state")
++            assertTrue(source.contains("R.string.meal_unselected_state"), "meal semantics must resolve unselected state")
++        }
++    }
++
++    @Test
++    fun customMealSemanticsSuppressDescendantTalkBackDuplication() {
++        val dialogs = root.resolve(dialogsPath).readText()
++        val screen = root.resolve(screenPath).readText()
++        assertTrue(dialogs.contains("clearAndSetSemantics"), "dialog chips and controls must replace descendant semantics")
++        assertTrue(!Regex("Modifier\\.semantics\\s*\\{\\s*contentDescription\\s*=\\s*(?:type|status|restriction)Description").containsMatchIn(dialogs), "dialog selection controls must not merge duplicate label semantics")
++        listOf("constraintsDescription", "typeDescription", "statusDescription", "openDescription").forEach { description ->
++            assertTrue(Regex("clearAndSetSemantics\\s*\\{[^}]*contentDescription\\s*=\\s*$description", RegexOption.DOT_MATCHES_ALL).containsMatchIn(screen), "$description must replace descendant semantics")
++        }
++        assertTrue(
++            Regex("Modifier\\.semantics\\s*\\{[^}]*contentDescription\\s*=\\s*deleteDescription", RegexOption.DOT_MATCHES_ALL).containsMatchIn(screen),
++            "deleteDescription belongs to an icon-only sibling and must retain IconButton click semantics"
++        )
++    }
++
++    @Test
++    fun technicalExamplesAreAllowedOnlyInTheirReviewedContext() {
++        val kotlinOccurrences = listOf(dialogsPath, screenPath).flatMap { path ->
++            root.resolve(path).readLines().mapIndexedNotNull { index, line -> if ("19:00" in line || "participant-123" in line) "$path:${index + 1}:$line" else null }
++        }
++        kotlinOccurrences.forEach { occurrence ->
++            assertTrue(occurrence.endsWith("var time by remember { mutableStateOf(meal?.time ?: \"19:00\") }"), "context-free technical literal: $occurrence")
++        }
++        localeDirectories.forEach { directory ->
++            val strings = catalog(directory)
++            assertEquals("19:00", strings.getValue("meal_time_placeholder"), "$directory time example context")
++            assertEquals("participant-123", strings.getValue("meal_participant_id_placeholder"), "$directory participant example context")
++            strings.filterKeys { it != "meal_time_placeholder" }.forEach { (key, value) -> assertTrue("19:00" !in value, "$directory:$key context-free time") }
++            strings.filterKeys { it != "meal_participant_id_placeholder" }.forEach { (key, value) -> assertTrue("participant-123" !in value, "$directory:$key context-free participant id") }
++        }
++    }
++
++    private fun findings(path: String): List<String> {
++        val source = root.resolve(path).readText().withoutComments()
++        return direct.flatMap { (kind, regex) ->
++            regex.findAll(source).map { "$path:${source.lineAt(it.range.first)}:$kind" }.toList()
++        } + literal.findAll(source).mapNotNull { match ->
++            val value = match.groupValues[1]
++            if (!value.any(Char::isLetter) || value in technical) null
++            else "$path:${source.lineAt(match.range.first)}:indirect '$value'"
++        }
++    }
++
++    private fun keys(directory: String) = catalog(directory).keys.filterTo(mutableSetOf()) {
++        it.startsWith("meal_") || it.startsWith("a11y_meal_")
++    }
++    private fun catalog(directory: String): Map<String, String> {
++        val doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(root.resolve("composeApp/src/androidMain/res/$directory/strings.xml"))
++        return listOf("string", "plurals").flatMap { tag ->
++            val nodes = doc.getElementsByTagName(tag)
++            (0 until nodes.length).map { i ->
++                val element = nodes.item(i) as Element
++                element.getAttribute("name") to element.textContent.trim()
++            }
++        }.toMap()
++    }
++    private fun placeholders(value: String) = Regex("""%\d+\$(?:\.\d+)?[a-z]""").findAll(value).map { it.value }.toList()
++    private fun String.withoutComments() = replace(Regex("""(?s)/\*.*?\*/""")) { " ".repeat(it.value.length) }
++        .lineSequence().joinToString("\n") { if (it.trimStart().startsWith("//")) " ".repeat(it.length) else it }
++    private fun String.lineAt(index: Int) = take(index).count { it == '\n' } + 1
++
++    private companion object {
++        val root: File by lazy { var file = File(requireNotNull(System.getProperty("user.dir"))).absoluteFile; while (!File(file, "settings.gradle.kts").isFile) file = requireNotNull(file.parentFile); file }
++        const val dialogsPath = "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/meal/MealDialogs.kt"
++        const val screenPath = "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/meal/MealPlanningScreen.kt"
++        val direct = listOf("Text" to Regex("""\bText\s*\(\s*(?:text\s*=\s*)?\""""), "argument" to Regex("""\b(?:label|placeholder|supportingText|text)\s*=\s*\""""), "a11y" to Regex("""\bcontentDescription\s*=\s*\""""))
++        val literal = Regex("""\"([^\"\\]*(?:\\.[^\"\\]*)*)\"""")
++        val technical = setOf("")
++        val localeDirectories = listOf("values", "values-en", "values-de", "values-es", "values-it", "values-pt")
++        val selectionSemanticKeys = setOf("a11y_meal_type_selection", "a11y_meal_status_selection", "a11y_meal_restriction_selection", "a11y_meal_filter_type", "a11y_meal_filter_status")
++        val narrowCognates = setOf(
++            "meal_date_placeholder", "meal_time_placeholder", "meal_people_placeholder",
++            "meal_actual_cost_placeholder", "meal_start_date_placeholder", "meal_end_date_placeholder",
++            "meal_participant_id_placeholder", "meal_restriction_vegan", "meal_restriction_kosher",
++            "meal_restriction_halal"
++        )
++        val commonForbiddenEnglishLexicon = setOf(
++            "add", "actual", "additional", "barbecue", "choose", "close", "cost", "count", "date", "days",
++            "delete", "details", "different", "dismiss", "edit", "estimated", "finish", "location", "meal",
++            "menu", "name", "notes", "optional", "people", "person", "plan", "prepare", "preview", "remove",
++            "required", "restriction", "save", "selected", "start", "status", "time", "total", "type", "without"
++        )
++        val forbiddenEnglishLexicon = mapOf(
++            "de" to commonForbiddenEnglishLexicon - setOf("name", "menu", "optional", "person", "plan", "status"),
++            "es" to commonForbiddenEnglishLexicon - setOf("menu", "plan", "total"),
++            "it" to commonForbiddenEnglishLexicon - setOf("menu", "total"),
++            "pt" to commonForbiddenEnglishLexicon - setOf("menu", "prepare", "total")
++        )
++        val forbiddenMixedLanguageFragments = setOf(
++            "comida bearbeiten", "pasto bearbeiten", "refeição bearbeiten",
++            "meal plan", "meal type", "meal name", "participant count"
++        )
++        val reviewedMealKeys = """
++            meal_planning meal_add_title meal_edit_title meal_type_label meal_name_label meal_name_placeholder
++            meal_date_label meal_date_placeholder meal_time_label meal_time_placeholder meal_location_label meal_location_placeholder
++            meal_people_label meal_people_placeholder meal_estimated_cost_label meal_estimated_cost_placeholder meal_actual_cost_label meal_actual_cost_placeholder
++            meal_currency_amount meal_status_label meal_notes_label meal_notes_placeholder meal_action_add meal_action_save meal_action_cancel meal_action_generate meal_action_close meal_action_delete
++            meal_error_name_required meal_error_date_required meal_error_time_required meal_error_people_invalid meal_error_estimated_cost_invalid
++            meal_generate_title meal_start_date_label meal_start_date_placeholder meal_end_date_label meal_end_date_placeholder meal_participant_count_label
++            meal_cost_per_person_label meal_cost_per_person_placeholder meal_cost_per_person_value meal_types_to_generate meal_preview_title meal_preview_summary
++            meal_error_start_date_required meal_error_end_date_required meal_error_participants_invalid meal_error_cost_invalid meal_error_type_required
++            meal_restrictions_title meal_restrictions_empty meal_participant_value meal_add_restriction_action meal_delete_restriction_title meal_delete_restriction_message
++            meal_add_restriction_title meal_participant_id_label meal_participant_id_placeholder meal_restriction_type_label meal_restriction_notes_placeholder meal_error_participant_required
++            meal_restriction_vegetarian meal_restriction_vegan meal_restriction_gluten_free meal_restriction_lactose_intolerant meal_restriction_nut_allergy
++            meal_restriction_shellfish_allergy meal_restriction_kosher meal_restriction_halal meal_restriction_diabetic meal_restriction_other
++            meal_selected_state meal_unselected_state a11y_meal_type_selection a11y_meal_status_selection a11y_meal_restriction_selection a11y_meal_delete_restriction
++            meal_screen_title meal_empty_title meal_empty_description meal_delete_title meal_delete_message meal_summary_title meal_total_label meal_estimated_total_label
++            meal_completed_label meal_completed_ratio meal_type_breakfast meal_type_lunch meal_type_dinner meal_type_snack meal_type_aperitif
++            meal_status_planned meal_status_assigned meal_status_in_progress meal_status_completed meal_status_cancelled a11y_meal_back a11y_meal_open_constraints
++            a11y_meal_prepare_plan a11y_meal_add a11y_meal_filter_type a11y_meal_filter_status a11y_meal_open a11y_meal_delete
++            meal_count meal_constraint_count meal_responsible_count meal_serving_count a11y_meal_comments
++        """.trimIndent().split(Regex("\\s+")).toSet()
++    }
++}

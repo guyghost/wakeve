@@ -31,3 +31,10 @@ Base: `aea1aa10`
 - Added action-target-state semantics for constraints, preparation, comments, adding, type/status filters, opening a named meal with its status, and deleting a named meal.
 - Added natural French, English, German, Spanish, Italian, and Portuguese catalogs with plural and positional-placeholder parity.
 - Preserved repository operations, filtering, dialog behavior, generated-plan behavior, and meal state rules.
+# Task 5D Review Findings
+
+1. Replace every mixed/English/token-substituted dialog string in DE/ES/IT/PT with full natural translations. Strengthen translation tests beyond inequality with English.
+2. Replace `%b` selected state with localized selected/unselected strings or separate resources; test rendered semantic composition in all six locales.
+3. Prevent duplicate TalkBack output using clearAndSetSemantics/descendant suppression for constraint buttons/badges, meal card, filters, and dialogs; add semantics-tree/source assertions.
+4. Remove context-free technical allowlist for `19:00` and `participant-123`; exact legitimate context only or resource placeholder.
+5. RED/GREEN, full Batch4 + Meal/catalog tests, assemble, diff-check, commit/report.
