@@ -1,78 +1,41 @@
 package com.guyghost.wakeve.ui.equipment
 
-import com.guyghost.wakeve.models.EquipmentCategory
-import com.guyghost.wakeve.models.ItemStatus
+import java.io.File
 import kotlin.test.Test
-import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class EquipmentCopyTest {
-
     @Test
-    fun equipmentScreenCopyUsesSpecificLabels() {
-        assertEquals("Liste d'équipement", equipmentScreenTitle())
-        assertEquals("Retour", equipmentBackContentDescription())
-        assertEquals("Préparer automatiquement une liste d'équipement", equipmentAutoGenerateContentDescription())
-        assertEquals("Aucun commentaire équipement", equipmentCommentContentDescription(0))
-        assertEquals("1 commentaire équipement", equipmentCommentContentDescription(1))
-        assertEquals("4 commentaires équipement", equipmentCommentContentDescription(4))
-        assertEquals("Ajouter un équipement", equipmentAddContentDescription())
-        assertEquals("Tous", equipmentAllStatusesLabel())
-        assertEquals("Aucun équipement ajouté", equipmentEmptyListMessage())
-        assertEquals("Aucun équipement avec ce statut", equipmentEmptyFilteredMessage())
-        assertEquals("Préparer une liste", equipmentPrepareListActionLabel())
+    fun equipmentSurfacesUseAndroidResourcesInsteadOfFrenchCopyHelpers() {
+        val checklist = projectFile("composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/equipment/EquipmentChecklistScreen.kt")
+        val dialogs = projectFile("composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/equipment/EquipmentDialogs.kt")
+
+        assertTrue(checklist.contains("R.string.equipment_screen_title"))
+        assertTrue(checklist.contains("R.string.equipment_progress_ratio"))
+        assertTrue(dialogs.contains("R.string.equipment_add_title"))
+        assertTrue(dialogs.contains("R.string.equipment_event_type_beach"))
+        assertFalse(checklist.contains("internal fun equipmentScreenTitle"))
+        assertFalse(dialogs.contains("internal fun equipmentItemDialogTitle"))
     }
 
     @Test
-    fun equipmentDialogCopyExplainsRequiredFieldsAndOwnership() {
-        assertEquals("Ajouter un équipement", equipmentItemDialogTitle(isNewItem = true))
-        assertEquals("Modifier l'équipement", equipmentItemDialogTitle(isNewItem = false))
-        assertEquals("Nom requis", equipmentItemNameLabel())
-        assertEquals("Quantité requise", equipmentItemQuantityLabel())
-        assertEquals("Coût partagé (€)", equipmentItemSharedCostLabel())
-        assertEquals("Responsable", equipmentAssignedToLabel())
-        assertEquals("Non assigné", equipmentUnassignedLabel())
-        assertEquals("Ajouter", equipmentItemDialogConfirmLabel(isNewItem = true))
-        assertEquals("Modifier", equipmentItemDialogConfirmLabel(isNewItem = false))
+    fun equipmentActionsExposeTargetAndStateSpecificAccessibilityResources() {
+        val checklist = projectFile("composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/equipment/EquipmentChecklistScreen.kt")
+
+        assertTrue(checklist.contains("R.string.a11y_equipment_assign, item.name"))
+        assertTrue(checklist.contains("R.string.a11y_equipment_edit, item.name"))
+        assertTrue(checklist.contains("R.string.a11y_equipment_delete, item.name"))
+        assertTrue(checklist.contains("R.string.a11y_equipment_set_packed, item.name, packedState"))
     }
 
-    @Test
-    fun equipmentStatusCopyIsActionableForGroupChecklist() {
-        assertEquals("Requis", equipmentStatusLabel(ItemStatus.NEEDED))
-        assertEquals("Assigné", equipmentStatusLabel(ItemStatus.ASSIGNED))
-        assertEquals("Confirmé", equipmentStatusLabel(ItemStatus.CONFIRMED))
-        assertEquals("Prêt", equipmentStatusLabel(ItemStatus.PACKED))
-        assertEquals("Annulé", equipmentStatusLabel(ItemStatus.CANCELLED))
-        assertFalse(equipmentStatusLabel(ItemStatus.PACKED).contains("Emballé", ignoreCase = true))
+    private fun projectFile(path: String): String = root.resolve(path).readText()
 
-        ItemStatus.entries.forEach { status ->
-            assertFalse(equipmentStatusLabel(status).contains(status.name))
+    private companion object {
+        val root: File by lazy {
+            var file = File(requireNotNull(System.getProperty("user.dir"))).absoluteFile
+            while (!File(file, "settings.gradle.kts").isFile) file = requireNotNull(file.parentFile)
+            file
         }
-    }
-
-    @Test
-    fun equipmentCategoryCopyHidesEnumNames() {
-        assertEquals("Camping", equipmentCategoryLabel(EquipmentCategory.CAMPING))
-        assertEquals("Sport", equipmentCategoryLabel(EquipmentCategory.SPORTS))
-        assertEquals("Cuisine", equipmentCategoryLabel(EquipmentCategory.COOKING))
-        assertEquals("Électronique", equipmentCategoryLabel(EquipmentCategory.ELECTRONICS))
-        assertEquals("Sécurité", equipmentCategoryLabel(EquipmentCategory.SAFETY))
-        assertEquals("Autre", equipmentCategoryLabel(EquipmentCategory.OTHER))
-
-        EquipmentCategory.entries.forEach { category ->
-            assertFalse(equipmentCategoryLabel(category).contains(category.name))
-        }
-    }
-
-    @Test
-    fun equipmentProgressAndDeletionCopyAreClear() {
-        assertEquals("Progression", equipmentProgressTitle())
-        assertEquals("2 / 5 équipements prêts (40%)", equipmentProgressLabel(2, 5, 40))
-        assertEquals("Supprimer l'équipement ?", equipmentDeleteItemTitle())
-        assertEquals("Supprimer « Tente » de la liste d'équipement ?", equipmentDeleteItemMessage("Tente"))
-        assertEquals("Assigner « Tente »", equipmentAssignDialogTitle("Tente"))
-        assertEquals("Préparer une liste d'équipement", equipmentAutoGenerateTitle())
-        assertTrue(equipmentAutoGenerateDescription().contains("adaptée au groupe", ignoreCase = true))
     }
 }

@@ -1,17 +1,25 @@
-# Task 5C Activities Report
+# Task 5C Equipment Report
 
-- RED confirmed from `46c5c02d`: Batch 3 reported direct and helper-produced Activity copy in both Activity surfaces.
-- Replaced visible Activity literals and French copy helpers with Android string/plural resources across the six locale catalogs.
-- Preserved activity creation, editing, deletion, registration, filtering, and schedule-summary behavior; dates, counts, ratios, durations, and amounts now use localized format resources.
-- Added target-specific TalkBack semantics for edit, participant management, and delete actions.
-- Updated `ActivityCopyTest` to assert resource and accessibility contracts instead of French helper return values.
-- Verification: `ActivityCopyTest` passes; `assembleDebug` succeeds; `git diff --check` succeeds. Full Batch 3 remains RED only in the intentionally untouched Budget/Equipment subsets (for example `de:budget_hint copied English`).
+Base: `8d97f50c`
 
-## Task 5C Budget Report
+## Model and review
 
-- RED confirmed from `5d2da3e8`: Batch 3 reported direct, indirect, and helper-produced Budget copy in `BudgetDetailScreen.kt` and `BudgetOverviewScreen.kt`, plus missing formatted/semantic resource contracts.
-- Replaced all visible Budget literals and French helper output with Android strings/plurals across FR, EN, DE, ES, IT, and PT; legacy Budget tests now assert the resource projections instead of a fixed French locale.
-- Preserved budget creation, item mutation, filtering, settlement calculations, payment-pot, Tricount, offline, and read-only behavior. Amounts, ratios, usage, participant counts, reimbursements, and category totals now use localized formatted resources.
-- Added TalkBack semantics that name the mark-paid action, expense target, and unpaid state; paid/unpaid state resources both retain their target placeholder.
-- Tightened the shared Batch 3 test partition to exclude pre-existing generic Budget keys, recognize precision placeholders, preserve URLs while stripping comments, and allow technical provider/status identifiers.
-- Verification: targeted Budget tests pass; `assembleDebug` succeeds; `git diff --check` succeeds. Full Batch 3 remains RED only for the intentionally untouched Equipment subset (`equipment_progress_ratio`, Equipment literals/catalog parity).
+- Preserved `EquipmentCategory`, `ItemStatus`, repository calls, auto-generation type identifiers, and status-transition behavior.
+- Mapped every visible category, status, action, format, empty state, dialog, and event-type label to Android resources.
+- Added target-specific semantics for assign, edit, and delete actions, plus target-and-state semantics for the ready checkbox.
+- Reviewed nominal, empty, filtered, assigned/unassigned, packed/unpacked, deletion, and auto-generation surfaces; no implicit state transition was introduced.
+
+## Implementation
+
+- Migrated `EquipmentChecklistScreen.kt` and `EquipmentDialogs.kt` away from direct and helper-returned visible literals.
+- Added natural French, English, German, Spanish, Italian, and Portuguese Equipment catalogs with placeholder parity.
+- Replaced legacy production-copy assertions with resource and semantics contract assertions.
+- Extended the Batch 3 derived-key guard to include plurals as well as strings and retained explicit exact-cognate allowances.
+
+## Verification
+
+- RED: Batch 3 initially reported Equipment direct/indirect literals and helper copy.
+- GREEN: `AndroidProductLanguageBatch3Test` and `EquipmentCopyTest` pass.
+- Regression: Activity, Budget, Equipment, Batch 3, and catalog contract tests pass.
+- Build: `:composeApp:assembleDebug` passes.
+- Hygiene: `git diff --check` passes.

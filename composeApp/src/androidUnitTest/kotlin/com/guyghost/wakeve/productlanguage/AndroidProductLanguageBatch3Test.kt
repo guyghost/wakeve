@@ -58,10 +58,13 @@ class AndroidProductLanguageBatch3Test {
     }
     private fun catalog(directory: String): Map<String, String> {
         val doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(root.resolve("composeApp/src/androidMain/res/$directory/strings.xml"))
-        return (0 until doc.getElementsByTagName("string").length).associate { i ->
-            val e = doc.getElementsByTagName("string").item(i) as Element
-            e.getAttribute("name") to e.textContent.trim()
-        }
+        return listOf("string", "plurals").flatMap { tag ->
+            val nodes = doc.getElementsByTagName(tag)
+            (0 until nodes.length).map { i ->
+                val e = nodes.item(i) as Element
+                e.getAttribute("name") to e.textContent.trim()
+            }
+        }.toMap()
     }
     private fun placeholders(value: String) = Regex("""%\d+\$(?:\.\d+)?[a-z]""").findAll(value).map { it.value }.toList()
     private fun String.withoutComments() = replace(Regex("""(?s)/\*.*?\*/""")) { " ".repeat(it.value.length) }
@@ -89,10 +92,10 @@ class AndroidProductLanguageBatch3Test {
         val prefixes = listOf("budget_", "activity_", "equipment_", "a11y_budget_", "a11y_activity_", "a11y_equipment_")
         val legacyKeys = setOf("budget_per_person", "budget_hint", "budget_overview", "budget_label")
         val cognates = mapOf(
-            "de" to setOf("budget_overview_title", "activity_time_placeholder"),
-            "es" to setOf("budget_overview_title", "activity_time_placeholder", "activity_time_duration", "activity_date_display"),
-            "it" to setOf("budget_overview_title", "activity_time_placeholder", "activity_time_duration", "activity_date_display"),
-            "pt" to setOf("budget_overview_title", "activity_time_placeholder", "activity_time_duration", "activity_date_display")
+            "de" to setOf("budget_overview_title", "budget_status_filter", "budget_item_name", "budget_tricount_title", "activity_time_placeholder", "equipment_quantity_value", "equipment_status_label"),
+            "es" to setOf("budget_overview_title", "budget_total_label", "budget_tricount_title", "activity_time_placeholder", "activity_time_duration", "activity_date_display", "equipment_quantity_value"),
+            "it" to setOf("budget_overview_title", "budget_tricount_title", "activity_time_placeholder", "activity_time_duration", "activity_date_display", "equipment_quantity_value"),
+            "pt" to setOf("budget_overview_title", "budget_total_label", "budget_tricount_title", "activity_time_placeholder", "activity_time_duration", "activity_date_display", "equipment_quantity_value")
         )
     }
 }
