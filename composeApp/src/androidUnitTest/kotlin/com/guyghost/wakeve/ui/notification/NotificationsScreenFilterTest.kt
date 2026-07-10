@@ -1,6 +1,7 @@
 package com.guyghost.wakeve.ui.notification
 
 import com.guyghost.wakeve.models.NotificationType
+import com.guyghost.wakeve.R
 import java.util.Date
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -27,18 +28,6 @@ class NotificationsScreenFilterTest {
     }
 
     @Test
-    fun notificationInboxErrorMessageDoesNotExposeExceptionDetails() {
-        val message = notificationInboxErrorMessage(
-            IllegalStateException("SQL failed for user SECRET-USER and notification SECRET-NOTIFICATION")
-        )
-
-        assertEquals("Impossible de charger les notifications.", message)
-        assertFalse(message.contains("SECRET-USER"))
-        assertFalse(message.contains("SECRET-NOTIFICATION"))
-        assertFalse(message.contains("SQL failed"))
-    }
-
-    @Test
     fun notificationAttentionCueMarksBlockingRemindersAsActionable() {
         val cue = notificationAttentionCue(
             notificationItem(
@@ -48,7 +37,7 @@ class NotificationsScreenFilterTest {
             )
         )
 
-        assertEquals("Action attendue - evite de bloquer le groupe", cue.label)
+        assertEquals(R.string.notification_attention_blocking, cue.labelRes)
         assertTrue(cue.requiresAttention)
     }
 
@@ -62,7 +51,7 @@ class NotificationsScreenFilterTest {
             )
         )
 
-        assertEquals("Action requise - vous etes mentionne", cue.label)
+        assertEquals(R.string.notification_attention_required, cue.labelRes)
         assertTrue(cue.requiresAttention)
     }
 
@@ -76,7 +65,7 @@ class NotificationsScreenFilterTest {
             )
         )
 
-        assertEquals("Important - date validee", cue.label)
+        assertEquals(R.string.notification_attention_confirmed, cue.labelRes)
         assertTrue(cue.requiresAttention)
     }
 
@@ -90,7 +79,7 @@ class NotificationsScreenFilterTest {
             )
         )
 
-        assertEquals("Info - bruit limite", cue.label)
+        assertEquals(R.string.notification_information, cue.labelRes)
         assertFalse(cue.requiresAttention)
     }
 

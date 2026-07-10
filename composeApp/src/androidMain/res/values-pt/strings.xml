@@ -571,10 +571,21 @@
     <string name="notification_date_yesterday">Ontem</string>
     <string name="notification_date_this_week">Esta semana</string>
     <string name="notification_date_older">Anteriores</string>
-    <string name="notification_just_now">Agora</string>
-    <string name="notification_minutes_ago">Há %1$d min</string>
-    <string name="notification_hours_ago">Há %1$dh</string>
-    <string name="notification_days_ago">Há %1$d dias</string>
+    <string name="notification_time_now">Agora</string>
+    <plurals name="notification_minutes_ago"><item quantity="one">Há %1$d minuto</item><item quantity="other">Há %1$d minutos</item></plurals>
+    <plurals name="notification_hours_ago"><item quantity="one">Há %1$d hora</item><item quantity="other">Há %1$d horas</item></plurals>
+    <plurals name="notification_days_ago"><item quantity="one">Há %1$d dia</item><item quantity="other">Há %1$d dias</item></plurals>
+    <string name="notifications_filter_all">Todas</string>
+    <string name="notifications_filter_unread">Não lidas</string>
+    <string name="notification_attention_required">Ação necessária</string>
+    <string name="notification_information">Informação</string>
+    <string name="notification_attention_blocking">Ação pendente — evite bloquear o grupo</string>
+    <string name="notification_attention_mention">Ação necessária — foi mencionado</string>
+    <string name="notification_attention_confirmed">Importante — data confirmada</string>
+    <string name="notification_information_participant">Útil — participação do grupo atualizada</string>
+    <string name="notification_information_vote">Informação útil — voto registado</string>
+    <string name="notification_information_conversation">Conversa — prioridade baixa</string>
+    <string name="notifications_load_error">Não foi possível carregar as notificações.</string>
     <string name="notification_empty_body">Suas notificações aparecerão aqui quando alguém votar, comentar ou atualizar um evento.</string>
 
     <!-- Notification Preferences -->

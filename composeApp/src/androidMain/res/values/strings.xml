@@ -623,10 +623,21 @@
     <string name="notification_date_yesterday">Hier</string>
     <string name="notification_date_this_week">Cette semaine</string>
     <string name="notification_date_older">Plus ancien</string>
-    <string name="notification_just_now">À l\'instant</string>
-    <string name="notification_minutes_ago">Il y a %1$d min</string>
-    <string name="notification_hours_ago">Il y a %1$dh</string>
-    <string name="notification_days_ago">Il y a %1$dj</string>
+    <string name="notification_time_now">À l\'instant</string>
+    <plurals name="notification_minutes_ago"><item quantity="one">Il y a %1$d minute</item><item quantity="other">Il y a %1$d minutes</item></plurals>
+    <plurals name="notification_hours_ago"><item quantity="one">Il y a %1$d heure</item><item quantity="other">Il y a %1$d heures</item></plurals>
+    <plurals name="notification_days_ago"><item quantity="one">Il y a %1$d jour</item><item quantity="other">Il y a %1$d jours</item></plurals>
+    <string name="notifications_filter_all">Toutes</string>
+    <string name="notifications_filter_unread">Non lues</string>
+    <string name="notification_attention_required">Action requise</string>
+    <string name="notification_information">Information</string>
+    <string name="notification_attention_blocking">Action attendue — évitez de bloquer le groupe</string>
+    <string name="notification_attention_mention">Action requise — vous êtes mentionné</string>
+    <string name="notification_attention_confirmed">Important — date validée</string>
+    <string name="notification_information_participant">Utile — présence du groupe mise à jour</string>
+    <string name="notification_information_vote">Information utile — vote enregistré</string>
+    <string name="notification_information_conversation">Conversation — priorité faible</string>
+    <string name="notifications_load_error">Impossible de charger les notifications.</string>
     <string name="notification_empty_body">Vos notifications apparaîtront ici lorsque quelqu\'un votera, commentera ou mettra à jour un événement.</string>
 
     <!-- Notification Preferences -->

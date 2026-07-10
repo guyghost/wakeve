@@ -571,10 +571,21 @@
     <string name="notification_date_yesterday">Gestern</string>
     <string name="notification_date_this_week">Diese Woche</string>
     <string name="notification_date_older">Aelter</string>
-    <string name="notification_just_now">Gerade eben</string>
-    <string name="notification_minutes_ago">Vor %1$d Min.</string>
-    <string name="notification_hours_ago">Vor %1$d Std.</string>
-    <string name="notification_days_ago">Vor %1$d Tagen</string>
+    <string name="notification_time_now">Gerade eben</string>
+    <plurals name="notification_minutes_ago"><item quantity="one">Vor %1$d Minute</item><item quantity="other">Vor %1$d Minuten</item></plurals>
+    <plurals name="notification_hours_ago"><item quantity="one">Vor %1$d Stunde</item><item quantity="other">Vor %1$d Stunden</item></plurals>
+    <plurals name="notification_days_ago"><item quantity="one">Vor %1$d Tag</item><item quantity="other">Vor %1$d Tagen</item></plurals>
+    <string name="notifications_filter_all">Alle</string>
+    <string name="notifications_filter_unread">Ungelesen</string>
+    <string name="notification_attention_required">Aktion erforderlich</string>
+    <string name="notification_information">Hinweis</string>
+    <string name="notification_attention_blocking">Aktion erwartet — Gruppe nicht aufhalten</string>
+    <string name="notification_attention_mention">Aktion erforderlich — Sie wurden erwähnt</string>
+    <string name="notification_attention_confirmed">Wichtig — Termin bestätigt</string>
+    <string name="notification_information_participant">Hilfreich — Gruppenteilnahme aktualisiert</string>
+    <string name="notification_information_vote">Hilfreiche Information — Stimme erfasst</string>
+    <string name="notification_information_conversation">Unterhaltung — niedrige Priorität</string>
+    <string name="notifications_load_error">Benachrichtigungen konnten nicht geladen werden.</string>
     <string name="notification_empty_body">Deine Benachrichtigungen erscheinen hier, wenn jemand abstimmt, kommentiert oder ein Event aktualisiert.</string>
 
     <!-- Notification Preferences -->
