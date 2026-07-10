@@ -29,17 +29,27 @@ data class ProductLanguageProjection(
 
 fun projectEventState(input: ProductLanguageInput): ProductLanguageProjection {
     val title = SemanticKey("event.state.${input.status.name.lowercase()}")
-    val pending = PendingFact.LOCAL_MUTATION in input.pendingFacts
+    val hasConflict = PendingFact.SYNC_CONFLICT in input.pendingFacts
+    val hasPendingSync = PendingFact.LOCAL_MUTATION in input.pendingFacts
+    val isTerminal = input.status == EventStatus.FINALIZED
 
     return ProductLanguageProjection(
         domainStatus = input.status,
         title = title,
-        status = if (pending) SemanticKey("sync.waiting") else null,
-        primaryAction = when (input.allowedAction) {
-            AllowedAction.CONTINUE -> SemanticKey("event.action.continue")
-            AllowedAction.RETRY_SYNC -> SemanticKey("sync.retry")
-            null -> null
+        status = when {
+            isTerminal -> null
+            hasConflict -> SemanticKey("sync.conflict")
+            hasPendingSync -> SemanticKey("sync.waiting")
+            else -> null
         },
-        sharedConfirmation = !pending,
+        primaryAction = when {
+            isTerminal -> null
+            hasConflict && input.allowedAction == AllowedAction.RETRY_SYNC -> SemanticKey("sync.retry")
+            hasPendingSync && input.allowedAction == AllowedAction.RETRY_SYNC -> SemanticKey("sync.retry")
+            !hasConflict && !hasPendingSync && input.allowedAction == AllowedAction.CONTINUE ->
+                SemanticKey("event.action.continue")
+            else -> null
+        },
+        sharedConfirmation = !hasPendingSync && !hasConflict,
     )
 }
