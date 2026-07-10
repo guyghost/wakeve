@@ -172,6 +172,15 @@ Recommended new test class: `AndroidProductLanguageBatch2Test`, restricting the 
 - Accessibility: back, add, filter, send, edit, and delete actions use resource-backed descriptions; destructive edit/delete descriptions identify the comment author target. Reply counts use `comment_reply_count`, and the character counter uses two positional placeholders.
 - Verification: targeted Batch 2 + existing Comments tests + catalog contract passed (`BUILD SUCCESSFUL`); `:composeApp:assembleDebug --no-daemon --no-configuration-cache` passed. The full `AndroidProductLanguageContractTest` intentionally remains RED in its three broad scanner tests for Batches 3–5, with no Batch 2-owned path in the remaining diagnostics.
 
+#### Batch 2 review correction — 2026-07-10
+
+- RED: the strengthened Batch 2 suite executed five tests and failed three as expected: production compatibility helpers and the scanner allowlist were still present, neither reply action consumed `a11y_comment_reply`, and the expanded full-catalog guard identified undeclared cognates.
+- GREEN: all localized compatibility helper APIs were removed from production. Legacy collaboration/error tests now assert resource use and sanitized error mapping from source rather than calling hard-coded French helpers.
+- Reply accessibility: both the parent reply button and dropdown reply action consume `a11y_comment_reply` with `comment.authorName`. `clearAndSetSemantics` exposes one action-target description without duplicating the visible Reply label in TalkBack.
+- Complete guard: every Batch 2 translatable string and `comment_reply_count` is checked across DE/ES/IT/PT against EN. Exact cognate allowances are limited to German/Italian `Budget` and Spanish `General`/`Error`; plural `one`/`other` quantities and placeholder signatures are verified in all six catalogs.
+- Scope correction: `CommentItem.kt` is now included in the Batch 2 source contract because it owns both collaboration reply actions and the former compatibility helpers. Its action labels, pin/options semantics, and relative timestamps are resource-backed.
+- Verification: targeted Batch 2, Comments, collaboration copy, and catalog tests pass; the global contract remains RED only for later batches and reports no `ui/collaboration` or `ui/comment` path; `assembleDebug --no-daemon --no-configuration-cache` and `git diff --check` pass.
+
 ### Batch 3 — Budget, activities, accommodation, and equipment
 
 Owning Kotlin files from current RED findings (6):

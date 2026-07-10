@@ -261,29 +261,3 @@ private fun sectionTitle(section: CommentSection): String = stringResource(
         CommentSection.BUDGET -> R.string.comments_section_budget
     },
 )
-
-/**
- * Get localized section title
- */
-internal fun getSectionTitle(section: CommentSection): String {
-    return when (section) {
-        CommentSection.GENERAL -> "Commentaires"
-        CommentSection.SCENARIO -> "Commentaires des options"
-        CommentSection.POLL -> "Commentaires du sondage"
-        CommentSection.TRANSPORT -> "Commentaires transport"
-        CommentSection.ACCOMMODATION -> "Commentaires logement"
-        CommentSection.MEAL -> "Commentaires repas"
-        CommentSection.EQUIPMENT -> "Commentaires equipement"
-        CommentSection.ACTIVITY -> "Commentaires activites"
-        CommentSection.BUDGET -> "Commentaires budget"
-    }
-}
-
-internal fun loadMoreRepliesLabel(replyCount: Int): String =
-    "Afficher plus de reponses ($replyCount)"
-
-internal fun emptyCommentsTitle(): String =
-    "Aucun commentaire"
-
-internal fun emptyCommentsSubtitle(): String =
-    "Lancez la discussion pour aider le groupe a avancer."

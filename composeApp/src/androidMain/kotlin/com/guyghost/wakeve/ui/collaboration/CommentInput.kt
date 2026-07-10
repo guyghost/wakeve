@@ -145,12 +145,6 @@ fun CommentInput(
     }
 }
 
-internal fun commentInputPlaceholder(): String =
-    "Ajouter un commentaire..."
-
-internal fun commentSendContentDescription(): String =
-    "Envoyer le commentaire"
-
 /**
  * Mention Autocomplete Dropdown
  *

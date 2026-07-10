@@ -1,50 +1,30 @@
 package com.guyghost.wakeve.ui.comment
 
+import java.io.File
 import kotlin.test.Test
-import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class CommentsScreenErrorMessageTest {
-
     @Test
-    fun commentLoadFailureMessage_doesNotExposeRepositoryFailureDetails() {
-        val repositoryFailure = "SQL read failed for event-1 user secret@example.com token=SECRET"
-
-        val result = commentLoadFailureMessage()
-
-        assertEquals("Impossible de charger les commentaires. Reessayez.", result)
-        assertFalse(result.contains(repositoryFailure))
-        assertFalse(result.contains("secret@example.com", ignoreCase = true))
-        assertFalse(result.contains("SECRET", ignoreCase = true))
-        assertFalse(result.contains("SQL read", ignoreCase = true))
-        assertFalse(result.contains("token=", ignoreCase = true))
+    fun repositoryFailuresMapToLocalizedSanitizedMessages() {
+        val source = commentsScreen.readText()
+        listOf(
+            "R.string.comment_load_error",
+            "R.string.comment_submit_error",
+            "R.string.comment_delete_error",
+        ).forEach { resource -> assertTrue(source.contains(resource), "Missing $resource") }
+        assertFalse(source.contains("state.message = e.message"))
+        assertFalse(source.contains("submitErrorMessage = e.message"))
+        assertFalse(source.contains("deleteErrorMessage = e.message"))
+        assertFalse(source.contains("fun commentLoadFailureMessage("))
     }
 
-    @Test
-    fun commentSubmitFailureMessage_doesNotExposeRepositoryFailureDetails() {
-        val repositoryFailure = "SQL write failed for event-1 user secret@example.com token=SECRET"
-
-        val result = commentSubmitFailureMessage()
-
-        assertEquals("Impossible d'enregistrer le commentaire. Reessayez.", result)
-        assertFalse(result.contains(repositoryFailure))
-        assertFalse(result.contains("secret@example.com", ignoreCase = true))
-        assertFalse(result.contains("SECRET", ignoreCase = true))
-        assertFalse(result.contains("SQL write", ignoreCase = true))
-        assertFalse(result.contains("token=", ignoreCase = true))
-    }
-
-    @Test
-    fun commentDeleteFailureMessage_doesNotExposeRepositoryFailureDetails() {
-        val repositoryFailure = "SQL delete failed for event-1 user secret@example.com token=SECRET"
-
-        val result = commentDeleteFailureMessage()
-
-        assertEquals("Impossible de supprimer le commentaire. Reessayez.", result)
-        assertFalse(result.contains(repositoryFailure))
-        assertFalse(result.contains("secret@example.com", ignoreCase = true))
-        assertFalse(result.contains("SECRET", ignoreCase = true))
-        assertFalse(result.contains("SQL delete", ignoreCase = true))
-        assertFalse(result.contains("token=", ignoreCase = true))
+    private companion object {
+        val commentsScreen: File by lazy {
+            var root = File(requireNotNull(System.getProperty("user.dir"))).absoluteFile
+            while (!File(root, "settings.gradle.kts").isFile) root = requireNotNull(root.parentFile)
+            root.resolve("composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/comment/CommentsScreen.kt")
+        }
     }
 }

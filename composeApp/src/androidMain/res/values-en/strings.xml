@@ -727,4 +727,5 @@
     <string name="a11y_comment_send">Send comment</string><string name="a11y_comment_reply">Reply to %1$s’s comment</string><string name="a11y_comment_edit">Edit %1$s’s comment</string><string name="a11y_comment_delete">Delete %1$s’s comment</string><string name="a11y_comment_filter">Filter comments by section</string><string name="a11y_comment_back">Return to the event</string><string name="a11y_comment_add">Add a comment to the event</string>
     <plurals name="comment_reply_count"><item quantity="one">%1$d reply</item><item quantity="other">%1$d replies</item></plurals>
     <string name="mention_user_label">@%1$s</string><string name="comment_submit_error">The comment could not be saved. Try again.</string><string name="comment_delete_error">The comment could not be deleted. Try again.</string>
+    <string name="comment_pin">Pin</string><string name="comment_unpin">Unpin</string><string name="comment_remove">Remove</string><string name="comment_time_weeks">%1$d weeks ago</string><string name="a11y_comment_pinned">%1$s’s comment is pinned</string><string name="a11y_comment_options">Open options for %1$s’s comment</string>
 </resources>
