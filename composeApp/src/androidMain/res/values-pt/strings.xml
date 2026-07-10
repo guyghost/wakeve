@@ -839,4 +839,24 @@
     <string name="album_auto_badge">Automático</string><string name="album_smart_sharing">Partilha inteligente</string><string name="album_share_summary_title">Partilhar agora: %1$s</string><plurals name="album_share_summary_auto_body"><item quantity="one">%1$d fotografia nesta seleção automática para voltar a reunir o grupo depois do evento.</item><item quantity="other">%1$d fotografias nesta seleção automática para voltar a reunir o grupo depois do evento.</item></plurals><plurals name="album_share_summary_manual_body"><item quantity="one">%1$d fotografia neste álbum pronto para voltar a reunir o grupo depois do evento.</item><item quantity="other">%1$d fotografias neste álbum pronto para voltar a reunir o grupo depois do evento.</item></plurals>
     <string name="album_photos_section">Fotografias (%1$s)</string><string name="album_relevance_score">%1$d %%</string><string name="album_matched_tags">Etiquetas: %1$s</string><string name="album_create_description">Dê um nome ao seu álbum.</string><string name="album_empty_body">Crie um álbum para encontrar as fotografias depois do evento.</string><string name="album_empty_photos_body">Adicione fotografias para partilhar as recordações com o grupo.</string><string name="photo_without_caption">sem legenda</string><string name="action_create">Criar</string><string name="action_share">Partilhar</string><string name="list_separator">, </string>
     <string name="a11y_album_search">Pesquisar fotografias</string><string name="a11y_album_create">Criar um álbum</string><string name="a11y_album_add_photos">Adicionar fotografias a um novo álbum</string><string name="a11y_album_back">Sair do álbum %1$s</string><string name="a11y_album_share">Partilhar o álbum %1$s</string><string name="a11y_album_delete">Eliminar o álbum %1$s</string><string name="a11y_album_close_search">Fechar a pesquisa de fotografias</string><string name="a11y_album_open">Abrir o álbum %1$s, %2$s</string><string name="a11y_album_cover">Capa do álbum %1$s</string><string name="a11y_photo">Abrir a fotografia %1$s, %2$s</string><string name="a11y_photo_favorite">favorita</string><string name="a11y_photo_not_favorite">não favorita</string><string name="a11y_share_suggestion">Partilhar a seleção %1$s</string><string name="a11y_photo_search_result">Abrir a fotografia %1$s, relevância %2$d %%</string><plurals name="album_photo_count"><item quantity="one">%1$d fotografia</item><item quantity="other">%1$d fotografias</item></plurals>
+    <string name="sync_conflict_title">Conflito de sincronização</string>
+    <plurals name="sync_conflict_count">
+        <item quantity="one">%1$d campo foi editado por vários participantes. Escolha a versão a manter.</item>
+        <item quantity="other">%1$d campos foram editados por vários participantes. Escolha as versões a manter.</item>
+    </plurals>
+    <string name="sync_conflict_keep_all_mine">Manter todas as minhas versões</string>
+    <string name="sync_conflict_keep_all_theirs">Manter todas as versões deles</string>
+    <string name="sync_conflict_apply">Aplicar escolhas</string>
+    <string name="sync_conflict_resolve_all">Escolha uma versão para cada conflito</string>
+    <string name="sync_conflict_mine">A minha versão</string>
+    <string name="sync_conflict_theirs">A versão deles</string>
+    <string name="a11y_conflict_choice">Manter %1$s: %2$s</string>
+    <string name="a11y_conflict_summary">Conflito em %1$s. A minha versão: %2$s. A versão deles: %3$s.</string>
+    <string name="conflict_field_title">Título do evento</string>
+    <string name="conflict_field_description">Descrição</string>
+    <string name="conflict_field_status">Estado atual</string>
+    <string name="conflict_field_final_date">Data confirmada</string>
+    <string name="conflict_field_deadline">Prazo da votação</string>
+    <string name="conflict_field_participants">Participantes</string>
+    <string name="conflict_field_proposed_slots">Horários propostos</string>
 </resources>

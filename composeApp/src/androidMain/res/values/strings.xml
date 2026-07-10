@@ -890,4 +890,24 @@
     <string name="album_auto_badge">Automatique</string><string name="album_smart_sharing">Partage intelligent</string><string name="album_share_summary_title">À partager maintenant : %1$s</string><plurals name="album_share_summary_auto_body"><item quantity="one">%1$d photo dans cette sélection automatique pour relancer le groupe après l’événement.</item><item quantity="other">%1$d photos dans cette sélection automatique pour relancer le groupe après l’événement.</item></plurals><plurals name="album_share_summary_manual_body"><item quantity="one">%1$d photo dans cet album prêt pour relancer le groupe après l’événement.</item><item quantity="other">%1$d photos dans cet album prêt pour relancer le groupe après l’événement.</item></plurals>
     <string name="album_photos_section">Photos (%1$s)</string><string name="album_relevance_score">%1$d %%</string><string name="album_matched_tags">Tags : %1$s</string><string name="album_create_description">Donnez un nom à votre album.</string><string name="album_empty_body">Créez un album pour retrouver les photos après l’événement.</string><string name="album_empty_photos_body">Ajoutez des photos pour partager les souvenirs avec le groupe.</string><string name="photo_without_caption">sans légende</string><string name="action_create">Créer</string><string name="action_share">Partager</string><string name="list_separator">, </string>
     <string name="a11y_album_search">Rechercher des photos</string><string name="a11y_album_create">Créer un album</string><string name="a11y_album_add_photos">Ajouter des photos à un nouvel album</string><string name="a11y_album_back">Revenir depuis l’album %1$s</string><string name="a11y_album_share">Partager l’album %1$s</string><string name="a11y_album_delete">Supprimer l’album %1$s</string><string name="a11y_album_close_search">Fermer la recherche de photos</string><string name="a11y_album_open">Ouvrir l’album %1$s, %2$s</string><string name="a11y_album_cover">Couverture de l’album %1$s</string><string name="a11y_photo">Ouvrir la photo %1$s, %2$s</string><string name="a11y_photo_favorite">favorite</string><string name="a11y_photo_not_favorite">non favorite</string><string name="a11y_share_suggestion">Partager la sélection %1$s</string><string name="a11y_photo_search_result">Ouvrir la photo %1$s, pertinence %2$d %%</string><plurals name="album_photo_count"><item quantity="one">%1$d photo</item><item quantity="other">%1$d photos</item></plurals>
+    <string name="sync_conflict_title">Conflit de synchronisation</string>
+    <plurals name="sync_conflict_count">
+        <item quantity="one">%1$d champ a été modifié par plusieurs participants. Choisissez la version à conserver.</item>
+        <item quantity="other">%1$d champs ont été modifiés par plusieurs participants. Choisissez les versions à conserver.</item>
+    </plurals>
+    <string name="sync_conflict_keep_all_mine">Tout garder de mon côté</string>
+    <string name="sync_conflict_keep_all_theirs">Tout garder de leur côté</string>
+    <string name="sync_conflict_apply">Appliquer les choix</string>
+    <string name="sync_conflict_resolve_all">Choisissez une version pour chaque conflit</string>
+    <string name="sync_conflict_mine">Ma version</string>
+    <string name="sync_conflict_theirs">Leur version</string>
+    <string name="a11y_conflict_choice">Garder %1$s : %2$s</string>
+    <string name="a11y_conflict_summary">Conflit pour %1$s. Ma version : %2$s. Leur version : %3$s.</string>
+    <string name="conflict_field_title">Titre de l’événement</string>
+    <string name="conflict_field_description">Description</string>
+    <string name="conflict_field_status">Statut</string>
+    <string name="conflict_field_final_date">Date confirmée</string>
+    <string name="conflict_field_deadline">Date limite du vote</string>
+    <string name="conflict_field_participants">Participants</string>
+    <string name="conflict_field_proposed_slots">Créneaux proposés</string>
 </resources>
