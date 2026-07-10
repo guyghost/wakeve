@@ -1463,7 +1463,8 @@ fun WakeveNavHost(
                 section = null, // Show all sections
                 sectionItemId = null,
                 currentUserId = userId,
-                currentUserName = authState.currentUser?.displayName ?: "User",
+                currentUserName = authState.currentUser?.displayName
+                    ?: stringResource(R.string.profile_default_user_name),
                 onBack = {
                     navController.navigateUp()
                 }
