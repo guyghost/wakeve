@@ -32,7 +32,7 @@ interface AuthCallbacks {
  * ```kotlin
  * val callbacks = LocalAuthCallbacks.current
  * Button(onClick = { callbacks.launchGoogleSignIn() }) {
- *     Text("Sign in with Google")
+ *     Text(textFromResources)
  * }
  * ```
  * 

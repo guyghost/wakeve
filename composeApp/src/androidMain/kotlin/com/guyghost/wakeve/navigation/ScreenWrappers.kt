@@ -23,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.guyghost.wakeve.contacts.ContactParticipantCandidate
@@ -31,6 +32,7 @@ import com.guyghost.wakeve.repository.EventRepositoryInterface
 import com.guyghost.wakeve.analytics.AnalyticsEvent
 import com.guyghost.wakeve.analytics.AnalyticsProvider
 import com.guyghost.wakeve.ParticipantManagementScreen
+import com.guyghost.wakeve.R
 import com.guyghost.wakeve.PollVotingState
 import com.guyghost.wakeve.PollResultsScreen
 import com.guyghost.wakeve.PollVotingScreen
@@ -246,7 +248,7 @@ private fun ErrorPlaceholder(
             )
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = onBack) {
-                Text("Retour")
+                Text(stringResource(R.string.back))
             }
         }
     }

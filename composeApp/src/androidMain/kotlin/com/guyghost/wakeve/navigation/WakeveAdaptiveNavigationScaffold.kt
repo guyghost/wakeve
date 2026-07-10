@@ -24,6 +24,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
+import com.guyghost.wakeve.R
 import androidx.compose.ui.platform.testTag
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -93,7 +95,7 @@ private fun WakeveNavigationBar(
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         contentColor = MaterialTheme.colorScheme.onSurface
     ) {
-        wakevePrimaryDestinations.forEach { item ->
+        wakevePrimaryDestinations().forEach { item ->
             val selected = currentDestination?.hierarchy?.any { it.route == item.screen.route } == true
             NavigationBarItem(
                 icon = { WakeveNavIcon(item = item, inboxUnreadCount = inboxUnreadCount) },
@@ -127,7 +129,7 @@ private fun WakeveNavigationRail(
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
         contentColor = MaterialTheme.colorScheme.onSurface
     ) {
-        wakevePrimaryDestinations.forEach { item ->
+        wakevePrimaryDestinations().forEach { item ->
             val selected = currentDestination?.hierarchy?.any { it.route == item.screen.route } == true
             NavigationRailItem(
                 icon = { WakeveNavIcon(item = item, inboxUnreadCount = inboxUnreadCount) },
@@ -183,23 +185,24 @@ private data class WakevePrimaryDestination(
     val contentDescription: String
 )
 
-private val wakevePrimaryDestinations = listOf(
+@Composable
+private fun wakevePrimaryDestinations() = listOf(
     WakevePrimaryDestination(
         screen = Screen.Home,
-        label = "À venir",
+        label = stringResource(R.string.nav_upcoming),
         icon = Icons.Filled.Home,
-        contentDescription = "À venir - événements à venir"
+        contentDescription = stringResource(R.string.a11y_nav_upcoming)
     ),
     WakevePrimaryDestination(
         screen = Screen.Inbox,
-        label = "Notifications",
+        label = stringResource(R.string.notifications),
         icon = Icons.Filled.Inbox,
-        contentDescription = "Notifications - alertes et mises à jour"
+        contentDescription = stringResource(R.string.a11y_nav_notifications)
     ),
     WakevePrimaryDestination(
         screen = Screen.Explore,
-        label = "Explorer",
+        label = stringResource(R.string.tab_ideas),
         icon = Icons.Filled.Search,
-        contentDescription = "Explorer - Découvrir des événements et modèles"
+        contentDescription = stringResource(R.string.a11y_nav_ideas)
     )
 )

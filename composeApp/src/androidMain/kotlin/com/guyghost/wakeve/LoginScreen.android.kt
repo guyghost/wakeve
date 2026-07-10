@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
 /**
@@ -61,7 +62,7 @@ fun GoogleSignInButton(
             ) {
                 // TODO: Replace with actual Google logo resource
                 Text(
-                    text = "G",
+                    text = stringResource(R.string.login_google_initial),
                     style = MaterialTheme.typography.titleMedium,
                     color = Color(0xFF4285F4), // Google Blue
                     modifier = Modifier
@@ -73,7 +74,7 @@ fun GoogleSignInButton(
             Spacer(modifier = Modifier.width(12.dp))
 
             Text(
-                text = "Sign in with Google",
+                text = stringResource(R.string.login_google_action),
                 style = MaterialTheme.typography.titleMedium,
                 color = Color.Black.copy(alpha = if (enabled) 1f else 0.5f)
             )

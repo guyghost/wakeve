@@ -15,6 +15,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
+import com.guyghost.wakeve.R
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -42,21 +44,21 @@ fun WakeveBottomBar(
     val items = listOf(
         BottomNavItem(
             screen = Screen.Home,
-            label = "À venir",
+            label = stringResource(R.string.nav_upcoming),
             icon = Icons.Filled.Home,
-            contentDescription = "À venir - événements à venir"
+            contentDescription = stringResource(R.string.a11y_nav_upcoming)
         ),
         BottomNavItem(
             screen = Screen.Inbox,
-            label = "Notifications",
+            label = stringResource(R.string.notifications),
             icon = Icons.Filled.Inbox,
-            contentDescription = "Notifications - alertes et mises à jour"
+            contentDescription = stringResource(R.string.a11y_nav_notifications)
         ),
         BottomNavItem(
             screen = Screen.Explore,
-            label = "Explorer",
+            label = stringResource(R.string.tab_ideas),
             icon = Icons.Filled.Search,
-            contentDescription = "Explorer - Découvrir des événements et modèles"
+            contentDescription = stringResource(R.string.a11y_nav_ideas)
         )
     )
 

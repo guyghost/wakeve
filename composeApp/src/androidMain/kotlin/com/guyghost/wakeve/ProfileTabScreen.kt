@@ -38,6 +38,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
@@ -83,7 +84,7 @@ fun ProfileTabScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Profil",
+                        text = stringResource(R.string.profile_screen_title),
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontWeight = FontWeight.Bold
                         )
@@ -147,7 +148,7 @@ fun ProfileTabScreen(
                                 } else {
                                     Icon(
                                         imageVector = Icons.Default.Person,
-                                        contentDescription = "Avatar",
+                                        contentDescription = stringResource(R.string.a11y_profile_avatar),
                                         modifier = Modifier.size(36.dp),
                                         tint = if (isGuest) {
                                             MaterialTheme.colorScheme.onTertiary
@@ -186,7 +187,7 @@ fun ProfileTabScreen(
                                         onClick = {},
                                         label = { 
                                             Text(
-                                                "Mode invité",
+                                                stringResource(R.string.profile_guest_mode),
                                                 style = MaterialTheme.typography.labelSmall
                                             )
                                         },
@@ -219,7 +220,7 @@ fun ProfileTabScreen(
             // Quick Actions Section
             item {
                 Text(
-                    text = "Actions rapides",
+                    text = stringResource(R.string.profile_quick_actions),
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.SemiBold
                     ),
@@ -258,7 +259,7 @@ fun ProfileTabScreen(
             // Account Section
             item {
                 Text(
-                    text = "Compte",
+                    text = stringResource(R.string.profile_account_section),
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.SemiBold
                     ),
@@ -296,7 +297,7 @@ fun ProfileTabScreen(
             item {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "À propos",
+                    text = stringResource(R.string.about),
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.SemiBold
                     ),
@@ -317,7 +318,7 @@ fun ProfileTabScreen(
                             .padding(16.dp)
                     ) {
                         Text(
-                            text = "Wakeve",
+                            text = stringResource(R.string.app_name),
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold
                             )
@@ -330,7 +331,7 @@ fun ProfileTabScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Planification d'événements collaborative avec sondages, gestion de budget, et synchronisation hors ligne.",
+                            text = stringResource(R.string.profile_app_description),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                         )
@@ -405,7 +406,7 @@ private fun ProfileActionItem(
             }
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = "Accéder",
+                contentDescription = stringResource(R.string.a11y_open_profile_action, title),
                 tint = when {
                     destructive -> MaterialTheme.colorScheme.onErrorContainer
                     highlight -> MaterialTheme.colorScheme.onPrimaryContainer
