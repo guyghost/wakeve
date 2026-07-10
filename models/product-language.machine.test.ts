@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import { createActor } from 'xstate'
 import { productLanguageMachine, projectProductLanguage } from './product-language.machine.ts'
@@ -25,6 +26,7 @@ test('offline mutation enters pendingSync and retry recomputes deterministically
   assert.deepEqual(projectProductLanguage(input), { domainStatus: 'CONFIRMED', titleKey: 'event.state.confirmed', statusKey: 'sync.waiting', detailKey: null, primaryActionKey: 'sync.retry', secondaryActionKey: null, sharedConfirmation: false })
   actor.send({ type: 'SYNC_SUCCEEDED' })
   assert.equal(actor.getSnapshot().value, 'ready')
+  assert.equal(actor.getSnapshot().context.projection.primaryActionKey, null)
 })
 
 test('sync conflict names affected data and offers deterministic resolution', () => {
@@ -33,7 +35,7 @@ test('sync conflict names affected data and offers deterministic resolution', ()
   assert.equal(actor.getSnapshot().value, 'syncConflict')
   assert.deepEqual(actor.getSnapshot().context.projection, {
     domainStatus: 'CONFIRMED', titleKey: 'event.state.confirmed', statusKey: 'sync.conflict',
-    detailKey: 'sync.conflict.event-details', primaryActionKey: 'sync.resolve', secondaryActionKey: 'sync.retry', sharedConfirmation: false,
+    detailKey: 'sync.conflict.event-details', primaryActionKey: 'sync.resolve', secondaryActionKey: null, sharedConfirmation: false,
   })
   actor.send({ type: 'RESOLVE_CONFLICT' })
   assert.equal(actor.getSnapshot().value, 'pendingSync')
@@ -54,10 +56,12 @@ test('sync failure exposes retry and only retry can restart synchronization', ()
 })
 
 test('validation failure is explicit and preserves domain status', () => {
-  const input = { status: 'DRAFT', role: 'ORGANIZER', pendingFacts: [], allowedAction: 'EDIT', validation: 'INVALID_FIELD' } as const
+  const input = { status: 'DRAFT', role: 'ORGANIZER', pendingFacts: [], allowedAction: 'EDIT', validation: { code: 'INVALID_FIELD', field: 'TITLE', correction: 'FOCUS_FIELD' } } as const
   const actor = createActor(productLanguageMachine, { input }).start()
   assert.equal(actor.getSnapshot().value, 'validationError')
   assert.equal(actor.getSnapshot().context.projection.statusKey, 'validation.invalid-field')
+  assert.equal(actor.getSnapshot().context.projection.detailKey, 'validation.field.title')
+  assert.equal(actor.getSnapshot().context.projection.primaryActionKey, 'validation.focus-field')
   assert.equal(actor.getSnapshot().context.projection.domainStatus, 'DRAFT')
 })
 
@@ -79,6 +83,44 @@ for (const permission of ['DENIED', 'RESTRICTED'] as const) {
     assert.equal(actor.getSnapshot().context.projection.primaryActionKey, 'permission.open-settings')
   })
 }
+
+test('conflict with no allowed action exposes no CTA and rejects both events', () => {
+  const actor = createActor(productLanguageMachine, { input: { status: 'CONFIRMED', role: 'ORGANIZER', pendingFacts: ['SYNC_CONFLICT'], allowedAction: null } }).start()
+  assert.equal(actor.getSnapshot().context.projection.primaryActionKey, null)
+  assert.equal(actor.getSnapshot().context.projection.secondaryActionKey, null)
+  actor.send({ type: 'RESOLVE_CONFLICT' })
+  assert.equal(actor.getSnapshot().value, 'syncConflict')
+  actor.send({ type: 'RETRY_SYNC' })
+  assert.equal(actor.getSnapshot().value, 'syncConflict')
+})
+
+test('retry-only conflict exposes retry and rejects resolution', () => {
+  const actor = createActor(productLanguageMachine, { input: { status: 'CONFIRMED', role: 'ORGANIZER', pendingFacts: ['SYNC_CONFLICT'], allowedAction: 'RETRY_SYNC' } }).start()
+  assert.equal(actor.getSnapshot().context.projection.primaryActionKey, 'sync.retry')
+  assert.equal(actor.getSnapshot().context.projection.secondaryActionKey, null)
+  actor.send({ type: 'RESOLVE_CONFLICT' })
+  assert.equal(actor.getSnapshot().value, 'syncConflict')
+  actor.send({ type: 'RETRY_SYNC' })
+  assert.equal(actor.getSnapshot().value, 'pendingSync')
+})
+
+test('sync failure cannot manufacture retry permission', () => {
+  const actor = createActor(productLanguageMachine, { input: { status: 'CONFIRMED', role: 'ORGANIZER', pendingFacts: ['LOCAL_MUTATION'], allowedAction: null } }).start()
+  actor.send({ type: 'SYNC_FAILED' })
+  assert.equal(actor.getSnapshot().value, 'syncFailed')
+  assert.equal(actor.getSnapshot().context.projection.primaryActionKey, null)
+  actor.send({ type: 'RETRY_SYNC' })
+  assert.equal(actor.getSnapshot().value, 'syncFailed')
+})
+
+test('inventory assigns exact semantic sentinel categories', () => {
+  const inventory = JSON.parse(readFileSync(new URL('./product-language.inventory.json', import.meta.url), 'utf8')) as { files: { path: string; category: string }[] }
+  const categories = new Map(inventory.files.map(file => [file.path, file.category]))
+  assert.equal(categories.get('iosApp/src/Services/APNsService.swift'), 'delivery-or-siri')
+  assert.equal(categories.get('composeApp/src/androidMain/kotlin/com/guyghost/wakeve/service/FCMService.kt'), 'delivery-or-siri')
+  assert.equal(categories.get('iosApp/src/Components/AIBadgeView.swift'), 'ai-entry-point')
+  assert.equal(categories.get('composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/event/DraftEventWizard.kt'), 'android-ui')
+})
 
 test('terminal state suppresses caller-provided editing action', () => {
   const projection = projectProductLanguage({ status: 'FINALIZED', role: 'ORGANIZER', pendingFacts: [], allowedAction: 'EDIT' })
