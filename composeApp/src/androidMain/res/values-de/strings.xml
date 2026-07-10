@@ -815,4 +815,12 @@
 <string name="a11y_meal_filter_status">Nach Status %1$s filtern, %2$s</string>
 <string name="a11y_meal_open">Mahlzeit %1$s bearbeiten, Status %2$s</string>
 <string name="a11y_meal_delete">Mahlzeit %1$s löschen</string><plurals name="meal_count"><item quantity="one">%1$d Mahlzeit</item><item quantity="other">%1$d Mahlzeiten</item></plurals><plurals name="meal_constraint_count"><item quantity="one">%1$d Ernährungseinschränkung</item><item quantity="other">%1$d Ernährungseinschränkungen</item></plurals><plurals name="meal_responsible_count"><item quantity="one">%1$d verantwortliche Person</item><item quantity="other">%1$d verantwortliche Personen</item></plurals><plurals name="meal_serving_count"><item quantity="one">%1$d Portion</item><item quantity="other">%1$d Portionen</item></plurals><plurals name="a11y_meal_comments"><item quantity="one">%1$d Essenskommentar öffnen</item><item quantity="other">%1$d Essenskommentare öffnen</item></plurals>
+<string name="a11y_event_cover_image">Titelbild der Veranstaltung</string>
+<string name="a11y_user_avatar">Profilbild des Benutzers</string>
+<string name="a11y_invitation_qr">QR-Code zum Beitreten zur Veranstaltung</string>
+<string name="a11y_copy_invitation_link">Einladungslink kopieren</string>
+<string name="invitation_loading">Einladung wird geladen…</string>
+<string name="action_retry">Erneut versuchen</string>
+<string name="permission_required">Zum Teilen der Einladung ist eine Berechtigung erforderlich.</string>
+<string name="invitation_clipboard_label">Wakeve-Einladung</string>
 </resources>

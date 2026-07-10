@@ -16,6 +16,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -122,7 +123,7 @@ fun EventCoverImage(
 ) {
     WakeveAsyncImage(
         imageUrl = imageUrl,
-        contentDescription = "Event cover image",
+        contentDescription = stringResource(R.string.a11y_event_cover_image),
         modifier = modifier,
         shape = ImageShape.ROUNDED_CORNERS,
         cornerRadius = 12
@@ -145,7 +146,7 @@ fun UserAvatar(
 ) {
     WakeveAsyncImage(
         imageUrl = imageUrl,
-        contentDescription = "User avatar",
+        contentDescription = stringResource(R.string.a11y_user_avatar),
         modifier = modifier,
         shape = ImageShape.CIRCLE
     )
