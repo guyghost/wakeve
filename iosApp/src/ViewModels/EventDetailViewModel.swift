@@ -36,6 +36,7 @@ class EventDetailViewModel: StateMachineViewModel<
 
     /// The current user ID (for organizer checks and delete permission)
     private let userId: String
+    private var deletionContinuation: CheckedContinuation<Bool, Never>?
 
     // MARK: - Computed Properties
 
@@ -85,6 +86,16 @@ class EventDetailViewModel: StateMachineViewModel<
         dispatch(EventManagementContractIntentDeleteEvent(eventId: eventId, userId: userId))
     }
 
+    /// Resolves only after the shared owner has accepted or rejected deletion.
+    /// Navigation must never infer success from dispatching the intent itself.
+    func deleteEventAndWait() async -> Bool {
+        guard deletionContinuation == nil else { return false }
+        return await withCheckedContinuation { continuation in
+            deletionContinuation = continuation
+            deleteEvent()
+        }
+    }
+
     /// Update the event
     func updateEvent(_ event: Event) {
         dispatch(EventManagementContractIntentUpdateEvent(event: event))
@@ -94,6 +105,10 @@ class EventDetailViewModel: StateMachineViewModel<
 
     override func onStateDidChange() {
         updateSelectedEvent()
+        guard let continuation = deletionContinuation, !state.isLoading else { return }
+        deletionContinuation = nil
+        let wasDeleted = state.error == nil && !state.events.contains { $0.id == eventId }
+        continuation.resume(returning: wasDeleted)
     }
 
     // MARK: - Private Methods

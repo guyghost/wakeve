@@ -1,0 +1,113 @@
+ALTER TABLE participant ADD COLUMN rsvpState TEXT NOT NULL DEFAULT 'UNAVAILABLE'
+    CHECK (rsvpState IN ('PENDING', 'ACCEPTED', 'DECLINED', 'NOT_APPLICABLE', 'UNAVAILABLE'));
+
+ALTER TABLE participant ADD COLUMN dateValidationState TEXT NOT NULL DEFAULT 'UNAVAILABLE'
+    CHECK (dateValidationState IN ('NOT_VALIDATED', 'VALIDATED_RETAINED_DATE', 'NOT_APPLICABLE', 'UNAVAILABLE'));
+
+CREATE TABLE aggregate_write_authorization (
+    event_id TEXT PRIMARY KEY NOT NULL REFERENCES event(id) ON DELETE CASCADE,
+    expected_revision INTEGER NOT NULL,
+    writer_schema_version INTEGER NOT NULL CHECK (writer_schema_version >= 1),
+    operation_id TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL
+);
+
+CREATE TRIGGER fence_protected_event_update
+BEFORE UPDATE ON event
+WHEN (
+    SELECT trigger_old_row.aggregateRevision > 1
+      AND EXISTS (
+        SELECT 1 FROM event_artwork AS artwork
+        WHERE artwork.event_id = trigger_old_row.id
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM aggregate_write_authorization AS authorization
+        WHERE authorization.event_id = trigger_old_row.id
+          AND (
+            authorization.expected_revision = trigger_old_row.aggregateRevision
+            OR authorization.expected_revision + 1 = trigger_old_row.aggregateRevision
+          )
+          AND authorization.writer_schema_version >= trigger_old_row.aggregateSchemaVersion
+      )
+    FROM event AS trigger_old_row
+)
+BEGIN
+    SELECT RAISE(ABORT, 'EVENT_AGGREGATE_WRITER_FENCED');
+END;
+
+CREATE TRIGGER fence_protected_event_delete
+BEFORE DELETE ON event
+WHEN (
+    SELECT trigger_old_row.aggregateRevision > 1
+      AND EXISTS (
+        SELECT 1 FROM event_artwork AS artwork
+        WHERE artwork.event_id = trigger_old_row.id
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM aggregate_write_authorization AS authorization
+        WHERE authorization.event_id = trigger_old_row.id
+          AND (
+            authorization.expected_revision = trigger_old_row.aggregateRevision
+            OR authorization.expected_revision + 1 = trigger_old_row.aggregateRevision
+          )
+          AND authorization.writer_schema_version >= trigger_old_row.aggregateSchemaVersion
+      )
+    FROM event AS trigger_old_row
+)
+BEGIN
+    SELECT RAISE(ABORT, 'EVENT_AGGREGATE_WRITER_FENCED');
+END;
+
+CREATE TRIGGER fence_protected_scenario_update
+BEFORE UPDATE ON scenario
+WHEN (
+    SELECT EXISTS (
+        SELECT 1
+        FROM event AS protected_event
+        JOIN event_artwork AS artwork ON artwork.event_id = protected_event.id
+        WHERE protected_event.id = trigger_old_row.eventId
+          AND protected_event.aggregateRevision > 1
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM aggregate_write_authorization AS authorization
+        JOIN event AS authorized_event ON authorized_event.id = authorization.event_id
+        WHERE authorization.event_id = trigger_old_row.eventId
+          AND (
+            authorization.expected_revision = authorized_event.aggregateRevision
+            OR authorization.expected_revision + 1 = authorized_event.aggregateRevision
+          )
+          AND authorization.writer_schema_version >= authorized_event.aggregateSchemaVersion
+      )
+    FROM scenario AS trigger_old_row
+)
+BEGIN
+    SELECT RAISE(ABORT, 'SCENARIO_AGGREGATE_WRITER_FENCED');
+END;
+
+CREATE TRIGGER fence_protected_scenario_delete
+BEFORE DELETE ON scenario
+WHEN (
+    SELECT EXISTS (
+        SELECT 1
+        FROM event AS protected_event
+        JOIN event_artwork AS artwork ON artwork.event_id = protected_event.id
+        WHERE protected_event.id = trigger_old_row.eventId
+          AND protected_event.aggregateRevision > 1
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM aggregate_write_authorization AS authorization
+        JOIN event AS authorized_event ON authorized_event.id = authorization.event_id
+        WHERE authorization.event_id = trigger_old_row.eventId
+          AND (
+            authorization.expected_revision = authorized_event.aggregateRevision
+            OR authorization.expected_revision + 1 = authorized_event.aggregateRevision
+          )
+          AND authorization.writer_schema_version >= authorized_event.aggregateSchemaVersion
+      )
+    FROM scenario AS trigger_old_row
+)
+BEGIN
+    SELECT RAISE(ABORT, 'SCENARIO_AGGREGATE_WRITER_FENCED');
+END;

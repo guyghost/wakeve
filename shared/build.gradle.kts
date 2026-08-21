@@ -8,6 +8,32 @@ plugins {
     jacoco
 }
 
+abstract class PatchInvitationAggregateTriggerPseudoRowsTask : org.gradle.api.DefaultTask() {
+    // SQLDelight owns/tracks this generated file. Declaring it as this task's
+    // output as well would create overlapping outputs and invalidate the
+    // generator on every build; this idempotent finalizer therefore keeps only
+    // a serializable path property and never captures the Kotlin build script.
+    @get:org.gradle.api.tasks.Internal
+    abstract val generatedSchema: org.gradle.api.file.RegularFileProperty
+
+    @org.gradle.api.tasks.TaskAction
+    fun patchGeneratedSchema() {
+        val schemaFile = generatedSchema.get().asFile
+        check(schemaFile.isFile) { "SQLDelight WakeveDb schema was not generated" }
+        val source = schemaFile.readText()
+        val patched = source
+            .replace("trigger_old_row.", "OLD.")
+            .replace("FROM event AS trigger_old_row", "")
+            .replace("FROM scenario AS trigger_old_row", "")
+        check(patched != source || source.contains("OLD.aggregateRevision")) {
+            "Invitation aggregate trigger pseudo-row markers were not generated"
+        }
+        if (patched != source) {
+            schemaFile.writeText(patched)
+        }
+    }
+}
+
 kotlin {
     compilerOptions {
         freeCompilerArgs.add("-Xexpect-actual-classes")
@@ -165,6 +191,29 @@ sqldelight {
             schemaOutputDirectory.set(file("src/commonMain/sqldelight"))
         }
     }
+}
+
+// SQLDelight 2.0.2 parses SQLite triggers but does not understand the OLD/NEW
+// pseudo-row namespace. The checked-in SQL aliases the affected aggregate row
+// as `trigger_old_row`; restore SQLite's real OLD qualifier in generated code
+// before any Kotlin compilation consumes it.
+val patchInvitationAggregateTriggerPseudoRows = tasks.register<PatchInvitationAggregateTriggerPseudoRowsTask>(
+    "patchInvitationAggregateTriggerPseudoRows"
+) {
+    dependsOn("generateCommonMainWakeveDbInterface")
+    generatedSchema.set(
+        layout.buildDirectory.file(
+            "generated/sqldelight/code/WakeveDb/commonMain/com/guyghost/wakeve/database/shared/WakeveDbImpl.kt"
+        )
+    )
+}
+
+tasks.matching { it.name == "generateCommonMainWakeveDbInterface" }.configureEach {
+    finalizedBy(patchInvitationAggregateTriggerPseudoRows)
+}
+
+tasks.matching { it.name.startsWith("compileKotlin") }.configureEach {
+    dependsOn(patchInvitationAggregateTriggerPseudoRows)
 }
 
 // JaCoCo Configuration for Code Coverage

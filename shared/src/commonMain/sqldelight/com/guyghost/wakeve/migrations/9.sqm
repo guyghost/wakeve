@@ -1,0 +1,20 @@
+CREATE TABLE direct_invite_delivery_envelope (
+    batch_id TEXT NOT NULL,
+    recipient_key TEXT NOT NULL,
+    ciphertext TEXT NOT NULL CHECK (length(ciphertext) > 0),
+    key_version INTEGER NOT NULL CHECK (key_version > 0),
+    expires_at TEXT NOT NULL,
+    transport_state TEXT NOT NULL CHECK (
+        transport_state IN (
+            'QUEUED_LOCAL', 'PENDING_SERVER', 'SERVER_ACCEPTED',
+            'FAILED_RETRYABLE', 'FAILED_PERMANENT', 'CANCELLED'
+        )
+    ),
+    PRIMARY KEY (batch_id, recipient_key),
+    FOREIGN KEY (batch_id, recipient_key)
+        REFERENCES direct_invite_recipient_outcome(batch_id, recipient_key)
+        ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX event_notification_preference_operation_id_unique
+ON event_notification_preference(operation_id);

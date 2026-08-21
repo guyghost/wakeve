@@ -6,16 +6,22 @@ final class PremiumEventDetailContractTests: XCTestCase {
         let source = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
         let content = slice(source, from: "struct EventDetailView", to: "private struct EventDetailHeroMetric")
 
-        XCTAssertTrue(content.contains("EventHeroCard("))
+        XCTAssertTrue(content.contains("EventDetailInvitationCanvas("))
+        XCTAssertEqual(
+            occurrences(of: "EventDetailInvitationCanvas(", in: content),
+            1,
+            "Event Detail must render one invitation canvas with one primary action identity."
+        )
         XCTAssertTrue(content.contains("metadataOverview"))
         XCTAssertTrue(content.contains("EventWeatherMapCard(state: eventWeatherViewModel.state)"))
         XCTAssertTrue(content.contains("anticipationPanel"))
-        XCTAssertTrue(content.contains("urgentNextAction"))
+        XCTAssertTrue(content.contains("eventAISuggestionPanel"))
         XCTAssertTrue(content.contains("groupReadinessPanel"))
         XCTAssertTrue(content.contains("participantsPreview"))
+        XCTAssertTrue(content.contains("detailRows"))
         XCTAssertTrue(content.contains("messagePreview"))
-        XCTAssertTrue(content.contains("LiquidGlassToolbar(title: String(localized: \"event.detail.title\")"))
-        XCTAssertTrue(content.contains("LiquidGlassButton("))
+        XCTAssertFalse(content.contains("urgentNextAction"))
+        XCTAssertFalse(content.contains("bottomPrimaryAction"))
     }
 
     func testEventDetailUsesProgressiveSectionsAndCompactMessages() throws {
@@ -101,13 +107,13 @@ final class PremiumEventDetailContractTests: XCTestCase {
         XCTAssertTrue(content.contains("countdownTitle"))
         XCTAssertTrue(content.contains("EventDetailAnticipationCard"))
         XCTAssertTrue(content.contains("photo.on.rectangle.angled"))
-        XCTAssertTrue(content.contains("returnHookMessage"))
-        XCTAssertTrue(content.contains("event.detail.return_hook.share_action"))
-        XCTAssertTrue(content.contains("event.detail.return_hook.message_format"))
-        XCTAssertTrue(content.contains("eventAnticipationReturnHookShare"))
-        XCTAssertTrue(content.contains("ShareLink(item: returnHookMessage)"))
-        XCTAssertTrue(content.contains("InvitationTokenCodec.invitationCode(forEventId: event.id)"))
-        XCTAssertTrue(content.contains("WakeveHaptics.selection()"))
+        XCTAssertTrue(content.contains("onOpenInvitationShare"))
+        XCTAssertFalse(content.contains("returnHookMessage"))
+        XCTAssertFalse(content.contains("ShareLink(item: returnHookMessage)"))
+        XCTAssertFalse(
+            content.contains("InvitationTokenCodec"),
+            "Event Detail must never derive invitation tokens or URLs locally."
+        )
     }
 
     func testInviteDeepLinkShowsGuestLandingStateOnEventDetail() throws {
@@ -115,33 +121,54 @@ final class PremiumEventDetailContractTests: XCTestCase {
         let routing = slice(source, from: "private var homeTabContent", to: "case .participantManagement")
         let handler = slice(source, from: "private func handleDeepLinkNavigation", to: "private func navigateToEvent")
         let detail = slice(source, from: "struct EventDetailView", to: "private struct EventDetailHeroMetric")
+        let invitationLanding = slice(
+            detail,
+            from: "private var invitationLandingCard",
+            to: "private var anticipationPanel"
+        )
 
         XCTAssertTrue(source.contains("invitationLandingEventId"))
         XCTAssertTrue(routing.contains("isInvitationLanding:"))
         XCTAssertTrue(routing.contains("invitationLandingEventId == event.id"))
-        XCTAssertTrue(routing.contains("onDismissInvitationLanding"))
-        XCTAssertTrue(handler.contains("case (\"invite\", let token?, _)"))
-        XCTAssertTrue(handler.contains("invitationLandingEventId = eventId"))
-        XCTAssertTrue(handler.contains("invitationLandingEventId = nil"))
+        XCTAssertTrue(routing.contains("onBack:"))
+        XCTAssertTrue(routing.contains("invitationLandingEventId = nil"))
+        XCTAssertFalse(routing.contains("onDismissInvitationLanding"))
+        XCTAssertTrue(
+            handler.contains("case .invite(let token):"),
+            "The URL boundary now publishes a typed IosRoute; the legacy string-tuple switch is no longer authoritative."
+        )
+        XCTAssertFalse(
+            handler.contains("InvitationTokenCodec"),
+            "The invitation Event Detail flow must resolve a server-issued capability through its owner, never decode a local token in the root."
+        )
+        XCTAssertTrue(
+            handler.contains("navigateInvitationDeepLink") ||
+                handler.contains("resolveInvitation"),
+            "A typed invite route must still pass temporal and membership preflight before Event Detail."
+        )
         XCTAssertTrue(detail.contains("if isInvitationLanding"))
         XCTAssertTrue(detail.contains("invitationLandingCard"))
         XCTAssertTrue(detail.contains("eventInvitationLandingCard"))
-        XCTAssertTrue(detail.contains("eventInvitationLandingPrimaryAction"))
-        XCTAssertTrue(detail.contains("eventInvitationLandingContinueAction"))
+        XCTAssertFalse(invitationLanding.contains("eventInvitationLandingPrimaryAction"))
+        XCTAssertFalse(invitationLanding.contains("eventInvitationLandingContinueAction"))
+        XCTAssertFalse(invitationLanding.contains("WakeveActionButton("))
+        XCTAssertFalse(invitationLanding.contains("onVote()"))
+        XCTAssertFalse(invitationLanding.contains("onManageParticipants()"))
+        XCTAssertTrue(detail.contains("let context = canvasContext"))
+        XCTAssertTrue(detail.contains("EventDetailInvitationCanvasContextMapper"))
+        XCTAssertTrue(detail.contains("EventDetailInvitationCanvas("))
+        XCTAssertTrue(detail.contains("onPrimaryAction:"))
+        XCTAssertTrue(detail.contains("performCanvasAction(presentation.primaryAction"))
         XCTAssertTrue(detail.contains("triggerInvitationLandingHapticIfNeeded()"))
         XCTAssertTrue(detail.contains("WakeveHaptics.success()"))
         XCTAssertTrue(detail.contains("event.detail.invite_landing.polling_subtitle"))
-        XCTAssertTrue(detail.contains("event.detail.invite_landing.vote_action"))
 
         for locale in ["en", "fr", "es", "it", "pt"] {
             let strings = try readProjectFile("iosApp/src/Resources/\(locale).lproj/Localizable.strings")
             for key in [
                 "event.detail.invite_landing.title",
                 "event.detail.invite_landing.default_subtitle",
-                "event.detail.invite_landing.polling_subtitle",
-                "event.detail.invite_landing.vote_action",
-                "event.detail.invite_landing.view_invite_action",
-                "event.detail.invite_landing.continue_action"
+                "event.detail.invite_landing.polling_subtitle"
             ] {
                 XCTAssertTrue(strings.contains("\"\(key)\""), "Missing invite landing key \(key) for \(locale).")
             }
@@ -170,6 +197,7 @@ final class PremiumEventDetailContractTests: XCTestCase {
 
     func testEventDetailControlCopyUsesLocalizationKeys() throws {
         let source = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
+        let canvasSource = try readProjectFile("iosApp/src/Views/Events/EventDetailInvitationCanvas.swift")
         let metadataContent = slice(source, from: "private var metadataOverview", to: "private var primaryActionTitle")
         let detailContent = slice(source, from: "struct EventDetailView", to: "private struct EventDetailHeroMetric")
 
@@ -180,8 +208,11 @@ final class PremiumEventDetailContractTests: XCTestCase {
         XCTAssertTrue(metadataContent.contains("event.detail.message_preview.default"))
         XCTAssertTrue(metadataContent.contains("event.detail.messages_title"))
         XCTAssertTrue(metadataContent.contains("event.detail.organizer.invite_title"))
-        XCTAssertTrue(metadataContent.contains("event.detail.organizer.poll_title"))
-        XCTAssertTrue(metadataContent.contains("event.detail.menu.configure_poll"))
+        XCTAssertTrue(canvasSource.contains("event.detail.canvas.lifecycle.polling"))
+        XCTAssertTrue(canvasSource.contains("event.detail.canvas.next.polling_response_due"))
+        XCTAssertTrue(canvasSource.contains("event.detail.canvas.action.submit_vote"))
+        XCTAssertTrue(canvasSource.contains("event.detail.canvas.action.view_results"))
+        XCTAssertTrue(detailContent.contains("event.detail.menu.view_results"))
         XCTAssertTrue(metadataContent.contains("event.detail.menu.tricount"))
         XCTAssertTrue(metadataContent.contains("event.detail.organization.transport_value"))
         XCTAssertTrue(detailContent.contains("event.detail.readiness.title"))
@@ -324,5 +355,10 @@ final class PremiumEventDetailContractTests: XCTestCase {
         }
 
         return String(tail[..<end])
+    }
+
+    private func occurrences(of needle: String, in source: String) -> Int {
+        guard !needle.isEmpty else { return 0 }
+        return source.components(separatedBy: needle).count - 1
     }
 }

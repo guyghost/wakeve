@@ -10,6 +10,8 @@ La documentation iOS complète se trouve dans le dossier `iosApp/` à la racine 
 
 ### Design System - Liquid Glass
 - [Wakeve iOS Design System](design-system.md) - Tokens, composants, règles d'utilisation et migration
+- [Event Detail Invitation Canvas](event-detail-invitation-canvas.md) - Architecture, mapper état × accès, partage sécurisé et protocole de migration
+- [Invitation Experience](./invitation-experience.md) - Architecture repository-backed des six surfaces, owners sécurisés, rollout et rollback
 - [Liquid Glass Guidelines](../../../iosApp/LIQUID_GLASS_GUIDELINES.md) - Guidelines complètes du design system
 - [LiquidGlassCard Reference](../../../iosApp/LIQUIDGLASSCARD_REFERENCE.md) - Référence du composant LiquidGlassCard
 - [LiquidGlassCard Usage Examples](../../../iosApp/LIQUIDGLASSCARD_USAGE_EXAMPLES.md) - Exemples d'utilisation

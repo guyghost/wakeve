@@ -94,7 +94,9 @@ class CreateEventViewModel: StateMachineViewModel<
             maxParticipants: maxParticipants.map { KotlinInt(value: $0) },
             expectedParticipants: expectedParticipants.map { KotlinInt(value: $0) },
             heroImageUrl: nil,
-            planningMode: planningMode
+            planningMode: planningMode,
+            aggregateRevision: 1,
+            aggregateSchemaVersion: 1
         )
 
         // Dispatch to StateMachine — persists to SQLDelight DB

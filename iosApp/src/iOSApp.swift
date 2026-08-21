@@ -26,31 +26,55 @@ struct iOSApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environmentObject(authStateManager)
-                .environmentObject(authService)
-                .environmentObject(deepLinkService)
-                .task {
-                    #if DEBUG
-                    if await authStateManager.authenticateForDevelopmentLaunchIfRequested() {
-                        return
-                    }
-                    #endif
+            appRoot
+        }
+    }
 
-                    authStateManager.checkAuthStatus()
+    @ViewBuilder
+    private var appRoot: some View {
+        #if DEBUG
+        debugAppRoot
+        #else
+        normalAppRoot
+        #endif
+    }
+
+    #if DEBUG
+    @ViewBuilder
+    private var debugAppRoot: some View {
+        if ProcessInfo.processInfo.arguments.contains("--wakeve-qa-invitation-canvas") {
+            EventDetailInvitationCanvasQAView()
+        } else {
+            normalAppRoot
+        }
+    }
+    #endif
+
+    private var normalAppRoot: some View {
+        ContentView()
+            .environmentObject(authStateManager)
+            .environmentObject(authService)
+            .environmentObject(deepLinkService)
+            .task {
+                #if DEBUG
+                if await authStateManager.authenticateForDevelopmentLaunchIfRequested() {
+                    return
                 }
-                .onOpenURL { url in
-                    // Handle incoming deep links
+                #endif
+
+                authStateManager.checkAuthStatus()
+            }
+            .onOpenURL { url in
+                // Handle incoming deep links
+                handleDeepLink(url)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NavigateToEvent"))) { notification in
+                // Handle notification tap deep link
+                if let eventId = notification.userInfo?["eventId"] as? String {
+                    let url = URL(string: "wakeve://event/\(eventId)")!
                     handleDeepLink(url)
                 }
-                .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NavigateToEvent"))) { notification in
-                    // Handle notification tap deep link
-                    if let eventId = notification.userInfo?["eventId"] as? String {
-                        let url = URL(string: "wakeve://event/\(eventId)")!
-                        handleDeepLink(url)
-                    }
-                }
-        }
+            }
     }
 
     // MARK: - Deep Link Handling
@@ -72,7 +96,7 @@ struct iOSApp: App {
         // Handle the deep link
         _ = deepLinkService.handleDeepLink(url, isAuthenticated: isAuthenticated)
 
-        // Note: ContentView should observe deepLinkService.navigationPath
+        // ContentView observes the typed deepLinkService.navigationRoute.
         // and navigate accordingly
     }
 }

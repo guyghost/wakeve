@@ -5,6 +5,10 @@ CREATE TABLE participant (
     userId TEXT NOT NULL,
     role TEXT NOT NULL, -- ORGANIZER, PARTICIPANT
     hasValidatedDate INTEGER NOT NULL DEFAULT 0, -- boolean: 0 or 1
+    rsvpState TEXT NOT NULL DEFAULT 'UNAVAILABLE'
+        CHECK (rsvpState IN ('PENDING', 'ACCEPTED', 'DECLINED', 'NOT_APPLICABLE', 'UNAVAILABLE')),
+    dateValidationState TEXT NOT NULL DEFAULT 'UNAVAILABLE'
+        CHECK (dateValidationState IN ('NOT_VALIDATED', 'VALIDATED_RETAINED_DATE', 'NOT_APPLICABLE', 'UNAVAILABLE')),
     joinedAt TEXT NOT NULL,
     updatedAt TEXT NOT NULL,
     UNIQUE(eventId, userId),
@@ -34,6 +38,12 @@ insertParticipant:
 INSERT INTO participant(id, eventId, userId, role, hasValidatedDate, joinedAt, updatedAt)
 VALUES (?, ?, ?, ?, ?, ?, ?);
 
+insertParticipantWithAxes:
+INSERT INTO participant(
+    id, eventId, userId, role, hasValidatedDate, rsvpState, dateValidationState, joinedAt, updatedAt
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
 updateParticipant:
 UPDATE participant
 SET role = ?, hasValidatedDate = ?, updatedAt = ?
@@ -42,6 +52,22 @@ WHERE id = ?;
 updateValidation:
 UPDATE participant
 SET hasValidatedDate = ?, updatedAt = ?
+WHERE id = ?;
+
+updateAccessAxes:
+UPDATE participant
+SET rsvpState = ?, dateValidationState = ?, updatedAt = ?
+WHERE id = ?;
+
+-- RSVP is one domain decision projected onto three independently readable
+-- axes. Persist them with one statement so no reader can observe a mixed
+-- legacy/new-model state.
+updateRsvpAxes:
+UPDATE participant
+SET hasValidatedDate = ?,
+    rsvpState = ?,
+    dateValidationState = ?,
+    updatedAt = ?
 WHERE id = ?;
 
 anonymizeParticipantUser:
@@ -60,4 +86,3 @@ CREATE INDEX IF NOT EXISTS idx_participant_event ON participant(eventId, joinedA
 CREATE INDEX IF NOT EXISTS idx_participant_user ON participant(userId);
 CREATE INDEX IF NOT EXISTS idx_participant_role ON participant(eventId, role);
 CREATE INDEX IF NOT EXISTS idx_participant_validated ON participant(eventId, hasValidatedDate);
-

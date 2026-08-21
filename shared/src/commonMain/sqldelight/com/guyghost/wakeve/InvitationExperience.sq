@@ -1,0 +1,552 @@
+-- Event-owned storage for the invitation experience. Repository validation
+-- enforces the total unions; foreign keys provide the deletion boundary.
+
+-- Short-lived transaction permit used by the minimum-writer fence. Legacy
+-- binaries do not know this table and therefore cannot mutate protected child
+-- rows or delete an aggregate. Owners insert and clear the permit inside the
+-- same SQLDelight transaction as their compare-and-swap.
+CREATE TABLE aggregate_write_authorization (
+    event_id TEXT PRIMARY KEY NOT NULL REFERENCES event(id) ON DELETE CASCADE,
+    expected_revision INTEGER NOT NULL,
+    writer_schema_version INTEGER NOT NULL CHECK (writer_schema_version >= 1),
+    operation_id TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL
+);
+
+CREATE TRIGGER fence_protected_event_update
+BEFORE UPDATE ON event
+WHEN (
+    SELECT trigger_old_row.aggregateRevision > 1
+      AND EXISTS (
+        SELECT 1 FROM event_artwork AS artwork
+        WHERE artwork.event_id = trigger_old_row.id
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM aggregate_write_authorization AS authorization
+        WHERE authorization.event_id = trigger_old_row.id
+          AND (
+            authorization.expected_revision = trigger_old_row.aggregateRevision
+            OR authorization.expected_revision + 1 = trigger_old_row.aggregateRevision
+          )
+          AND authorization.writer_schema_version >= trigger_old_row.aggregateSchemaVersion
+      )
+    FROM event AS trigger_old_row
+)
+BEGIN
+    SELECT RAISE(ABORT, 'EVENT_AGGREGATE_WRITER_FENCED');
+END;
+
+CREATE TRIGGER fence_protected_event_delete
+BEFORE DELETE ON event
+WHEN (
+    SELECT trigger_old_row.aggregateRevision > 1
+      AND EXISTS (
+        SELECT 1 FROM event_artwork AS artwork
+        WHERE artwork.event_id = trigger_old_row.id
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM aggregate_write_authorization AS authorization
+        WHERE authorization.event_id = trigger_old_row.id
+          AND (
+            authorization.expected_revision = trigger_old_row.aggregateRevision
+            OR authorization.expected_revision + 1 = trigger_old_row.aggregateRevision
+          )
+          AND authorization.writer_schema_version >= trigger_old_row.aggregateSchemaVersion
+      )
+    FROM event AS trigger_old_row
+)
+BEGIN
+    SELECT RAISE(ABORT, 'EVENT_AGGREGATE_WRITER_FENCED');
+END;
+
+CREATE TRIGGER fence_protected_scenario_update
+BEFORE UPDATE ON scenario
+WHEN (
+    SELECT EXISTS (
+        SELECT 1
+        FROM event AS protected_event
+        JOIN event_artwork AS artwork ON artwork.event_id = protected_event.id
+        WHERE protected_event.id = trigger_old_row.eventId
+          AND protected_event.aggregateRevision > 1
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM aggregate_write_authorization AS authorization
+        JOIN event AS authorized_event ON authorized_event.id = authorization.event_id
+        WHERE authorization.event_id = trigger_old_row.eventId
+          AND (
+            authorization.expected_revision = authorized_event.aggregateRevision
+            OR authorization.expected_revision + 1 = authorized_event.aggregateRevision
+          )
+          AND authorization.writer_schema_version >= authorized_event.aggregateSchemaVersion
+      )
+    FROM scenario AS trigger_old_row
+)
+BEGIN
+    SELECT RAISE(ABORT, 'SCENARIO_AGGREGATE_WRITER_FENCED');
+END;
+
+CREATE TRIGGER fence_protected_scenario_delete
+BEFORE DELETE ON scenario
+WHEN (
+    SELECT EXISTS (
+        SELECT 1
+        FROM event AS protected_event
+        JOIN event_artwork AS artwork ON artwork.event_id = protected_event.id
+        WHERE protected_event.id = trigger_old_row.eventId
+          AND protected_event.aggregateRevision > 1
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM aggregate_write_authorization AS authorization
+        JOIN event AS authorized_event ON authorized_event.id = authorization.event_id
+        WHERE authorization.event_id = trigger_old_row.eventId
+          AND (
+            authorization.expected_revision = authorized_event.aggregateRevision
+            OR authorization.expected_revision + 1 = authorized_event.aggregateRevision
+          )
+          AND authorization.writer_schema_version >= authorized_event.aggregateSchemaVersion
+      )
+    FROM scenario AS trigger_old_row
+)
+BEGIN
+    SELECT RAISE(ABORT, 'SCENARIO_AGGREGATE_WRITER_FENCED');
+END;
+
+CREATE TABLE event_artwork (
+    event_id TEXT PRIMARY KEY NOT NULL REFERENCES event(id) ON DELETE CASCADE,
+    kind TEXT NOT NULL CHECK (kind IN ('NONE', 'STRUCTURED', 'LEGACY_REMOTE')),
+    structured_version INTEGER,
+    source_kind TEXT CHECK (source_kind IS NULL OR source_kind IN ('PRESET', 'SERVER_ASSET')),
+    preset_id TEXT,
+    server_asset_id TEXT,
+    canonical_https_url TEXT,
+    asset_revision INTEGER,
+    alt_kind TEXT CHECK (alt_kind IS NULL OR alt_kind IN ('DECORATIVE', 'INFORMATIVE')),
+    alt_text TEXT,
+    focal_x REAL CHECK (focal_x IS NULL OR (focal_x >= 0.0 AND focal_x <= 1.0)),
+    focal_y REAL CHECK (focal_y IS NULL OR (focal_y >= 0.0 AND focal_y <= 1.0)),
+    crop TEXT CHECK (crop IS NULL OR crop IN ('FILL', 'FIT')),
+    legacy_remote_url TEXT,
+    updated_at TEXT NOT NULL,
+    CHECK (
+        (
+            kind = 'NONE'
+            AND structured_version IS NULL
+            AND source_kind IS NULL
+            AND preset_id IS NULL
+            AND server_asset_id IS NULL
+            AND canonical_https_url IS NULL
+            AND asset_revision IS NULL
+            AND alt_kind IS NULL
+            AND alt_text IS NULL
+            AND focal_x IS NULL
+            AND focal_y IS NULL
+            AND crop IS NULL
+            AND legacy_remote_url IS NULL
+        )
+        OR (
+            kind = 'LEGACY_REMOTE'
+            AND structured_version IS NULL
+            AND source_kind IS NULL
+            AND preset_id IS NULL
+            AND server_asset_id IS NULL
+            AND canonical_https_url IS NULL
+            AND asset_revision IS NULL
+            AND alt_kind IS NULL
+            AND alt_text IS NULL
+            AND focal_x IS NULL
+            AND focal_y IS NULL
+            AND crop IS NULL
+            AND legacy_remote_url LIKE 'https://%'
+            AND instr(legacy_remote_url, '@') = 0
+            AND instr(legacy_remote_url, '?') = 0
+            AND instr(legacy_remote_url, '#') = 0
+        )
+        OR (
+            kind = 'STRUCTURED'
+            AND structured_version > 0
+            AND source_kind IS NOT NULL
+            AND legacy_remote_url IS NULL
+            AND alt_kind IS NOT NULL
+            AND focal_x IS NOT NULL
+            AND focal_y IS NOT NULL
+            AND crop IS NOT NULL
+            AND (
+                (alt_kind = 'DECORATIVE' AND alt_text IS NULL)
+                OR (alt_kind = 'INFORMATIVE' AND length(trim(alt_text)) > 0)
+            )
+            AND (
+                (
+                    source_kind = 'PRESET'
+                    AND length(trim(preset_id)) > 0
+                    AND server_asset_id IS NULL
+                    AND canonical_https_url IS NULL
+                    AND asset_revision IS NULL
+                )
+                OR (
+                    source_kind = 'SERVER_ASSET'
+                    AND preset_id IS NULL
+                    AND length(trim(server_asset_id)) > 0
+                    AND canonical_https_url LIKE 'https://%'
+                    AND instr(canonical_https_url, '@') = 0
+                    AND instr(canonical_https_url, '?') = 0
+                    AND instr(canonical_https_url, '#') = 0
+                    AND asset_revision > 0
+                )
+            )
+        )
+    )
+);
+
+authorizeAggregateWrite:
+INSERT INTO aggregate_write_authorization(
+    event_id, expected_revision, writer_schema_version, operation_id, created_at
+)
+SELECT id, aggregateRevision, ?, ?, ?
+FROM event
+WHERE id = ?
+  AND aggregateRevision = ?
+  AND aggregateSchemaVersion <= ?;
+
+selectAggregateWriteAuthorization:
+SELECT * FROM aggregate_write_authorization WHERE event_id = ?;
+
+clearAggregateWriteAuthorization:
+DELETE FROM aggregate_write_authorization
+WHERE event_id = ? AND operation_id = ?;
+
+CREATE TABLE event_artwork_migration_issue (
+    id TEXT PRIMARY KEY NOT NULL,
+    event_id TEXT NOT NULL REFERENCES event(id) ON DELETE CASCADE,
+    issue_code TEXT NOT NULL,
+    sanitized_detail TEXT,
+    created_at TEXT NOT NULL,
+    resolved_at TEXT
+);
+
+CREATE INDEX event_artwork_migration_issue_event_idx
+ON event_artwork_migration_issue(event_id);
+
+-- Durable ownership of a backend-issued artwork asset. This table only binds
+-- an event to a SERVER_ASSET already validated in event_artwork; it never
+-- authorizes or creates an asset.
+CREATE TABLE server_artwork_reference (
+    event_id TEXT PRIMARY KEY NOT NULL REFERENCES event(id) ON DELETE CASCADE,
+    asset_id TEXT NOT NULL,
+    asset_revision INTEGER NOT NULL CHECK (asset_revision > 0),
+    bind_operation_id TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL
+);
+
+CREATE INDEX server_artwork_reference_asset_idx
+ON server_artwork_reference(asset_id, asset_revision);
+
+-- A release receipt is distinct from the physical-release outbox: retained
+-- releases must also replay exactly without decrementing another event's ref.
+CREATE TABLE server_artwork_reference_operation (
+    operation_id TEXT PRIMARY KEY NOT NULL,
+    action TEXT NOT NULL CHECK (action IN ('BIND', 'RELEASE')),
+    event_id TEXT NOT NULL,
+    asset_id TEXT NOT NULL,
+    asset_revision INTEGER NOT NULL CHECK (asset_revision > 0),
+    result_kind TEXT NOT NULL CHECK (result_kind IN ('BOUND', 'RETAINED', 'FINAL_RELEASE')),
+    reference_count INTEGER,
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE server_artwork_release_outbox (
+    asset_id TEXT NOT NULL,
+    asset_revision INTEGER NOT NULL CHECK (asset_revision > 0),
+    release_operation_id TEXT NOT NULL UNIQUE,
+    status TEXT NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'DELIVERED')),
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (asset_id, asset_revision)
+);
+
+CREATE TABLE event_operation_receipt (
+    operation_id TEXT PRIMARY KEY NOT NULL,
+    event_id TEXT NOT NULL REFERENCES event(id) ON DELETE CASCADE,
+    actor_id TEXT NOT NULL,
+    action TEXT NOT NULL,
+    aggregate_revision INTEGER NOT NULL,
+    request_fingerprint TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE INDEX event_operation_receipt_event_idx
+ON event_operation_receipt(event_id);
+
+CREATE TABLE direct_invite_batch (
+    batch_id TEXT PRIMARY KEY NOT NULL,
+    event_id TEXT NOT NULL REFERENCES event(id) ON DELETE CASCADE,
+    actor_id TEXT NOT NULL,
+    operation_id TEXT NOT NULL UNIQUE,
+    access_revision INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    expires_at TEXT
+);
+
+CREATE INDEX direct_invite_batch_event_idx
+ON direct_invite_batch(event_id);
+
+CREATE TABLE direct_invite_recipient_outcome (
+    batch_id TEXT NOT NULL REFERENCES direct_invite_batch(batch_id) ON DELETE CASCADE,
+    recipient_key TEXT NOT NULL CHECK (
+        instr(recipient_key, '@') = 0
+        AND instr(recipient_key, ' ') = 0
+        AND (
+            (
+                recipient_key GLOB 'hmac-v[0-9]-[0-9A-Fa-f]*'
+                AND length(recipient_key) >= 14
+            )
+            OR (
+                recipient_key GLOB 'hmac:v[0-9]:*'
+                AND length(recipient_key) >= 17
+            )
+            OR (
+                recipient_key GLOB 'opaque:v[0-9]:*'
+                AND length(recipient_key) >= 18
+            )
+            OR (
+                recipient_key GLOB 'opaque[-_:]*'
+                AND length(recipient_key) >= 23
+            )
+            OR (
+                length(recipient_key) = 36
+                AND substr(recipient_key, 9, 1) = '-'
+                AND substr(recipient_key, 14, 1) = '-'
+                AND substr(recipient_key, 19, 1) = '-'
+                AND substr(recipient_key, 24, 1) = '-'
+            )
+        )
+    ),
+    key_version INTEGER NOT NULL DEFAULT 1,
+    status TEXT NOT NULL,
+    invitation_id TEXT,
+    reason_code TEXT,
+    expires_at TEXT NOT NULL DEFAULT '1970-01-01T00:00:00Z',
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (batch_id, recipient_key)
+);
+
+CREATE TABLE direct_invite_delivery_envelope (
+    batch_id TEXT NOT NULL,
+    recipient_key TEXT NOT NULL,
+    ciphertext TEXT NOT NULL CHECK (length(ciphertext) > 0),
+    key_version INTEGER NOT NULL CHECK (key_version > 0),
+    expires_at TEXT NOT NULL,
+    transport_state TEXT NOT NULL CHECK (
+        transport_state IN (
+            'QUEUED_LOCAL', 'PENDING_SERVER', 'SERVER_ACCEPTED',
+            'FAILED_RETRYABLE', 'FAILED_PERMANENT', 'CANCELLED'
+        )
+    ),
+    PRIMARY KEY (batch_id, recipient_key),
+    FOREIGN KEY (batch_id, recipient_key)
+        REFERENCES direct_invite_recipient_outcome(batch_id, recipient_key)
+        ON DELETE CASCADE
+);
+
+CREATE TABLE event_notification_preference (
+    event_id TEXT NOT NULL REFERENCES event(id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+    preference TEXT NOT NULL CHECK (
+        preference IN ('INHERIT_ACCOUNT', 'ALL_EVENT_UPDATES', 'ESSENTIAL_ONLY', 'MUTED')
+    ),
+    revision INTEGER NOT NULL DEFAULT 0,
+    operation_id TEXT NOT NULL UNIQUE,
+    sync_status TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (event_id, user_id)
+);
+
+selectArtworkByEventId:
+SELECT * FROM event_artwork WHERE event_id = ?;
+
+selectArtworkMigrationIssuesByEventId:
+SELECT * FROM event_artwork_migration_issue WHERE event_id = ? ORDER BY created_at ASC, id ASC;
+
+selectServerArtworkReferenceByEventId:
+SELECT * FROM server_artwork_reference WHERE event_id = ?;
+
+selectServerArtworkReferenceByBindOperationId:
+SELECT * FROM server_artwork_reference WHERE bind_operation_id = ?;
+
+selectServerArtworkReferenceOperation:
+SELECT * FROM server_artwork_reference_operation WHERE operation_id = ?;
+
+countServerArtworkReferences:
+SELECT COUNT(*) FROM server_artwork_reference WHERE asset_id = ? AND asset_revision = ?;
+
+selectServerArtworkReleaseOutbox:
+SELECT * FROM server_artwork_release_outbox WHERE asset_id = ? AND asset_revision = ?;
+
+insertServerArtworkReference:
+INSERT INTO server_artwork_reference(
+    event_id, asset_id, asset_revision, bind_operation_id, created_at
+)
+VALUES (?, ?, ?, ?, ?);
+
+insertServerArtworkReferenceOperation:
+INSERT INTO server_artwork_reference_operation(
+    operation_id, action, event_id, asset_id, asset_revision,
+    result_kind, reference_count, created_at
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+deleteServerArtworkReference:
+DELETE FROM server_artwork_reference
+WHERE event_id = ? AND asset_id = ? AND asset_revision = ?;
+
+insertServerArtworkReleaseOutbox:
+INSERT INTO server_artwork_release_outbox(
+    asset_id, asset_revision, release_operation_id, status, created_at
+)
+VALUES (?, ?, ?, 'PENDING', ?);
+
+selectOperationReceipt:
+SELECT * FROM event_operation_receipt WHERE operation_id = ? AND event_id = ?;
+
+selectOperationReceiptByOperationId:
+SELECT * FROM event_operation_receipt WHERE operation_id = ?;
+
+selectOperationReceiptsByEventId:
+SELECT * FROM event_operation_receipt WHERE event_id = ? ORDER BY created_at ASC, operation_id ASC;
+
+upsertEventArtwork:
+INSERT OR REPLACE INTO event_artwork(
+    event_id, kind, structured_version, source_kind, preset_id, server_asset_id,
+    canonical_https_url, asset_revision, alt_kind, alt_text, focal_x, focal_y,
+    crop, legacy_remote_url, updated_at
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+insertEventOperationReceipt:
+INSERT INTO event_operation_receipt(
+    operation_id, event_id, actor_id, action, aggregate_revision,
+    request_fingerprint, status, created_at, updated_at
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+selectDirectInviteBatch:
+SELECT * FROM direct_invite_batch WHERE batch_id = ?;
+
+selectDirectInviteBatchesByEventId:
+SELECT * FROM direct_invite_batch WHERE event_id = ? ORDER BY created_at ASC, batch_id ASC;
+
+selectDirectInviteBatchByOperationId:
+SELECT * FROM direct_invite_batch WHERE operation_id = ?;
+
+selectDirectInviteRecipientOutcomes:
+SELECT * FROM direct_invite_recipient_outcome WHERE batch_id = ? ORDER BY recipient_key ASC;
+
+selectDirectInviteDeliveryEnvelopes:
+SELECT * FROM direct_invite_delivery_envelope WHERE batch_id = ? ORDER BY recipient_key ASC;
+
+insertDirectInviteBatch:
+INSERT INTO direct_invite_batch(
+    batch_id, event_id, actor_id, operation_id, access_revision,
+    status, created_at, updated_at, expires_at
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+insertDirectInviteRecipientOutcome:
+INSERT INTO direct_invite_recipient_outcome(
+    batch_id, recipient_key, key_version, status, invitation_id,
+    reason_code, expires_at, updated_at
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+insertDirectInviteDeliveryEnvelope:
+INSERT INTO direct_invite_delivery_envelope(
+    batch_id, recipient_key, ciphertext, key_version, expires_at, transport_state
+)
+VALUES (?, ?, ?, ?, ?, ?);
+
+updateDirectInviteBatchStatus:
+UPDATE direct_invite_batch
+SET status = ?, updated_at = ?
+WHERE batch_id = ? AND operation_id = ?;
+
+updateDirectInviteRecipientOutcome:
+UPDATE direct_invite_recipient_outcome
+SET status = ?, invitation_id = ?, reason_code = ?, updated_at = ?
+WHERE batch_id = ? AND recipient_key = ?;
+
+updateDirectInviteDeliveryEnvelopeState:
+UPDATE direct_invite_delivery_envelope
+SET transport_state = ?
+WHERE batch_id = ? AND recipient_key = ?;
+
+countExpiredDirectInviteRecipientOutcomes:
+SELECT COUNT(*)
+FROM direct_invite_recipient_outcome AS outcome
+WHERE outcome.expires_at <= :nowIso
+   OR outcome.batch_id IN (
+       SELECT batch_id
+       FROM direct_invite_batch
+       WHERE expires_at IS NOT NULL AND expires_at <= :nowIso
+   );
+
+deleteExpiredDirectInviteRecipientOutcomes:
+DELETE FROM direct_invite_recipient_outcome
+WHERE expires_at <= :nowIso
+   OR batch_id IN (
+       SELECT batch_id
+       FROM direct_invite_batch
+       WHERE expires_at IS NOT NULL AND expires_at <= :nowIso
+   );
+
+deleteExpiredDirectInviteBatches:
+DELETE FROM direct_invite_batch
+WHERE expires_at IS NOT NULL AND expires_at <= ?;
+
+selectEventNotificationPreference:
+SELECT * FROM event_notification_preference WHERE event_id = ? AND user_id = ?;
+
+selectEventNotificationPreferenceByOperationId:
+SELECT * FROM event_notification_preference WHERE operation_id = ?;
+
+insertEventNotificationPreference:
+INSERT INTO event_notification_preference(
+    event_id, user_id, preference, revision, operation_id, sync_status, updated_at
+)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+updateEventNotificationPreference:
+UPDATE event_notification_preference
+SET preference = ?, revision = revision + 1, operation_id = ?, sync_status = ?, updated_at = ?
+WHERE event_id = ? AND user_id = ?;
+
+deleteOperationReceiptsByActor:
+DELETE FROM event_operation_receipt WHERE actor_id = ?;
+
+deleteDirectInviteBatchesByActor:
+DELETE FROM direct_invite_batch WHERE actor_id = ?;
+
+deleteEventNotificationPreferencesByUserId:
+DELETE FROM event_notification_preference WHERE user_id = ?;
+
+deleteDirectInviteRecipientOutcomesByEventId:
+DELETE FROM direct_invite_recipient_outcome
+WHERE batch_id IN (SELECT batch_id FROM direct_invite_batch WHERE event_id = ?);
+
+deleteDirectInviteBatchesByEventId:
+DELETE FROM direct_invite_batch WHERE event_id = ?;
+
+deleteEventNotificationPreferencesByEventId:
+DELETE FROM event_notification_preference WHERE event_id = ?;
+
+deleteEventOperationReceiptsByEventId:
+DELETE FROM event_operation_receipt WHERE event_id = ?;
+
+deleteEventArtworkMigrationIssuesByEventId:
+DELETE FROM event_artwork_migration_issue WHERE event_id = ?;
+
+deleteEventArtworkByEventId:
+DELETE FROM event_artwork WHERE event_id = ?;

@@ -6,21 +6,6 @@ enum IosRoute: Equatable {
     case event(IosEventRoute)
     case meetingDetail(meetingId: String)
     case invite(token: String)
-
-    var navigationPath: [String] {
-        switch self {
-        case .topLevel(let route):
-            return route.navigationPath
-        case .eventCreate:
-            return ["event", "create"]
-        case .event(let route):
-            return route.navigationPath
-        case .meetingDetail(let meetingId):
-            return ["meeting", meetingId]
-        case .invite(let token):
-            return ["invite", token]
-        }
-    }
 }
 
 enum IosTopLevelRoute: Equatable {
@@ -31,30 +16,13 @@ enum IosTopLevelRoute: Equatable {
     case notificationPreferences
     case leaderboard
     case organizerDashboard
-
-    var navigationPath: [String] {
-        switch self {
-        case .home:
-            return ["home"]
-        case .profile:
-            return ["profile"]
-        case .settings:
-            return ["settings"]
-        case .notifications(let filter):
-            return filter == "unread" ? ["notifications", "unread"] : ["notifications"]
-        case .notificationPreferences:
-            return ["notification_preferences"]
-        case .leaderboard:
-            return ["leaderboard"]
-        case .organizerDashboard:
-            return ["organizer_dashboard"]
-        }
-    }
 }
 
 enum IosEventRoute: Equatable {
     case detail(eventId: String)
     case participants(eventId: String)
+    case information(eventId: String)
+    case archive(eventId: String)
     case pollVoting(eventId: String)
     case pollResults(eventId: String)
     case scenarioList(eventId: String)
@@ -75,50 +43,57 @@ enum IosEventRoute: Equatable {
     case tricount(eventId: String)
     case photos(eventId: String)
 
-    var navigationPath: [String] {
-        switch self {
-        case .detail(let eventId):
-            return ["event", eventId]
-        case .participants(let eventId):
-            return ["event", eventId, "participants"]
-        case .pollVoting(let eventId):
-            return ["event", eventId, "poll"]
-        case .pollResults(let eventId):
-            return ["event", eventId, "poll_results"]
-        case .scenarioList(let eventId):
-            return ["event", eventId, "scenarios"]
-        case .scenarioComparison(let eventId):
-            return ["event", eventId, "scenarios_compare"]
-        case .scenarioManagement(let eventId):
-            return ["event", eventId, "scenarios_manage"]
-        case .scenarioDetail(let eventId, let scenarioId):
-            return ["event", eventId, "scenario", scenarioId]
-        case .budgetOverview(let eventId):
-            return ["event", eventId, "budget"]
-        case .budgetDetail(let eventId, let budgetItemId):
-            return ["event", eventId, "budget", budgetItemId]
-        case .meetingList(let eventId):
-            return ["event", eventId, "meetings"]
-        case .comments(let eventId):
-            return ["event", eventId, "comments"]
-        case .invitationShare(let eventId):
-            return ["event", eventId, "invite"]
-        case .transport(let eventId):
-            return ["event", eventId, "transport"]
-        case .accommodation(let eventId):
-            return ["event", eventId, "accommodation"]
-        case .meals(let eventId):
-            return ["event", eventId, "meals"]
-        case .equipment(let eventId):
-            return ["event", eventId, "equipment"]
-        case .activities(let eventId):
-            return ["event", eventId, "activities"]
-        case .payment(let eventId):
-            return ["event", eventId, "payment"]
-        case .tricount(let eventId):
-            return ["event", eventId, "tricount"]
-        case .photos(let eventId):
-            return ["event", eventId, "photos"]
+    static func parse(
+        eventId: String,
+        components: ArraySlice<String>,
+        detailsTab: String?
+    ) -> IosEventRoute? {
+        guard let destination = components.first else {
+            return .detail(eventId: eventId)
+        }
+        let remainder = components.dropFirst()
+        switch destination {
+        case "details":
+            guard remainder.isEmpty else { return nil }
+            switch detailsTab {
+            case "comments": return .comments(eventId: eventId)
+            case "budget": return .budgetOverview(eventId: eventId)
+            case "participants": return .participants(eventId: eventId)
+            default: return .detail(eventId: eventId)
+            }
+        case "participants":
+            return remainder.isEmpty ? .participants(eventId: eventId) : nil
+        case "information":
+            return remainder.isEmpty ? .information(eventId: eventId) : nil
+        case "archive":
+            return remainder.isEmpty ? .archive(eventId: eventId) : nil
+        case "poll":
+            if remainder.isEmpty { return .pollVoting(eventId: eventId) }
+            return remainder.elementsEqual(["results"]) ? .pollResults(eventId: eventId) : nil
+        case "scenarios":
+            if remainder.isEmpty { return .scenarioList(eventId: eventId) }
+            if remainder.elementsEqual(["compare"]) { return .scenarioComparison(eventId: eventId) }
+            return remainder.elementsEqual(["manage"]) ? .scenarioManagement(eventId: eventId) : nil
+        case "scenario":
+            guard remainder.count == 1, let scenarioId = remainder.first else { return nil }
+            return .scenarioDetail(eventId: eventId, scenarioId: scenarioId)
+        case "budget":
+            guard remainder.count <= 1 else { return nil }
+            return remainder.first.map { .budgetDetail(eventId: eventId, budgetItemId: $0) }
+                ?? .budgetOverview(eventId: eventId)
+        case "meetings": return remainder.isEmpty ? .meetingList(eventId: eventId) : nil
+        case "comments": return remainder.isEmpty ? .comments(eventId: eventId) : nil
+        case "invite": return remainder.isEmpty ? .invitationShare(eventId: eventId) : nil
+        case "transport": return remainder.isEmpty ? .transport(eventId: eventId) : nil
+        case "accommodation": return remainder.isEmpty ? .accommodation(eventId: eventId) : nil
+        case "meals": return remainder.isEmpty ? .meals(eventId: eventId) : nil
+        case "equipment": return remainder.isEmpty ? .equipment(eventId: eventId) : nil
+        case "activities": return remainder.isEmpty ? .activities(eventId: eventId) : nil
+        case "payment": return remainder.isEmpty ? .payment(eventId: eventId) : nil
+        case "tricount": return remainder.isEmpty ? .tricount(eventId: eventId) : nil
+        case "photos": return remainder.isEmpty ? .photos(eventId: eventId) : nil
+        default: return nil
         }
     }
+
 }

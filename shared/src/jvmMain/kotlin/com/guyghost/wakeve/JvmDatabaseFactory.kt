@@ -5,6 +5,7 @@ import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import com.guyghost.wakeve.database.DatabaseFactory
 import com.guyghost.wakeve.database.WakeveDb
 import java.io.File
+import java.util.Properties
 
 /**
  * JVM-specific database factory using the JDBC SQLite driver.
@@ -12,12 +13,21 @@ import java.io.File
 class JvmDatabaseFactory(private val dbPath: String = "wakev.db") : DatabaseFactory {
     override fun createDriver(): SqlDriver {
         val dbFile = File(dbPath)
-        val driver: SqlDriver = JdbcSqliteDriver(url = "jdbc:sqlite:$dbPath")
+        val driver: SqlDriver = JdbcSqliteDriver(
+            url = "jdbc:sqlite:$dbPath",
+            properties = Properties().apply {
+                setProperty("foreign_keys", "true")
+            }
+        )
+        driver.execute(null, "PRAGMA foreign_keys = ON", 0).value
         
         // Initialize schema if database doesn't exist
         if (!dbFile.exists()) {
             WakeveDb.Schema.create(driver)
         }
+        // Schema initialization may use a transaction; SQLite only accepts this
+        // connection-level setting outside one, so enforce it after initialization too.
+        driver.execute(null, "PRAGMA foreign_keys = ON", 0).value
         
         return driver
     }

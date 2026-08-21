@@ -150,10 +150,16 @@ class ScenarioRepositoryTest {
             throw AssertionError("Scenario creation failed: ${exception?.message}", exception)
         }
         assertTrue(result.isSuccess, "Scenario creation should succeed")
-        assertEquals(scenario, result.getOrNull(), "Created scenario should match input")
+        val created = assertNotNull(result.getOrNull(), "Create must return its persisted CAS snapshot")
+        assertEquals(
+            scenario.copy(updatedAt = created.updatedAt),
+            created,
+            "Create may advance only its authoritative CAS timestamp."
+        )
 
         val retrieved = repository.getScenarioById("scenario-create-1")
         assertNotNull(retrieved, "Scenario should be retrievable")
+        assertEquals(created, retrieved, "Create must return exactly the version persisted in the repository.")
         assertEquals("Paris Weekend", retrieved?.name, "Name should match")
         assertEquals(ScenarioStatus.PROPOSED, retrieved?.status, "Status should match")
     }
@@ -343,9 +349,12 @@ class ScenarioRepositoryTest {
             updatedAt = "2025-11-20T10:00:00Z"
         )
 
-        repository.createScenario(scenario)
+        val created = assertNotNull(
+            repository.createScenario(scenario).getOrNull(),
+            "Create must return the exact persisted Scenario version so its CAS token can be reused."
+        )
 
-        val updated = scenario.copy(
+        val updated = created.copy(
             estimatedBudgetPerPerson = 500.0,
             description = "Updated description"
         )

@@ -16,6 +16,9 @@ import com.guyghost.wakeve.models.ScenarioWithVotes
 import com.guyghost.wakeve.models.TimeOfDay
 import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.scenario.ScenarioMatrixGenerationService
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+import kotlin.time.Duration.Companion.nanoseconds
 
 /**
  * Repository for managing scenarios and scenario votes in the database.
@@ -29,6 +32,7 @@ class ScenarioRepository(private val db: WakeveDb) {
     private val potentialLocationQueries = db.potentialLocationQueries
     private val confirmedDateQueries = db.confirmedDateQueries
     private val syncMetadataQueries = db.syncMetadataQueries
+    private val invitationExperienceQueries = db.invitationExperienceQueries
 
     /**
      * Create a new scenario in the database.
@@ -36,17 +40,30 @@ class ScenarioRepository(private val db: WakeveDb) {
     suspend fun createScenario(scenario: Scenario): Result<Scenario> {
         return try {
             val normalized = scenario.normalized()
-            val now = getCurrentUtcIsoString()
-            db.transaction {
+            val now = nextMutationTimestamp(normalized.updatedAt)
+            val committed = db.transactionWithResult {
+                val parent = eventQueries.selectById(normalized.eventId).executeAsOneOrNull()
+                    ?: return@transactionWithResult false
+                if (parent.aggregateSchemaVersion != 1L || parent.status == EventStatus.FINALIZED.name) {
+                    return@transactionWithResult false
+                }
+                val authorizationId = "scenario-create:${normalized.id}:${parent.aggregateRevision}"
+                if (!authorizeAggregateWrite(
+                        normalized.eventId,
+                        parent.aggregateRevision,
+                        authorizationId,
+                        now
+                    )
+                ) return@transactionWithResult false
                 val scenarioCountBeforeInsert = scenarioQueries.countByEventId(normalized.eventId).executeAsOne()
                 insertScenario(normalized, now)
 
-                val event = eventQueries.selectById(normalized.eventId).executeAsOneOrNull()
-                if (scenarioCountBeforeInsert == 0L && event?.status == "CONFIRMED") {
-                    eventQueries.updateEventStatus(
+                if (scenarioCountBeforeInsert == 0L && parent.status == EventStatus.CONFIRMED.name) {
+                    eventQueries.updateEventStatusIfRevision(
                         status = "COMPARING",
                         updatedAt = now,
-                        id = normalized.eventId
+                        id = normalized.eventId,
+                        aggregateRevision = parent.aggregateRevision
                     )
                     queueSyncMetadata(
                         id = "sync_scenario_compare_${normalized.eventId}_${normalized.id}",
@@ -55,7 +72,22 @@ class ScenarioRepository(private val db: WakeveDb) {
                         operation = "UPDATE",
                         timestamp = "${now}_COMPARING_${normalized.id}"
                     )
+                } else {
+                    eventQueries.advanceAggregateRevisionIfCurrent(
+                        updatedAt = now,
+                        id = normalized.eventId,
+                        aggregateRevision = parent.aggregateRevision
+                    )
                 }
+
+                val updatedParent = eventQueries.selectById(normalized.eventId).executeAsOneOrNull()
+                if (updatedParent?.aggregateRevision != parent.aggregateRevision + 1L) {
+                    rollback(false)
+                }
+                invitationExperienceQueries.clearAggregateWriteAuthorization(
+                    normalized.eventId,
+                    authorizationId
+                )
 
                 queueSyncMetadata(
                     id = "sync_scenario_${normalized.id}",
@@ -64,8 +96,14 @@ class ScenarioRepository(private val db: WakeveDb) {
                     operation = "CREATE",
                     timestamp = "${now}_CREATE_${normalized.id}"
                 )
+                true
             }
-            Result.success(normalized)
+            if (!committed) {
+                return Result.failure(
+                    IllegalStateException("Scenario aggregate writer is incompatible or stale")
+                )
+            }
+            Result.success(normalized.copy(updatedAt = now))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -179,22 +217,78 @@ class ScenarioRepository(private val db: WakeveDb) {
     suspend fun updateScenario(scenario: Scenario): Result<Scenario> {
         return try {
             val normalized = scenario.normalized()
-            requireScenarioExists(normalized.id)
+            val existingScenario = scenarioQueries.selectById(normalized.id).executeAsOneOrNull()
+                ?: return Result.failure(
+                    IllegalArgumentException("Scenario not found: ${normalized.id}")
+                )
+            if (existingScenario.eventId != normalized.eventId) {
+                return Result.failure(
+                    IllegalArgumentException("Scenario not found: ${normalized.id}")
+                )
+            }
             val now = getCurrentUtcIsoString()
-            scenarioQueries.updateScenarioWithMetadata(
-                name = normalized.name,
-                dateOrPeriod = normalized.dateOrPeriod,
-                location = normalized.location,
-                duration = normalized.duration.toLong(),
-                estimatedParticipants = normalized.estimatedParticipants.toLong(),
-                estimatedBudgetPerPerson = normalized.estimatedBudgetPerPerson,
-                description = normalized.description,
-                updatedAt = now,
-                sourceTimeSlotId = normalized.sourceTimeSlotId,
-                sourcePotentialLocationId = normalized.sourcePotentialLocationId,
-                generationType = normalized.generationType.name,
-                id = normalized.id
-            )
+            val committed = db.transactionWithResult {
+                val currentScenario = scenarioQueries.selectById(normalized.id).executeAsOneOrNull()
+                    ?: return@transactionWithResult false
+                val parent = eventQueries.selectById(normalized.eventId).executeAsOneOrNull()
+                    ?: return@transactionWithResult false
+                if (
+                    currentScenario.eventId != normalized.eventId ||
+                    currentScenario.updatedAt != normalized.updatedAt ||
+                    parent.aggregateSchemaVersion != 1L ||
+                    parent.status == EventStatus.FINALIZED.name
+                ) {
+                    return@transactionWithResult false
+                }
+
+                val authorizationId = "scenario-update:${normalized.id}:${parent.aggregateRevision}"
+                if (!authorizeAggregateWrite(
+                        normalized.eventId,
+                        parent.aggregateRevision,
+                        authorizationId,
+                        now
+                    )
+                ) return@transactionWithResult false
+
+                scenarioQueries.updateScenarioWithMetadataIfUnchanged(
+                    name = normalized.name,
+                    dateOrPeriod = normalized.dateOrPeriod,
+                    location = normalized.location,
+                    duration = normalized.duration.toLong(),
+                    estimatedParticipants = normalized.estimatedParticipants.toLong(),
+                    estimatedBudgetPerPerson = normalized.estimatedBudgetPerPerson,
+                    description = normalized.description,
+                    updatedAt = now,
+                    sourceTimeSlotId = normalized.sourceTimeSlotId,
+                    sourcePotentialLocationId = normalized.sourcePotentialLocationId,
+                    generationType = normalized.generationType.name,
+                    id = normalized.id,
+                    eventId = normalized.eventId,
+                    updatedAt_ = normalized.updatedAt
+                )
+                val updatedScenario = scenarioQueries.selectById(normalized.id).executeAsOneOrNull()
+                if (updatedScenario?.updatedAt != now) rollback(false)
+
+                eventQueries.advanceAggregateRevisionIfCurrent(
+                    updatedAt = now,
+                    id = normalized.eventId,
+                    aggregateRevision = parent.aggregateRevision
+                )
+                val updatedParent = eventQueries.selectById(normalized.eventId).executeAsOneOrNull()
+                if (updatedParent?.aggregateRevision != parent.aggregateRevision + 1L) {
+                    rollback(false)
+                }
+                invitationExperienceQueries.clearAggregateWriteAuthorization(
+                    normalized.eventId,
+                    authorizationId
+                )
+                true
+            }
+            if (!committed) {
+                return Result.failure(
+                    IllegalStateException("Scenario aggregate writer is incompatible or stale")
+                )
+            }
             Result.success(normalized.copy(updatedAt = now))
         } catch (e: Exception) {
             Result.failure(e)
@@ -206,13 +300,53 @@ class ScenarioRepository(private val db: WakeveDb) {
      */
     suspend fun updateScenarioStatus(scenarioId: String, status: ScenarioStatus): Result<Unit> {
         return try {
-            requireScenarioExists(scenarioId)
+            val scenario = scenarioQueries.selectById(scenarioId).executeAsOneOrNull()
+                ?: return Result.failure(IllegalArgumentException("Scenario not found: $scenarioId"))
+            val parent = eventQueries.selectById(scenario.eventId).executeAsOneOrNull()
+                ?: return Result.failure(IllegalArgumentException("Event not found: ${scenario.eventId}"))
+            if (parent.status == EventStatus.DRAFT.name && parent.aggregateRevision > 1L) {
+                return Result.failure(
+                    IllegalStateException("Scenario status requires an actor-bound expected revision")
+                )
+            }
             val now = getCurrentUtcIsoString()
-            scenarioQueries.updateScenarioStatus(
-                status = status.name,
-                updatedAt = now,
-                id = scenarioId
-            )
+            val committed = db.transactionWithResult {
+                val currentParent = eventQueries.selectById(scenario.eventId).executeAsOneOrNull()
+                    ?: return@transactionWithResult false
+                if (
+                    currentParent.aggregateRevision != parent.aggregateRevision ||
+                    currentParent.aggregateSchemaVersion != 1L ||
+                    currentParent.status == EventStatus.FINALIZED.name
+                ) return@transactionWithResult false
+                val authorizationId = "scenario-status:$scenarioId:${parent.aggregateRevision}"
+                if (!authorizeAggregateWrite(
+                        scenario.eventId,
+                        parent.aggregateRevision,
+                        authorizationId,
+                        now
+                    )
+                ) return@transactionWithResult false
+                scenarioQueries.updateScenarioStatus(status.name, now, scenarioId)
+                eventQueries.advanceAggregateRevisionIfCurrent(
+                    now,
+                    scenario.eventId,
+                    parent.aggregateRevision
+                )
+                val updatedParent = eventQueries.selectById(scenario.eventId).executeAsOneOrNull()
+                if (updatedParent?.aggregateRevision != parent.aggregateRevision + 1L) {
+                    rollback(false)
+                }
+                invitationExperienceQueries.clearAggregateWriteAuthorization(
+                    scenario.eventId,
+                    authorizationId
+                )
+                true
+            }
+            if (!committed) {
+                return Result.failure(
+                    IllegalStateException("Scenario aggregate writer is incompatible or stale")
+                )
+            }
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -236,6 +370,14 @@ class ScenarioRepository(private val db: WakeveDb) {
             }
 
             db.transaction {
+                val authorizationId = "scenario-select:$scenarioId:${event.aggregateRevision}"
+                if (!authorizeAggregateWrite(
+                        eventId,
+                        event.aggregateRevision,
+                        authorizationId,
+                        now
+                    )
+                ) error("Scenario selection aggregate writer is incompatible or stale")
                 scenarios.forEach { scenario ->
                     val status = if (scenario.id == scenarioId) {
                         ScenarioStatus.SELECTED
@@ -248,8 +390,20 @@ class ScenarioRepository(private val db: WakeveDb) {
                         id = scenario.id
                     )
                 }
-                if (scenarios.firstOrNull { it.id == scenarioId }?.generationType == ScenarioGenerationType.MATRIX) {
+                val isMatrix = scenarios.firstOrNull { it.id == scenarioId }
+                    ?.generationType == ScenarioGenerationType.MATRIX
+                if (isMatrix) {
                     confirmMatrixScenario(eventId, scenarioId, event.organizerId, now)
+                } else {
+                    eventQueries.advanceAggregateRevisionIfCurrent(
+                        now,
+                        eventId,
+                        event.aggregateRevision
+                    )
+                }
+                val updatedParent = eventQueries.selectById(eventId).executeAsOneOrNull()
+                if (updatedParent?.aggregateRevision != event.aggregateRevision + 1L) {
+                    error("Scenario selection aggregate writer is incompatible or stale")
                 }
                 queueSyncMetadata(
                     id = "sync_scenario_selection_${eventId}_$scenarioId",
@@ -257,6 +411,10 @@ class ScenarioRepository(private val db: WakeveDb) {
                     entityId = eventId,
                     operation = "UPSERT",
                     timestamp = "${now}_SELECTED_$scenarioId"
+                )
+                invitationExperienceQueries.clearAggregateWriteAuthorization(
+                    eventId,
+                    authorizationId
                 )
             }
 
@@ -271,8 +429,53 @@ class ScenarioRepository(private val db: WakeveDb) {
      */
     suspend fun deleteScenario(scenarioId: String): Result<Unit> {
         return try {
-            requireScenarioExists(scenarioId)
-            scenarioQueries.deleteScenario(scenarioId)
+            val scenario = scenarioQueries.selectById(scenarioId).executeAsOneOrNull()
+                ?: return Result.failure(IllegalArgumentException("Scenario not found: $scenarioId"))
+            val parent = eventQueries.selectById(scenario.eventId).executeAsOneOrNull()
+                ?: return Result.failure(IllegalArgumentException("Event not found: ${scenario.eventId}"))
+            if (parent.status == EventStatus.DRAFT.name && parent.aggregateRevision > 1L) {
+                return Result.failure(
+                    IllegalStateException("Scenario deletion requires an actor-bound expected revision")
+                )
+            }
+            val now = getCurrentUtcIsoString()
+            val committed = db.transactionWithResult {
+                val currentParent = eventQueries.selectById(scenario.eventId).executeAsOneOrNull()
+                    ?: return@transactionWithResult false
+                if (
+                    currentParent.aggregateRevision != parent.aggregateRevision ||
+                    currentParent.aggregateSchemaVersion != 1L ||
+                    currentParent.status == EventStatus.FINALIZED.name
+                ) return@transactionWithResult false
+                val authorizationId = "scenario-delete:$scenarioId:${parent.aggregateRevision}"
+                if (!authorizeAggregateWrite(
+                        scenario.eventId,
+                        parent.aggregateRevision,
+                        authorizationId,
+                        now
+                    )
+                ) return@transactionWithResult false
+                scenarioQueries.deleteScenario(scenarioId)
+                eventQueries.advanceAggregateRevisionIfCurrent(
+                    now,
+                    scenario.eventId,
+                    parent.aggregateRevision
+                )
+                val updatedParent = eventQueries.selectById(scenario.eventId).executeAsOneOrNull()
+                if (updatedParent?.aggregateRevision != parent.aggregateRevision + 1L) {
+                    rollback(false)
+                }
+                invitationExperienceQueries.clearAggregateWriteAuthorization(
+                    scenario.eventId,
+                    authorizationId
+                )
+                true
+            }
+            if (!committed) {
+                return Result.failure(
+                    IllegalStateException("Scenario aggregate writer is incompatible or stale")
+                )
+            }
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -486,6 +689,14 @@ class ScenarioRepository(private val db: WakeveDb) {
             )
 
             db.transaction {
+                val authorizationId = "scenario-matrix-generate:$eventId:${event.aggregateRevision}"
+                if (!authorizeAggregateWrite(
+                        eventId,
+                        event.aggregateRevision,
+                        authorizationId,
+                        now
+                    )
+                ) error("Scenario matrix aggregate writer is incompatible or stale")
                 generated.forEach { scenario ->
                     val normalized = scenario.normalized()
                     insertScenario(normalized, now)
@@ -497,6 +708,21 @@ class ScenarioRepository(private val db: WakeveDb) {
                         timestamp = "${now}_MATRIX_CREATE_${normalized.id}"
                     )
                 }
+                if (generated.isNotEmpty()) {
+                    eventQueries.advanceAggregateRevisionIfCurrent(
+                        now,
+                        eventId,
+                        event.aggregateRevision
+                    )
+                    val updatedParent = eventQueries.selectById(eventId).executeAsOneOrNull()
+                    if (updatedParent?.aggregateRevision != event.aggregateRevision + 1L) {
+                        error("Scenario matrix aggregate writer is incompatible or stale")
+                    }
+                }
+                invitationExperienceQueries.clearAggregateWriteAuthorization(
+                    eventId,
+                    authorizationId
+                )
             }
 
             Result.success(generated.map { it.normalized() })
@@ -521,8 +747,25 @@ class ScenarioRepository(private val db: WakeveDb) {
 
             val now = getCurrentUtcIsoString()
             db.transaction {
+                val authorizationId = "scenario-matrix-publish:$eventId:${event.aggregateRevision}"
+                if (!authorizeAggregateWrite(
+                        eventId,
+                        event.aggregateRevision,
+                        authorizationId,
+                        now
+                    )
+                ) error("Scenario matrix aggregate writer is incompatible or stale")
                 scenarioQueries.publishDraftMatrixScenarios(now, eventId)
-                eventQueries.updateEventStatus(EventStatus.COMPARING.name, now, eventId)
+                eventQueries.updateEventStatusIfRevision(
+                    EventStatus.COMPARING.name,
+                    now,
+                    eventId,
+                    event.aggregateRevision
+                )
+                val updatedParent = eventQueries.selectById(eventId).executeAsOneOrNull()
+                if (updatedParent?.aggregateRevision != event.aggregateRevision + 1L) {
+                    error("Scenario matrix aggregate writer is incompatible or stale")
+                }
                 queueSyncMetadata(
                     id = "sync_scenario_matrix_publish_$eventId",
                     entityType = "scenario_matrix",
@@ -536,6 +779,10 @@ class ScenarioRepository(private val db: WakeveDb) {
                     entityId = eventId,
                     operation = "UPDATE",
                     timestamp = "${now}_COMPARING_$eventId"
+                )
+                invitationExperienceQueries.clearAggregateWriteAuthorization(
+                    eventId,
+                    authorizationId
                 )
             }
 
@@ -556,6 +803,31 @@ class ScenarioRepository(private val db: WakeveDb) {
         // This is a simplified implementation
         // In production, use kotlinx-datetime or platform-specific date APIs
         return "2025-11-25T10:00:00Z"
+    }
+
+    private fun nextMutationTimestamp(previous: String): String =
+        runCatching { Instant.parse(previous).plus(1.nanoseconds).toString() }
+            .getOrElse { Clock.System.now().toString() }
+
+    private fun authorizeAggregateWrite(
+        eventId: String,
+        expectedRevision: Long,
+        operationId: String,
+        now: String
+    ): Boolean {
+        invitationExperienceQueries.authorizeAggregateWrite(
+            writer_schema_version = 1L,
+            operation_id = operationId,
+            created_at = now,
+            id = eventId,
+            aggregateRevision = expectedRevision,
+            aggregateSchemaVersion = 1L
+        )
+        val authorization = invitationExperienceQueries
+            .selectAggregateWriteAuthorization(eventId)
+            .executeAsOneOrNull()
+        return authorization?.operation_id == operationId &&
+            authorization.expected_revision == expectedRevision
     }
 
     private fun insertScenario(scenario: Scenario, updatedAt: String) {

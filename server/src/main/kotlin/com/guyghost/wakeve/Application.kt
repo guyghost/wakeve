@@ -34,11 +34,14 @@ import com.guyghost.wakeve.routes.chatRoutes
 import com.guyghost.wakeve.routes.chatWebSocketRoute
 import com.guyghost.wakeve.routes.commentRoutes
 import com.guyghost.wakeve.routes.dashboardRoutes
+import com.guyghost.wakeve.routes.directInviteDeliveryRoutes
 import com.guyghost.wakeve.routes.eventRoutes
 import com.guyghost.wakeve.routes.gamificationRoutes
 import com.guyghost.wakeve.routes.accommodationRoutes
 import com.guyghost.wakeve.routes.invitationAcceptRoutes
 import com.guyghost.wakeve.routes.invitationRoutes
+import com.guyghost.wakeve.routes.DirectInviteBackendDeliveryOwner
+import com.guyghost.wakeve.routes.HttpDirectInviteBackendDeliveryOwner
 import com.guyghost.wakeve.routes.mealRoutes
 import com.guyghost.wakeve.routes.meetingProxyRoutes
 import com.guyghost.wakeve.routes.moderationRoutes
@@ -316,7 +319,9 @@ fun Application.module(
     ),
     eventNotificationTrigger: EventNotificationTrigger = EventNotificationTrigger(notificationService, eventRepository, moderationRepository),
     gamificationService: GamificationService = createGamificationService(),
-    transportRepository: TransportRepository = TransportRepository(database)
+    transportRepository: TransportRepository = TransportRepository(database),
+    directInviteDeliveryOwner: DirectInviteBackendDeliveryOwner =
+        HttpDirectInviteBackendDeliveryOwner.fromEnvironment()
 ) {
     // Initialize metrics
     val meterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
@@ -518,6 +523,11 @@ fun Application.module(
                             analyticsRoutes(analyticsDashboard)
                             notificationRoutes(notificationService)
                             invitationRoutes(invitationRepository, eventRepository, database)
+                            directInviteDeliveryRoutes(
+                                database,
+                                eventRepository,
+                                directInviteDeliveryOwner
+                            )
                             invitationAcceptRoutes(invitationRepository, eventRepository, database)
                             gamificationRoutes(gamificationService)
                             dashboardRoutes(database, eventRepository)

@@ -38,6 +38,33 @@ final class FindingsRegressionTests: XCTestCase {
         )
     }
 
+    func testDevelopmentLaunchAuthenticationKeepsAStableRepositoryOwnerAcrossRelaunch() async throws {
+        let firstService = AuthenticationService(tokenStorage: InMemorySecureTokenStorage())
+        let firstManager = AuthStateManager(authService: firstService)
+        let firstAuthenticated = await firstManager.authenticateForDevelopmentLaunchIfRequested(
+            arguments: ["Wakeve", "--wakeve-debug-authenticated"],
+            environment: [:]
+        )
+        XCTAssertTrue(firstAuthenticated)
+        let firstOwnerId = try XCTUnwrap(firstManager.currentUser?.id)
+
+        let relaunchedService = AuthenticationService(tokenStorage: InMemorySecureTokenStorage())
+        let relaunchedManager = AuthStateManager(authService: relaunchedService)
+        let relaunchedAuthenticated = await relaunchedManager.authenticateForDevelopmentLaunchIfRequested(
+            arguments: ["Wakeve", "--wakeve-debug-authenticated"],
+            environment: [:]
+        )
+        XCTAssertTrue(relaunchedAuthenticated)
+        let relaunchedOwnerId = try XCTUnwrap(relaunchedManager.currentUser?.id)
+
+        XCTAssertEqual(firstOwnerId, relaunchedOwnerId)
+        XCTAssertEqual(
+            firstOwnerId,
+            "wakeve-debug-user",
+            "DEBUG relaunch must retain the same repository actor so deterministic QA aggregates remain authorized and idempotent."
+        )
+    }
+
     func testGuestDataDeletionClearsLocalGuestSession() async throws {
         let authService = AuthenticationService(tokenStorage: InMemorySecureTokenStorage())
         let manager = AuthStateManager(authService: authService)

@@ -46,8 +46,58 @@ UPDATE syncMetadata
 SET synced = 1
 WHERE entityType = ? AND entityId = ? AND timestamp = ?;
 
+retryStudioSyncSubject:
+UPDATE syncMetadata
+SET retryState = 'READY', retryCount = retryCount + 1
+WHERE id = :id
+  AND entityType = 'event'
+  AND entityId = :eventId
+  AND synced = 0
+  AND retryState = 'FAILED';
+
 deleteByEntity:
 DELETE FROM syncMetadata WHERE entityType = ? AND entityId = ?;
+
+deleteDirectInviteSubjectsByEventId:
+DELETE FROM syncMetadata
+WHERE entityType = 'direct_invite_batch'
+  AND entityId IN (
+      SELECT batch_id FROM direct_invite_batch WHERE event_id = ?
+  );
+
+deleteEventNotificationSubjectsByEventId:
+DELETE FROM syncMetadata
+WHERE entityType = 'event_notification_preference'
+  AND entityId IN (
+      SELECT event_id || ':' || user_id
+      FROM event_notification_preference
+      WHERE event_id = ?
+  );
+
+deleteDirectInviteSubjectsByActorId:
+DELETE FROM syncMetadata
+WHERE entityType = 'direct_invite_batch'
+  AND entityId IN (
+      SELECT batch_id FROM direct_invite_batch WHERE actor_id = ?
+  );
+
+deleteEventNotificationSubjectsByUserId:
+DELETE FROM syncMetadata
+WHERE entityType = 'event_notification_preference'
+  AND entityId IN (
+      SELECT event_id || ':' || user_id
+      FROM event_notification_preference
+      WHERE user_id = ?
+  );
+
+deleteExpiredDirectInviteSubjects:
+DELETE FROM syncMetadata
+WHERE entityType = 'direct_invite_batch'
+  AND entityId IN (
+      SELECT batch_id
+      FROM direct_invite_batch
+      WHERE expires_at IS NOT NULL AND expires_at <= ?
+  );
 
 
 
