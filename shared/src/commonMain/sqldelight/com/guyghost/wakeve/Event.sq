@@ -8,12 +8,15 @@ CREATE TABLE event (
     deadline TEXT NOT NULL, -- ISO 8601 UTC timestamp
     createdAt TEXT NOT NULL, -- ISO 8601 UTC timestamp
     updatedAt TEXT NOT NULL, -- ISO 8601 UTC timestamp, for sync
-    version INTEGER NOT NULL DEFAULT 1, -- for optimistic locking
+    version INTEGER NOT NULL DEFAULT 1, -- legacy optimistic-locking field
+    aggregateRevision INTEGER NOT NULL DEFAULT 1, -- protected aggregate compare-and-swap revision
+    aggregateSchemaVersion INTEGER NOT NULL DEFAULT 1, -- minimum compatible aggregate writer schema
     eventType TEXT DEFAULT 'OTHER', -- BIRTHDAY, WEDDING, TEAM_BUILDING, etc.
     eventTypeCustom TEXT, -- Custom text if eventType = CUSTOM
     minParticipants INTEGER, -- Minimum expected participants
     maxParticipants INTEGER, -- Maximum expected participants
     expectedParticipants INTEGER, -- Expected number of participants
+    heroImageUrl TEXT, -- legacy remote artwork source; migrated one-way by invitation experience
     isSample INTEGER NOT NULL DEFAULT 0, -- 1 = sample/onboarding event, excluded from sync
     planningMode TEXT NOT NULL DEFAULT 'TIME_SLOT_POLL' -- TIME_SLOT_POLL, SCENARIO_MATRIX
 );
@@ -37,23 +40,49 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 updateEvent:
 UPDATE event
-SET title = ?, description = ?, status = ?, deadline = ?, updatedAt = ?, version = version + 1, eventType = ?, eventTypeCustom = ?, minParticipants = ?, maxParticipants = ?, expectedParticipants = ?, isSample = ?
-WHERE id = ?;
+SET title = ?, description = ?, status = ?, deadline = ?, updatedAt = ?,
+    version = version + 1, aggregateRevision = aggregateRevision + 1,
+    eventType = ?, eventTypeCustom = ?, minParticipants = ?, maxParticipants = ?,
+    expectedParticipants = ?, isSample = ?
+WHERE id = ? AND aggregateSchemaVersion = 1;
+
+updateEventIfRevision:
+UPDATE event
+SET title = ?, description = ?, status = ?, deadline = ?, updatedAt = ?,
+    version = version + 1, aggregateRevision = aggregateRevision + 1,
+    eventType = ?, eventTypeCustom = ?, minParticipants = ?, maxParticipants = ?,
+    expectedParticipants = ?, isSample = ?
+WHERE id = ? AND aggregateRevision = ? AND aggregateSchemaVersion = 1;
 
 updateEventStatus:
 UPDATE event
-SET status = ?, updatedAt = ?
-WHERE id = ?;
+SET status = ?, updatedAt = ?, aggregateRevision = aggregateRevision + 1
+WHERE id = ? AND aggregateSchemaVersion = 1;
+
+updateEventStatusIfRevision:
+UPDATE event
+SET status = ?, updatedAt = ?, aggregateRevision = aggregateRevision + 1
+WHERE id = ? AND aggregateRevision = ? AND aggregateSchemaVersion = 1;
+
+advanceAggregateRevisionIfCurrent:
+UPDATE event
+SET aggregateRevision = aggregateRevision + 1, updatedAt = ?
+WHERE id = ? AND aggregateRevision = ? AND aggregateSchemaVersion = 1;
 
 updateEventPlanningMode:
 UPDATE event
+SET planningMode = ?, updatedAt = ?, aggregateRevision = aggregateRevision + 1
+WHERE id = ? AND aggregateSchemaVersion = 1;
+
+setEventPlanningModeWithinAggregateWrite:
+UPDATE event
 SET planningMode = ?, updatedAt = ?
-WHERE id = ?;
+WHERE id = ? AND aggregateSchemaVersion = 1;
 
 anonymizeOrganizer:
 UPDATE event
-SET organizerId = ?, updatedAt = ?
-WHERE organizerId = ?;
+SET organizerId = ?, updatedAt = ?, aggregateRevision = aggregateRevision + 1
+WHERE organizerId = ? AND aggregateSchemaVersion = 1;
 
 deleteEvent:
 DELETE FROM event WHERE id = ?;

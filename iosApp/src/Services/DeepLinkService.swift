@@ -19,6 +19,8 @@ enum DeepLinkType: Equatable {
     case eventCreate
     case eventDetail(eventId: String)
     case eventParticipants(eventId: String)
+    case eventInformation(eventId: String)
+    case eventArchive(eventId: String)
     case pollVoting(eventId: String)
     case pollResults(eventId: String)
     case scenarioList(eventId: String)
@@ -40,6 +42,36 @@ enum DeepLinkType: Equatable {
     case tricount(eventId: String)
     case eventPhotos(eventId: String)
     case invite(token: String)
+
+    init(eventRoute: IosEventRoute) {
+        switch eventRoute {
+        case .detail(let eventId): self = .eventDetail(eventId: eventId)
+        case .participants(let eventId): self = .eventParticipants(eventId: eventId)
+        case .information(let eventId): self = .eventInformation(eventId: eventId)
+        case .archive(let eventId): self = .eventArchive(eventId: eventId)
+        case .pollVoting(let eventId): self = .pollVoting(eventId: eventId)
+        case .pollResults(let eventId): self = .pollResults(eventId: eventId)
+        case .scenarioList(let eventId): self = .scenarioList(eventId: eventId)
+        case .scenarioComparison(let eventId): self = .scenarioComparison(eventId: eventId)
+        case .scenarioManagement(let eventId): self = .scenarioManagement(eventId: eventId)
+        case .scenarioDetail(let eventId, let scenarioId):
+            self = .scenarioDetail(eventId: eventId, scenarioId: scenarioId)
+        case .budgetOverview(let eventId): self = .budgetOverview(eventId: eventId)
+        case .budgetDetail(let eventId, let budgetItemId):
+            self = .budgetDetail(eventId: eventId, budgetItemId: budgetItemId)
+        case .meetingList(let eventId): self = .meetingList(eventId: eventId)
+        case .comments(let eventId): self = .eventComments(eventId: eventId)
+        case .invitationShare(let eventId): self = .invitationShare(eventId: eventId)
+        case .transport(let eventId): self = .transport(eventId: eventId)
+        case .accommodation(let eventId): self = .accommodation(eventId: eventId)
+        case .meals(let eventId): self = .meals(eventId: eventId)
+        case .equipment(let eventId): self = .equipment(eventId: eventId)
+        case .activities(let eventId): self = .activities(eventId: eventId)
+        case .payment(let eventId): self = .payment(eventId: eventId)
+        case .tricount(let eventId): self = .tricount(eventId: eventId)
+        case .photos(let eventId): self = .eventPhotos(eventId: eventId)
+        }
+    }
 
     var route: IosRoute {
         switch self {
@@ -63,6 +95,10 @@ enum DeepLinkType: Equatable {
             return .event(.detail(eventId: eventId))
         case .eventParticipants(let eventId):
             return .event(.participants(eventId: eventId))
+        case .eventInformation(let eventId):
+            return .event(.information(eventId: eventId))
+        case .eventArchive(let eventId):
+            return .event(.archive(eventId: eventId))
         case .pollVoting(let eventId):
             return .event(.pollVoting(eventId: eventId))
         case .pollResults(let eventId):
@@ -108,9 +144,6 @@ enum DeepLinkType: Equatable {
         }
     }
 
-    var navigationPath: [String] {
-        route.navigationPath
-    }
 }
 
 enum InvitationTokenCodec {
@@ -154,8 +187,8 @@ class DeepLinkService: ObservableObject {
     /// Current pending deep link to handle
     @Published var pendingDeepLink: DeepLinkType? = nil
 
-    /// Navigation path for deep link (used in SwiftUI Navigation)
-    @Published var navigationPath: [String] = []
+    /// Typed navigation intent consumed by the authenticated root.
+    @Published private(set) var navigationRoute: IosRoute?
 
     /// Pending invitation code waiting to be processed
     @Published var pendingInviteCode: String? = nil
@@ -277,92 +310,12 @@ class DeepLinkService: ObservableObject {
             return .eventCreate
         }
 
-        let eventId = first
-        guard path.count > 1 else {
-            return .eventDetail(eventId: eventId)
-        }
-
-        switch path[1] {
-        case "details":
-            guard path.count == 2 else { return nil }
-            switch query["tab"]?.trimmedLowercased {
-            case "comments":
-                return .eventComments(eventId: eventId)
-            case "budget":
-                return .budgetOverview(eventId: eventId)
-            case "participants":
-                return .eventParticipants(eventId: eventId)
-            default:
-                return .eventDetail(eventId: eventId)
-            }
-
-        case "participants":
-            return path.count == 2 ? .eventParticipants(eventId: eventId) : nil
-
-        case "poll":
-            guard path.count <= 3 else { return nil }
-            if path.count == 3 && path[2] == "results" {
-                return .pollResults(eventId: eventId)
-            }
-            return .pollVoting(eventId: eventId)
-
-        case "scenarios":
-            guard path.count <= 3 else { return nil }
-            if path.count == 3 && path[2] == "compare" {
-                return .scenarioComparison(eventId: eventId)
-            }
-            if path.count == 3 && path[2] == "manage" {
-                return .scenarioManagement(eventId: eventId)
-            }
-            return path.count == 2 ? .scenarioList(eventId: eventId) : nil
-
-        case "scenario":
-            guard path.count == 3 else { return nil }
-            return .scenarioDetail(eventId: eventId, scenarioId: path[2])
-
-        case "budget":
-            guard path.count <= 3 else { return nil }
-            if path.count == 3 {
-                return .budgetDetail(eventId: eventId, budgetItemId: path[2])
-            }
-            return .budgetOverview(eventId: eventId)
-
-        case "meetings":
-            return path.count == 2 ? .meetingList(eventId: eventId) : nil
-
-        case "comments":
-            return path.count == 2 ? .eventComments(eventId: eventId) : nil
-
-        case "invite":
-            return path.count == 2 ? .invitationShare(eventId: eventId) : nil
-
-        case "transport":
-            return path.count == 2 ? .transport(eventId: eventId) : nil
-
-        case "accommodation":
-            return path.count == 2 ? .accommodation(eventId: eventId) : nil
-
-        case "meals":
-            return path.count == 2 ? .meals(eventId: eventId) : nil
-
-        case "equipment":
-            return path.count == 2 ? .equipment(eventId: eventId) : nil
-
-        case "activities":
-            return path.count == 2 ? .activities(eventId: eventId) : nil
-
-        case "payment":
-            return path.count == 2 ? .payment(eventId: eventId) : nil
-
-        case "tricount":
-            return path.count == 2 ? .tricount(eventId: eventId) : nil
-
-        case "photos":
-            return path.count == 2 ? .eventPhotos(eventId: eventId) : nil
-
-        default:
-            return nil
-        }
+        guard let route = IosEventRoute.parse(
+            eventId: first,
+            components: path.dropFirst(),
+            detailsTab: query["tab"]?.trimmedLowercased
+        ) else { return nil }
+        return DeepLinkType(eventRoute: route)
     }
 
     // MARK: - Deep Link Handling
@@ -385,7 +338,7 @@ class DeepLinkService: ObservableObject {
             pendingInviteCode = token
         }
 
-        navigationPath = deepLink.navigationPath
+        navigationRoute = deepLink.route
         return true
     }
 
@@ -407,7 +360,7 @@ class DeepLinkService: ObservableObject {
      * Reset navigation path.
      */
     func resetNavigation() {
-        navigationPath = []
+        navigationRoute = nil
         Log.debug("Reset navigation path")
     }
 

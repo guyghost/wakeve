@@ -390,7 +390,7 @@ public class AuthStateManager: ObservableObject {
         }
 
         await setAuthStateForDevelopment(
-            userId: "dev-\(UUID().uuidString.prefix(8))",
+            userId: "wakeve-debug-user",
             accessToken: "dev-token"
         )
 

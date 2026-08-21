@@ -7,13 +7,17 @@ import kotlinx.serialization.Serializable
 enum class ParticipantRsvp {
     PENDING,
     ACCEPTED,
-    DECLINED
+    DECLINED,
+    NOT_APPLICABLE,
+    UNAVAILABLE
 }
 
 @Serializable
 enum class DateValidationState {
     NOT_VALIDATED,
-    VALIDATED_RETAINED_DATE
+    VALIDATED_RETAINED_DATE,
+    NOT_APPLICABLE,
+    UNAVAILABLE
 }
 
 @Serializable
@@ -92,8 +96,8 @@ data class ParticipantAccessState(
             ParticipantAccessState(
                 userId = userId,
                 role = Role.NON_MEMBER,
-                rsvp = ParticipantRsvp.PENDING,
-                dateValidation = DateValidationState.NOT_VALIDATED
+                rsvp = ParticipantRsvp.NOT_APPLICABLE,
+                dateValidation = DateValidationState.NOT_APPLICABLE
             )
     }
 }
@@ -104,28 +108,44 @@ data class ParticipantRepositoryRecord(
     val userId: String,
     val role: String,
     val rsvp: String,
-    val hasValidatedDate: Long
+    val hasValidatedDate: Long,
+    /**
+     * Total persisted retained-date axis. `null` is reserved for legacy/fake
+     * repositories that predate the aggregate schema; database adapters always
+     * provide an explicit value.
+     */
+    val dateValidation: String? = null
 )
 
 object ParticipantAccessMapper {
     fun fromRepositoryRecord(record: ParticipantRepositoryRecord): ParticipantAccessState {
-        if (record.role == "ORGANIZER") {
-            return ParticipantAccessState.organizer(record.userId)
+        return when (record.role.uppercase()) {
+            "ORGANIZER" -> ParticipantAccessState.organizer(record.userId)
+            "MEMBER", "PARTICIPANT" -> ParticipantAccessState.member(
+                userId = record.userId,
+                rsvp = when (record.rsvp) {
+                    "ACCEPTED" -> ParticipantRsvp.ACCEPTED
+                    "DECLINED" -> ParticipantRsvp.DECLINED
+                    "PENDING" -> ParticipantRsvp.PENDING
+                    else -> ParticipantRsvp.UNAVAILABLE
+                },
+                dateValidation = record.dateValidation?.let(::parsePersistedDateValidation)
+                    ?: when (record.hasValidatedDate) {
+                        1L -> DateValidationState.VALIDATED_RETAINED_DATE
+                        0L -> DateValidationState.NOT_VALIDATED
+                        else -> DateValidationState.UNAVAILABLE
+                    }
+            )
+            else -> ParticipantAccessState.nonMember(record.userId)
         }
+    }
 
-        return ParticipantAccessState.member(
-            userId = record.userId,
-            rsvp = when (record.rsvp) {
-                "ACCEPTED" -> ParticipantRsvp.ACCEPTED
-                "DECLINED" -> ParticipantRsvp.DECLINED
-                else -> ParticipantRsvp.PENDING
-            },
-            dateValidation = if (record.hasValidatedDate == 1L) {
-                DateValidationState.VALIDATED_RETAINED_DATE
-            } else {
-                DateValidationState.NOT_VALIDATED
-            }
-        )
+    private fun parsePersistedDateValidation(value: String): DateValidationState = when (value) {
+        "NOT_VALIDATED" -> DateValidationState.NOT_VALIDATED
+        "VALIDATED_RETAINED_DATE" -> DateValidationState.VALIDATED_RETAINED_DATE
+        "NOT_APPLICABLE" -> DateValidationState.NOT_APPLICABLE
+        "UNAVAILABLE" -> DateValidationState.UNAVAILABLE
+        else -> DateValidationState.UNAVAILABLE
     }
 }
 
@@ -187,6 +207,9 @@ object EventAccessPolicy {
             ParticipantRsvp.DECLINED ->
                 AccessDecision(isAllowed = false, reason = AccessDeniedReason.PARTICIPATION_DECLINED)
             ParticipantRsvp.PENDING ->
+                AccessDecision(isAllowed = false, reason = AccessDeniedReason.ATTENDANCE_NOT_CONFIRMED)
+            ParticipantRsvp.NOT_APPLICABLE,
+            ParticipantRsvp.UNAVAILABLE ->
                 AccessDecision(isAllowed = false, reason = AccessDeniedReason.ATTENDANCE_NOT_CONFIRMED)
             ParticipantRsvp.ACCEPTED ->
                 if (viewer.dateValidation == DateValidationState.VALIDATED_RETAINED_DATE) {

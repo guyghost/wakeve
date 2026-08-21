@@ -118,12 +118,33 @@ class UserRepository(private val db: WakeveDb) {
         val now = getCurrentUtcIsoString()
         val tombstoneUserId = deletedUserTombstone(userId)
         db.transaction {
+            if (userQueries.selectUserById(userId).executeAsOneOrNull() == null) {
+                throw IllegalArgumentException("User not found: $userId")
+            }
+            val ownedEvents = db.eventQueries.selectByOrganizerId(userId).executeAsList()
+            if (ownedEvents.any {
+                    it.aggregateSchemaVersion != 1L ||
+                        (
+                            it.aggregateRevision > 1L &&
+                                db.invitationExperienceQueries
+                                    .selectArtworkByEventId(it.id)
+                                    .executeAsOneOrNull() != null
+                        )
+                }
+            ) {
+                throw IllegalStateException("Account erasure requires a compatible event aggregate writer")
+            }
             db.eventQueries.anonymizeOrganizer(tombstoneUserId, now, userId)
             db.participantQueries.anonymizeParticipantUser(tombstoneUserId, now, userId)
             db.commentQueries.anonymizeCommentsByAuthor(tombstoneUserId, "Deleted user", now, userId)
             db.chatMessagesQueries.anonymizeMessagesBySender(tombstoneUserId, "Deleted user", now, userId)
             db.chatMessagesQueries.deleteReactionsByUser(userId)
             db.chatMessagesQueries.deleteReadStatusByUser(userId)
+            db.invitationExperienceQueries.deleteOperationReceiptsByActor(userId)
+            db.syncMetadataQueries.deleteDirectInviteSubjectsByActorId(userId)
+            db.syncMetadataQueries.deleteEventNotificationSubjectsByUserId(userId)
+            db.invitationExperienceQueries.deleteDirectInviteBatchesByActor(userId)
+            db.invitationExperienceQueries.deleteEventNotificationPreferencesByUserId(userId)
             userQueries.deleteSyncMetadataByUserId(userId)
             userQueries.deletePreferences(userId)
             userQueries.deleteToken(userId)

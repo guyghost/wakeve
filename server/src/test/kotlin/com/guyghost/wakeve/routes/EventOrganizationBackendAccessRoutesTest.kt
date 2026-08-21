@@ -102,7 +102,7 @@ class EventOrganizationBackendAccessRoutesTest {
     }
 
     @Test
-    fun `participant rsvp date validation endpoint marks participant confirmed for retained date`() = testApplication {
+    fun `participant rsvp endpoint atomically persists and returns total RSVP date and legacy axes`() = testApplication {
         val fixture = createFixture()
         val participantToken = createTestJwt(fixture.pendingUserId)
 
@@ -147,6 +147,59 @@ class EventOrganizationBackendAccessRoutesTest {
 
         assertNotNull(participant)
         assertEquals(1L, participant.hasValidatedDate)
+        assertEquals("ACCEPTED", participant.rsvpState)
+        assertEquals("VALIDATED_RETAINED_DATE", participant.dateValidationState)
+        val confirmedBody = json.parseToJsonElement(rsvpResponse.bodyAsText()).jsonObject
+        assertEquals("ACCEPTED", confirmedBody["rsvpState"]?.jsonPrimitive?.content)
+        assertEquals(
+            "VALIDATED_RETAINED_DATE",
+            confirmedBody["dateValidationState"]?.jsonPrimitive?.content
+        )
+        assertEquals("true", confirmedBody["hasValidatedDate"]?.jsonPrimitive?.content)
+
+        val declinedResponse = client.post(
+            "/api/events/${fixture.eventId}/participants/${fixture.pendingUserId}/rsvp"
+        ) {
+            header(HttpHeaders.Authorization, "Bearer $participantToken")
+            contentType(ContentType.Application.Json)
+            setBody(
+                """
+                {
+                  "slotId": "${fixture.finalSlotId}",
+                  "attendance": "DECLINED"
+                }
+                """.trimIndent()
+            )
+        }
+        assertEquals(HttpStatusCode.OK, declinedResponse.status)
+        val declined = fixture.database.participantQueries
+            .selectByEventIdAndUserId(fixture.eventId, fixture.pendingUserId)
+            .executeAsOne()
+        assertEquals(0L, declined.hasValidatedDate)
+        assertEquals("DECLINED", declined.rsvpState)
+        assertEquals("NOT_VALIDATED", declined.dateValidationState)
+
+        val tentativeResponse = client.post(
+            "/api/events/${fixture.eventId}/participants/${fixture.pendingUserId}/rsvp"
+        ) {
+            header(HttpHeaders.Authorization, "Bearer $participantToken")
+            contentType(ContentType.Application.Json)
+            setBody(
+                """
+                {
+                  "slotId": "${fixture.finalSlotId}",
+                  "attendance": "TENTATIVE"
+                }
+                """.trimIndent()
+            )
+        }
+        assertEquals(HttpStatusCode.OK, tentativeResponse.status)
+        val tentative = fixture.database.participantQueries
+            .selectByEventIdAndUserId(fixture.eventId, fixture.pendingUserId)
+            .executeAsOne()
+        assertEquals(0L, tentative.hasValidatedDate)
+        assertEquals("PENDING", tentative.rsvpState)
+        assertEquals("NOT_VALIDATED", tentative.dateValidationState)
     }
 
     @Test

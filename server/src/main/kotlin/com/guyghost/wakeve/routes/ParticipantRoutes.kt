@@ -31,7 +31,9 @@ private data class ParticipantRsvpResponse(
     val userId: String,
     val slotId: String,
     val attendance: String,
-    val hasValidatedDate: Boolean
+    val hasValidatedDate: Boolean,
+    val rsvpState: String,
+    val dateValidationState: String
 )
 
 fun Route.participantRoutes(
@@ -226,9 +228,16 @@ fun Route.participantRoutes(
                         mapOf("error" to "Participant not found")
                     )
 
-                val hasValidatedDate = if (normalizedAttendance == "CONFIRMED") 1L else 0L
-                database.participantQueries.updateValidation(
+                val (rsvpState, dateValidationState) = when (normalizedAttendance) {
+                    "CONFIRMED" -> "ACCEPTED" to "VALIDATED_RETAINED_DATE"
+                    "DECLINED" -> "DECLINED" to "NOT_VALIDATED"
+                    else -> "PENDING" to "NOT_VALIDATED"
+                }
+                val hasValidatedDate = if (rsvpState == "ACCEPTED") 1L else 0L
+                database.participantQueries.updateRsvpAxes(
                     hasValidatedDate = hasValidatedDate,
+                    rsvpState = rsvpState,
+                    dateValidationState = dateValidationState,
                     updatedAt = java.time.Instant.now().toString(),
                     id = participant.id
                 )
@@ -240,7 +249,9 @@ fun Route.participantRoutes(
                         userId = participantUserId,
                         slotId = requestedSlotId,
                         attendance = normalizedAttendance,
-                        hasValidatedDate = hasValidatedDate == 1L
+                        hasValidatedDate = hasValidatedDate == 1L,
+                        rsvpState = rsvpState,
+                        dateValidationState = dateValidationState
                     )
                 )
             } catch (e: Exception) {

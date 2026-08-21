@@ -10,6 +10,8 @@ import com.guyghost.wakeve.database.WakeveDb
  */
 class IosDatabaseFactory : DatabaseFactory {
     override fun createDriver(): SqlDriver {
-        return NativeSqliteDriver(WakeveDb.Schema, "wakev.db")
+        val driver = NativeSqliteDriver(WakeveDb.Schema, "wakev.db")
+        driver.execute(null, "PRAGMA foreign_keys = ON", 0).value
+        return driver
     }
 }

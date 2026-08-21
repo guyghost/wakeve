@@ -31,7 +31,12 @@ data class Event(
     val heroImageUrl: String? = null,
 
     // Planning mode. Defaults to the legacy time-slot polling workflow.
-    val planningMode: EventPlanningMode = EventPlanningMode.TIME_SLOT_POLL
+    val planningMode: EventPlanningMode = EventPlanningMode.TIME_SLOT_POLL,
+
+    // Persisted aggregate binding carried by every repository snapshot. Writers
+    // must compare both values before mutating event-owned state.
+    val aggregateRevision: Long = 1L,
+    val aggregateSchemaVersion: Long = 1L
 ) {
     /**
      * Validate that the event data is consistent.

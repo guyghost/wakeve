@@ -68,6 +68,11 @@ UPDATE scenario
 SET name = ?, dateOrPeriod = ?, location = ?, duration = ?, estimatedParticipants = ?, estimatedBudgetPerPerson = ?, description = ?, updatedAt = ?, sourceTimeSlotId = ?, sourcePotentialLocationId = ?, generationType = ?
 WHERE id = ?;
 
+updateScenarioWithMetadataIfUnchanged:
+UPDATE scenario
+SET name = ?, dateOrPeriod = ?, location = ?, duration = ?, estimatedParticipants = ?, estimatedBudgetPerPerson = ?, description = ?, updatedAt = ?, sourceTimeSlotId = ?, sourcePotentialLocationId = ?, generationType = ?
+WHERE id = ? AND eventId = ? AND updatedAt = ?;
+
 updateScenarioStatus:
 UPDATE scenario
 SET status = ?, updatedAt = ?

@@ -442,7 +442,17 @@ class EventManagementStateMachineEdgeCasesTest {
         // Given
         val eventId = "event-1"
         val organizerId = "user-1"
-        val event = createDraftEvent(eventId, organizerId)
+        val event = createDraftEvent(eventId, organizerId).copy(
+            proposedSlots = listOf(
+                TimeSlot(
+                    id = "slot-1",
+                    start = "2099-01-01T10:00:00Z",
+                    end = "2099-01-01T12:00:00Z",
+                    timezone = "UTC",
+                    timeOfDay = TimeOfDay.MORNING
+                )
+            )
+        )
         mockRepository.events[eventId] = event
         
         // When - delete event during transition

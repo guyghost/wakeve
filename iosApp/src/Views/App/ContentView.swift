@@ -184,12 +184,36 @@ struct ErrorView: View {
 
 struct AuthenticatedView: View {
     let userId: String
+    @AppStorage("iosInvitationExperienceV1") private var iosInvitationExperienceV1 = false
     @State private var selectedTab: WakeveTab = .home
     @State private var currentView: AppView = .eventList
     @State private var selectedEvent: Event?
+    @State private var selectedCreationBaseRevision: Int64?
+    @State private var selectedCreationArtwork: (any Artwork)?
+    @State private var invitationStudioPreview: InvitationStudioPreview?
     @State private var invitationLandingEventId: String?
+    @State private var pendingInformationDeleteEvent: Event?
+    @State private var informationDeleteOwner: EventDetailViewModel?
+#if DEBUG
+    @State private var invitationQALibraryReloadGeneration = 0
+    @State private var invitationQALibraryIsSeedReady =
+        !ProcessInfo.processInfo.arguments.contains(
+            InvitationExperienceQALaunchSupport.seedArgument
+        )
+    @State private var invitationQAReduceTransparencyOverride =
+        ProcessInfo.processInfo.arguments.contains(
+            InvitationExperienceQALaunchSupport.reduceTransparencyArgument
+        )
+#endif
     // Use persistent database-backed repository instead of in-memory mock
     private let repository: EventRepositoryInterface = RepositoryProvider.shared.repository
+    private let invitationExperienceProjectionRepository =
+        DatabaseInvitationExperienceProjectionRepository(
+            database: RepositoryProvider.shared.database
+        )
+    private let invitationExperienceRouter = InvitationExperienceRouter()
+    private let invitationDeepLinkResolver = InvitationDeepLinkResolver()
+    @StateObject private var directInviteProductionOwner = DirectInviteProductionOwner()
     @State private var showEventCreationSheet = false
     @State private var eventCreationScenario: EventScenario?
     @State private var preparedCreationChecklists: [String: [ChecklistItem]] = [:]
@@ -214,6 +238,13 @@ struct AuthenticatedView: View {
     // Get auth state from environment
     @EnvironmentObject var authStateManager: AuthStateManager
     @EnvironmentObject private var deepLinkService: DeepLinkService
+    @Environment(\.openURL) private var openURL
+
+    /// UI-only rollout control. Persisted aggregate writers, migrations and
+    /// deletion fences remain installed regardless of this value.
+    private var invitationExperienceRolloutEnabled: Bool {
+        iosInvitationExperienceV1
+    }
 
     var body: some View {
         // Main tabs are destinations only. One-off actions such as Create Event
@@ -275,10 +306,127 @@ struct AuthenticatedView: View {
                 NotificationPreferencesView(userId: userId)
             }
         }
-        .onReceive(deepLinkService.$navigationPath) { path in
-            handleDeepLinkNavigation(path)
+        .sheet(item: $invitationStudioPreview) { preview in
+            InvitationStudioPreviewSheet(preview: preview)
+        }
+        .confirmationDialog(
+            String(localized: "common.delete"),
+            isPresented: Binding(
+                get: { pendingInformationDeleteEvent != nil },
+                set: { isPresented in
+                    if !isPresented { pendingInformationDeleteEvent = nil }
+                }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "common.delete"), role: .destructive) {
+                guard let event = pendingInformationDeleteEvent else { return }
+                pendingInformationDeleteEvent = nil
+                deleteInformationEventThroughOwner(event)
+            }
+            Button(String(localized: "common.cancel"), role: .cancel) {
+                pendingInformationDeleteEvent = nil
+            }
+        }
+        .onReceive(deepLinkService.$navigationRoute) { route in
+            guard let route else { return }
+            handleDeepLinkNavigation(route)
+        }
+#if DEBUG
+        .task {
+            await prepareInvitationExperienceQALaunch()
+        }
+#endif
+    }
+
+#if DEBUG
+    private func prepareInvitationExperienceQALaunch() async {
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains(InvitationExperienceQALaunchSupport.seedArgument) {
+            // Repository-backed QA opts in explicitly; normal DEBUG launches
+            // retain the same default-off behavior as production.
+            iosInvitationExperienceV1 = true
+        }
+        let support = InvitationExperienceQALaunchSupport(
+            database: RepositoryProvider.shared.database,
+            eventRepository: RepositoryProvider.shared.databaseRepository
+        )
+        guard let route = await support.prepare(
+            arguments: arguments,
+            viewerId: userId
+        ) else {
+            return
+        }
+
+        invitationQALibraryIsSeedReady = true
+        invitationLandingEventId = nil
+        selectedTab = .home
+        switch route {
+        case .library:
+            selectedEvent = nil
+            currentView = .eventList
+            invitationQALibraryReloadGeneration += 1
+        case .detail(let eventId):
+            guard let event = repository.getEvent(id: eventId) else { return }
+            routeInvitationExperience(
+                InvitationExperienceRouteRequestCanvasAction(action: .showDetails),
+                for: event
+            )
+        case .studio(let eventId):
+            guard let event = repository.getEvent(id: eventId) else { return }
+            selectedCreationBaseRevision = RepositoryProvider.shared.database.eventQueries
+                .selectById(id: event.id)
+                .executeAsOneOrNull()?
+                .aggregateRevision
+            selectedCreationArtwork = await invitationQAArtwork(for: event.id)
+            routeInvitationExperience(
+                InvitationExperienceRouteRequestCanvasAction(action: .editDraft),
+                for: event
+            )
+        case .audience(let eventId):
+            guard let event = repository.getEvent(id: eventId) else { return }
+            routeInvitationExperience(
+                InvitationExperienceRouteRequestParticipants.shared,
+                for: event
+            )
+        case .information(let eventId):
+            guard let event = repository.getEvent(id: eventId) else { return }
+            routeInvitationExperience(
+                InvitationExperienceRouteRequestEventInformation.shared,
+                for: event
+            )
+        case .archive(let eventId):
+            guard let event = repository.getEvent(id: eventId) else { return }
+            routeInvitationExperience(
+                InvitationExperienceRouteRequestDeepLink(
+                    target: .archiveDetail,
+                    intent: .read
+                ),
+                for: event
+            )
         }
     }
+
+    private func invitationQAArtwork(for eventId: String) async -> (any Artwork)? {
+        let now = Kotlinx_datetimeInstant.companion.fromEpochMilliseconds(
+            epochMilliseconds: Int64(Date().timeIntervalSince1970 * 1_000)
+        )
+        let repository = DatabaseInvitationExperienceProjectionRepository(
+            database: RepositoryProvider.shared.database
+        )
+        guard let state = try? await repository.library(
+            viewerId: userId,
+            projection: .drafts,
+            now: now
+        ),
+        let ready = state as? LibraryLoadStateReady<NSArray>,
+        let cards = ready.snapshot as? [LibraryCardProjection]
+        else {
+            return nil
+        }
+        return cards.first(where: { $0.event.id == eventId })?.artwork
+    }
+#endif
 
     private var tabBarVisibility: Visibility {
         selectedTab == .home && currentView != .eventList ? .hidden : .visible
@@ -290,42 +438,68 @@ struct AuthenticatedView: View {
     private var homeTabContent: some View {
         switch currentView {
         case .eventList:
-            HomeView(
-                userId: userId,
-                repository: repository,
-                onEventSelected: { event in
-                    selectedEvent = event
-                    currentView = .eventDetail
-                },
-                onCreateEvent: {
-                    // Show bottom sheet instead of navigating
-                    eventCreationScenario = nil
-                    showEventCreationSheet = true
-                },
-                onProfileClick: {
-                    selectedTab = .profile
-                }
-            )
+#if DEBUG
+            if invitationQALibraryIsSeedReady {
+                invitationExperienceRootContent
+            } else {
+                ProgressView()
+                    .accessibilityLabel(String(localized: "common.loading"))
+                    .accessibilityIdentifier("invitationQALibrarySeedProgress")
+            }
+#else
+            invitationExperienceRootContent
+#endif
             
         case .eventCreation:
-            Color.clear
-                .onAppear {
-                    if !showEventCreationSheet {
-                        eventCreationScenario = nil
-                        showEventCreationSheet = true
-                    }
+            if invitationExperienceRolloutEnabled {
+                EventCreationStudioView(
+                eventId: selectedEvent?.status == .draft ? selectedEvent?.id : nil,
+                actorId: userId,
+                baseRevision: selectedEvent?.status == .draft ? selectedCreationBaseRevision : nil,
+                existingArtwork: selectedEvent?.status == .draft ? selectedCreationArtwork : nil,
+                previewAvailable: true,
+                onCancel: {
                     currentView = .eventList
+                },
+                onRequestPreview: { snapshot, confirmCommit in
+                    invitationStudioPreview = InvitationStudioPreview(
+                        snapshot: snapshot,
+                        confirmCommit: {
+                            let committed = await confirmCommit()
+                            if committed {
+                                currentView = .eventList
+                            }
+                            return committed
+                        }
+                    )
                 }
+                )
+            } else if let event = selectedEvent {
+                rolloutReadOnlyFallback(for: event)
+            } else {
+                invitationExperienceLegacyCreationFallback
+            }
             
         case .eventDetail:
-            if let event = selectedEvent {
+            if let event = selectedEvent,
+               let artwork = invitationExperienceProjectionRepository.artwork(eventId: event.id) {
                 EventDetailView(
                     event: event,
+                    artwork: artwork,
                     repository: repository,
                     userId: userId,
                     preparedCreationChecklist: preparedCreationChecklists[event.id] ?? [],
+                    onCanvasAction: { action in
+                        routeInvitationExperience(
+                            InvitationExperienceRouteRequestCanvasAction(action: action),
+                            for: event
+                        )
+                    },
                     onManageParticipants: {
-                        currentView = .participantManagement
+                        routeInvitationExperience(
+                            InvitationExperienceRouteRequestParticipants.shared,
+                            for: event
+                        )
                     },
                     onVote: {
                         currentView = .pollVoting
@@ -371,17 +545,91 @@ struct AuthenticatedView: View {
                         currentView = .eventPhotos
                     },
                     onOpenInvitationShare: {
-                        currentView = .invitationShare
+                        routeInvitationExperience(
+                            InvitationExperienceRouteRequestParticipants.shared,
+                            for: event
+                        )
                     },
+                    invitationCanvasShareCapability: EventDetailView
+                        .disconnectedSecureShareConfiguration.shareCapability,
+                    onShareServerIssuedInvitation: EventDetailView
+                        .disconnectedSecureShareConfiguration.onShare,
                     isInvitationLanding: invitationLandingEventId == event.id,
-                    onDismissInvitationLanding: {
-                        invitationLandingEventId = nil
-                    },
                     onBack: {
                         invitationLandingEventId = nil
                         currentView = .eventList
                     }
                 )
+#if DEBUG
+                .environment(
+                    \.wakeveAccessibilityReduceTransparencyOverride,
+                    invitationQAReduceTransparencyOverride
+                )
+#endif
+            }
+
+        case .eventAudience:
+            if !invitationExperienceRolloutEnabled, let event = selectedEvent {
+                rolloutReadOnlyFallback(for: event)
+            } else if let event = selectedEvent {
+                let directInviteContext = directInviteRecipientContext(for: event)
+                Group {
+                    EventAudienceView(
+                        eventId: event.id,
+                        directInviteAvailable: directInviteContext.isReady,
+                        directInviteCapability: directInviteContext.capability,
+                        recipientKeyOwner: directInviteContext.recipientKeyOwner,
+                        deliverySealer: directInviteContext.deliverySealer,
+                        deliveryTransport: directInviteContext.deliveryTransport,
+                        onInvite: {
+                            selectedEvent = repository.getEvent(id: event.id)
+                        }
+                    )
+                    .id(directInviteContext.generation)
+                }
+                .task(id: "\(event.id)|\(userId)|\(event.aggregateRevision)") {
+                    await directInviteProductionOwner.refresh(
+                        eventId: event.id,
+                        actorId: userId
+                    )
+                }
+            }
+
+        case .eventInformation:
+            if !invitationExperienceRolloutEnabled, let event = selectedEvent {
+                rolloutReadOnlyFallback(for: event)
+            } else if let event = selectedEvent {
+                EventInformationView(
+                    eventId: event.id,
+                    viewerId: userId,
+                    onOpenNotificationOwner: { preference in
+                        await saveInformationNotificationPreference(
+                            eventId: event.id,
+                            preference: preference
+                        )
+                    },
+                    onOpenCalendar: {
+                        addInformationEventToCalendar(event)
+                    },
+                    onOpenMaps: {
+                        openInformationMaps(for: event)
+                    },
+                    onOpenWeather: {
+                        openInformationWeather(for: event)
+                    },
+                    onLeave: informationLeaveOwner(for: event),
+                    onDelete: {
+                        pendingInformationDeleteEvent = event
+                    },
+                    onDone: { currentView = .eventDetail }
+                )
+            }
+
+        case .eventArchive:
+            if !invitationExperienceRolloutEnabled, let event = selectedEvent {
+                rolloutReadOnlyFallback(for: event)
+            } else if let event = selectedEvent {
+                EventArchiveView(eventId: event.id, viewerId: userId)
             }
             
         case .participantManagement:
@@ -946,7 +1194,61 @@ struct AuthenticatedView: View {
             )
         }
     }
-    
+
+    private var eventLibraryContent: some View {
+        EventLibraryView(
+            viewerId: userId,
+            onOpenEvent: { event in
+                routeInvitationExperience(
+                    InvitationExperienceRouteRequestCanvasAction(action: .showDetails),
+                    for: event
+                )
+            },
+            onOpenCard: { card in
+                selectedCreationBaseRevision = RepositoryProvider.shared.database.eventQueries
+                    .selectById(id: card.event.id)
+                    .executeAsOneOrNull()?
+                    .aggregateRevision
+                selectedCreationArtwork = card.artwork
+                routeInvitationExperience(
+                    InvitationExperienceRouteRequestCanvasAction(
+                        action: canvasAction(for: card.nextAction)
+                    ),
+                    for: card.event
+                )
+            },
+            onCreateEvent: {
+                eventCreationScenario = nil
+                selectedEvent = nil
+                selectedCreationBaseRevision = nil
+                selectedCreationArtwork = nil
+                currentView = .eventCreation
+            }
+        )
+#if DEBUG
+        .id(invitationQALibraryReloadGeneration)
+#endif
+    }
+
+    @ViewBuilder
+    private var invitationExperienceRootContent: some View {
+        if invitationExperienceRolloutEnabled {
+            eventLibraryContent
+        } else {
+            EventListView(
+                repository: repository,
+                onEventSelected: { event in
+                    selectedEvent = event
+                    currentView = .eventDetail
+                },
+                onCreateEvent: {
+                    eventCreationScenario = nil
+                    showEventCreationSheet = true
+                }
+            )
+        }
+    }
+
     // MARK: - Tab Content
     
     @ViewBuilder
@@ -1005,130 +1307,202 @@ struct AuthenticatedView: View {
         )
     }
 
-    private func handleDeepLinkNavigation(_ path: [String]) {
-        guard !path.isEmpty else { return }
+    private func directInviteRecipientContext(for event: Event) -> DirectInviteRecipientContext {
+        directInviteProductionOwner.context(
+            eventId: event.id,
+            actorId: userId
+        )
+    }
 
-        let route = path[0]
-        let identifier = path.count > 1 ? path[1] : nil
-        let subroute = path.count > 2 ? path[2] : nil
-        let detailId = path.count > 3 ? path[3] : nil
+    private func saveInformationNotificationPreference(
+        eventId: String,
+        preference: EventNotificationPreference
+    ) async -> Bool {
+        let owner = DatabaseEventNotificationPreferenceRepository(
+            database: RepositoryProvider.shared.database
+        )
+        let operationKey = OperationKey(
+            subject: OperationSubjectEventNotification(eventId: eventId, userId: userId),
+            action: .saveEventPreference,
+            target: OperationTargetUser(userId: userId),
+            operationId: UUID().uuidString
+        )
 
-        switch (route, identifier, subroute) {
-        case ("home", nil, nil):
-            invitationLandingEventId = nil
+        do {
+            _ = try await owner.save(operationKey: operationKey, preference: preference)
+            let storedRecord = try await owner.get(eventId: eventId, userId: userId)
+            return storedRecord?.preference == preference
+        } catch {
+            return false
+        }
+    }
+
+    /// R1 has no typed leave-event owner yet. Keeping the callback absent makes
+    /// the capability-driven control non-interactive instead of mutating SQL
+    /// directly from SwiftUI.
+    private func informationLeaveOwner(for _: Event) -> (() -> Void)? {
+        nil
+    }
+
+    private func addInformationEventToCalendar(_ event: Event) {
+        let database = RepositoryProvider.shared.database
+        let participantId = userId
+        Task {
+            let owner = CalendarService(
+                database: database,
+                platformCalendarService: PlatformCalendarServiceImpl()
+            )
+            _ = try? await owner.addToNativeCalendar(
+                eventId: event.id,
+                participantId: participantId
+            )
+        }
+    }
+
+    private func openInformationMaps(for event: Event) {
+        guard let location = RepositoryProvider.shared.database.eventWeatherQueries
+            .selectResolvedLocationByEvent(eventId: event.id)
+            .executeAsOneOrNull()
+        else { return }
+
+        var components = URLComponents()
+        components.scheme = "https"
+        components.host = "maps.apple.com"
+        components.path = "/"
+        components.queryItems = [
+            URLQueryItem(name: "ll", value: "\(location.latitude),\(location.longitude)"),
+            URLQueryItem(name: "q", value: location.label)
+        ]
+        if let url = components.url { openURL(url) }
+    }
+
+    private func openInformationWeather(for event: Event) {
+        guard let location = RepositoryProvider.shared.database.eventWeatherQueries
+            .selectResolvedLocationByEvent(eventId: event.id)
+            .executeAsOneOrNull(),
+              let url = URL(
+                string: "weather://?latitude=\(location.latitude)&longitude=\(location.longitude)"
+              )
+        else { return }
+        openURL(url)
+    }
+
+    private func deleteInformationEventThroughOwner(_ event: Event) {
+        let owner = EventDetailViewModel(eventId: event.id, userId: userId)
+        informationDeleteOwner = owner
+        Task {
+            let deleted = await owner.deleteEventAndWait()
+            guard deleted else { return }
+            selectedEvent = nil
+            currentView = .eventList
+            informationDeleteOwner = nil
+        }
+    }
+
+    private func handleDeepLinkNavigation(_ route: IosRoute) {
+        invitationLandingEventId = nil
+        switch route {
+        case .topLevel(.home):
             selectedTab = .home
             currentView = .eventList
-        case ("profile", nil, nil):
-            invitationLandingEventId = nil
+        case .topLevel(.profile):
             selectedTab = .profile
-        case ("settings", _, _):
-            invitationLandingEventId = nil
+        case .topLevel(.settings):
             selectedTab = .home
             currentView = .settings
-        case ("notification_preferences", _, _):
-            invitationLandingEventId = nil
+        case .topLevel(.notificationPreferences):
             selectedTab = .home
             currentView = .notificationPreferences
-        case ("notifications", _, _):
-            invitationLandingEventId = nil
+        case .topLevel(.notifications):
             selectedTab = .home
             currentView = .notifications
-        case ("leaderboard", _, _):
-            invitationLandingEventId = nil
+        case .topLevel(.leaderboard):
             selectedTab = .home
             currentView = .leaderboard
-        case ("organizer_dashboard", _, _):
-            invitationLandingEventId = nil
+        case .topLevel(.organizerDashboard):
             selectedTab = .home
             currentView = .organizerDashboard
-        case ("event", "create", _):
-            invitationLandingEventId = nil
+        case .eventCreate:
             selectedTab = .home
             eventCreationScenario = nil
-            currentView = .eventCreation
-            showEventCreationSheet = true
-        case ("event", let eventId?, nil):
-            invitationLandingEventId = nil
-            navigateToEvent(eventId: eventId, destination: .eventDetail)
-        case ("event", let eventId?, "poll"):
-            invitationLandingEventId = nil
-            navigateToEvent(eventId: eventId, destination: .pollVoting)
-        case ("event", let eventId?, "poll_results"):
-            invitationLandingEventId = nil
-            navigateToEvent(eventId: eventId, destination: .pollResults)
-        case ("event", let eventId?, "participants"):
-            invitationLandingEventId = nil
-            navigateToEvent(eventId: eventId, destination: .participantManagement)
-        case ("event", let eventId?, "scenarios"):
-            invitationLandingEventId = nil
-            navigateToEvent(eventId: eventId, destination: .scenarioList)
-        case ("event", let eventId?, "scenarios_compare"):
-            invitationLandingEventId = nil
-            navigateToEvent(eventId: eventId, destination: .scenarioComparison)
-        case ("event", let eventId?, "scenarios_manage"):
-            invitationLandingEventId = nil
-            navigateToEvent(eventId: eventId, destination: .scenarioManagement)
-        case ("event", let eventId?, "scenario"):
-            invitationLandingEventId = nil
-            selectedScenarioId = detailId
-            navigateToEvent(eventId: eventId, destination: .scenarioDetail)
-        case ("event", let eventId?, "budget"):
-            invitationLandingEventId = nil
-            selectedBudget = nil
-            navigateToEvent(eventId: eventId, destination: detailId == nil ? .budgetOverview : .budgetDetail)
-        case ("event", let eventId?, "meetings"):
-            invitationLandingEventId = nil
-            navigateToEvent(eventId: eventId, destination: .meetingList)
-        case ("event", let eventId?, "comments"):
-            invitationLandingEventId = nil
-            selectedCommentSection = .general
-            navigateToEvent(eventId: eventId, destination: .comments)
-        case ("event", let eventId?, "invite"):
-            invitationLandingEventId = nil
-            navigateToEvent(eventId: eventId, destination: .invitationShare)
-        case ("event", let eventId?, "transport"):
-            invitationLandingEventId = nil
-            navigateToEvent(eventId: eventId, destination: .transportPlanning)
-        case ("event", let eventId?, "accommodation"):
-            invitationLandingEventId = nil
-            navigateToEvent(eventId: eventId, destination: .accommodation)
-        case ("event", let eventId?, "meals"):
-            invitationLandingEventId = nil
-            navigateToEvent(eventId: eventId, destination: .mealPlanning)
-        case ("event", let eventId?, "equipment"):
-            invitationLandingEventId = nil
-            navigateToEvent(eventId: eventId, destination: .equipmentChecklist)
-        case ("event", let eventId?, "activities"):
-            invitationLandingEventId = nil
-            navigateToEvent(eventId: eventId, destination: .activityPlanning)
-        case ("event", let eventId?, "payment"):
-            invitationLandingEventId = nil
-            navigateToEvent(eventId: eventId, destination: .paymentPot)
-        case ("event", let eventId?, "tricount"):
-            invitationLandingEventId = nil
-            navigateToEvent(eventId: eventId, destination: .tricount)
-        case ("event", let eventId?, "photos"):
-            invitationLandingEventId = nil
-            navigateToEvent(eventId: eventId, destination: .eventPhotos)
-        case ("meeting", let meetingId?, _):
-            invitationLandingEventId = nil
-            navigateToMeeting(meetingId: meetingId)
-        case ("invite", let token?, _):
-            if let eventId = InvitationTokenCodec.eventId(fromInvitationCode: token) {
-                invitationLandingEventId = eventId
-                navigateToEvent(eventId: eventId, destination: .eventDetail)
+            if invitationExperienceRolloutEnabled {
+                showEventCreationSheet = false
+                currentView = .eventCreation
             } else {
-                invitationLandingEventId = nil
-                selectedTab = .home
                 currentView = .eventList
+                showEventCreationSheet = true
             }
-        default:
-            break
+        case .event(.detail(let eventId)):
+            navigateInvitationDeepLink(eventId: eventId, action: .showDetails)
+        case .event(.pollVoting(let eventId)):
+            navigateInvitationDeepLink(eventId: eventId, route: .poll, intent: .mutate)
+        case .event(.pollResults(let eventId)):
+            navigateInvitationDeepLink(eventId: eventId, route: .poll, intent: .read)
+        case .event(.participants(let eventId)):
+            navigateInvitationDeepLink(eventId: eventId, route: .participants, intent: .read)
+        case .event(.information(let eventId)):
+            navigateInvitationDeepLink(eventId: eventId, route: .eventInformation, intent: .read)
+        case .event(.archive(let eventId)):
+            navigateInvitationDeepLink(eventId: eventId, route: .archiveDetail, intent: .read)
+        case .event(.scenarioList(let eventId)):
+            navigateInvitationDeepLink(eventId: eventId, destination: .scenarioList)
+        case .event(.scenarioComparison(let eventId)):
+            navigateInvitationDeepLink(eventId: eventId, destination: .scenarioComparison)
+        case .event(.scenarioManagement(let eventId)):
+            navigateInvitationDeepLink(eventId: eventId, destination: .scenarioManagement)
+        case .event(.scenarioDetail(let eventId, let scenarioId)):
+            selectedScenarioId = scenarioId
+            navigateInvitationDeepLink(eventId: eventId, destination: .scenarioDetail)
+        case .event(.budgetOverview(let eventId)):
+            selectedBudget = nil
+            navigateInvitationDeepLink(eventId: eventId, destination: .budgetOverview)
+        case .event(.budgetDetail(let eventId, _)):
+            selectedBudget = nil
+            navigateInvitationDeepLink(eventId: eventId, destination: .budgetDetail)
+        case .event(.meetingList(let eventId)):
+            navigateInvitationDeepLink(eventId: eventId, destination: .meetingList)
+        case .event(.comments(let eventId)):
+            selectedCommentSection = .general
+            navigateInvitationDeepLink(eventId: eventId, destination: .comments)
+        case .event(.invitationShare(let eventId)):
+            navigateInvitationDeepLink(eventId: eventId, destination: .invitationShare)
+        case .event(.transport(let eventId)):
+            navigateInvitationDeepLink(eventId: eventId, destination: .transportPlanning)
+        case .event(.accommodation(let eventId)):
+            navigateInvitationDeepLink(eventId: eventId, destination: .accommodation)
+        case .event(.meals(let eventId)):
+            navigateInvitationDeepLink(eventId: eventId, destination: .mealPlanning)
+        case .event(.equipment(let eventId)):
+            navigateInvitationDeepLink(eventId: eventId, destination: .equipmentChecklist)
+        case .event(.activities(let eventId)):
+            navigateInvitationDeepLink(eventId: eventId, destination: .activityPlanning)
+        case .event(.payment(let eventId)):
+            navigateInvitationDeepLink(eventId: eventId, destination: .paymentPot)
+        case .event(.tricount(let eventId)):
+            navigateInvitationDeepLink(eventId: eventId, destination: .tricount)
+        case .event(.photos(let eventId)):
+            navigateInvitationDeepLink(eventId: eventId, destination: .eventPhotos)
+        case .meetingDetail(let meetingId):
+            navigateToMeeting(meetingId: meetingId)
+        case .invite(let token):
+            Task {
+                await resolveInvitationDeepLink(token: token)
+            }
         }
 
         deepLinkService.clearPendingInvite()
         deepLinkService.clearPendingDeepLink()
         deepLinkService.resetNavigation()
+    }
+
+    private func resolveInvitationDeepLink(token: String) async {
+        guard let eventId = await invitationDeepLinkResolver.resolve(token: token) else {
+            selectedTab = .home
+            currentView = .eventList
+            return
+        }
+        invitationLandingEventId = eventId
+        navigateInvitationDeepLink(eventId: eventId, action: .showDetails)
     }
 
     private func navigateToEvent(eventId: String, destination: AppView) {
@@ -1146,6 +1520,227 @@ struct AuthenticatedView: View {
         } else {
             currentView = destination
         }
+    }
+
+    private func navigateInvitationDeepLink(
+        eventId: String,
+        route: InvitationExperienceRouteCapability,
+        intent: InvitationExperienceDeepLinkIntent
+    ) {
+        guard let event = repository.getEvent(id: eventId) else {
+            selectedEvent = nil
+            selectedTab = .home
+            currentView = .eventList
+            return
+        }
+        routeInvitationExperience(
+            InvitationExperienceRouteRequestDeepLink(target: route, intent: intent),
+            for: event
+        )
+    }
+
+    private func navigateInvitationDeepLink(
+        eventId: String,
+        action: InvitationExperienceCanvasAction
+    ) {
+        guard let event = repository.getEvent(id: eventId) else {
+            selectedEvent = nil
+            selectedTab = .home
+            currentView = .eventList
+            return
+        }
+        routeInvitationExperience(
+            InvitationExperienceRouteRequestCanvasAction(action: action),
+            for: event
+        )
+    }
+
+    /// Preflights event-scoped legacy destinations through the typed invitation router.
+    /// A participants READ request supplies the common membership guard, while the
+    /// router redirects every PAST/FINALIZED event to Archive before any legacy route.
+    private func navigateInvitationDeepLink(
+        eventId: String,
+        destination: AppView
+    ) {
+        guard let event = repository.getEvent(id: eventId) else {
+            selectedEvent = nil
+            selectedTab = .home
+            currentView = .eventList
+            return
+        }
+        guard invitationExperienceRolloutEnabled else {
+            selectedEvent = event
+            selectedTab = .home
+            currentView = destination
+            return
+        }
+        let resolution = invitationExperienceRouter.resolve(
+            request: InvitationExperienceRouteRequestDeepLink(
+                target: .participants,
+                intent: .read
+            ),
+            context: invitationRouteContext(for: event)
+        )
+        selectedEvent = event
+        selectedTab = .home
+
+        if let resolved = resolution as? InvitationExperienceRouteResolutionDestination,
+           resolved.route == .archiveDetail {
+            currentView = .eventArchive
+        } else if resolution is InvitationExperienceRouteResolutionDestination ||
+                    resolution is InvitationExperienceRouteResolutionLocalDetails {
+            currentView = destination
+        } else {
+            currentView = .eventDetail
+        }
+    }
+
+    private func routeInvitationExperience(
+        _ request: any InvitationExperienceRouteRequest,
+        for event: Event
+    ) {
+        guard invitationExperienceRolloutEnabled else {
+            invitationExperienceLegacyFallback(for: event)
+            return
+        }
+        let resolution = invitationExperienceRouter.resolve(
+            request: request,
+            context: invitationRouteContext(for: event)
+        )
+        selectedEvent = event
+        selectedTab = .home
+
+        if let destination = resolution as? InvitationExperienceRouteResolutionDestination {
+            switch destination.route {
+            case .draftEditor:
+                selectedCreationBaseRevision = RepositoryProvider.shared.database.eventQueries
+                    .selectById(id: event.id)
+                    .executeAsOneOrNull()?
+                    .aggregateRevision
+                currentView = .eventCreation
+            case .poll:
+                if let deepLink = request as? InvitationExperienceRouteRequestDeepLink {
+                    currentView = deepLink.intent == .mutate ? .pollVoting : .pollResults
+                } else if let canvas = request as? InvitationExperienceRouteRequestCanvasAction,
+                          canvas.action == .submitVote {
+                    currentView = .pollVoting
+                } else {
+                    currentView = .pollResults
+                }
+            case .participants:
+                currentView = .eventAudience
+            case .organization:
+                currentView = .scenarioList
+            case .eventInformation:
+                currentView = .eventInformation
+            case .archiveDetail:
+                currentView = .eventArchive
+            default:
+                currentView = .eventDetail
+            }
+        } else if resolution is InvitationExperienceRouteResolutionLocalDetails {
+            currentView = .eventDetail
+        } else {
+            currentView = .eventDetail
+        }
+    }
+
+    private func invitationExperienceLegacyFallback(for event: Event) {
+        selectedEvent = event
+        selectedTab = .home
+        currentView = .eventDetail
+    }
+
+    @ViewBuilder
+    private func rolloutReadOnlyFallback(for event: Event) -> some View {
+        ProgressView()
+            .accessibilityLabel(String(localized: "common.loading"))
+            .task(id: event.id) {
+                invitationExperienceLegacyFallback(for: event)
+            }
+    }
+
+    private var invitationExperienceLegacyCreationFallback: some View {
+        ProgressView()
+            .accessibilityLabel(String(localized: "common.loading"))
+            .task {
+                currentView = .eventList
+                showEventCreationSheet = true
+            }
+    }
+
+    private func canvasAction(
+        for libraryAction: LibraryNextAction
+    ) -> InvitationExperienceCanvasAction {
+        switch libraryAction {
+        case .continueDraft:
+            .editDraft
+        case .submitVote:
+            .submitVote
+        case .viewPollResults:
+            .viewPollResults
+        case .compareOptions:
+            .compareOptions
+        case .continueOrganization:
+            .continueOrganization
+        default:
+            .showDetails
+        }
+    }
+
+    private func invitationRouteContext(for event: Event) -> InvitationExperienceRouteContext {
+        let now = Kotlinx_datetimeInstant.companion.fromEpochMilliseconds(
+            epochMilliseconds: Int64(Date().timeIntervalSince1970 * 1_000)
+        )
+        let participantRecords = repository.getParticipantRecords(eventId: event.id) ?? []
+        let currentRecord = participantRecords.first { record in
+            record.userId == userId || record.id == userId
+        }
+        let isOrganizer = event.organizerId == userId
+        let accessState = isOrganizer
+            ? ParticipantAccessState.companion.organizer(userId: userId)
+            : currentRecord.map {
+                ParticipantAccessMapper.shared.fromRepositoryRecord(record: $0)
+            } ?? ParticipantAccessState.companion.nonMember(userId: userId)
+        let viewerRole: ViewerRole = switch accessState.role {
+        case .organizer: .organizer
+        case .member: .member
+        case .nonMember: .nonMember
+        default: .nonMember
+        }
+        let accessRow = ParticipantManagementPresentationMapper.shared
+            .map(participants: [accessState])
+            .first
+        let hasMemberAccess = viewerRole == .organizer || viewerRole == .member
+        let canUsePoll = event.status == .polling && (
+            viewerRole == .organizer || (
+                viewerRole == .member &&
+                accessState.rsvp != .declined &&
+                accessState.rsvp != .unavailable &&
+                accessState.rsvp != .notApplicable
+            )
+        )
+
+        return InvitationExperienceRouteContext(
+            eventStatus: event.status,
+            temporalClass: EventTemporalClassifier.shared.classify(event: event, now: now),
+            viewerRole: viewerRole,
+            access: InvitationExperienceRouteAccess(
+                canEditDraft: isOrganizer && event.status == .draft,
+                canUsePoll: canUsePoll,
+                canReadPollResults: hasMemberAccess,
+                canOpenParticipants: hasMemberAccess,
+                canOpenOrganization: isOrganizer || accessRow?.canAccessOrganizationDetails == true
+            ),
+            installedRoutes: Set([
+                .draftEditor,
+                .poll,
+                .participants,
+                .organization,
+                .eventInformation,
+                .archiveDetail
+            ])
+        )
     }
 
     private func navigateToMeeting(meetingId: String) {
@@ -1342,6 +1937,9 @@ enum AppView {
     case eventList
     case eventCreation
     case eventDetail
+    case eventAudience
+    case eventInformation
+    case eventArchive
     case participantManagement
     case pollVoting
     case pollResults
@@ -1371,6 +1969,107 @@ enum AppView {
     case settings
     case leaderboard
     case organizerDashboard
+}
+
+private struct InvitationStudioPreview: Identifiable {
+    let id = UUID()
+    let snapshot: InvitationStudioPreviewSnapshot
+    let confirmCommit: () async -> Bool
+}
+
+private struct InvitationStudioPreviewSheet: View {
+    let preview: InvitationStudioPreview
+    @Environment(\.dismiss) private var dismiss
+    @State private var isCommitting = false
+    @State private var commitFailed = false
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        InvitationArtworkView(
+                            artwork: preview.snapshot.artwork,
+                            event: preview.snapshot.event
+                        )
+                        .frame(height: 220)
+                        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                        .overlay(alignment: .bottomLeading) {
+                            ZStack(alignment: .bottomLeading) {
+                                LinearGradient(
+                                    colors: [.clear, .black.opacity(0.78)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                                Text(preview.snapshot.event.title)
+                                    .font(.largeTitle.bold())
+                                    .foregroundStyle(.white)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                    .padding(20)
+                            }
+                        }
+
+                        Text(preview.snapshot.event.description_)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                            .invitationAccessibilityIdentifier("eventStudioPreviewDescription")
+
+                        LabeledContent(
+                            String(localized: "events.status.date_confirmed"),
+                            value: previewDate
+                        )
+                        .invitationAccessibilityIdentifier("eventStudioPreviewDate")
+
+                        LabeledContent(
+                            String(localized: "events.location"),
+                            value: preview.snapshot.locationDisplayName
+                        )
+                        .invitationAccessibilityIdentifier("eventStudioPreviewLocation")
+
+                        LabeledContent(
+                            String(localized: "invitation.information.organizer"),
+                            value: preview.snapshot.hostDisplayName
+                        )
+                        .invitationAccessibilityIdentifier("eventStudioPreviewHost")
+                    }
+                    .invitationAccessibilityIdentifier("eventStudioPreviewArtwork")
+                }
+                .padding()
+            }
+            .navigationTitle(String(localized: "invitation.studio.preview"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(String(localized: "common.done")) {
+                        isCommitting = true
+                        Task {
+                            if await preview.confirmCommit() {
+                                dismiss()
+                            } else {
+                                isCommitting = false
+                                commitFailed = true
+                            }
+                        }
+                    }
+                    .disabled(isCommitting)
+                }
+            }
+        }
+        .alert(String(localized: "common.error"), isPresented: $commitFailed) {
+            Button(String(localized: "common.done"), role: .cancel) {}
+        } message: {
+            Text(String(localized: "common.error_generic"))
+        }
+    }
+
+    private var previewDate: String {
+        let rawDate = preview.snapshot.event.finalDate ??
+            preview.snapshot.event.proposedSlots.first?.start
+        guard let rawDate else {
+            return String(localized: "invitation.state.unavailable")
+        }
+        return InvitationEventMetadataProjection.localizedDate(for: rawDate)
+    }
 }
 
 private struct AccessDenied: View {
@@ -2003,7 +2702,7 @@ private enum Phase5PendingSync {
 }
 
 struct EventListView: View {
-    let repository: EventRepository
+    let repository: EventRepositoryInterface
     let onEventSelected: (Event) -> Void
     let onCreateEvent: () -> Void
     
@@ -2217,12 +2916,18 @@ struct EventCard: View {
 }
 
 struct EventDetailView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.openURL) private var openURL
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
 
     let event: Event
+    let artwork: any Artwork
     let repository: EventRepositoryInterface
     let userId: String
     let preparedCreationChecklist: [ChecklistItem]
+    let onCanvasAction: (InvitationExperienceCanvasAction) -> Void
     let onManageParticipants: () -> Void
     let onVote: () -> Void
     let onViewResults: () -> Void
@@ -2239,8 +2944,9 @@ struct EventDetailView: View {
     let onOpenComments: () -> Void
     let onOpenPhotos: () -> Void
     let onOpenInvitationShare: () -> Void
+    let invitationCanvasShareCapability: EventDetailInvitationShareCapability
+    let onShareServerIssuedInvitation: (EventDetailInvitationServerIssuedSharePayload) -> Void
     let isInvitationLanding: Bool
-    let onDismissInvitationLanding: () -> Void
     let onBack: () -> Void
 
     @State private var eventAISummary: EventSummary?
@@ -2259,49 +2965,117 @@ struct EventDetailView: View {
     @StateObject private var eventWeatherViewModel = EventWeatherViewModel()
 
     var body: some View {
-        ZStack {
-            WakeveTheme.ColorToken.pageBackground(for: colorScheme)
-                .ignoresSafeArea()
+        GeometryReader { viewport in
+            let context = canvasContext
+            let presentation = canvasPresentation(
+                context: context,
+                compactHeight: viewport.size.height < 700 || verticalSizeClass == .compact
+            )
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: WakeveTheme.Spacing.lg) {
-                    heroSection
-                    if isInvitationLanding {
-                        invitationLandingCard
-                    }
-                    metadataOverview
-                    if canShowWeatherContext {
-                        EventWeatherMapCard(state: eventWeatherViewModel.state)
-                    }
-                    anticipationPanel
-                    eventAISuggestionPanel
-                    urgentNextAction
-                    if canShowGroupReadiness {
-                        groupReadinessPanel
-                    }
-                    participantsPreview
-                    detailRows
-                    messagePreview
+            ZStack {
+                WakeveTheme.ColorToken.pageBackground(for: colorScheme)
+                    .ignoresSafeArea()
 
-                    Text(footerHint)
-                        .font(WakeveTheme.Typography.caption)
-                        .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
-                        .frame(maxWidth: .infinity)
-                        .multilineTextAlignment(.center)
-                        .padding(.top, WakeveTheme.Spacing.xs)
+                ScrollViewReader { scrollProxy in
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: WakeveTheme.Spacing.lg) {
+                            EventDetailInvitationCanvas(
+                                event: event,
+                                artwork: artwork,
+                                dateText: primaryDateText,
+                                organizerName: organizerDisplayName,
+                                presentation: presentation,
+                                safeAreaTop: viewport.safeAreaInsets.top,
+                                viewportWidth: viewport.size.width,
+                                menuActions: canvasMenuActions(
+                                    access: context.currentUserAccess,
+                                    interactionPolicy: presentation.interactionPolicy
+                                ),
+                                onBack: onBack,
+                                onShare: shareServerIssuedInvitation,
+                                onPrimaryAction: {
+                                    performCanvasAction(presentation.primaryAction, scrollProxy: scrollProxy)
+                                }
+                            )
+
+                            if isInvitationLanding,
+                               presentation.visibleSecondarySections.contains(.invitationLanding) {
+                                invitationLandingCard
+                                    .padding(.horizontal, WakeveTheme.Spacing.page)
+                            }
+
+                            if presentation.visibleSecondarySections.contains(.metadataOverview) {
+                                metadataOverview
+                                    .id(Self.progressiveDetailsAnchor)
+                                    .padding(.horizontal, WakeveTheme.Spacing.page)
+                            }
+
+                            if canShowWeatherContext,
+                               presentation.visibleSecondarySections.contains(.weather) {
+                                EventWeatherMapCard(state: eventWeatherViewModel.state)
+                                    .padding(.horizontal, WakeveTheme.Spacing.page)
+                            }
+
+                            if presentation.visibleSecondarySections.contains(.anticipation) {
+                                anticipationPanel
+                                    .padding(.horizontal, WakeveTheme.Spacing.page)
+                            }
+
+                            if presentation.visibleSecondarySections.contains(.aiReview) {
+                                eventAISuggestionPanel
+                                    .padding(.horizontal, WakeveTheme.Spacing.page)
+                            }
+
+                            if canShowGroupReadiness,
+                               presentation.visibleSecondarySections.contains(.readiness) {
+                                groupReadinessPanel
+                                    .padding(.horizontal, WakeveTheme.Spacing.page)
+                            }
+
+                            if presentation.visibleSecondarySections.contains(.participants) {
+                                participantsPreview(interactionPolicy: presentation.interactionPolicy)
+                                    .padding(.horizontal, WakeveTheme.Spacing.page)
+                            }
+
+                            if presentation.visibleSecondarySections.contains(.organizationDetails) {
+                                detailRows(interactionPolicy: presentation.interactionPolicy)
+                                    .padding(.horizontal, WakeveTheme.Spacing.page)
+                            }
+
+                            if presentation.visibleSecondarySections.contains(.messages) {
+                                messagePreview
+                                    .padding(.horizontal, WakeveTheme.Spacing.page)
+                            }
+
+                            Text(footerHint)
+                                .font(WakeveTheme.Typography.caption)
+                                .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                                .frame(maxWidth: .infinity)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, WakeveTheme.Spacing.page)
+                                .padding(.top, WakeveTheme.Spacing.xs)
+                        }
+                        .padding(.bottom, presentation.primaryActionPlacement == .persistentSafeArea ? 96 : 40)
+                    }
+                    .scrollIndicators(.hidden)
+                    .safeAreaInset(edge: .bottom, spacing: 0) {
+                        if presentation.primaryActionPlacement == .persistentSafeArea {
+                            EventDetailInvitationCanvasPersistentAction(
+                                presentation: presentation,
+                                action: {
+                                    performCanvasAction(
+                                        presentation.primaryAction,
+                                        scrollProxy: scrollProxy
+                                    )
+                                }
+                            )
+                        }
+                    }
                 }
-                .padding(.horizontal, WakeveTheme.Spacing.page)
-                .padding(.top, WakeveTheme.Spacing.md)
-                .padding(.bottom, 118)
+                .ignoresSafeArea(edges: .top)
             }
         }
         .toolbar(.hidden, for: .tabBar)
-        .safeAreaInset(edge: .top, spacing: 0) {
-            topControls
-        }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            bottomPrimaryAction
-        }
         .sheet(item: $moderationTarget) { target in
             ModerationActionSheet(target: target)
         }
@@ -2318,43 +3092,345 @@ struct EventDetailView: View {
         }
     }
 
-    private var heroSection: some View {
-        EventHeroCard(
-            title: event.title,
-            subtitle: subtitleText,
-            metadata: statusText,
-            gradient: eventHeroGradient
-        ) {
-            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
-                if let description = displayDescription {
-                    Text(description)
-                        .font(WakeveTheme.Typography.callout)
-                        .foregroundColor(.white.opacity(0.82))
-                        .lineSpacing(3)
-                        .lineLimit(3)
-                }
+    private static let progressiveDetailsAnchor = "eventDetailProgressiveDetails"
 
-                HStack(spacing: WakeveTheme.Spacing.sm) {
-                    EventDetailHeroMetric(
-                        systemImage: "person.2.fill",
-                        value: participantRangeText
-                    )
+    private func canvasPresentation(
+        context: EventDetailInvitationCanvasContextMapper.Output,
+        compactHeight: Bool
+    ) -> EventDetailInvitationCanvasPresentation {
+        EventDetailInvitationCanvasMapper().map(
+            EventDetailInvitationCanvasMapper.Input(
+                eventStatus: event.status,
+                hasRequiredSlots: !event.proposedSlots.isEmpty,
+                currentUserAccess: context.currentUserAccess,
+                currentUserVote: context.currentUserVote,
+                participantData: context.participantData,
+                responsibility: context.responsibility,
+                // Event Detail currently has no typed readiness destination. Failing
+                // closed prevents an inferred organization route from display copy.
+                readinessData: .unavailable,
+                availableActions: context.availableActions,
+                relevantSync: context.relevantSync,
+                shareCapability: invitationCanvasShareCapability,
+                heroImageState: canvasHeroImageState,
+                auxiliaryFreshness: .unavailable,
+                requestedSecondarySections: requestedCanvasSecondarySections(
+                    access: context.currentUserAccess
+                ),
+                primaryActionPlacement: compactHeight || dynamicTypeSize.isAccessibilitySize
+                    ? .persistentSafeArea
+                    : .inCanvas,
+                shareValidationContext: currentShareValidationContext
+            )
+        )
+    }
 
-                    EventDetailHeroMetric(
-                        systemImage: "calendar",
-                        value: primaryDateText
-                    )
-                }
+    private var currentShareValidationContext: EventDetailInvitationShareBinding? {
+        guard case .ready(let serverIssuedPayload) = invitationCanvasShareCapability,
+              let accessRevision = RepositoryProvider.shared.database.eventQueries
+                .selectById(id: event.id)
+                .executeAsOneOrNull()?
+                .aggregateRevision
+        else { return nil }
+        return EventDetailInvitationShareBinding(
+            eventId: event.id,
+            actorId: userId,
+            accessRevision: accessRevision,
+            capabilityId: serverIssuedPayload.binding.capabilityId
+        )
+    }
+
+    private func shareServerIssuedInvitation(
+        _ serverIssuedPayload: EventDetailInvitationServerIssuedSharePayload
+    ) {
+        guard case .ready(let currentPayload) = invitationCanvasShareCapability,
+              currentPayload.binding == serverIssuedPayload.binding,
+              let current = currentShareValidationContext,
+              serverIssuedPayload.binding.eventId == current.eventId,
+              serverIssuedPayload.binding.actorId == current.actorId,
+              serverIssuedPayload.binding.accessRevision == current.accessRevision,
+              serverIssuedPayload.binding.capabilityId == current.capabilityId
+        else { return }
+        onShareServerIssuedInvitation(serverIssuedPayload)
+    }
+
+    static let disconnectedSecureShareConfiguration: (
+        shareCapability: EventDetailInvitationShareCapability,
+        onShare: (EventDetailInvitationServerIssuedSharePayload) -> Void
+    ) = (
+        shareCapability: .hidden,
+        onShare: { _ in }
+    )
+
+    private var canvasContext: EventDetailInvitationCanvasContextMapper.Output {
+        let participantRecords = repository.getParticipantRecords(eventId: event.id) ?? []
+        let poll = repository.getPoll(eventId: event.id)
+        let proposedSlotIDs = Set(event.proposedSlots.map(\.id))
+        let votedSlotIDs: Set<String>
+        if let currentVotes = poll?.votes[userId] {
+            votedSlotIDs = Set(currentVotes.keys)
+        } else {
+            votedSlotIDs = []
+        }
+
+        let pendingSyncMetadata = RepositoryProvider.shared.database
+            .syncMetadataQueries
+            .selectPending()
+            .executeAsList()
+            .map {
+                EventDetailInvitationCanvasPendingSyncMetadata(
+                    entityType: $0.entityType,
+                    entityID: $0.entityId
+                )
             }
-            .overlay(alignment: .topTrailing) {
-                eventSymbol
-                    .font(.system(size: 76, weight: .black))
-                    .foregroundColor(.white.opacity(0.18))
-                    .rotationEffect(.degrees(-8))
-                    .offset(x: 16, y: -114)
+
+        return EventDetailInvitationCanvasContextMapper().map(
+            EventDetailInvitationCanvasContextMapper.Input(
+                eventStatus: event.status,
+                eventID: event.id,
+                organizerID: event.organizerId,
+                currentUserID: userId,
+                participantIDs: Set(event.participants),
+                participantRecords: participantRecords,
+                hasPollData: poll != nil,
+                proposedSlotIDs: proposedSlotIDs,
+                votedSlotIDs: votedSlotIDs,
+                pendingSyncMetadata: pendingSyncMetadata,
+                hasPendingPhase5AggregateSync: Phase5PendingSync.selectPending(eventId: event.id),
+                routableActions: [
+                    .submitVote,
+                    .viewPollResults,
+                    .compareOptions,
+                    .continueOrganization,
+                    .viewFinalDetails,
+                    .showAccessState,
+                    .showDetails
+                ]
+            )
+        )
+    }
+
+    private var canvasHeroImageState: EventDetailInvitationCanvasHeroImageState {
+        artwork is ArtworkNone ? .missing : .available
+    }
+
+    private func requestedCanvasSecondarySections(
+        access: EventDetailInvitationCanvasAccess
+    ) -> Set<EventDetailInvitationCanvasSecondarySection> {
+        var sections: Set<EventDetailInvitationCanvasSecondarySection> = [
+            .metadataOverview,
+            .anticipation,
+            .messages
+        ]
+
+        if isInvitationLanding {
+            sections.insert(.invitationLanding)
+        }
+        if canShowWeatherContext {
+            sections.insert(.weather)
+        }
+        if access == .organizer || access == .eligibleParticipant {
+            sections.formUnion([.aiReview, .participants, .organizationDetails])
+        }
+        if canShowGroupReadiness {
+            sections.insert(.readiness)
+        }
+        return sections
+    }
+
+    private var organizerDisplayName: String? {
+        let rawValue = event.organizerId.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !rawValue.isEmpty else { return nil }
+        if rawValue == userId {
+            return String(localized: "event.detail.canvas.organizer.you")
+        }
+        return canvasDisplayName(from: rawValue)
+    }
+
+    private func canvasMenuActions(
+        access: EventDetailInvitationCanvasAccess,
+        interactionPolicy: EventDetailInvitationCanvasInteractionPolicy
+    ) -> [EventDetailInvitationCanvasMenuAction] {
+        var actions: [EventDetailInvitationCanvasMenuAction] = []
+
+        if interactionPolicy == .readOnly {
+            actions.append(
+                EventDetailInvitationCanvasMenuAction(
+                    id: "reportEventAction",
+                    title: String(localized: "moderation.report_event"),
+                    systemImage: "exclamationmark.bubble"
+                ) {
+                    moderationTarget = ModerationActionTarget(
+                        type: .event,
+                        targetId: event.id,
+                        eventId: event.id,
+                        authorId: event.organizerId,
+                        displayName: String(localized: "moderation.report_event_context"),
+                        allowsBlock: false
+                    )
+                }
+            )
+            actions.append(
+                EventDetailInvitationCanvasMenuAction(
+                    id: "support",
+                    title: String(localized: "moderation.contact_support"),
+                    systemImage: "envelope.fill"
+                ) {
+                    guard let url = URL(string: "mailto:support@wakeve.app?subject=Wakeve%20abuse%20report") else {
+                        return
+                    }
+                    openURL(url)
+                }
+            )
+            return actions
+        }
+
+        if access == .organizer && event.status != .finalized {
+            actions.append(
+                EventDetailInvitationCanvasMenuAction(
+                    id: "participants",
+                    title: String(localized: "event.detail.menu.add_participants"),
+                    systemImage: "person.badge.plus",
+                    action: onManageParticipants
+                )
+            )
+        }
+        if event.status == .polling && (access == .organizer || access == .eligibleParticipant) {
+            actions.append(
+                EventDetailInvitationCanvasMenuAction(
+                    id: "results",
+                    title: String(localized: "event.detail.menu.view_results"),
+                    systemImage: "chart.bar.fill",
+                    action: onViewResults
+                )
+            )
+        }
+        if canAccessScenarioPlanning && event.status != .finalized &&
+            (access == .organizer || access == .eligibleParticipant) {
+            actions.append(
+                EventDetailInvitationCanvasMenuAction(
+                    id: "scenarios",
+                    title: String(localized: "event.detail.menu.organize_scenarios"),
+                    systemImage: "map.fill",
+                    action: onOrganize
+                )
+            )
+        }
+        if canAccessTransportPlanning && event.status != .finalized &&
+            (access == .organizer || access == .eligibleParticipant) {
+            actions.append(
+                EventDetailInvitationCanvasMenuAction(
+                    id: "transport",
+                    title: String(localized: "event.detail.menu.transport"),
+                    systemImage: "point.topleft.down.curvedto.point.bottomright.up.fill",
+                    action: onOpenTransport
+                )
+            )
+        }
+        if canShowOrganizationDashboard && event.status != .finalized {
+            actions.append(contentsOf: [
+                EventDetailInvitationCanvasMenuAction(
+                    id: "meetings",
+                    title: String(localized: "event.detail.menu.meetings"),
+                    systemImage: "video.fill",
+                    action: onOpenMeetings
+                ),
+                EventDetailInvitationCanvasMenuAction(
+                    id: "budget",
+                    title: String(localized: "event.detail.menu.budget"),
+                    systemImage: "eurosign.circle.fill",
+                    action: onOpenBudget
+                ),
+                EventDetailInvitationCanvasMenuAction(
+                    id: "payment",
+                    title: String(localized: "event.detail.menu.payment_pot"),
+                    systemImage: "creditcard.fill",
+                    action: onOpenPayment
+                ),
+                EventDetailInvitationCanvasMenuAction(
+                    id: "tricount",
+                    title: String(localized: "event.detail.menu.tricount"),
+                    systemImage: "link.circle.fill",
+                    action: onOpenTricount
+                )
+            ])
+        }
+
+        actions.append(
+            EventDetailInvitationCanvasMenuAction(
+                id: "reportEventAction",
+                title: String(localized: "moderation.report_event"),
+                systemImage: "exclamationmark.bubble"
+            ) {
+                moderationTarget = ModerationActionTarget(
+                    type: .event,
+                    targetId: event.id,
+                    eventId: event.id,
+                    authorId: event.organizerId,
+                    displayName: String(localized: "moderation.report_event_context"),
+                    allowsBlock: false
+                )
+            }
+        )
+        actions.append(
+            EventDetailInvitationCanvasMenuAction(
+                id: "support",
+                title: String(localized: "moderation.contact_support"),
+                systemImage: "envelope.fill"
+            ) {
+                guard let url = URL(string: "mailto:support@wakeve.app?subject=Wakeve%20abuse%20report") else {
+                    return
+                }
+                openURL(url)
+            }
+        )
+        return actions
+    }
+
+    private func performCanvasAction(
+        _ action: EventDetailInvitationCanvasAction,
+        scrollProxy: ScrollViewProxy
+    ) {
+        WakeveHaptics.selection()
+        switch action {
+        case .submitVote:
+            onCanvasAction(.submitVote)
+        case .viewPollResults:
+            onCanvasAction(.viewPollResults)
+        case .compareOptions, .continueOrganization:
+            onCanvasAction(
+                action == .compareOptions ? .compareOptions : .continueOrganization
+            )
+        case .viewFinalDetails, .showDetails:
+            scrollToProgressiveDetails(scrollProxy)
+        case .showAccessState:
+            scrollToProgressiveDetails(scrollProxy)
+        case .editDraft:
+            onCanvasAction(.editDraft)
+        }
+    }
+
+    private func scrollToProgressiveDetails(_ proxy: ScrollViewProxy) {
+        if reduceMotion {
+            proxy.scrollTo(Self.progressiveDetailsAnchor, anchor: .top)
+        } else {
+            withAnimation(WakeveTheme.Motion.standardSpring) {
+                proxy.scrollTo(Self.progressiveDetailsAnchor, anchor: .top)
             }
         }
-        .accessibilityElement(children: .combine)
+    }
+
+    private func canvasDisplayName(from rawValue: String) -> String {
+        let localPart = rawValue.split(separator: "@", maxSplits: 1).first.map(String.init) ?? rawValue
+        let words = localPart
+            .replacingOccurrences(of: ".", with: " ")
+            .replacingOccurrences(of: "_", with: " ")
+            .split(separator: " ")
+            .map { String($0).capitalized }
+        guard !words.isEmpty, localPart.count < 36 else {
+            return String(localized: "event.detail.canvas.organizer.generic")
+        }
+        return words.joined(separator: " ")
     }
 
     private var metadataOverview: some View {
@@ -2396,31 +3472,6 @@ struct EventDetailView: View {
                     }
                 }
 
-                VStack(spacing: WakeveTheme.Spacing.sm) {
-                    WakeveActionButton(
-                        invitationLandingPrimaryActionTitle,
-                        systemImage: invitationLandingPrimaryActionIcon,
-                        variant: .primary
-                    ) {
-                        WakeveHaptics.selection()
-                        if event.status == .polling {
-                            onVote()
-                        } else {
-                            onManageParticipants()
-                        }
-                    }
-                    .accessibilityIdentifier("eventInvitationLandingPrimaryAction")
-
-                    WakeveActionButton(
-                        String(localized: "event.detail.invite_landing.continue_action"),
-                        systemImage: "checkmark.circle.fill",
-                        variant: .neutral
-                    ) {
-                        WakeveHaptics.selection()
-                        onDismissInvitationLanding()
-                    }
-                    .accessibilityIdentifier("eventInvitationLandingContinueAction")
-                }
             }
         }
         .accessibilityIdentifier("eventInvitationLandingCard")
@@ -2430,9 +3481,7 @@ struct EventDetailView: View {
         EventDetailAnticipationCard(
             countdownTitle: countdownTitle,
             countdownSubtitle: countdownSubtitle,
-            items: anticipationItems,
-            returnHookTitle: String(localized: "event.detail.return_hook.share_action"),
-            returnHookMessage: returnHookMessage
+            items: anticipationItems
         )
     }
 
@@ -2471,19 +3520,6 @@ struct EventDetailView: View {
         }
     }
 
-    private var urgentNextAction: some View {
-        let action = nextAction
-
-        return EventDetailNextActionCard(
-            title: action.title,
-            subtitle: action.displaySubtitle,
-            systemImage: action.systemImage,
-            blockedReason: action.blockedReason,
-            isDisabled: action.isBlocked,
-            action: primaryAction
-        )
-    }
-
     private var groupReadinessPanel: some View {
         EventDetailReadinessCard(
             title: String(localized: "event.detail.readiness.title"),
@@ -2493,21 +3529,27 @@ struct EventDetailView: View {
         )
     }
 
-    private var participantsPreview: some View {
+    private func participantsPreview(
+        interactionPolicy: EventDetailInvitationCanvasInteractionPolicy
+    ) -> some View {
         EventDetailParticipantsPreview(
             title: String(localized: "event.detail.participants_title"),
             subtitle: participantPreviewSubtitle,
             initials: participantInitials,
+            interactionPolicy: interactionPolicy,
             action: onManageParticipants
         )
     }
 
-    private var detailRows: some View {
+    private func detailRows(
+        interactionPolicy: EventDetailInvitationCanvasInteractionPolicy
+    ) -> some View {
         EventDetailSectionCard(title: String(localized: "event.detail.section.organization")) {
             EventDetailActionRow(
                 icon: "calendar",
                 label: String(localized: "event.detail.organization.slots_label"),
                 value: slotOptionsSummary,
+                interactionPolicy: interactionPolicy,
                 action: event.status == .polling ? onVote : onViewResults
             )
 
@@ -2516,6 +3558,7 @@ struct EventDetailView: View {
                     icon: "map.fill",
                     label: String(localized: "event.detail.organization.scenario_label"),
                     value: scenarioPlanningText,
+                    interactionPolicy: interactionPolicy,
                     action: onOrganize
                 )
             }
@@ -2525,6 +3568,7 @@ struct EventDetailView: View {
                     icon: "point.topleft.down.curvedto.point.bottomright.up.fill",
                     label: String(localized: "event.detail.organization.transport_label"),
                     value: String(localized: "event.detail.organization.transport_value"),
+                    interactionPolicy: interactionPolicy,
                     action: onOpenTransport
                 )
             }
@@ -2534,6 +3578,7 @@ struct EventDetailView: View {
                     icon: "bed.double.fill",
                     label: String(localized: "event.detail.organization.accommodation_label"),
                     value: String(localized: "event.detail.organization.accommodation_value"),
+                    interactionPolicy: interactionPolicy,
                     action: onOpenAccommodation
                 )
 
@@ -2541,6 +3586,7 @@ struct EventDetailView: View {
                     icon: "fork.knife",
                     label: String(localized: "event.detail.organization.meals_label"),
                     value: String(localized: "event.detail.organization.meals_value"),
+                    interactionPolicy: interactionPolicy,
                     action: onOpenMeals
                 )
 
@@ -2548,6 +3594,7 @@ struct EventDetailView: View {
                     icon: "checklist",
                     label: String(localized: "event.detail.organization.equipment_label"),
                     value: String(localized: "event.detail.organization.equipment_value"),
+                    interactionPolicy: interactionPolicy,
                     action: onOpenEquipment
                 )
 
@@ -2555,6 +3602,7 @@ struct EventDetailView: View {
                     icon: "figure.socialdance",
                     label: String(localized: "event.detail.organization.activities_label"),
                     value: String(localized: "event.detail.organization.activities_value"),
+                    interactionPolicy: interactionPolicy,
                     action: onOpenActivities
                 )
 
@@ -2562,6 +3610,7 @@ struct EventDetailView: View {
                     icon: "bubble.left.and.bubble.right.fill",
                     label: String(localized: "event.detail.organization.comments_label"),
                     value: String(localized: "event.detail.organization.comments_value"),
+                    interactionPolicy: interactionPolicy,
                     action: onOpenComments
                 )
 
@@ -2569,6 +3618,7 @@ struct EventDetailView: View {
                     icon: "photo.on.rectangle.angled",
                     label: String(localized: "event.detail.organization.photos_label"),
                     value: String(localized: "event.detail.organization.photos_value"),
+                    interactionPolicy: interactionPolicy,
                     action: onOpenPhotos
                 )
 
@@ -2576,6 +3626,7 @@ struct EventDetailView: View {
                     icon: "square.and.arrow.up",
                     label: String(localized: "event.detail.organization.invitation_label"),
                     value: String(localized: "event.detail.organization.invitation_value"),
+                    interactionPolicy: interactionPolicy,
                     action: onOpenInvitationShare
                 )
             }
@@ -2585,6 +3636,7 @@ struct EventDetailView: View {
                     icon: "video.fill",
                     label: String(localized: "event.detail.organization.meetings_label"),
                     value: organizationDashboardValue(String(localized: "event.detail.organization.meetings_value")),
+                    interactionPolicy: interactionPolicy,
                     action: onOpenMeetings
                 )
 
@@ -2592,6 +3644,7 @@ struct EventDetailView: View {
                     icon: "eurosign.circle.fill",
                     label: String(localized: "event.detail.organization.budget_label"),
                     value: organizationDashboardValue(String(localized: "event.detail.organization.budget_value")),
+                    interactionPolicy: interactionPolicy,
                     action: onOpenBudget
                 )
 
@@ -2599,6 +3652,7 @@ struct EventDetailView: View {
                     icon: "creditcard.fill",
                     label: String(localized: "event.detail.organization.payment_pot_label"),
                     value: paymentPotSummaryValue(),
+                    interactionPolicy: interactionPolicy,
                     action: onOpenPayment
                 )
 
@@ -2606,6 +3660,7 @@ struct EventDetailView: View {
                     icon: "link.circle.fill",
                     label: String(localized: "event.detail.menu.tricount"),
                     value: tricountSummaryValue(),
+                    interactionPolicy: interactionPolicy,
                     action: onOpenTricount
                 )
             }
@@ -2734,135 +3789,6 @@ struct EventDetailView: View {
                     )
                 }
             }
-        }
-    }
-
-    private var topControls: some View {
-        LiquidGlassToolbar(title: String(localized: "event.detail.title"), subtitle: statusText) {
-            WakeveCircleButton(
-                systemImage: "chevron.left",
-                accessibilityLabel: String(localized: "common.back"),
-                variant: .light,
-                size: 40,
-                action: onBack
-            )
-        } trailing: {
-        Menu {
-            organizerMenuContent
-        } label: {
-                Image(systemName: "ellipsis")
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
-                    .frame(width: 40, height: 40)
-                    .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
-                    .clipShape(Circle())
-            }
-            .accessibilityLabel(String(localized: "events.organizer_options_accessibility"))
-        }
-        .padding(.horizontal, WakeveTheme.Spacing.page)
-        .padding(.top, WakeveTheme.Spacing.sm)
-        .padding(.bottom, WakeveTheme.Spacing.xs)
-        .background(
-            LinearGradient(
-                colors: [
-                    WakeveTheme.ColorToken.pageBackground(for: colorScheme),
-                    WakeveTheme.ColorToken.pageBackground(for: colorScheme).opacity(0)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea(edges: .top)
-        )
-    }
-
-    @ViewBuilder
-    private var organizerMenuContent: some View {
-        Button(action: onManageParticipants) {
-            Label(String(localized: "event.detail.menu.add_participants"), systemImage: "person.badge.plus")
-        }
-
-        Button(action: event.status == .polling ? onViewResults : onManageParticipants) {
-            Label(String(localized: "event.detail.menu.configure_poll"), systemImage: "timer")
-        }
-
-        if event.status == .polling {
-            Button(action: onViewResults) {
-                Label(String(localized: "event.detail.menu.view_results"), systemImage: "chart.bar.fill")
-            }
-        }
-
-        if canAccessScenarioPlanning {
-            Button(action: onOrganize) {
-                Label(String(localized: "event.detail.menu.organize_scenarios"), systemImage: "map.fill")
-            }
-        }
-
-        if canAccessTransportPlanning {
-            Button(action: onOpenTransport) {
-                Label(String(localized: "event.detail.menu.transport"), systemImage: "point.topleft.down.curvedto.point.bottomright.up.fill")
-            }
-        }
-
-        if canShowOrganizationDashboard {
-            Button(action: onOpenMeetings) {
-                Label(String(localized: "event.detail.menu.meetings"), systemImage: "video.fill")
-            }
-            Button(action: onOpenBudget) {
-                Label(String(localized: "event.detail.menu.budget"), systemImage: "eurosign.circle.fill")
-            }
-            Button(action: onOpenPayment) {
-                Label(String(localized: "event.detail.menu.payment_pot"), systemImage: "creditcard.fill")
-            }
-            Button(action: onOpenTricount) {
-                Label(String(localized: "event.detail.menu.tricount"), systemImage: "link.circle.fill")
-            }
-        }
-
-        Divider()
-
-        Button {
-            moderationTarget = ModerationActionTarget(
-                type: .event,
-                targetId: event.id,
-                eventId: event.id,
-                authorId: event.organizerId,
-                displayName: String(localized: "moderation.report_event_context"),
-                allowsBlock: false
-            )
-        } label: {
-            Label(String(localized: "moderation.report_event"), systemImage: "exclamationmark.bubble")
-        }
-        .accessibilityIdentifier("reportEventAction")
-
-        Link(
-            String(localized: "moderation.contact_support"),
-            destination: URL(string: "mailto:support@wakeve.app?subject=Wakeve%20abuse%20report")!
-        )
-    }
-
-    private var bottomPrimaryAction: some View {
-        VStack(spacing: 0) {
-            LinearGradient(
-                colors: [
-                    WakeveTheme.ColorToken.pageBackground(for: colorScheme).opacity(0),
-                    WakeveTheme.ColorToken.pageBackground(for: colorScheme)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .frame(height: 32)
-            .allowsHitTesting(false)
-
-            LiquidGlassButton(
-                primaryActionTitle,
-                systemImage: nextAction.systemImage,
-                variant: .primary,
-                isDisabled: primaryActionDisabled,
-                action: primaryAction
-            )
-            .padding(.horizontal, WakeveTheme.Spacing.page)
-            .padding(.bottom, WakeveTheme.Spacing.sm)
-            .background(WakeveTheme.ColorToken.pageBackground(for: colorScheme))
         }
     }
 
@@ -3024,16 +3950,6 @@ struct EventDetailView: View {
         return String(localized: "event.detail.invite_landing.default_subtitle")
     }
 
-    private var invitationLandingPrimaryActionTitle: String {
-        event.status == .polling
-            ? String(localized: "event.detail.invite_landing.vote_action")
-            : String(localized: "event.detail.invite_landing.view_invite_action")
-    }
-
-    private var invitationLandingPrimaryActionIcon: String {
-        event.status == .polling ? "checklist.checked" : "person.badge.plus"
-    }
-
     private var anticipationItems: [EventAnticipationItem] {
         var items: [EventAnticipationItem] = []
 
@@ -3063,21 +3979,6 @@ struct EventDetailView: View {
         }
 
         return Array(items.prefix(3))
-    }
-
-    private var returnHookMessage: String {
-        String(
-            format: String(localized: "event.detail.return_hook.message_format"),
-            event.title,
-            countdownTitle,
-            nextAction.title,
-            eventInviteURLString
-        )
-    }
-
-    private var eventInviteURLString: String {
-        let invitationCode = InvitationTokenCodec.invitationCode(forEventId: event.id)
-        return "https://wakeve.app/invite/\(invitationCode)"
     }
 
     private var participantRangeText: String {
@@ -3728,8 +4629,6 @@ private struct EventDetailAnticipationCard: View {
     let countdownTitle: String
     let countdownSubtitle: String
     let items: [EventAnticipationItem]
-    let returnHookTitle: String
-    let returnHookMessage: String
 
     var body: some View {
         WakeveContentCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
@@ -3764,30 +4663,6 @@ private struct EventDetailAnticipationCard: View {
                         EventAnticipationRow(item: item)
                     }
                 }
-
-                ShareLink(item: returnHookMessage) {
-                    HStack(spacing: WakeveTheme.Spacing.sm) {
-                        Image(systemName: "square.and.arrow.up")
-                            .font(.caption.weight(.bold))
-
-                        Text(returnHookTitle)
-                            .font(WakeveTheme.Typography.callout.weight(.semibold))
-
-                        Spacer(minLength: 0)
-
-                        Image(systemName: "message.fill")
-                            .font(.caption.weight(.bold))
-                    }
-                    .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
-                    .padding(.horizontal, WakeveTheme.Spacing.md)
-                    .frame(height: 48)
-                    .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
-                    .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
-                }
-                .simultaneousGesture(TapGesture().onEnded {
-                    WakeveHaptics.selection()
-                })
-                .accessibilityIdentifier("eventAnticipationReturnHookShare")
             }
         }
     }
@@ -4271,33 +5146,44 @@ private struct EventDetailParticipantsPreview: View {
     let title: String
     let subtitle: String
     let initials: [String]
+    let interactionPolicy: EventDetailInvitationCanvasInteractionPolicy
     let action: () -> Void
 
     var body: some View {
         WakeveGlassCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
-            Button(action: action) {
-                HStack(spacing: WakeveTheme.Spacing.md) {
-                    VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
-                        Text(title)
-                            .font(WakeveTheme.Typography.section)
-                            .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
-
-                        Text(subtitle)
-                            .font(WakeveTheme.Typography.callout)
-                            .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
-                            .lineLimit(2)
-                    }
-
-                    Spacer()
-
-                    ParticipantAvatarStack(initials: initials, size: 36, maxVisible: 4)
-
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.bold))
-                        .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+            if interactionPolicy == .interactive {
+                Button(action: action) {
+                    content
                 }
+                .buttonStyle(.plain)
+            } else {
+                content
             }
-            .buttonStyle(.plain)
+        }
+    }
+
+    private var content: some View {
+        HStack(spacing: WakeveTheme.Spacing.md) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+                Text(title)
+                    .font(WakeveTheme.Typography.section)
+                    .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+
+                Text(subtitle)
+                    .font(WakeveTheme.Typography.callout)
+                    .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                    .lineLimit(2)
+            }
+
+            Spacer()
+
+            ParticipantAvatarStack(initials: initials, size: 36, maxVisible: 4)
+
+            if interactionPolicy == .interactive {
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.bold))
+                    .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+            }
         }
     }
 }
@@ -4334,40 +5220,51 @@ private struct EventDetailActionRow: View {
     let icon: String
     let label: String
     let value: String
+    let interactionPolicy: EventDetailInvitationCanvasInteractionPolicy
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: WakeveTheme.Spacing.md) {
-                Image(systemName: icon)
-                    .font(.body.weight(.semibold))
-                    .foregroundColor(WakeveTheme.ColorToken.accent(for: colorScheme))
-                    .frame(width: 38, height: 38)
-                    .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
-                    .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.sm, style: .continuous))
+        if interactionPolicy == .interactive {
+            Button(action: action) {
+                content
+            }
+            .buttonStyle(.plain)
+        } else {
+            content
+        }
+    }
 
-                VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
-                    Text(label)
-                        .font(WakeveTheme.Typography.bodySemibold)
-                        .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.78)
+    private var content: some View {
+        HStack(spacing: WakeveTheme.Spacing.md) {
+            Image(systemName: icon)
+                .font(.body.weight(.semibold))
+                .foregroundColor(WakeveTheme.ColorToken.accent(for: colorScheme))
+                .frame(width: 38, height: 38)
+                .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.sm, style: .continuous))
 
-                    Text(value)
-                        .font(WakeveTheme.Typography.callout)
-                        .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
-                        .lineLimit(2)
-                }
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+                Text(label)
+                    .font(WakeveTheme.Typography.bodySemibold)
+                    .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
 
-                Spacer(minLength: WakeveTheme.Spacing.xs)
+                Text(value)
+                    .font(WakeveTheme.Typography.callout)
+                    .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                    .lineLimit(2)
+            }
 
+            Spacer(minLength: WakeveTheme.Spacing.xs)
+
+            if interactionPolicy == .interactive {
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.bold))
                     .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
             }
-            .padding(.vertical, WakeveTheme.Spacing.sm)
         }
-        .buttonStyle(.plain)
+        .padding(.vertical, WakeveTheme.Spacing.sm)
     }
 }
 

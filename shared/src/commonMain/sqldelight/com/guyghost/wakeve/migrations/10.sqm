@@ -1,0 +1,74 @@
+CREATE TABLE server_artwork_reference (
+    event_id TEXT PRIMARY KEY NOT NULL REFERENCES event(id) ON DELETE CASCADE,
+    asset_id TEXT NOT NULL,
+    asset_revision INTEGER NOT NULL CHECK (asset_revision > 0),
+    bind_operation_id TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL
+);
+
+CREATE INDEX server_artwork_reference_asset_idx
+ON server_artwork_reference(asset_id, asset_revision);
+
+CREATE TABLE server_artwork_reference_operation (
+    operation_id TEXT PRIMARY KEY NOT NULL,
+    action TEXT NOT NULL CHECK (action IN ('BIND', 'RELEASE')),
+    event_id TEXT NOT NULL,
+    asset_id TEXT NOT NULL,
+    asset_revision INTEGER NOT NULL CHECK (asset_revision > 0),
+    result_kind TEXT NOT NULL CHECK (result_kind IN ('BOUND', 'RETAINED', 'FINAL_RELEASE')),
+    reference_count INTEGER,
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE server_artwork_release_outbox (
+    asset_id TEXT NOT NULL,
+    asset_revision INTEGER NOT NULL CHECK (asset_revision > 0),
+    release_operation_id TEXT NOT NULL UNIQUE,
+    status TEXT NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'DELIVERED')),
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (asset_id, asset_revision)
+);
+
+-- Preserve already-authorized server artwork across the mixed-version
+-- rollout. The migration operation id is deterministic and never grants a new
+-- asset capability; it mirrors the validated event_artwork row only.
+INSERT INTO server_artwork_reference(
+    event_id, asset_id, asset_revision, bind_operation_id, created_at
+)
+SELECT
+    event_id,
+    server_asset_id,
+    asset_revision,
+    'migration-server-artwork:' || event_id,
+    updated_at
+FROM event_artwork
+WHERE kind = 'STRUCTURED'
+  AND source_kind = 'SERVER_ASSET'
+  AND server_asset_id IS NOT NULL
+  AND asset_revision IS NOT NULL;
+
+INSERT INTO server_artwork_reference_operation(
+    operation_id, action, event_id, asset_id, asset_revision,
+    result_kind, reference_count, created_at
+)
+SELECT
+    'migration-server-artwork:' || event_id,
+    'BIND',
+    event_id,
+    server_asset_id,
+    asset_revision,
+    'BOUND',
+    (
+        SELECT COUNT(*)
+        FROM event_artwork AS sibling
+        WHERE sibling.kind = 'STRUCTURED'
+          AND sibling.source_kind = 'SERVER_ASSET'
+          AND sibling.server_asset_id = event_artwork.server_asset_id
+          AND sibling.asset_revision = event_artwork.asset_revision
+    ),
+    updated_at
+FROM event_artwork
+WHERE kind = 'STRUCTURED'
+  AND source_kind = 'SERVER_ASSET'
+  AND server_asset_id IS NOT NULL
+  AND asset_revision IS NOT NULL;

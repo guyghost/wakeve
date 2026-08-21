@@ -43,11 +43,11 @@ final class ParityDeepLinkContractTests: XCTestCase {
             ("wakeve://event/event-1/invite", .invitationShare(eventId: "event-1"), ["event", "event-1", "invite"])
         ]
 
-        for (rawURL, expected, expectedPath) in cases {
+        for (rawURL, expected, _) in cases {
             let url = try XCTUnwrap(URL(string: rawURL))
             XCTAssertEqual(service.parseDeepLink(url), expected, rawURL)
             XCTAssertTrue(service.handleDeepLink(url), rawURL)
-            XCTAssertEqual(service.navigationPath, expectedPath, rawURL)
+            XCTAssertEqual(service.navigationRoute, expected.route, rawURL)
             service.resetNavigation()
             service.clearPendingDeepLink()
         }
@@ -73,11 +73,11 @@ final class ParityDeepLinkContractTests: XCTestCase {
             ("https://wakeve.app/organizer_dashboard", .organizerDashboard, ["organizer_dashboard"])
         ]
 
-        for (rawURL, expected, expectedPath) in cases {
+        for (rawURL, expected, _) in cases {
             let url = try XCTUnwrap(URL(string: rawURL))
             XCTAssertEqual(service.parseDeepLink(url), expected, rawURL)
             XCTAssertTrue(service.handleDeepLink(url), rawURL)
-            XCTAssertEqual(service.navigationPath, expectedPath, rawURL)
+            XCTAssertEqual(service.navigationRoute, expected.route, rawURL)
             service.resetNavigation()
             service.clearPendingDeepLink()
         }
@@ -98,7 +98,7 @@ final class ParityDeepLinkContractTests: XCTestCase {
             let url = try XCTUnwrap(URL(string: rawURL))
             XCTAssertNil(service.parseDeepLink(url), rawURL)
             XCTAssertFalse(service.handleDeepLink(url), rawURL)
-            XCTAssertTrue(service.navigationPath.isEmpty, rawURL)
+            XCTAssertNil(service.navigationRoute, rawURL)
         }
     }
 }

@@ -3,6 +3,8 @@ package com.guyghost.wakeve.presentation.statemachine
 import com.guyghost.wakeve.access.ParticipantAccessMapper
 import com.guyghost.wakeve.confirmation.ConfirmationClock
 import com.guyghost.wakeve.confirmation.SystemConfirmationClock
+import com.guyghost.wakeve.invitationexperience.EventTemporalClassifier
+import com.guyghost.wakeve.invitationexperience.TemporalClass
 import com.guyghost.wakeve.models.Coordinates
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.EventType
@@ -335,6 +337,16 @@ class EventManagementStateMachine(
         // Guard: FINALIZED events cannot be deleted
         if (event.status == EventStatus.FINALIZED) {
             val errorMsg = "Cannot delete a finalized event"
+            updateState { it.copy(isLoading = false, error = errorMsg) }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMsg))
+            return
+        }
+
+        // Guard: historical events are Archive records even if an older client left
+        // their lifecycle in a non-finalized state. The owner computes this from
+        // structured bounds and its trusted clock; UI visibility is not authority.
+        if (EventTemporalClassifier.classify(event, confirmationClock.now()) == TemporalClass.PAST) {
+            val errorMsg = "Cannot delete a past event"
             updateState { it.copy(isLoading = false, error = errorMsg) }
             emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMsg))
             return

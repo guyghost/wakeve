@@ -922,6 +922,7 @@ class EventManagementStateMachineDraftUpdatesTest {
             loadEventsUseCase = loadEventsUseCase,
             createEventUseCase = createEventUseCase,
             eventRepository = repository,
+            confirmationClock = { kotlinx.datetime.Instant.parse("2025-12-10T00:00:00Z") },
             scope = scope
         )
 
@@ -1070,6 +1071,7 @@ class EventManagementStateMachineDraftUpdatesTest {
             loadEventsUseCase = loadEventsUseCase,
             createEventUseCase = createEventUseCase,
             eventRepository = repository,
+            confirmationClock = { kotlinx.datetime.Instant.parse("2025-12-10T00:00:00Z") },
             scope = scope
         )
 
@@ -1129,6 +1131,7 @@ class EventManagementStateMachineDraftUpdatesTest {
                 loadEventsUseCase = loadEventsUseCase,
                 createEventUseCase = createEventUseCase,
                 eventRepository = repository,
+                confirmationClock = { kotlinx.datetime.Instant.parse("2025-12-10T00:00:00Z") },
                 scope = scope
             )
 

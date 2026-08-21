@@ -5,6 +5,11 @@ import com.guyghost.wakeve.confirmation.ConfirmationClock
 import com.guyghost.wakeve.confirmation.SystemConfirmationClock
 import com.guyghost.wakeve.confirmation.confirmationEffectKeys
 import com.guyghost.wakeve.database.WakeveDb
+import com.guyghost.wakeve.invitationexperience.EventTemporalClassifier
+import com.guyghost.wakeve.invitationexperience.DatabaseServerArtworkReferenceOwner
+import com.guyghost.wakeve.invitationexperience.ServerArtworkReference
+import com.guyghost.wakeve.invitationexperience.ServerArtworkReferenceResult
+import com.guyghost.wakeve.invitationexperience.TemporalClass
 import com.guyghost.wakeve.repository.EventRepositoryInterface
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventPlanningMode
@@ -67,6 +72,7 @@ class DatabaseEventRepository private constructor(
     private val confirmationReceiptQueries = db.confirmationReceiptQueries
     private val confirmationEffectOutboxQueries = db.confirmationEffectOutboxQueries
     private val confirmationLegacyClassificationQueries = db.confirmationLegacyClassificationQueries
+    private val invitationExperienceQueries = db.invitationExperienceQueries
     private val confirmationMutex = Mutex()
 
     override suspend fun createEvent(event: Event): Result<Event> {
@@ -75,73 +81,103 @@ class DatabaseEventRepository private constructor(
             // Determine isSample flag from ID prefix
             val isSample = com.guyghost.wakeve.sample.SampleEventFactory.isSampleEventId(event.id)
 
-            eventQueries.insertEvent(
-                id = event.id,
-                organizerId = event.organizerId,
-                title = event.title,
-                description = event.description,
-                status = event.status.name,
-                deadline = event.deadline,
-                createdAt = now,
-                updatedAt = now,
-                version = 1,
-                eventType = event.eventType.name,
-                eventTypeCustom = event.eventTypeCustom,
-                minParticipants = event.minParticipants?.toLong(),
-                maxParticipants = event.maxParticipants?.toLong(),
-                expectedParticipants = event.expectedParticipants?.toLong(),
-                isSample = if (isSample) 1L else 0L
-            )
-            eventQueries.updateEventPlanningMode(
-                planningMode = event.planningMode.name,
-                updatedAt = now,
-                id = event.id
-            )
-
-            // Insert organizer as participant
-            val organizerId = "org_${event.id}"
-            participantQueries.insertParticipant(
-                id = organizerId,
-                eventId = event.id,
-                userId = event.organizerId,
-                role = "ORGANIZER",
-                hasValidatedDate = 0,
-                joinedAt = now,
-                updatedAt = now
-            )
-
-            // Insert proposed time slots
-            event.proposedSlots.forEach { slot ->
-                timeSlotQueries.insertTimeSlot(
-                    id = slot.id,
-                    eventId = event.id,
-                    startTime = slot.start,
-                    endTime = slot.end,
-                    timezone = slot.timezone,
-                    proposedByParticipantId = null,
+            db.transaction {
+                eventQueries.insertEvent(
+                    id = event.id,
+                    organizerId = event.organizerId,
+                    title = event.title,
+                    description = event.description,
+                    status = event.status.name,
+                    deadline = event.deadline,
                     createdAt = now,
                     updatedAt = now,
-                    timeOfDay = slot.timeOfDay.name
+                    version = 1,
+                    eventType = event.eventType.name,
+                    eventTypeCustom = event.eventTypeCustom,
+                    minParticipants = event.minParticipants?.toLong(),
+                    maxParticipants = event.maxParticipants?.toLong(),
+                    expectedParticipants = event.expectedParticipants?.toLong(),
+                    isSample = if (isSample) 1L else 0L
+                )
+                val creationAuthorizationId = "event-create:${event.id}"
+                if (!authorizeAggregateWrite(
+                        event.id,
+                        1L,
+                        creationAuthorizationId,
+                        now
+                    )
+                ) error("Event creation aggregate writer is incompatible")
+                eventQueries.setEventPlanningModeWithinAggregateWrite(
+                    planningMode = event.planningMode.name,
+                    updatedAt = now,
+                    id = event.id
+                )
+                invitationExperienceQueries.clearAggregateWriteAuthorization(
+                    event.id,
+                    creationAuthorizationId
+                )
+                invitationExperienceQueries.upsertEventArtwork(
+                    event_id = event.id,
+                    kind = "NONE",
+                    structured_version = null,
+                    source_kind = null,
+                    preset_id = null,
+                    server_asset_id = null,
+                    canonical_https_url = null,
+                    asset_revision = null,
+                    alt_kind = null,
+                    alt_text = null,
+                    focal_x = null,
+                    focal_y = null,
+                    crop = null,
+                    legacy_remote_url = null,
+                    updated_at = now
+                )
+
+                // Insert organizer as participant.
+                participantQueries.insertParticipantWithAxes(
+                    id = "org_${event.id}",
+                    eventId = event.id,
+                    userId = event.organizerId,
+                    role = "ORGANIZER",
+                    hasValidatedDate = 0,
+                    rsvpState = "NOT_APPLICABLE",
+                    dateValidationState = "NOT_APPLICABLE",
+                    joinedAt = now,
+                    updatedAt = now
+                )
+
+                event.proposedSlots.forEach { slot ->
+                    timeSlotQueries.insertTimeSlot(
+                        id = slot.id,
+                        eventId = event.id,
+                        startTime = slot.start,
+                        endTime = slot.end,
+                        timezone = slot.timezone,
+                        proposedByParticipantId = null,
+                        createdAt = now,
+                        updatedAt = now,
+                        timeOfDay = slot.timeOfDay.name
+                    )
+                }
+
+                syncMetadataQueries.insertSyncMetadata(
+                    id = "sync_${event.id}",
+                    entityType = "event",
+                    entityId = event.id,
+                    operation = "CREATE",
+                    timestamp = now,
+                    synced = 0
                 )
             }
 
-            // Record creation in sync metadata
-            // Record sync change for offline tracking
+            // The aggregate is durable before the optional transport is notified.
             syncManager?.recordLocalChange(
                 table = "events",
                 operation = SyncOperation.CREATE,
                 recordId = event.id,
                 data = """{"id":"${event.id}","title":"${event.title}","description":"${event.description}","organizerId":"${event.organizerId}","deadline":"${event.deadline}"}""",
                 userId = event.organizerId
-            )
-
-            syncMetadataQueries.insertSyncMetadata(
-                id = "sync_${event.id}",
-                entityType = "event",
-                entityId = event.id,
-                operation = "CREATE",
-                timestamp = now,
-                synced = 0
             )
 
             Result.success(event)
@@ -156,6 +192,7 @@ class DatabaseEventRepository private constructor(
             val participants = participantQueries.selectByEventId(id).executeAsList()
             val timeSlots = timeSlotQueries.selectByEventId(id).executeAsList()
             val confirmedSlot = confirmedDateQueries.selectWithTimeslotDetails(id).executeAsOneOrNull()
+            val artwork = invitationExperienceQueries.selectArtworkByEventId(id).executeAsOneOrNull()
 
             Event(
                 id = eventRow.id,
@@ -182,7 +219,10 @@ class DatabaseEventRepository private constructor(
                 minParticipants = eventRow.minParticipants?.toInt(),
                 maxParticipants = eventRow.maxParticipants?.toInt(),
                 expectedParticipants = eventRow.expectedParticipants?.toInt(),
-                planningMode = parseEventPlanningMode(eventRow.planningMode)
+                heroImageUrl = artwork?.validatedRemoteArtworkUrl(),
+                planningMode = parseEventPlanningMode(eventRow.planningMode),
+                aggregateRevision = eventRow.aggregateRevision,
+                aggregateSchemaVersion = eventRow.aggregateSchemaVersion
             )
         } catch (e: Exception) {
             null
@@ -223,12 +263,14 @@ class DatabaseEventRepository private constructor(
         return try {
             val now = getCurrentUtcIsoString()
             val newParticipantId = "part_${eventId}_${participantId}"
-            participantQueries.insertParticipant(
+            participantQueries.insertParticipantWithAxes(
                 id = newParticipantId,
                 eventId = eventId,
                 userId = participantId,
                 role = "PARTICIPANT",
                 hasValidatedDate = 0,
+                rsvpState = "PENDING",
+                dateValidationState = "NOT_VALIDATED",
                 joinedAt = now,
                 updatedAt = now
             )
@@ -272,9 +314,14 @@ class DatabaseEventRepository private constructor(
                     id = participant.id,
                     eventId = participant.eventId,
                     userId = participant.userId,
-                    role = if (participant.role == "ORGANIZER") "ORGANIZER" else "MEMBER",
-                    rsvp = if (participant.hasValidatedDate == 1L) "ACCEPTED" else "PENDING",
-                    hasValidatedDate = participant.hasValidatedDate
+                    role = when (participant.role.uppercase()) {
+                        "ORGANIZER" -> "ORGANIZER"
+                        "MEMBER", "PARTICIPANT" -> "MEMBER"
+                        else -> participant.role.uppercase()
+                    },
+                    rsvp = participant.rsvpState,
+                    hasValidatedDate = participant.hasValidatedDate,
+                    dateValidation = participant.dateValidationState
                 )
             }
         } catch (e: Exception) {
@@ -342,25 +389,74 @@ class DatabaseEventRepository private constructor(
         return try {
             val isSample = com.guyghost.wakeve.sample.SampleEventFactory.isSampleEventId(event.id)
             val now = getCurrentUtcIsoString()
-            eventQueries.updateEvent(
-                title = event.title,
-                description = event.description,
-                status = event.status.name,
-                deadline = event.deadline,
-                updatedAt = now,
-                eventType = event.eventType.name,
-                eventTypeCustom = event.eventTypeCustom,
-                minParticipants = event.minParticipants?.toLong(),
-                maxParticipants = event.maxParticipants?.toLong(),
-                expectedParticipants = event.expectedParticipants?.toLong(),
-                isSample = if (isSample) 1L else 0L,
-                id = event.id
-            )
-            eventQueries.updateEventPlanningMode(
-                planningMode = event.planningMode.name,
-                updatedAt = now,
-                id = event.id
-            )
+            val committed = db.transactionWithResult {
+                val current = eventQueries.selectById(event.id).executeAsOneOrNull()
+                    ?: return@transactionWithResult false
+                if (current.aggregateSchemaVersion != SUPPORTED_AGGREGATE_SCHEMA_VERSION) {
+                    return@transactionWithResult false
+                }
+                if (
+                    event.aggregateSchemaVersion != SUPPORTED_AGGREGATE_SCHEMA_VERSION ||
+                    event.aggregateRevision != current.aggregateRevision
+                ) {
+                    return@transactionWithResult false
+                }
+                val hasCurrentProtectedCommit = invitationExperienceQueries
+                    .selectOperationReceiptsByEventId(event.id)
+                    .executeAsList()
+                    .any { receipt ->
+                        receipt.status == "COMMITTED" &&
+                            receipt.aggregate_revision >= current.aggregateRevision
+                    }
+                if (hasCurrentProtectedCommit) {
+                    return@transactionWithResult false
+                }
+                val expectedRevision = event.aggregateRevision + 1L
+                val authorizationId = "event-update:${event.id}:${event.aggregateRevision}"
+                if (!authorizeAggregateWrite(
+                        eventId = event.id,
+                        expectedRevision = event.aggregateRevision,
+                        operationId = authorizationId,
+                        now = now
+                    )
+                ) {
+                    return@transactionWithResult false
+                }
+                eventQueries.updateEventIfRevision(
+                    title = event.title,
+                    description = event.description,
+                    status = event.status.name,
+                    deadline = event.deadline,
+                    updatedAt = now,
+                    eventType = event.eventType.name,
+                    eventTypeCustom = event.eventTypeCustom,
+                    minParticipants = event.minParticipants?.toLong(),
+                    maxParticipants = event.maxParticipants?.toLong(),
+                    expectedParticipants = event.expectedParticipants?.toLong(),
+                    isSample = if (isSample) 1L else 0L,
+                    id = event.id,
+                    aggregateRevision = event.aggregateRevision
+                )
+                val updated = eventQueries.selectById(event.id).executeAsOneOrNull()
+                if (updated?.aggregateRevision != expectedRevision) {
+                    rollback(false)
+                }
+                eventQueries.setEventPlanningModeWithinAggregateWrite(
+                    planningMode = event.planningMode.name,
+                    updatedAt = now,
+                    id = event.id
+                )
+                invitationExperienceQueries.clearAggregateWriteAuthorization(
+                    event.id,
+                    authorizationId
+                )
+                true
+            }
+            if (!committed) {
+                return Result.failure(
+                    IllegalStateException("Event aggregate writer is incompatible or stale")
+                )
+            }
 
             // Record sync change
             syncManager?.recordLocalChange(
@@ -371,7 +467,8 @@ class DatabaseEventRepository private constructor(
                 userId = event.organizerId
             )
 
-            Result.success(event)
+            getEvent(event.id)?.let(Result.Companion::success)
+                ?: Result.failure(IllegalStateException("Event update was not readable after commit"))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -390,16 +487,18 @@ class DatabaseEventRepository private constructor(
         return try {
             val existingEvent = getEvent(event.id)
             if (existingEvent != null) {
-                // Event exists, update it
-                updateEvent(event)
+                val updateResult = updateEvent(event)
+                if (updateResult.isFailure) {
+                    return updateResult
+                }
 
                 // Also update time slots
                 syncTimeSlots(event.id, event.proposedSlots)
+                updateResult
             } else {
                 // Event doesn't exist, create it (createEvent already handles time slots)
                 createEvent(event)
             }
-            Result.success(event)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -448,6 +547,36 @@ class DatabaseEventRepository private constructor(
 
     override suspend fun updateEventStatus(id: String, status: EventStatus, finalDate: String?): Result<Boolean> {
         val event = getEvent(id) ?: return Result.failure(IllegalArgumentException("Event not found"))
+        val aggregate = eventQueries.selectById(id).executeAsOneOrNull()
+            ?: return Result.failure(IllegalArgumentException("Event not found"))
+        if (aggregate.aggregateSchemaVersion != SUPPORTED_AGGREGATE_SCHEMA_VERSION) {
+            return Result.failure(
+                IllegalStateException("Event aggregate writer is incompatible or stale")
+            )
+        }
+        if (
+            invitationExperienceQueries.selectArtworkByEventId(id).executeAsOneOrNull() != null &&
+            event.status == EventStatus.DRAFT &&
+            db.scenarioQueries.countByEventId(id).executeAsOne() > 0L
+        ) {
+            return Result.failure(
+                IllegalStateException(
+                    "Event lifecycle mutation requires an actor-bound expected revision"
+                )
+            )
+        }
+        val hasCurrentProtectedCommit = invitationExperienceQueries
+            .selectOperationReceiptsByEventId(id)
+            .executeAsList()
+            .any { receipt ->
+                receipt.status == "COMMITTED" &&
+                    receipt.aggregate_revision >= aggregate.aggregateRevision
+            }
+        if (hasCurrentProtectedCommit) {
+            return Result.failure(
+                IllegalStateException("Event aggregate writer requires a bound lifecycle command")
+            )
+        }
 
         return try {
             if (status == EventStatus.FINALIZED) {
@@ -465,6 +594,12 @@ class DatabaseEventRepository private constructor(
             }
 
             val now = getCurrentUtcIsoString()
+            val authorizationId = "event-status:$id:${aggregate.aggregateRevision}:${status.name}"
+            if (!authorizeAggregateWrite(id, aggregate.aggregateRevision, authorizationId, now)) {
+                return Result.failure(
+                    IllegalStateException("Event aggregate writer is incompatible or stale")
+                )
+            }
             eventQueries.updateEventStatus(
                 status = status.name,
                 updatedAt = now,
@@ -497,6 +632,7 @@ class DatabaseEventRepository private constructor(
                 timestamp = uniqueTimestamp,
                 synced = 0
             )
+            invitationExperienceQueries.clearAggregateWriteAuthorization(id, authorizationId)
 
             Result.success(true)
         } catch (e: Exception) {
@@ -634,6 +770,20 @@ class DatabaseEventRepository private constructor(
             retryable = false
         )
 
+        val authorizationId = "confirm-date:${command.operationId}"
+        if (!authorizeAggregateWrite(
+                command.eventId,
+                event.aggregateRevision,
+                authorizationId,
+                now
+            )
+        ) {
+            return confirmationFailure(
+                command.operationId,
+                EventManagementContract.ConfirmationFailureCode.LOCAL_PERSISTENCE_FAILED,
+                retryable = true
+            )
+        }
         val effectKeys = confirmationEffectKeys(command.eventId, command.slotId)
         confirmationReceiptQueries.insertReceipt(
             operationId = command.operationId,
@@ -672,6 +822,10 @@ class DatabaseEventRepository private constructor(
             operation = "UPDATE",
             timestamp = now,
             synced = 0
+        )
+        invitationExperienceQueries.clearAggregateWriteAuthorization(
+            command.eventId,
+            authorizationId
         )
         return EventManagementContract.ConfirmationResult.Committed(
             receipt = confirmationReceipt(command, now),
@@ -1255,11 +1409,62 @@ class DatabaseEventRepository private constructor(
         return try {
             val event = getEvent(eventId)
                 ?: return Result.failure(IllegalArgumentException("Event not found"))
+            if (
+                event.status == EventStatus.FINALIZED ||
+                EventTemporalClassifier.classify(event, confirmationClock.now()) == TemporalClass.PAST
+            ) {
+                return Result.failure(
+                    IllegalStateException("Historical event deletion requires the typed owner")
+                )
+            }
 
             val now = getCurrentUtcIsoString()
 
             // Use a transaction to ensure atomicity
             db.transaction {
+                val aggregate = eventQueries.selectById(eventId).executeAsOneOrNull()
+                    ?: error("Event not found during delete")
+                val deleteAuthorizationId = "delete-event:$eventId:${aggregate.aggregateRevision}"
+                if (!authorizeAggregateWrite(
+                        eventId,
+                        aggregate.aggregateRevision,
+                        deleteAuthorizationId,
+                        now
+                    )
+                ) {
+                    error("Event delete aggregate writer is incompatible or stale")
+                }
+                val serverArtworkReference = invitationExperienceQueries
+                    .selectServerArtworkReferenceByEventId(eventId)
+                    .executeAsOneOrNull()
+                    ?.let { persisted ->
+                        ServerArtworkReference(
+                            eventId = persisted.event_id,
+                            assetId = persisted.asset_id,
+                            assetRevision = persisted.asset_revision
+                        )
+                    }
+
+                // Explicitly clear invitation-experience ownership even on
+                // SQLite drivers where foreign_keys is disabled.
+                syncMetadataQueries.deleteDirectInviteSubjectsByEventId(eventId)
+                syncMetadataQueries.deleteEventNotificationSubjectsByEventId(eventId)
+                invitationExperienceQueries.deleteDirectInviteRecipientOutcomesByEventId(eventId)
+                invitationExperienceQueries.deleteDirectInviteBatchesByEventId(eventId)
+                invitationExperienceQueries.deleteEventNotificationPreferencesByEventId(eventId)
+                invitationExperienceQueries.deleteEventOperationReceiptsByEventId(eventId)
+                invitationExperienceQueries.deleteEventArtworkMigrationIssuesByEventId(eventId)
+                invitationExperienceQueries.deleteEventArtworkByEventId(eventId)
+                serverArtworkReference?.let { reference ->
+                    val release = DatabaseServerArtworkReferenceOwner(db).releaseInTransaction(
+                        reference = reference,
+                        operationId = "delete-event:$eventId:release-server-artwork"
+                    )
+                    if (release is ServerArtworkReferenceResult.Rejected) {
+                        error("Server artwork release rejected: ${release.error}")
+                    }
+                }
+
                 // 1. Delete votes (they reference participants and time slots)
                 voteQueries.deleteByEventId(eventId)
 
@@ -1409,6 +1614,9 @@ class DatabaseEventRepository private constructor(
                 com.guyghost.wakeve.sample.SampleEventFactory.SAMPLE_EVENT_ID
             ).executeAsOneOrNull()
             if (existing != null) {
+                db.transaction {
+                    installNoneArtworkIfMissing(existing.id, existing.updatedAt)
+                }
                 return Result.success(getEvent(existing.id)!!)
             }
 
@@ -1436,18 +1644,25 @@ class DatabaseEventRepository private constructor(
                     expectedParticipants = event.expectedParticipants?.toLong(),
                     isSample = 1L
                 )
+                installNoneArtworkIfMissing(event.id, event.updatedAt)
 
                 // 2. Insert participants
                 val participantIds = factory.createParticipantIds()
                 participantIds.forEachIndexed { index, userId ->
                     val role = if (index == 0) "ORGANIZER" else "PARTICIPANT"
                     val participantId = "sample-part-${index}"
-                    participantQueries.insertParticipant(
+                    participantQueries.insertParticipantWithAxes(
                         id = participantId,
                         eventId = event.id,
                         userId = userId,
                         role = role,
                         hasValidatedDate = 0,
+                        rsvpState = if (role == "ORGANIZER") "NOT_APPLICABLE" else "ACCEPTED",
+                        dateValidationState = if (role == "ORGANIZER") {
+                            "NOT_APPLICABLE"
+                        } else {
+                            "NOT_VALIDATED"
+                        },
                         joinedAt = now,
                         updatedAt = now
                     )
@@ -1506,6 +1721,50 @@ class DatabaseEventRepository private constructor(
         }
     }
 
+    private fun installNoneArtworkIfMissing(eventId: String, updatedAt: String) {
+        if (invitationExperienceQueries.selectArtworkByEventId(eventId).executeAsOneOrNull() != null) {
+            return
+        }
+        invitationExperienceQueries.upsertEventArtwork(
+            event_id = eventId,
+            kind = "NONE",
+            structured_version = null,
+            source_kind = null,
+            preset_id = null,
+            server_asset_id = null,
+            canonical_https_url = null,
+            asset_revision = null,
+            alt_kind = null,
+            alt_text = null,
+            focal_x = null,
+            focal_y = null,
+            crop = null,
+            legacy_remote_url = null,
+            updated_at = updatedAt
+        )
+    }
+
+    private fun authorizeAggregateWrite(
+        eventId: String,
+        expectedRevision: Long,
+        operationId: String,
+        now: String
+    ): Boolean {
+        invitationExperienceQueries.authorizeAggregateWrite(
+            writer_schema_version = SUPPORTED_AGGREGATE_SCHEMA_VERSION,
+            operation_id = operationId,
+            created_at = now,
+            id = eventId,
+            aggregateRevision = expectedRevision,
+            aggregateSchemaVersion = SUPPORTED_AGGREGATE_SCHEMA_VERSION
+        )
+        val authorization = invitationExperienceQueries
+            .selectAggregateWriteAuthorization(eventId)
+            .executeAsOneOrNull()
+        return authorization?.operation_id == operationId &&
+            authorization.expected_revision == expectedRevision
+    }
+
     /**
      * Delete all sample events and their related data.
      *
@@ -1535,3 +1794,19 @@ internal fun databaseEventRepositoryTimeSlotSyncFailureLogMessage(): String =
 
 internal fun databaseEventRepositoryPaginatedEventsFailureLogMessage(): String =
     "Failed to load paginated events"
+
+private const val SUPPORTED_AGGREGATE_SCHEMA_VERSION = 1L
+
+private fun com.guyghost.wakeve.Event_artwork.validatedRemoteArtworkUrl(): String? {
+    val candidate = when {
+        kind == "LEGACY_REMOTE" -> legacy_remote_url
+        kind == "STRUCTURED" && source_kind == "SERVER_ASSET" -> canonical_https_url
+        else -> null
+    } ?: return null
+    return candidate.takeIf { VALIDATED_ARTWORK_REMOTE.matches(it) }
+}
+
+private val VALIDATED_ARTWORK_REMOTE = Regex(
+    "^https://(?:cdn|api)\\.wakeve\\.app/(?!.*[?#@]).+$",
+    RegexOption.IGNORE_CASE
+)

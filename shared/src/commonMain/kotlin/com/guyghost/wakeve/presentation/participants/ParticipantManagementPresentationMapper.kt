@@ -39,6 +39,8 @@ object ParticipantManagementPresentationMapper {
                     "En attente"
                 }
             ParticipantRsvp.PENDING -> "En attente"
+            ParticipantRsvp.NOT_APPLICABLE -> "Non applicable"
+            ParticipantRsvp.UNAVAILABLE -> "Indisponible"
         }
 
     private fun ParticipantAccessState.canAccessOrganizationDetails(): Boolean =

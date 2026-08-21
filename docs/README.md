@@ -28,6 +28,8 @@ Bienvenue dans la documentation technique du projet Wakeve, une application mobi
 - [Workflow complet d'organisation d'événement](guides/complete-event-organization-flow.md) - Cycle DRAFT -> FINALIZED, accès, offline-first et commandes de vérification
 - [iOS Development](guides/ios/README.md) - Guides spécifiques iOS (voir aussi `iosApp/`)
 - [iOS Design System](guides/ios/design-system.md) - Tokens et composants SwiftUI unifiés
+- [iOS Event Detail Invitation Canvas](guides/ios/event-detail-invitation-canvas.md) - Migration du premier viewport, projection déterministe et partage sécurisé
+- [iOS Invitation Experience](./guides/ios/invitation-experience.md) - Six surfaces repository-backed, owners typés, migration, rollout et rollback
 
 ### Migration & Refactoring
 - [Migration Index](migration/README.md) - Vue d'ensemble des migrations

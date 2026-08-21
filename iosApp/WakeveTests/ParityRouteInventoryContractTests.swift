@@ -81,45 +81,51 @@ final class ParityRouteInventoryContractTests: XCTestCase {
         )
     }
 
-    func testIosRouteModelDefinesAndroidEquivalentDestinations() {
-        let expectedPaths: [(IosRoute, [String])] = [
-            (.topLevel(.home), ["home"]),
-            (.topLevel(.profile), ["profile"]),
-            (.topLevel(.settings), ["settings"]),
-            (.topLevel(.notifications(filter: nil)), ["notifications"]),
-            (.topLevel(.notifications(filter: "unread")), ["notifications", "unread"]),
-            (.topLevel(.notificationPreferences), ["notification_preferences"]),
-            (.topLevel(.leaderboard), ["leaderboard"]),
-            (.topLevel(.organizerDashboard), ["organizer_dashboard"]),
-            (.eventCreate, ["event", "create"]),
-            (.event(.detail(eventId: "event-1")), ["event", "event-1"]),
-            (.event(.participants(eventId: "event-1")), ["event", "event-1", "participants"]),
-            (.event(.pollVoting(eventId: "event-1")), ["event", "event-1", "poll"]),
-            (.event(.pollResults(eventId: "event-1")), ["event", "event-1", "poll_results"]),
-            (.event(.scenarioList(eventId: "event-1")), ["event", "event-1", "scenarios"]),
-            (.event(.scenarioComparison(eventId: "event-1")), ["event", "event-1", "scenarios_compare"]),
-            (.event(.scenarioManagement(eventId: "event-1")), ["event", "event-1", "scenarios_manage"]),
-            (.event(.scenarioDetail(eventId: "event-1", scenarioId: "scenario-1")), ["event", "event-1", "scenario", "scenario-1"]),
-            (.event(.budgetOverview(eventId: "event-1")), ["event", "event-1", "budget"]),
-            (.event(.budgetDetail(eventId: "event-1", budgetItemId: "budget-1")), ["event", "event-1", "budget", "budget-1"]),
-            (.event(.meetingList(eventId: "event-1")), ["event", "event-1", "meetings"]),
-            (.event(.comments(eventId: "event-1")), ["event", "event-1", "comments"]),
-            (.event(.invitationShare(eventId: "event-1")), ["event", "event-1", "invite"]),
-            (.event(.transport(eventId: "event-1")), ["event", "event-1", "transport"]),
-            (.event(.accommodation(eventId: "event-1")), ["event", "event-1", "accommodation"]),
-            (.event(.meals(eventId: "event-1")), ["event", "event-1", "meals"]),
-            (.event(.equipment(eventId: "event-1")), ["event", "event-1", "equipment"]),
-            (.event(.activities(eventId: "event-1")), ["event", "event-1", "activities"]),
-            (.event(.payment(eventId: "event-1")), ["event", "event-1", "payment"]),
-            (.event(.tricount(eventId: "event-1")), ["event", "event-1", "tricount"]),
-            (.event(.photos(eventId: "event-1")), ["event", "event-1", "photos"]),
-            (.meetingDetail(meetingId: "meeting-1"), ["meeting", "meeting-1"]),
-            (.invite(token: "invite-token"), ["invite", "invite-token"])
+    func testIosRouteModelDefinesAndroidEquivalentDestinations() throws {
+        let routes = try readProjectFile("iosApp/src/Models/IosRoute.swift")
+        let root = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
+        let handler = slice(
+            root,
+            from: "private func handleDeepLinkNavigation(_ route: IosRoute)",
+            to: "private func navigateToEvent"
+        )
+        let requiredTypedCases = [
+            "case eventCreate",
+            "case detail(eventId: String)",
+            "case participants(eventId: String)",
+            "case pollVoting(eventId: String)",
+            "case pollResults(eventId: String)",
+            "case scenarioList(eventId: String)",
+            "case scenarioComparison(eventId: String)",
+            "case scenarioManagement(eventId: String)",
+            "case scenarioDetail(eventId: String, scenarioId: String)",
+            "case budgetOverview(eventId: String)",
+            "case budgetDetail(eventId: String, budgetItemId: String)",
+            "case meetingList(eventId: String)",
+            "case comments(eventId: String)",
+            "case invitationShare(eventId: String)",
+            "case transport(eventId: String)",
+            "case accommodation(eventId: String)",
+            "case meals(eventId: String)",
+            "case equipment(eventId: String)",
+            "case activities(eventId: String)",
+            "case payment(eventId: String)",
+            "case tricount(eventId: String)",
+            "case photos(eventId: String)",
+            "case meetingDetail(meetingId: String)",
+            "case invite(token: String)"
         ]
 
-        for (route, path) in expectedPaths {
-            XCTAssertEqual(route.navigationPath, path)
+        for typedCase in requiredTypedCases {
+            XCTAssertTrue(routes.contains(typedCase), "Missing typed iOS route inventory case: \(typedCase)")
         }
+        XCTAssertFalse(routes.contains("navigationPath"))
+        XCTAssertTrue(handler.contains("switch route"))
+        XCTAssertTrue(handler.contains("case .eventCreate:"))
+        XCTAssertTrue(handler.contains("case .event(.scenarioDetail"))
+        XCTAssertTrue(handler.contains("case .event(.photos"))
+        XCTAssertTrue(handler.contains("case .meetingDetail"))
+        XCTAssertTrue(handler.contains("case .invite"))
     }
 
     func testAndroidEquivalentOrganizationRoutesDoNotRenderGenericPlaceholders() throws {
@@ -127,7 +133,14 @@ final class ParityRouteInventoryContractTests: XCTestCase {
         let homeContent = slice(content, from: "private var homeTabContent", to: "// MARK: - Tab Content")
 
         XCTAssertFalse(homeContent.contains("navigation.placeholder.event_creation"))
-        XCTAssertTrue(caseBlock(".eventCreation", in: homeContent).contains("showEventCreationSheet = true"))
+        let eventCreation = caseBlock(".eventCreation", in: homeContent)
+        XCTAssertTrue(eventCreation.contains("invitationExperienceRolloutEnabled"))
+        XCTAssertTrue(eventCreation.contains("EventCreationStudioView("))
+        XCTAssertTrue(eventCreation.contains("invitationExperienceLegacyCreationFallback"))
+        XCTAssertFalse(
+            eventCreation.contains("showEventCreationSheet = true"),
+            "The routed Studio destination must not also present the legacy creation sheet."
+        )
 
         let routeViews = [
             ".scenarioDetail": "ScenarioDetailParityView",

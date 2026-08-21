@@ -33,16 +33,19 @@ final class PremiumNavigationContractTests: XCTestCase {
         XCTAssertFalse(tabView.contains("tabContent(for: .explore)"))
     }
 
-    func testAuthenticatedViewObservesDeepLinkNavigationPath() throws {
+    func testAuthenticatedViewObservesTypedDeepLinkRoute() throws {
         let source = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
         let handler = slice(source, from: "private func handleDeepLinkNavigation", to: "private func navigateToEvent")
 
         XCTAssertTrue(source.contains("@EnvironmentObject private var deepLinkService: DeepLinkService"))
-        XCTAssertTrue(source.contains(".onReceive(deepLinkService.$navigationPath)"))
-        XCTAssertTrue(handler.contains("case (\"event\", let eventId?, nil)"))
-        XCTAssertTrue(handler.contains("case (\"event\", let eventId?, \"poll\")"))
-        XCTAssertTrue(handler.contains("case (\"invite\", let token?, _)"))
-        XCTAssertTrue(source.contains("InvitationTokenCodec.eventId(fromInvitationCode: token)"))
+        XCTAssertTrue(source.contains(".onReceive(deepLinkService.$navigationRoute)"))
+        XCTAssertTrue(handler.contains("private func handleDeepLinkNavigation(_ route: IosRoute)"))
+        XCTAssertTrue(handler.contains("case .event(.detail(let eventId))"))
+        XCTAssertTrue(handler.contains("case .event(.pollVoting(let eventId))"))
+        XCTAssertTrue(handler.contains("case .invite(let token)"))
+        XCTAssertTrue(handler.contains("await resolveInvitationDeepLink(token: token)"))
+        XCTAssertTrue(source.contains("invitationDeepLinkResolver.resolve(token: token)"))
+        XCTAssertFalse(source.contains("InvitationTokenCodec.eventId(fromInvitationCode: token)"))
         XCTAssertTrue(source.contains("deepLinkService.clearPendingInvite()"))
         XCTAssertTrue(source.contains("repository.getEvent(id: eventId)"))
     }

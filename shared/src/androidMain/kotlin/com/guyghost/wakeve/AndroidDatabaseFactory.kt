@@ -11,10 +11,12 @@ import com.guyghost.wakeve.database.WakeveDb
  */
 class AndroidDatabaseFactory(private val context: Context) : DatabaseFactory {
     override fun createDriver(): SqlDriver {
-        return AndroidSqliteDriver(
+        val driver = AndroidSqliteDriver(
             WakeveDb.Schema,
             context,
             "wakev.db"
         )
+        driver.execute(null, "PRAGMA foreign_keys = ON", 0).value
+        return driver
     }
 }
