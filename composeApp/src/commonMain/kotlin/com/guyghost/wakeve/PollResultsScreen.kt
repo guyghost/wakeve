@@ -18,12 +18,14 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.QuestionMark
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,15 +39,49 @@ import com.guyghost.wakeve.ui.designsystem.WakeveSpacing
 import com.guyghost.wakeve.ui.designsystem.WakeveStateMessage
 import com.guyghost.wakeve.ui.event.PollResultsUiState
 import com.guyghost.wakeve.ui.event.PollSlotResultUiState
+import com.guyghost.wakeve.presentation.state.EventManagementContract
 
 @Composable
 fun PollResultsScreen(
     state: PollResultsUiState,
     onSlotSelected: (String) -> Unit,
     onConfirmFinalDate: () -> Unit,
+    onSubmitFinalDateConfirmation: () -> Unit,
+    onCancelFinalDateConfirmation: () -> Unit,
+    onRetryFinalDateConfirmation: () -> Unit,
+    onDismissFinalDateConfirmationFailure: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    if (state.confirmationPhase == EventManagementContract.ConfirmationPhase.CONFIRM_PROMPT) {
+        AlertDialog(
+            onDismissRequest = onCancelFinalDateConfirmation,
+            title = { Text("Confirmer la date finale ?") },
+            text = {
+                Text(
+                    "Cette décision valide le créneau sélectionné et débloque les étapes d'organisation."
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = onSubmitFinalDateConfirmation,
+                    modifier = Modifier.testTag("poll_confirmation_submit")
+                ) {
+                    Text("Confirmer")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = onCancelFinalDateConfirmation,
+                    modifier = Modifier.testTag("poll_confirmation_cancel")
+                ) {
+                    Text("Annuler")
+                }
+            },
+            modifier = Modifier.testTag("poll_confirmation_prompt")
+        )
+    }
+
     WakeveScaffold(
         title = "Résultats du sondage",
         onNavigateBack = onBack,
@@ -115,6 +151,52 @@ fun PollResultsScreen(
                     title = "Impossible de confirmer",
                     body = message
                 )
+
+                if (state.confirmationPhase == EventManagementContract.ConfirmationPhase.FAILED) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(WakeveSpacing.sm)
+                    ) {
+                        if (state.canRetryConfirmation) {
+                            Button(
+                                onClick = onRetryFinalDateConfirmation,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Réessayer")
+                            }
+                        }
+                        TextButton(
+                            onClick = onDismissFinalDateConfirmationFailure,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Fermer")
+                        }
+                    }
+                }
+            }
+
+            when (state.confirmationPhase) {
+                EventManagementContract.ConfirmationPhase.CONFIRMED_PENDING_SYNC ->
+                    WakeveStateMessage(
+                        title = "Date confirmée sur cet appareil",
+                        body = "La synchronisation et l'information des participants sont encore en attente."
+                    )
+                EventManagementContract.ConfirmationPhase.CONFIRMED_SYNCED ->
+                    WakeveStateMessage(
+                        title = "Date confirmée",
+                        body = "La décision a été synchronisée."
+                    )
+                EventManagementContract.ConfirmationPhase.LEGACY_APPLIED ->
+                    WakeveStateMessage(
+                        title = "Confirmation historique",
+                        body = "Cette décision reste en lecture seule."
+                    )
+                EventManagementContract.ConfirmationPhase.QUARANTINED ->
+                    WakeveStateMessage(
+                        title = "Confirmation à vérifier",
+                        body = "Cette décision historique ne peut pas être appliquée automatiquement."
+                    )
+                else -> Unit
             }
 
             if (state.selectedSlotId != null && !state.hasConfirmed) {

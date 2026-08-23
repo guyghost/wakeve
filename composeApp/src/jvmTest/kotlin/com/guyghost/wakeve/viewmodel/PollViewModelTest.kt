@@ -7,6 +7,10 @@ import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.Poll
 import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.models.Vote
+import com.guyghost.wakeve.presentation.statemachine.EventManagementStateMachine
+import com.guyghost.wakeve.presentation.usecase.CreateEventUseCase
+import com.guyghost.wakeve.presentation.usecase.LoadEventsUseCase
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
@@ -32,6 +36,7 @@ class PollViewModelTest : ViewModelTestBase() {
     private lateinit var eventRepository: EventRepository
 
     private lateinit var viewModel: PollViewModel
+    private lateinit var confirmationStateMachine: EventManagementStateMachine
     private val eventId = "test_event_id"
 
     @Before
@@ -48,7 +53,13 @@ class PollViewModelTest : ViewModelTestBase() {
         doReturn(testPoll).`when`(eventRepository).getPoll(eq(eventId))
         doReturn(emptyList<String>()).`when`(eventRepository).getParticipants(eq(eventId))
 
-        viewModel = PollViewModel(eventRepository, eventId, mockAnalyticsProvider)
+        confirmationStateMachine = EventManagementStateMachine(
+            loadEventsUseCase = LoadEventsUseCase(eventRepository),
+            createEventUseCase = CreateEventUseCase(eventRepository),
+            eventRepository = eventRepository,
+            scope = CoroutineScope(testDispatcher)
+        )
+        viewModel = createViewModel()
     }
 
     @Test
@@ -228,7 +239,7 @@ class PollViewModelTest : ViewModelTestBase() {
         doReturn(testPoll).`when`(eventRepository).getPoll(eq(eventId))
 
         // Recreate viewModel to get updated poll
-        viewModel = PollViewModel(eventRepository, eventId, mockAnalyticsProvider)
+        viewModel = createViewModel()
 
         // Act
         viewModel.closePoll()
@@ -285,4 +296,12 @@ class PollViewModelTest : ViewModelTestBase() {
             createdAt = "2026-06-01T08:00:00Z",
             updatedAt = "2026-06-01T08:00:00Z"
         )
+
+    private fun createViewModel(): PollViewModel = PollViewModel(
+        eventRepository = eventRepository,
+        eventId = eventId,
+        analyticsProvider = mockAnalyticsProvider,
+        confirmationStateMachine = confirmationStateMachine,
+        confirmationOperationIdProvider = { "test-confirmation-operation" }
+    )
 }

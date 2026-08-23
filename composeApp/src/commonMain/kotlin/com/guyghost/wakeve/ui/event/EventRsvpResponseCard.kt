@@ -99,6 +99,9 @@ private fun RsvpOptionButton(
         ParticipantRsvp.ACCEPTED -> Icons.Default.Check
         ParticipantRsvp.DECLINED -> Icons.Default.Close
         ParticipantRsvp.PENDING -> Icons.Default.QuestionMark
+        // Sentinel values are display-only RSVP data, never response controls.
+        ParticipantRsvp.NOT_APPLICABLE,
+        ParticipantRsvp.UNAVAILABLE -> return
     }
     val buttonModifier = modifier
         .heightIn(min = WakeveSize.minTouchTarget)

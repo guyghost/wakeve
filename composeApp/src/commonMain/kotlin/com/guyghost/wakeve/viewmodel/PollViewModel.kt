@@ -4,14 +4,18 @@ import androidx.lifecycle.viewModelScope
 import com.guyghost.wakeve.analytics.AnalyticsEvent
 import com.guyghost.wakeve.analytics.AnalyticsProvider
 import com.guyghost.wakeve.models.Event
-import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.Poll
 import com.guyghost.wakeve.models.Vote
+import com.guyghost.wakeve.presentation.state.EventManagementContract
+import com.guyghost.wakeve.presentation.statemachine.EventManagementStateMachine
 import com.guyghost.wakeve.repository.EventRepositoryInterface
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 /**
  * ViewModel for the poll/voting screen with analytics tracking.
@@ -48,7 +52,9 @@ import kotlinx.coroutines.launch
 class PollViewModel(
     private val eventRepository: EventRepositoryInterface,
     private val eventId: String,
-    analyticsProvider: AnalyticsProvider
+    analyticsProvider: AnalyticsProvider,
+    private val confirmationStateMachine: EventManagementStateMachine,
+    private val confirmationOperationIdProvider: () -> String
 ) : AnalyticsViewModel(analyticsProvider) {
 
     private val _poll = MutableStateFlow(eventRepository.getPoll(eventId))
@@ -81,9 +87,36 @@ class PollViewModel(
     private val _hasConfirmedFinalDate = MutableStateFlow(false)
     val hasConfirmedFinalDate: StateFlow<Boolean> = _hasConfirmedFinalDate.asStateFlow()
 
+    private val _confirmationPhase = MutableStateFlow(
+        EventManagementContract.ConfirmationPhase.REVIEWING_RESULTS
+    )
+    val confirmationPhase: StateFlow<EventManagementContract.ConfirmationPhase> =
+        _confirmationPhase.asStateFlow()
+
+    private val _canRetryFinalDateConfirmation = MutableStateFlow(false)
+    val canRetryFinalDateConfirmation: StateFlow<Boolean> =
+        _canRetryFinalDateConfirmation.asStateFlow()
+
+    private var confirmationEventId: String? = null
+    private var confirmationSlotId: String? = null
+    private var confirmationOperationId: String? = null
+    private var confirmationSuccessCallback: (() -> Unit)? = null
+    private var deliveredConfirmationReceiptId: String? = null
+    private val confirmationStateObservationJob = viewModelScope.launch {
+        confirmationStateMachine.state.collect(::applyConfirmationState)
+    }
+
     init {
         trackScreenView("poll", "PollViewModel")
         trackEvent(AnalyticsEvent.PollViewed(eventId))
+
+        runCatching { eventRepository.loadConfirmationProjection(eventId) }
+            .getOrNull()
+            ?.let { projection ->
+                confirmationStateMachine.dispatch(
+                    EventManagementContract.Intent.RehydrateConfirmation(projection)
+                )
+            }
     }
 
     /**
@@ -243,47 +276,149 @@ class PollViewModel(
         onSuccess: () -> Unit
     ) {
         val slotId = _selectedFinalSlotId.value
-        val selectedSlot = event.proposedSlots.firstOrNull { it.id == slotId }
-        if (selectedSlot == null) {
+        if (slotId == null) {
             _confirmationError.value = finalDateSlotRequiredMessage()
             return
         }
 
-        viewModelScope.launch {
-            _isConfirmingFinalDate.value = true
-            _confirmationError.value = null
-            try {
-                if (!eventRepository.isOrganizer(event.id, userId)) {
-                    _confirmationError.value = finalDateOrganizerRequiredMessage()
-                    trackError("confirm_final_date_failed", finalDateOrganizerRequiredAnalyticsContext())
-                    return@launch
-                }
+        if (_confirmationPhase.value != EventManagementContract.ConfirmationPhase.REVIEWING_RESULTS) {
+            return
+        }
 
-                val result = eventRepository.updateEventStatus(
-                    id = event.id,
-                    status = EventStatus.CONFIRMED,
-                    finalDate = selectedSlot.start
-                )
-                if (result.isFailure) {
-                    throw result.exceptionOrNull() ?: IllegalStateException("Failed to confirm final date")
-                }
+        val operationId = confirmationOperationIdProvider()
+        if (operationId.isBlank()) {
+            _confirmationError.value = finalDateConfirmationFailureMessage()
+            trackError("confirm_final_date_failed", finalDateConfirmationFailureAnalyticsContext())
+            return
+        }
 
-                _hasConfirmedFinalDate.value = true
-                trackEvent(
-                    AnalyticsEvent.PollClosed(
-                        eventId = event.id,
-                        participantsCount = event.participants.size,
-                        votesCount = eventRepository.getPoll(event.id)?.votes?.size ?: 0
-                    )
-                )
-                onSuccess()
-            } catch (e: Exception) {
-                _confirmationError.value = finalDateConfirmationFailureMessage()
+        confirmationEventId = event.id
+        confirmationSlotId = slotId
+        confirmationOperationId = operationId
+        confirmationSuccessCallback = onSuccess
+        deliveredConfirmationReceiptId = null
+        _confirmationError.value = null
+        _hasConfirmedFinalDate.value = false
+
+        confirmationStateMachine.dispatch(
+            EventManagementContract.Intent.OpenConfirmPrompt(
+                eventId = event.id,
+                slotId = slotId,
+                actorId = userId
+            )
+        )
+    }
+
+    fun submitFinalDateConfirmation() {
+        val operationId = confirmationOperationId ?: return
+        val state = confirmationStateMachine.state.value
+        if (state.confirmationPhase != EventManagementContract.ConfirmationPhase.CONFIRM_PROMPT ||
+            state.confirmationEventId != confirmationEventId ||
+            state.confirmationSlotId != confirmationSlotId
+        ) return
+
+        confirmationStateMachine.dispatch(
+            EventManagementContract.Intent.SubmitConfirmation(operationId)
+        )
+    }
+
+    fun cancelFinalDateConfirmation() {
+        if (_confirmationPhase.value != EventManagementContract.ConfirmationPhase.CONFIRM_PROMPT) return
+        confirmationStateMachine.dispatch(EventManagementContract.Intent.CancelConfirmation)
+        clearActiveConfirmationAttempt()
+    }
+
+    fun retryFinalDateConfirmation() {
+        if (_confirmationPhase.value != EventManagementContract.ConfirmationPhase.FAILED ||
+            !_canRetryFinalDateConfirmation.value ||
+            confirmationOperationId == null
+        ) return
+        confirmationStateMachine.dispatch(EventManagementContract.Intent.RetryConfirmation)
+    }
+
+    fun dismissFinalDateConfirmationFailure() {
+        if (_confirmationPhase.value != EventManagementContract.ConfirmationPhase.FAILED) return
+        confirmationStateMachine.dispatch(EventManagementContract.Intent.DismissConfirmationFailure)
+        clearActiveConfirmationAttempt()
+    }
+
+    internal fun disposeConfirmationAdapter() {
+        confirmationStateObservationJob.cancel()
+        clearActiveConfirmationAttempt()
+    }
+
+    private fun applyConfirmationState(state: EventManagementContract.State) {
+        val phase = state.confirmationPhase
+        val belongsToThisEvent = state.confirmationEventId == eventId
+        if (!belongsToThisEvent && phase != EventManagementContract.ConfirmationPhase.REVIEWING_RESULTS) {
+            return
+        }
+
+        _confirmationPhase.value = phase
+        _isConfirmingFinalDate.value = phase == EventManagementContract.ConfirmationPhase.CONFIRMING
+        _canRetryFinalDateConfirmation.value =
+            phase == EventManagementContract.ConfirmationPhase.FAILED &&
+                state.confirmationFailure?.retryable == true
+
+        when (phase) {
+            EventManagementContract.ConfirmationPhase.REVIEWING_RESULTS,
+            EventManagementContract.ConfirmationPhase.CONFIRM_PROMPT,
+            EventManagementContract.ConfirmationPhase.CONFIRMING -> {
+                _confirmationError.value = null
+                _hasConfirmedFinalDate.value = false
+            }
+
+            EventManagementContract.ConfirmationPhase.FAILED -> {
+                _confirmationError.value = confirmationFailureMessage(state.confirmationFailure?.code)
+                _hasConfirmedFinalDate.value = false
                 trackError("confirm_final_date_failed", finalDateConfirmationFailureAnalyticsContext())
-            } finally {
-                _isConfirmingFinalDate.value = false
+            }
+
+            EventManagementContract.ConfirmationPhase.CONFIRMED_PENDING_SYNC,
+            EventManagementContract.ConfirmationPhase.CONFIRMED_SYNCED -> {
+                _confirmationError.value = null
+                _hasConfirmedFinalDate.value = true
+                deliverConfirmationSuccessIfCorrelated(state)
+            }
+
+            EventManagementContract.ConfirmationPhase.LEGACY_APPLIED,
+            EventManagementContract.ConfirmationPhase.QUARANTINED -> {
+                _confirmationError.value = finalDateConfirmationFailureMessage()
+                _hasConfirmedFinalDate.value = false
             }
         }
+    }
+
+    private fun deliverConfirmationSuccessIfCorrelated(state: EventManagementContract.State) {
+        val receiptId = state.confirmationReceiptId ?: return
+        val operationId = confirmationOperationId ?: return
+        if (state.confirmationOperationId != operationId ||
+            state.confirmationEventId != confirmationEventId ||
+            state.confirmationSlotId != confirmationSlotId ||
+            deliveredConfirmationReceiptId == receiptId
+        ) return
+
+        deliveredConfirmationReceiptId = receiptId
+        trackEvent(
+            AnalyticsEvent.PollClosed(
+                eventId = eventId,
+                participantsCount = eventRepository.getParticipants(eventId)?.size ?: 0,
+                votesCount = eventRepository.getPoll(eventId)?.votes?.size ?: 0
+            )
+        )
+        confirmationSuccessCallback?.invoke()
+        confirmationSuccessCallback = null
+    }
+
+    private fun clearActiveConfirmationAttempt() {
+        confirmationEventId = null
+        confirmationSlotId = null
+        confirmationOperationId = null
+        confirmationSuccessCallback = null
+        deliveredConfirmationReceiptId = null
+        _confirmationError.value = null
+        _isConfirmingFinalDate.value = false
+        _canRetryFinalDateConfirmation.value = false
     }
 
     /**
@@ -331,3 +466,17 @@ internal fun finalDateConfirmationFailureAnalyticsContext(): String {
 internal fun finalDateOrganizerRequiredAnalyticsContext(): String {
     return "organizer_required"
 }
+
+private fun confirmationFailureMessage(
+    code: EventManagementContract.ConfirmationFailureCode?
+): String = when (code) {
+    EventManagementContract.ConfirmationFailureCode.NOT_ORGANIZER ->
+        finalDateOrganizerRequiredMessage()
+    EventManagementContract.ConfirmationFailureCode.SLOT_NOT_FOUND,
+    EventManagementContract.ConfirmationFailureCode.SLOT_NOT_CONFIRMABLE ->
+        finalDateSlotRequiredMessage()
+    else -> finalDateConfirmationFailureMessage()
+}
+
+@OptIn(ExperimentalUuidApi::class)
+internal fun newPollConfirmationOperationId(): String = Uuid.random().toString()

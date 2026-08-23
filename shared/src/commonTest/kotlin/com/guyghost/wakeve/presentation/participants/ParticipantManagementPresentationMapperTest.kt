@@ -91,4 +91,24 @@ class ParticipantManagementPresentationMapperTest {
         assertEquals("Refusé", row.statusLabel)
         assertFalse(row.canAccessOrganizationDetails)
     }
+
+    @Test
+    fun `sentinel RSVP rows use distinct canonical French status labels`() {
+        // Bug caught: non-applicable and unavailable RSVP data could be presented identically.
+        val rows = ParticipantManagementPresentationMapper.map(
+            listOf(
+                ParticipantAccessState.nonMember("not-applicable@example.com"),
+                ParticipantAccessState.member(
+                    userId = "unavailable@example.com",
+                    rsvp = ParticipantRsvp.UNAVAILABLE,
+                    dateValidation = DateValidationState.UNAVAILABLE
+                )
+            )
+        )
+
+        assertEquals(
+            listOf("Non applicable", "Indisponible"),
+            rows.map { it.statusLabel }
+        )
+    }
 }

@@ -3,6 +3,7 @@ package com.guyghost.wakeve.presentation.statemachine
 import com.guyghost.wakeve.access.ParticipantAccessMapper
 import com.guyghost.wakeve.confirmation.ConfirmationClock
 import com.guyghost.wakeve.confirmation.SystemConfirmationClock
+import com.guyghost.wakeve.confirmation.confirmationEffectKeys
 import com.guyghost.wakeve.invitationexperience.EventTemporalClassifier
 import com.guyghost.wakeve.invitationexperience.TemporalClass
 import com.guyghost.wakeve.models.Coordinates
@@ -966,8 +967,8 @@ class EventManagementStateMachine(
         }
 
         when (val result = eventRepository.confirmPollDate(command)) {
-            is EventManagementContract.ConfirmationResult.Committed -> applyCommittedConfirmation(result.receipt)
-            is EventManagementContract.ConfirmationResult.AlreadyCommitted -> applyCommittedConfirmation(result.receipt)
+            is EventManagementContract.ConfirmationResult.Committed -> applyCommittedConfirmation(command, result.receipt)
+            is EventManagementContract.ConfirmationResult.AlreadyCommitted -> applyCommittedConfirmation(command, result.receipt)
             is EventManagementContract.ConfirmationResult.ReadOnly ->
                 applyReadOnlyConfirmation(result.projection)
             is EventManagementContract.ConfirmationResult.Conflict ->
@@ -977,7 +978,11 @@ class EventManagementStateMachine(
         }
     }
 
-    private suspend fun applyCommittedConfirmation(receipt: EventManagementContract.ConfirmationReceipt) {
+    private suspend fun applyCommittedConfirmation(
+        command: EventManagementContract.ConfirmPollDateCommand,
+        receipt: EventManagementContract.ConfirmationReceipt
+    ) {
+        if (!receiptMatchesCommand(command, receipt)) return
         // The durable receipt is the sole eligibility source for success feedback and navigation.
         loadEvents()
         updateState {
@@ -999,6 +1004,18 @@ class EventManagementStateMachine(
         }
         emitSideEffect(EventManagementContract.SideEffect.ShowToast("Date confirmed successfully"))
         emitSideEffect(EventManagementContract.SideEffect.NavigateTo(receipt.nextNavigationTarget))
+    }
+
+    private fun receiptMatchesCommand(
+        command: EventManagementContract.ConfirmPollDateCommand,
+        receipt: EventManagementContract.ConfirmationReceipt
+    ): Boolean {
+        val effectKeys = confirmationEffectKeys(command.eventId, command.slotId)
+        return receipt.operationId == command.operationId &&
+            receipt.eventId == command.eventId &&
+            receipt.slotId == command.slotId &&
+            receipt.effectOutbox.domainEventId == effectKeys.domainEventId &&
+            receipt.effectOutbox.effectKey == effectKeys.effectKey
     }
 
     private fun applyReadOnlyConfirmation(

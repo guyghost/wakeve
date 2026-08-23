@@ -12,10 +12,19 @@ import com.guyghost.wakeve.calendar.PlatformCalendarServiceImpl
 import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.metrics.AuthMetricsCollector
 import com.guyghost.wakeve.notification.EventNotificationTrigger
+import com.guyghost.wakeve.notification.BackendDeviceRegistrationStoreFactory
 import com.guyghost.wakeve.notification.NotificationPreferencesRepository
 import com.guyghost.wakeve.notification.NotificationScheduler
+import com.guyghost.wakeve.notification.LegacyNotificationRegistrationCompatibilityWorker
+import com.guyghost.wakeve.notification.LegacyNotificationCompatibilityRecoveryScheduler
+import com.guyghost.wakeve.notification.DEFAULT_COMPATIBILITY_UNIQUE_MIGRATION_ID
+import com.guyghost.wakeve.notification.DEFAULT_COMPATIBILITY_UNIQUE_MIGRATION_SCHEMA_VERSION
+import com.guyghost.wakeve.notification.LegacyCompatibilityUniqueMigrationFaultInjector
+import com.guyghost.wakeve.notification.LegacyCompatibilityUniqueMigrationNotReadyException
+import com.guyghost.wakeve.notification.openCompatibilityUniqueMigration
 import com.guyghost.wakeve.notification.ServerAPNsSender
 import com.guyghost.wakeve.notification.ServerFCMSender
+import com.guyghost.wakeve.notification.SqliteBackendDeviceRegistrationStoreFactory
 import com.guyghost.wakeve.moderation.ModerationPolicy
 import com.guyghost.wakeve.moderation.ModerationRepository
 import com.guyghost.wakeve.gamification.BadgeEligibilityChecker
@@ -66,6 +75,7 @@ import com.guyghost.wakeve.payment.TricountHandoffRepository
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationStopped
 import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
@@ -225,6 +235,10 @@ val PermissionCheckPlugin = createRouteScopedPlugin(
     }
 }
 
+/** Production composition has no configurable provider seam; test loopback is internal and scoped. */
+fun createApplicationAPNsSender(): ServerAPNsSender =
+    ServerAPNsSender(deploymentEnvironmentRaw = System.getenv("WAKEVE_DEPLOYMENT_ENVIRONMENT"))
+
 fun main() {
     // Initialize database
     val database = DatabaseProvider.getDatabase(JvmDatabaseFactory("wakev_server.db"))
@@ -259,7 +273,7 @@ fun main() {
     // Initialize Notification Service
     val notificationPreferencesRepo = NotificationPreferencesRepository(database)
     val fcmSender = ServerFCMSender()
-    val apnsSender = ServerAPNsSender()
+    val apnsSender = createApplicationAPNsSender()
     val notificationService = com.guyghost.wakeve.notification.NotificationService(
         database = database,
         preferencesRepository = notificationPreferencesRepo,
@@ -315,8 +329,11 @@ fun Application.module(
         database = database,
         preferencesRepository = NotificationPreferencesRepository(database),
         fcmSender = ServerFCMSender(),
-        apnsSender = ServerAPNsSender()
+        apnsSender = createApplicationAPNsSender()
     ),
+    deviceRegistrationStoreFactory: BackendDeviceRegistrationStoreFactory =
+        SqliteBackendDeviceRegistrationStoreFactory(),
+    compatibilityMigrationClock: () -> Long = { System.currentTimeMillis() / 1_000L },
     eventNotificationTrigger: EventNotificationTrigger = EventNotificationTrigger(notificationService, eventRepository, moderationRepository),
     gamificationService: GamificationService = createGamificationService(),
     transportRepository: TransportRepository = TransportRepository(database),
@@ -444,6 +461,49 @@ fun Application.module(
         }
     }
 
+    val compatibilityRuntimeConfigured =
+        (deviceRegistrationStoreFactory as? SqliteBackendDeviceRegistrationStoreFactory)
+            ?.hasCompatibilityRuntimeConfiguration() ?: true
+    if (compatibilityRuntimeConfigured) {
+        val migrationNowEpochSeconds = compatibilityMigrationClock()
+        deviceRegistrationStoreFactory.openCompatibilityUniqueMigration(
+            migrationId = DEFAULT_COMPATIBILITY_UNIQUE_MIGRATION_ID,
+            schemaVersion = DEFAULT_COMPATIBILITY_UNIQUE_MIGRATION_SCHEMA_VERSION,
+            initialLogicalNowEpochSeconds = migrationNowEpochSeconds,
+            faultInjector = LegacyCompatibilityUniqueMigrationFaultInjector { _, _ -> null }
+        ).use { migration ->
+            val persistedClock = migration.currentSnapshot()
+            migration.advanceLogicalClock(
+                expectedRevision = persistedClock.clockRevision,
+                newEpochSeconds = migrationNowEpochSeconds
+            )
+            val snapshot = migration.startOrResume()
+            if (!snapshot.runtimeReady) {
+                val diagnostic = migration.diagnostic()
+                throw LegacyCompatibilityUniqueMigrationNotReadyException(
+                    migrationState = snapshot.state,
+                    duplicateGroupCount = diagnostic.duplicateGroupCount,
+                    duplicateRowCount = diagnostic.duplicateRowCount,
+                    failure = diagnostic.failure
+                )
+            }
+        }
+    }
+
+    val compatibilityWorker = LegacyNotificationRegistrationCompatibilityWorker(
+        notificationService = notificationService,
+        registrationStoreFactory = deviceRegistrationStoreFactory,
+        logicalClock = { System.currentTimeMillis() / 1_000L }
+    )
+    val compatibilityRecoveryScheduler = if (compatibilityRuntimeConfigured) {
+        LegacyNotificationCompatibilityRecoveryScheduler(compatibilityWorker).also { it.start() }
+    } else {
+        null
+    }
+    monitor.subscribe(ApplicationStopped) {
+        compatibilityRecoveryScheduler?.close()
+    }
+
     // Configure routing
     routing {
         // Health check endpoint
@@ -521,7 +581,11 @@ fun Application.module(
                             chatRoutes(chatService)
                             meetingProxyRoutes(database, eventRepository)
                             analyticsRoutes(analyticsDashboard)
-                            notificationRoutes(notificationService)
+                            notificationRoutes(
+                                notificationService,
+                                deviceRegistrationStoreFactory,
+                                compatibilityWorker
+                            )
                             invitationRoutes(invitationRepository, eventRepository, database)
                             directInviteDeliveryRoutes(
                                 database,

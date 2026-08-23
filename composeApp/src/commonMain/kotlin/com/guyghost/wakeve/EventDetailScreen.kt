@@ -1423,4 +1423,6 @@ private fun ParticipantRsvp.toFrenchLabel(): String =
         ParticipantRsvp.ACCEPTED -> "oui"
         ParticipantRsvp.DECLINED -> "non"
         ParticipantRsvp.PENDING -> "peut-être"
+        ParticipantRsvp.NOT_APPLICABLE -> "non applicable"
+        ParticipantRsvp.UNAVAILABLE -> "indisponible"
     }

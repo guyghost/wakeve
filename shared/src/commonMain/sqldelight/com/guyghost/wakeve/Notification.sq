@@ -56,6 +56,11 @@ insertNotification:
 INSERT INTO notification(id, user_id, type, title, body, data, created_at, sent_at)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?);
 
+markNotificationSent:
+UPDATE notification
+SET sent_at = ?
+WHERE id = ? AND sent_at IS NULL;
+
 -- Get notifications for user
 getNotifications:
 SELECT * FROM notification

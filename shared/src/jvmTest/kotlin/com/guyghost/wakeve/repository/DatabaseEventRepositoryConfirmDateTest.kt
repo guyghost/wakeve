@@ -195,6 +195,26 @@ class DatabaseEventRepositoryConfirmDateTest {
     }
 
     @Test
+    fun `new operation replay of the same slot returns the historical durable receipt`() = runBlocking {
+        val event = pollingEvent("event-historical-receipt")
+        assertTrue(repository.createEvent(event).isSuccess)
+        persistVote(db, event)
+
+        val original = assertIs<EventManagementContract.ConfirmationResult.Committed>(
+            repository.confirmPollDate(confirmationCommand(event, "operation-historical"))
+        )
+        val replay = assertIs<EventManagementContract.ConfirmationResult.AlreadyCommitted>(
+            repository.confirmPollDate(confirmationCommand(event, "operation-new"))
+        )
+
+        assertEquals("operation-historical", original.receipt.operationId)
+        assertEquals("operation-historical", replay.receipt.operationId)
+        assertEquals(original.receipt.receiptId, replay.receipt.receiptId)
+        assertEquals("operation-historical", replay.receipt.receiptId)
+        assertEquals(1, durableRowCount("confirmationReceipt", "eventId", event.id))
+    }
+
+    @Test
     fun `different slot after confirmation is a typed conflict without mutation`() = runBlocking {
         val event = pollingEvent("event-conflict")
         assertTrue(repository.createEvent(event).isSuccess)

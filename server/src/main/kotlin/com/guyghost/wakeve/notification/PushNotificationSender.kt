@@ -17,6 +17,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
 import org.slf4j.LoggerFactory
+import java.util.UUID
 
 /**
  * Server-side FCM sender implementation.
@@ -118,14 +119,20 @@ class ServerAPNsSender(
     private val apnsKeyId: String? = System.getenv("APNS_KEY_ID"),
     private val apnsTeamId: String? = System.getenv("APNS_TEAM_ID"),
     private val apnsAuthKey: String? = System.getenv("APNS_AUTH_KEY"),
-    private val apnsBundleId: String = System.getenv("APNS_BUNDLE_ID") ?: "com.guyghost.wakeve",
+    private val apnsBundleId: String? = System.getenv("APNS_BUNDLE_ID"),
     private val apnsEnvironment: String? = System.getenv("APNS_ENVIRONMENT"),
+    private val deploymentEnvironment: APNsDeploymentEnvironment? = APNsDeploymentEnvironment.DEVELOPMENT,
+    private val deploymentEnvironmentRaw: String? = System.getenv("WAKEVE_DEPLOYMENT_ENVIRONMENT"),
     private val tokenSigner: APNsTokenSigner? = null,
     private val clock: APNsProviderClock = APNsProviderClock { System.currentTimeMillis() / 1_000 },
     private val transport: APNsHttp2Transport? = null
 ) : APNsSender {
 
     private val logger = LoggerFactory.getLogger("ServerAPNsSender")
+    private val runtimeLock = Any()
+    private val circuit = APNsProviderCircuit()
+    private var configuredProvider: APNsProviderConfig? = null
+    private var configuredRuntime: APNsProviderRuntime? = null
 
     override suspend fun sendNotification(
         token: String,
@@ -150,26 +157,150 @@ class ServerAPNsSender(
             priority = 10,
             pushType = "alert"
         )
-        sendProvider(request).getOrThrow()
+        val providerResult = sendProvider(request).getOrThrow()
+        check(providerResult.classification.outcome == APNsProviderOutcome.ACCEPTED) {
+            "APNs did not accept the legacy notification"
+        }
     }
 
     suspend fun sendProvider(request: APNsProviderRequest): Result<APNsProviderResult> = runCatching {
-        val configuration = APNsProviderConfig.create(
-            keyId = apnsKeyId,
-            teamId = apnsTeamId,
-            authKey = apnsAuthKey,
-            topic = apnsBundleId,
-            environment = apnsEnvironment
-        )
-        if (configuration.isFailure) {
-            logger.warn("APNs credentials not configured; notification delivery failed")
-            error("APNs credentials are not configured: ${configuration.exceptionOrNull()?.message}")
+        val testRuntime = APNsProviderRuntimeTestOverride.current()
+        val readiness = readiness(testRuntime)
+        if (readiness.status != APNsProviderReadinessStatus.READY) {
+            logger.warn("APNs credentials not configured; notification delivery blocked")
+            error("APNs credentials are not configured")
+        }
+        val configuration = configuration(testRuntime)
+        val credentialVersion = APNsProviderCredentialVersion.from(configuration)
+        if (circuit.isBlocked(credentialVersion)) {
+            return@runCatching blockedResult(request, UUID.randomUUID().toString())
+        }
+        val refreshCoordinator = APNsProviderAuthRefreshCoordinator()
+        val runtime = runtime(testRuntime, configuration)
+        val signer = tokenSigner ?: runtime.signer
+        val providerTransport = transport ?: runtime.transport
+        while (true) {
+            val token = signer.sign(configuration, clock).getOrThrow()
+            val httpRequest = APNsHttp2Request(
+                authority = configuration.environment.authority,
+                path = "/3/device/${request.deviceToken}",
+                headers = linkedMapOf(
+                    "authorization" to token.authorizationValue,
+                    "apns-topic" to configuration.topic,
+                    "apns-push-type" to request.pushType,
+                    "apns-id" to request.apnsId,
+                    "apns-expiration" to request.expirationEpochSeconds.toString(),
+                    "apns-priority" to request.priority.toString()
+                ),
+                body = request.payload,
+                correlationId = UUID.randomUUID().toString()
+            )
+            when (val result = providerTransport.execute(httpRequest)) {
+                is APNsTransportResult.Response -> {
+                    val classification = classifyApnsResponse(result.value)
+                    val action = when (classification.outcome) {
+                        APNsProviderOutcome.REFRESH_AUTH -> refreshCoordinator.actionFor(classification.outcome)
+                        APNsProviderOutcome.PROVIDER_AUTH_BLOCKED -> APNsProviderAuthRefreshAction.BLOCK_PROVIDER
+                        else -> APNsProviderAuthRefreshAction.NONE
+                    }
+                    when (action) {
+                        APNsProviderAuthRefreshAction.FORCE_REFRESH -> {
+                            val productionSigner = signer as? ProductionAPNsTokenSigner
+                            if (productionSigner == null) {
+                                return@runCatching APNsProviderResult(
+                                    classification,
+                                    APNsSanitizedDiagnostic(request.deliveryKey.value, httpRequest.correlationId, statusCode = result.value.statusCode, reasonCode = result.value.reason)
+                                )
+                            }
+                            productionSigner.forceInvalidate()
+                            continue
+                        }
+                        APNsProviderAuthRefreshAction.BLOCK_PROVIDER -> {
+                            circuit.block(credentialVersion)
+                            return@runCatching blockedResult(
+                                request,
+                                httpRequest.correlationId,
+                                result.value.statusCode,
+                                result.value.reason
+                            )
+                        }
+                        APNsProviderAuthRefreshAction.NONE -> return@runCatching APNsProviderResult(
+                            classification,
+                            APNsSanitizedDiagnostic(request.deliveryKey.value, httpRequest.correlationId, statusCode = result.value.statusCode, reasonCode = result.value.reason)
+                        )
+                    }
+                }
+                is APNsTransportResult.FailedBeforeWrite -> return@runCatching APNsProviderResult(
+                    APNsProviderClassification(APNsProviderOutcome.RETRY, null, null, null, null, retryDirective = APNsProviderRetryDirective(null)), result.diagnostic
+                )
+                is APNsTransportResult.OutcomeUnknown -> return@runCatching APNsProviderResult(
+                    APNsProviderClassification(APNsProviderOutcome.UNKNOWN_OUTCOME, null, null, null, null), result.diagnostic
+                )
+            }
+        }
+        error("unreachable")
+    }
+
+    /** Reopens a provider circuit only when the already-validated credential version changes. */
+    fun replaceValidatedCredentials(configuration: APNsProviderConfig): Result<APNsProviderCredentialVersion> = runCatching {
+        val replacementVersion = APNsProviderCredentialVersion.from(configuration)
+        synchronized(runtimeLock) {
+            val currentVersion = configuredProvider?.let(APNsProviderCredentialVersion::from)
+            if (currentVersion != replacementVersion) {
+                configuredProvider = configuration
+                configuredRuntime = null
+            }
+        }
+        circuit.validatedCredentialsChanged(replacementVersion)
+        replacementVersion
+    }
+
+    fun credentialVersion(): APNsProviderCredentialVersion = APNsProviderCredentialVersion.from(configuration(null))
+
+    fun readiness(): APNsProviderReadiness = readiness(APNsProviderRuntimeTestOverride.current())
+
+    private fun readiness(testRuntime: APNsProviderRuntimeTestOverride.Value?): APNsProviderReadiness {
+        if (testRuntime != null) return APNsProviderReadiness(APNsProviderReadinessStatus.READY, emptySet())
+        val parsedDeployment = APNsDeploymentEnvironment.parse(deploymentEnvironmentRaw)
+        val reasons = buildSet {
+            if (apnsKeyId.isNullOrBlank()) add(APNsProviderReadinessReason.MISSING_KEY_ID)
+            if (apnsTeamId.isNullOrBlank()) add(APNsProviderReadinessReason.MISSING_TEAM_ID)
+            if (apnsAuthKey.isNullOrBlank()) add(APNsProviderReadinessReason.MISSING_AUTH_KEY)
+            else if (APNsProviderConfig.create(apnsKeyId ?: "key", apnsTeamId ?: "team", apnsAuthKey, apnsBundleId ?: "topic", apnsEnvironment ?: "production").isFailure) add(APNsProviderReadinessReason.INVALID_AUTH_KEY)
+            if (apnsBundleId.isNullOrBlank()) add(APNsProviderReadinessReason.MISSING_TOPIC)
+            if (apnsEnvironment.isNullOrBlank()) add(APNsProviderReadinessReason.MISSING_ENVIRONMENT)
+            parsedDeployment.readinessReason?.let(::add)
+            if (parsedDeployment.environment == APNsDeploymentEnvironment.PRODUCTION && !apnsEnvironment.equals("production", true)) add(APNsProviderReadinessReason.PRODUCTION_REQUIRES_PRODUCTION_APNS)
+        }
+        return APNsProviderReadiness(if (reasons.isEmpty()) APNsProviderReadinessStatus.READY else APNsProviderReadinessStatus.NOT_READY, reasons)
+    }
+
+    private fun configuration(testRuntime: APNsProviderRuntimeTestOverride.Value?): APNsProviderConfig =
+        testRuntime?.config ?: synchronized(runtimeLock) {
+            configuredProvider ?: APNsProviderConfig.create(
+                keyId = apnsKeyId,
+                teamId = apnsTeamId,
+                authKey = apnsAuthKey,
+                topic = apnsBundleId,
+                environment = apnsEnvironment
+            ).getOrThrow().also { configuredProvider = it }
         }
 
-        // The approved ports are injected, but actual signing, HTTP/2 delivery and success
-        // classification are intentionally deferred to tasks 5.1-5.3.
-        @Suppress("UNUSED_VARIABLE") val approvedSeams = listOf(configuration.getOrThrow(), tokenSigner, clock, transport, request)
-        logger.warn("APNs sender is not implemented")
-        error("APNs sender is not implemented")
+    private fun runtime(
+        testRuntime: APNsProviderRuntimeTestOverride.Value?,
+        configuration: APNsProviderConfig
+    ): APNsProviderRuntime = testRuntime?.runtime ?: synchronized(runtimeLock) {
+        configuredRuntime ?: APNsProviderRuntimeFactory.create(configuration, clock).getOrThrow()
+            .also { configuredRuntime = it }
     }
+
+    private fun blockedResult(
+        request: APNsProviderRequest,
+        correlationId: String,
+        statusCode: Int? = null,
+        reason: String? = null
+    ) = APNsProviderResult(
+        APNsProviderClassification(APNsProviderOutcome.PROVIDER_AUTH_BLOCKED, statusCode, reason, null, null),
+        APNsSanitizedDiagnostic(request.deliveryKey.value, correlationId, statusCode = statusCode, reasonCode = reason)
+    )
 }

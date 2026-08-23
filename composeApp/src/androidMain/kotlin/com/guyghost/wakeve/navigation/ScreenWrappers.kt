@@ -15,6 +15,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,6 +39,14 @@ import com.guyghost.wakeve.PollResultsScreen
 import com.guyghost.wakeve.PollVotingScreen
 import com.guyghost.wakeve.ui.event.toPollResultsUiState
 import com.guyghost.wakeve.viewmodel.PollViewModel
+import com.guyghost.wakeve.viewmodel.newPollConfirmationOperationId
+import com.guyghost.wakeve.presentation.statemachine.EventManagementStateMachine
+import com.guyghost.wakeve.presentation.usecase.CreateEventUseCase
+import com.guyghost.wakeve.presentation.usecase.LoadEventsUseCase
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import org.koin.compose.koinInject
 
 /**
@@ -122,12 +131,18 @@ fun PollVotingScreenWrapper(
             )
         }
         else -> {
+            val confirmationStateMachine = rememberPollConfirmationStateMachine(eventId, repository)
             val pollViewModel = remember(eventId, participantId) {
                 PollViewModel(
                     eventRepository = repository,
                     eventId = eventId,
-                    analyticsProvider = NoOpAnalyticsProvider
+                    analyticsProvider = NoOpAnalyticsProvider,
+                    confirmationStateMachine = confirmationStateMachine,
+                    confirmationOperationIdProvider = ::newPollConfirmationOperationId
                 )
+            }
+            DisposableEffect(pollViewModel) {
+                onDispose { pollViewModel.disposeConfirmationAdapter() }
             }
             val selectedVotes by pollViewModel.selectedVotes.collectAsState()
             val isVoting by pollViewModel.isVoting.collectAsState()
@@ -179,18 +194,26 @@ fun PollResultsScreenWrapper(
             )
         }
         else -> {
+            val confirmationStateMachine = rememberPollConfirmationStateMachine(eventId, repository)
             val pollViewModel = remember(eventId, userId) {
                 PollViewModel(
                     eventRepository = repository,
                     eventId = eventId,
-                    analyticsProvider = NoOpAnalyticsProvider
+                    analyticsProvider = NoOpAnalyticsProvider,
+                    confirmationStateMachine = confirmationStateMachine,
+                    confirmationOperationIdProvider = ::newPollConfirmationOperationId
                 )
+            }
+            DisposableEffect(pollViewModel) {
+                onDispose { pollViewModel.disposeConfirmationAdapter() }
             }
             val poll by pollViewModel.poll.collectAsState()
             val selectedSlotId by pollViewModel.selectedFinalSlotId.collectAsState()
             val isConfirming by pollViewModel.isConfirmingFinalDate.collectAsState()
             val confirmationError by pollViewModel.confirmationError.collectAsState()
             val hasConfirmed by pollViewModel.hasConfirmedFinalDate.collectAsState()
+            val confirmationPhase by pollViewModel.confirmationPhase.collectAsState()
+            val canRetryConfirmation by pollViewModel.canRetryFinalDateConfirmation.collectAsState()
             val isOrganizer = remember(eventId, userId, event) {
                 repository.isOrganizer(eventId, userId)
             }
@@ -200,7 +223,9 @@ fun PollResultsScreenWrapper(
                 selectedSlotId = selectedSlotId,
                 isConfirming = isConfirming,
                 hasConfirmed = hasConfirmed,
-                errorMessage = confirmationError
+                errorMessage = confirmationError,
+                confirmationPhase = confirmationPhase,
+                canRetryConfirmation = canRetryConfirmation
             )
 
             PollResultsScreen(
@@ -213,10 +238,43 @@ fun PollResultsScreenWrapper(
                         onSuccess = onDateConfirmed
                     )
                 },
+                onSubmitFinalDateConfirmation = pollViewModel::submitFinalDateConfirmation,
+                onCancelFinalDateConfirmation = pollViewModel::cancelFinalDateConfirmation,
+                onRetryFinalDateConfirmation = pollViewModel::retryFinalDateConfirmation,
+                onDismissFinalDateConfirmationFailure =
+                    pollViewModel::dismissFinalDateConfirmationFailure,
                 onBack = onBack
             )
         }
     }
+}
+
+private class PollConfirmationMachineHolder(
+    val stateMachine: EventManagementStateMachine,
+    val scope: CoroutineScope
+)
+
+@Composable
+private fun rememberPollConfirmationStateMachine(
+    eventId: String,
+    repository: EventRepositoryInterface
+): EventManagementStateMachine {
+    val holder = remember(eventId, repository) {
+        val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
+        PollConfirmationMachineHolder(
+            stateMachine = EventManagementStateMachine(
+                loadEventsUseCase = LoadEventsUseCase(repository),
+                createEventUseCase = CreateEventUseCase(repository),
+                eventRepository = repository,
+                scope = scope
+            ),
+            scope = scope
+        )
+    }
+    DisposableEffect(holder) {
+        onDispose { holder.scope.cancel() }
+    }
+    return holder.stateMachine
 }
 
 private object NoOpAnalyticsProvider : AnalyticsProvider {

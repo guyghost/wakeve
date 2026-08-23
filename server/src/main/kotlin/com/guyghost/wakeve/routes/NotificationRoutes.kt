@@ -1,11 +1,28 @@
 package com.guyghost.wakeve.routes
 
+import com.guyghost.wakeve.notification.APNsEnvironment
+import com.guyghost.wakeve.notification.BackendDeviceRegistrationRequest
+import com.guyghost.wakeve.notification.BackendDeviceRegistrationStoreFactory
+import com.guyghost.wakeve.notification.BackendDeviceUnregistrationOutcome
+import com.guyghost.wakeve.notification.BackendDeviceUnregistrationResult
+import com.guyghost.wakeve.notification.DeviceRegistrationScope
+import com.guyghost.wakeve.notification.DeviceRegistrationUnregisteredReason
+import com.guyghost.wakeve.notification.LegacyCompatibilityClientGeneration
+import com.guyghost.wakeve.notification.LegacyCompatibilityCommand
+import com.guyghost.wakeve.notification.LegacyCompatibilityOperation
+import com.guyghost.wakeve.notification.LegacyCompatibilityResponseDisposition
+import com.guyghost.wakeve.notification.LegacyCompatibilitySnapshot
+import com.guyghost.wakeve.notification.LegacyNotificationRegistrationCompatibilityWorker
 import com.guyghost.wakeve.notification.NotificationPreferences
 import com.guyghost.wakeve.notification.NotificationRequest
 import com.guyghost.wakeve.notification.NotificationService
 import com.guyghost.wakeve.notification.Platform
 import com.guyghost.wakeve.notification.defaultNotificationPreferences
 import com.guyghost.wakeve.notification.withDeepLink
+import com.guyghost.wakeve.notification.compatibilityTokenFingerprint
+import com.guyghost.wakeve.notification.legacyCompatibilityRowKey
+import com.guyghost.wakeve.notification.legacyCompatibilityRequestKey
+import com.guyghost.wakeve.notification.opaqueCompatibilityDigest
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -22,7 +39,14 @@ import io.ktor.server.routing.*
  * token for register/unregister to prevent token hijacking.
  */
 fun Route.notificationRoutes(
-    notificationService: NotificationService
+    notificationService: NotificationService,
+    deviceRegistrationStoreFactory: BackendDeviceRegistrationStoreFactory,
+    compatibilityWorker: LegacyNotificationRegistrationCompatibilityWorker =
+        LegacyNotificationRegistrationCompatibilityWorker(
+            notificationService = notificationService,
+            registrationStoreFactory = deviceRegistrationStoreFactory,
+            logicalClock = ::currentEpochSeconds
+        )
 ) {
     route("/notifications") {
 
@@ -42,7 +66,7 @@ fun Route.notificationRoutes(
                     )
 
                 val request = call.receive<RegisterTokenRequest>()
-                val token = validatePushToken(request.token)
+                val token = validatePushToken(request.token.orEmpty())
                     .getOrElse { error ->
                         return@post call.respond(
                             HttpStatusCode.BadRequest,
@@ -57,18 +81,74 @@ fun Route.notificationRoutes(
                         )
                     }
 
-                notificationService.registerPushToken(
-                    userId = userId,
-                    platform = platform,
-                    token = token
-                ).getOrElse { error ->
-                    return@post call.respond(
-                        HttpStatusCode.BadRequest,
-                        mapOf("error" to notificationTokenRegisterFailureMessage())
+                val isV2Request = request.installationId != null ||
+                    request.environment != null ||
+                    request.topic != null
+                if (isV2Request) {
+                    val registrationRequest = createV2DeviceRegistrationRequest(
+                        request = request,
+                        authenticatedUserId = userId,
+                        token = token,
+                        platform = platform,
+                        atEpochSeconds = currentEpochSeconds()
+                    ).getOrElse {
+                        return@post call.respond(
+                            HttpStatusCode.BadRequest,
+                            mapOf("error" to notificationDeviceRegistrationValidationFailureMessage())
+                        )
+                    }
+                    val registration = deviceRegistrationStoreFactory.open().use { store ->
+                        store.register(registrationRequest)
+                    }
+                    call.respond(
+                        HttpStatusCode.OK,
+                        RegisterDeviceResponse(
+                            success = true,
+                            registrationId = registration.registrationId,
+                            status = registration.status.name.lowercase()
+                        )
                     )
-                }
+                } else {
+                    if (platform == Platform.IOS) {
+                        val saga = executeLegacyCompatibilityCommand(
+                            compatibilityWorker = compatibilityWorker,
+                            factory = deviceRegistrationStoreFactory,
+                            authenticatedUserId = userId,
+                            platform = platform,
+                            operation = LegacyCompatibilityOperation.REGISTER,
+                            rawToken = token,
+                            atEpochSeconds = currentEpochSeconds()
+                        ).getOrElse {
+                            return@post call.respond(
+                                HttpStatusCode.InternalServerError,
+                                mapOf("error" to notificationTokenRegisterFailureMessage())
+                            )
+                        }
+                        return@post call.respondLegacyCompatibility(saga)
+                    }
 
-                call.respond(HttpStatusCode.OK, mapOf("success" to true))
+                    notificationService.registerPushToken(
+                        userId = userId,
+                        platform = platform,
+                        token = token
+                    ).getOrElse {
+                        return@post call.respond(
+                            HttpStatusCode.BadRequest,
+                            mapOf("error" to notificationTokenRegisterFailureMessage())
+                        )
+                    }
+                    call.respond(HttpStatusCode.OK, mapOf("success" to true))
+                }
+            } catch (_: io.ktor.server.plugins.BadRequestException) {
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to notificationDeviceRegistrationValidationFailureMessage())
+                )
+            } catch (_: IllegalArgumentException) {
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to notificationDeviceRegistrationValidationFailureMessage())
+                )
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
@@ -92,28 +172,122 @@ fun Route.notificationRoutes(
                         mapOf("error" to "Missing userId in token")
                     )
 
-                val platform = parseNotificationPlatform(call.request.queryParameters["platform"])
-                    .getOrElse { error ->
+                val legacyPlatform = call.request.queryParameters["platform"]
+                if (legacyPlatform != null) {
+                    val platform = parseNotificationPlatform(legacyPlatform).getOrElse {
                         return@delete call.respond(
                             HttpStatusCode.BadRequest,
                             mapOf("error" to notificationPlatformValidationFailureMessage())
                         )
                     }
+                    if (platform == Platform.IOS) {
+                        val saga = executeLegacyCompatibilityCommand(
+                            compatibilityWorker = compatibilityWorker,
+                            factory = deviceRegistrationStoreFactory,
+                            authenticatedUserId = userId,
+                            platform = platform,
+                            operation = LegacyCompatibilityOperation.UNREGISTER,
+                            rawToken = null,
+                            atEpochSeconds = currentEpochSeconds()
+                        ).getOrElse {
+                            return@delete call.respond(
+                                HttpStatusCode.InternalServerError,
+                                mapOf("error" to notificationTokenUnregisterFailureMessage())
+                            )
+                        }
+                        return@delete call.respondLegacyCompatibility(saga)
+                    }
 
-                notificationService.unregisterPushToken(userId, platform)
-                    .getOrElse { error ->
+                    notificationService.unregisterPushToken(userId, platform).getOrElse {
                         return@delete call.respond(
                             HttpStatusCode.BadRequest,
                             mapOf("error" to notificationTokenUnregisterFailureMessage())
                         )
                     }
+                    return@delete call.respond(HttpStatusCode.OK, mapOf("success" to true))
+                }
 
-                call.respond(HttpStatusCode.OK, mapOf("success" to true))
+                val request = call.receive<UnregisterDeviceRequest>()
+                val result = unregisterDevice(
+                    factory = deviceRegistrationStoreFactory,
+                    authenticatedUserId = userId,
+                    request = request,
+                    atEpochSeconds = currentEpochSeconds()
+                ).getOrElse {
+                    return@delete call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to notificationDeviceRegistrationValidationFailureMessage())
+                    )
+                }
+                if (result.outcome == BackendDeviceUnregistrationOutcome.NOT_OWNED) {
+                    return@delete call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to notificationRegistrationNotFoundMessage())
+                    )
+                }
+
+                call.respond(
+                    HttpStatusCode.OK,
+                    UnregisterDeviceResponse(
+                        success = true,
+                        alreadyAbsent = result.outcome == BackendDeviceUnregistrationOutcome.ALREADY_ABSENT
+                    )
+                )
+            } catch (_: io.ktor.server.plugins.BadRequestException) {
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to notificationDeviceRegistrationValidationFailureMessage())
+                )
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
                     mapOf("error" to notificationTokenUnregisterFailureMessage())
                 )
+            }
+        }
+
+        /** Canonical per-association logout endpoint. */
+        delete("/registrations/{registrationId}") {
+            val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
+                ?: return@delete call.respond(
+                    HttpStatusCode.Unauthorized,
+                    mapOf("error" to "Missing userId in token")
+                )
+            val registrationId = call.parameters["registrationId"]?.trim().orEmpty()
+            if (registrationId.isEmpty() || userId.isBlank()) {
+                return@delete call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to notificationDeviceRegistrationValidationFailureMessage())
+                )
+            }
+            val result = try {
+                deviceRegistrationStoreFactory.open().use { store ->
+                    store.unregisterRegistration(
+                        registrationId = registrationId,
+                        authenticatedUserId = userId,
+                        reason = DeviceRegistrationUnregisteredReason.LOGOUT,
+                        atEpochSeconds = currentEpochSeconds()
+                    )
+                }
+            } catch (_: IllegalArgumentException) {
+                return@delete call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to notificationDeviceRegistrationValidationFailureMessage())
+                )
+            } catch (_: Exception) {
+                return@delete call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("error" to notificationTokenUnregisterFailureMessage())
+                )
+            }
+
+            if (result.outcome == BackendDeviceUnregistrationOutcome.NOT_OWNED) {
+                call.respond(
+                    HttpStatusCode.NotFound,
+                    mapOf("error" to notificationRegistrationNotFoundMessage())
+                )
+            } else {
+                call.respond(HttpStatusCode.NoContent)
             }
         }
 
@@ -400,8 +574,53 @@ fun Route.notificationRoutes(
  */
 @kotlinx.serialization.Serializable
 data class RegisterTokenRequest(
-    val token: String,
-    val platform: String // "android" or "ios"
+    val token: String? = null,
+    val platform: String? = null,
+    val installationId: String? = null,
+    val environment: String? = null,
+    val topic: String? = null,
+    @Suppress("unused") val userId: String? = null,
+    @Suppress("unused") val appVersion: String? = null
+)
+
+@kotlinx.serialization.Serializable
+data class RegisterDeviceResponse(
+    val success: Boolean,
+    val registrationId: String,
+    val status: String
+)
+
+@kotlinx.serialization.Serializable
+data class UnregisterDeviceRequest(
+    val registrationId: String? = null,
+    val installationId: String? = null
+)
+
+@kotlinx.serialization.Serializable
+data class UnregisterDeviceResponse(
+    val success: Boolean,
+    val alreadyAbsent: Boolean
+)
+
+@kotlinx.serialization.Serializable
+private data class LegacyCompatibilityConvergedResponse(
+    val success: Boolean,
+    val compatibilityState: String,
+    val sagaId: String
+)
+
+@kotlinx.serialization.Serializable
+private data class LegacyCompatibilityAcceptedResponse(
+    val accepted: Boolean,
+    val compatibilityState: String,
+    val sagaId: String
+)
+
+@kotlinx.serialization.Serializable
+private data class LegacyCompatibilityBlockedResponse(
+    val accepted: Boolean,
+    val compatibilityState: String,
+    val sagaId: String
 )
 
 @kotlinx.serialization.Serializable
@@ -409,6 +628,160 @@ data class SendNotificationResponse(
     val success: Boolean,
     val notificationId: String
 )
+
+internal fun createV2DeviceRegistrationRequest(
+    request: RegisterTokenRequest,
+    authenticatedUserId: String,
+    token: String,
+    platform: Platform,
+    atEpochSeconds: Long
+): Result<BackendDeviceRegistrationRequest> = runCatching {
+    require(platform == Platform.IOS) { "Only iOS APNs registrations are accepted" }
+    val environment = when (request.environment?.trim()?.lowercase()) {
+        "sandbox" -> APNsEnvironment.SANDBOX
+        "production" -> APNsEnvironment.PRODUCTION
+        else -> throw IllegalArgumentException("APNs environment is invalid")
+    }
+    val scope = DeviceRegistrationScope.create(environment, request.topic).getOrThrow()
+    BackendDeviceRegistrationRequest.create(
+        installationId = request.installationId,
+        authenticatedUserId = authenticatedUserId,
+        platform = platform,
+        scope = scope,
+        rawToken = token,
+        registeredAtEpochSeconds = atEpochSeconds
+    ).getOrThrow()
+}
+
+internal suspend fun unregisterDevice(
+    factory: BackendDeviceRegistrationStoreFactory,
+    authenticatedUserId: String,
+    request: UnregisterDeviceRequest,
+    atEpochSeconds: Long
+): Result<BackendDeviceUnregistrationResult> = runCatching {
+    val registrationId = request.registrationId?.trim()?.takeIf(String::isNotEmpty)
+    val installationId = request.installationId?.trim()?.takeIf(String::isNotEmpty)
+    require(authenticatedUserId.isNotBlank()) { "Authenticated user is required" }
+    require(registrationId != null || installationId != null) {
+        "registrationId or installationId is required"
+    }
+
+    factory.open().use { store ->
+        if (registrationId != null) {
+            val persisted = store.registration(registrationId)
+            if (
+                persisted != null &&
+                persisted.userId == authenticatedUserId &&
+                installationId != null
+            ) {
+                require(persisted.installationId == installationId) {
+                    "registrationId and installationId do not identify the same association"
+                }
+            }
+            store.unregisterRegistration(
+                registrationId = registrationId,
+                authenticatedUserId = authenticatedUserId,
+                reason = DeviceRegistrationUnregisteredReason.LOGOUT,
+                atEpochSeconds = atEpochSeconds
+            )
+        } else {
+            store.unregisterInstallation(
+                installationId = checkNotNull(installationId),
+                authenticatedUserId = authenticatedUserId,
+                reason = DeviceRegistrationUnregisteredReason.LOGOUT,
+                atEpochSeconds = atEpochSeconds
+            )
+        }
+    }
+}
+
+private fun legacyIosScope(): DeviceRegistrationScope = DeviceRegistrationScope.create(
+    environment = APNsEnvironment.PRODUCTION,
+    topic = LEGACY_IOS_TOPIC
+).getOrThrow()
+
+private fun currentEpochSeconds(): Long = System.currentTimeMillis() / 1_000L
+
+private suspend fun executeLegacyCompatibilityCommand(
+    compatibilityWorker: LegacyNotificationRegistrationCompatibilityWorker,
+    factory: BackendDeviceRegistrationStoreFactory,
+    authenticatedUserId: String,
+    platform: Platform,
+    operation: LegacyCompatibilityOperation,
+    rawToken: String?,
+    atEpochSeconds: Long
+): Result<LegacyCompatibilitySnapshot> = runCatching {
+    require(platform == Platform.IOS) { "Only iOS uses the legacy compatibility saga" }
+    val legacyRowKey = legacyCompatibilityRowKey(authenticatedUserId, platform)
+    val identity = factory.deriveLegacyCompatibilityIdentity(legacyRowKey)
+    val tokenFingerprint = rawToken?.let(::compatibilityTokenFingerprint)
+    val compatibilityGeneration = factory.openCompatibilitySagaStore().use { store ->
+        store.allocateCompatibilityGeneration(
+            authenticatedUserId = authenticatedUserId,
+            stableTargetIdentity = identity.registrationId,
+            operation = operation,
+            tokenFingerprint = tokenFingerprint
+        )
+    }
+    val requestKey = legacyCompatibilityRequestKey(
+        operation = operation,
+        authenticatedUserId = authenticatedUserId,
+        compatibilityGeneration = compatibilityGeneration,
+        stableTargetIdentity = identity.registrationId,
+        tokenFingerprint = tokenFingerprint
+    )
+    val command = LegacyCompatibilityCommand.create(
+        sagaId = opaqueCompatibilityDigest(listOf("compatibility-saga", requestKey)),
+        operation = operation,
+        clientGeneration = LegacyCompatibilityClientGeneration.N_MINUS_1,
+        authenticatedUserId = authenticatedUserId,
+        platform = platform,
+        legacyPrimaryKeyFingerprint = opaqueCompatibilityDigest(
+            listOf("legacy-primary-key", legacyRowKey)
+        ),
+        legacyInstallationId = identity.installationId,
+        legacyRegistrationId = identity.registrationId,
+        targetInstallationId = identity.installationId,
+        targetRegistrationId = null,
+        tokenFingerprint = tokenFingerprint,
+        compatibilityGeneration = compatibilityGeneration,
+        maxAttemptsPerStore = LEGACY_COMPATIBILITY_MAX_ATTEMPTS,
+        initialNowEpochSeconds = atEpochSeconds,
+        scope = legacyIosScope()
+    ).getOrThrow()
+    compatibilityWorker.execute(command, rawToken)
+}
+
+private suspend fun ApplicationCall.respondLegacyCompatibility(
+    snapshot: LegacyCompatibilitySnapshot
+) {
+    when (snapshot.responseDisposition) {
+        LegacyCompatibilityResponseDisposition.CONVERGED_SUCCESS -> respond(
+            HttpStatusCode.OK,
+            LegacyCompatibilityConvergedResponse(
+                success = true,
+                compatibilityState = "converged",
+                sagaId = snapshot.sagaId
+            )
+        )
+        LegacyCompatibilityResponseDisposition.RECONCILIATION_ACCEPTED -> respond(
+            HttpStatusCode.Accepted,
+            LegacyCompatibilityAcceptedResponse(
+                accepted = true,
+                compatibilityState = "pending",
+                sagaId = snapshot.sagaId
+            )
+        )
+        LegacyCompatibilityResponseDisposition.BLOCKED_FAILURE -> respond(
+            HttpStatusCode.InternalServerError,
+            LegacyCompatibilityBlockedResponse(
+                accepted = false,
+                compatibilityState = "blocked",
+                sagaId = snapshot.sagaId
+            )
+        )
+    }
+}
 
 internal fun validatePushToken(token: String): Result<String> {
     val normalizedToken = token.trim()
@@ -517,6 +890,12 @@ internal fun notificationTokenRegisterFailureMessage(): String =
 internal fun notificationTokenUnregisterFailureMessage(): String =
     "Failed to unregister notification token. Please try again."
 
+internal fun notificationDeviceRegistrationValidationFailureMessage(): String =
+    "Notification device registration is invalid."
+
+internal fun notificationRegistrationNotFoundMessage(): String =
+    "Notification registration was not found."
+
 internal fun notificationSendForbiddenMessage(): String =
     "You are not allowed to send this notification."
 
@@ -550,3 +929,5 @@ internal fun notificationPreferencesUpdateFailureMessage(): String =
 private const val DEFAULT_NOTIFICATION_HISTORY_LIMIT = 50
 private const val MIN_NOTIFICATION_HISTORY_LIMIT = 1
 private const val MAX_NOTIFICATION_HISTORY_LIMIT = 100
+private const val LEGACY_IOS_TOPIC = "com.guyghost.wakeve"
+private const val LEGACY_COMPATIBILITY_MAX_ATTEMPTS = 3

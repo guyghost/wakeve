@@ -88,7 +88,7 @@ struct iOSApp: App {
      * - Parameter url: The deep link URL to handle
      */
     private func handleDeepLink(_ url: URL) {
-        debugLog("[iOSApp] Deep link received: \(url.absoluteString)")
+        debugLog("[iOSApp] Deep link handoff received")
 
         // Check authentication status before handling deep link
         let isAuthenticated = authStateManager.isAuthenticated

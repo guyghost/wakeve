@@ -9,8 +9,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -326,6 +328,62 @@ class EventWorkspaceScreenTest {
         composeTestRule.onNodeWithTag("event_rsvp_accepted").performClick()
 
         assertEquals(ParticipantRsvp.ACCEPTED, response)
+    }
+
+    @Test
+    fun nonApplicableRsvpIsInformationalAndNeverBecomesASelectableResponse() {
+        // Bug caught: a sentinel RSVP could be exposed as a fourth selectable action.
+        setContent {
+            WakeveTheme(dynamicColor = false) {
+                EventRsvpResponseCard(
+                    state = EventRsvpUiState(
+                        participantId = "user-2",
+                        selectedResponse = ParticipantRsvp.NOT_APPLICABLE,
+                        isOrganizer = false,
+                        isEnabled = true,
+                        statusLabel = "Participation non applicable"
+                    ),
+                    onResponseSelected = {}
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("Participation non applicable").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Oui").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Non").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Peut-être").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Oui").assertHasClickAction()
+        composeTestRule.onNodeWithText("Non").assertHasClickAction()
+        composeTestRule.onNodeWithText("Peut-être").assertHasClickAction()
+        composeTestRule.onAllNodes(hasClickAction()).assertCountEquals(3)
+    }
+
+    @Test
+    fun unavailableRsvpIsInformationalAndNeverBecomesASelectableResponse() {
+        // Bug caught: unavailable RSVP data could be presented as an action rather than a status.
+        setContent {
+            WakeveTheme(dynamicColor = false) {
+                EventRsvpResponseCard(
+                    state = EventRsvpUiState(
+                        participantId = "user-2",
+                        selectedResponse = ParticipantRsvp.UNAVAILABLE,
+                        isOrganizer = false,
+                        isEnabled = true,
+                        statusLabel = "Participation indisponible"
+                    ),
+                    onResponseSelected = {}
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("Participation indisponible").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Oui").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Non").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Peut-être").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Oui").assertHasClickAction()
+        composeTestRule.onNodeWithText("Non").assertHasClickAction()
+        composeTestRule.onNodeWithText("Peut-être").assertHasClickAction()
+        composeTestRule.onAllNodes(hasClickAction()).assertCountEquals(3)
     }
 
     private fun setContent(content: @Composable () -> Unit) {

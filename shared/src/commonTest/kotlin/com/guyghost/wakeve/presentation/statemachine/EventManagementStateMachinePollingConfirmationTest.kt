@@ -413,6 +413,43 @@ class EventManagementStateMachinePollingConfirmationTest {
     }
 
     @Test
+    fun `historical same-slot receipt never confirms a new operation or emits success effects`() = runTest {
+        val eventId = "event-historical-receipt"
+        repository.events[eventId] = eventFixture(eventId, "organizer-1", EventStatus.POLLING)
+        repository.polls[eventId] = pollWithYesVote(eventId, "slot-1")
+
+        stateMachine.dispatch(EventManagementContract.Intent.OpenConfirmPrompt(eventId, "slot-1", "organizer-1"))
+        machineScope.advanceUntilIdle()
+        stateMachine.dispatch(EventManagementContract.Intent.SubmitConfirmation("operation-historical"))
+        machineScope.advanceUntilIdle()
+
+        val replayMachine = EventManagementStateMachine(
+            loadEventsUseCase = LoadEventsUseCase(repository),
+            createEventUseCase = CreateEventUseCase(repository),
+            eventRepository = repository,
+            scope = machineScope
+        )
+        val effects = mutableListOf<EventManagementContract.SideEffect>()
+        val collector = machineScope.launch {
+            replayMachine.sideEffect.collect { effects += it }
+        }
+        machineScope.advanceUntilIdle()
+
+        replayMachine.dispatch(EventManagementContract.Intent.OpenConfirmPrompt(eventId, "slot-1", "organizer-1"))
+        machineScope.advanceUntilIdle()
+        replayMachine.dispatch(EventManagementContract.Intent.SubmitConfirmation("operation-new"))
+        machineScope.advanceUntilIdle()
+
+        assertEquals(
+            EventManagementContract.ConfirmationPhase.CONFIRMING,
+            replayMachine.state.value.confirmationPhase
+        )
+        assertEquals("operation-new", replayMachine.state.value.confirmationOperationId)
+        assertTrue(effects.isEmpty(), "an uncorrelated historical receipt must not toast or navigate")
+        collector.cancel()
+    }
+
+    @Test
     fun `draft to polling to confirmed sets final date unlocks scenarios navigates and queues confirmation work`() = runTest {
         val eventId = "event-happy-path"
         val organizerId = "organizer-1"
