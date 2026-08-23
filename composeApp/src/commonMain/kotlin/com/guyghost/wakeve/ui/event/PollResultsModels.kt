@@ -4,6 +4,7 @@ import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.Poll
 import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.poll.PollLogic
+import com.guyghost.wakeve.presentation.state.EventManagementContract
 
 data class PollResultsUiState(
     val eventId: String,
@@ -14,10 +15,17 @@ data class PollResultsUiState(
     val hasConfirmed: Boolean,
     val errorMessage: String?,
     val recommendedSlot: PollSlotResultUiState?,
-    val slots: List<PollSlotResultUiState>
+    val slots: List<PollSlotResultUiState>,
+    val confirmationPhase: EventManagementContract.ConfirmationPhase =
+        EventManagementContract.ConfirmationPhase.REVIEWING_RESULTS,
+    val canRetryConfirmation: Boolean = false
 ) {
     val canConfirm: Boolean
-        get() = isOrganizer && selectedSlotId != null && !isConfirming && !hasConfirmed
+        get() = isOrganizer &&
+            selectedSlotId != null &&
+            confirmationPhase == EventManagementContract.ConfirmationPhase.REVIEWING_RESULTS &&
+            !isConfirming &&
+            !hasConfirmed
 }
 
 data class PollSlotResultUiState(
@@ -37,7 +45,10 @@ fun Event.toPollResultsUiState(
     selectedSlotId: String?,
     isConfirming: Boolean = false,
     hasConfirmed: Boolean = false,
-    errorMessage: String? = null
+    errorMessage: String? = null,
+    confirmationPhase: EventManagementContract.ConfirmationPhase =
+        EventManagementContract.ConfirmationPhase.REVIEWING_RESULTS,
+    canRetryConfirmation: Boolean = false
 ): PollResultsUiState {
     val scores = poll?.let { PollLogic.getSlotScores(it, proposedSlots) }.orEmpty()
     val bestSlotId = poll?.let { PollLogic.getBestSlotWithScore(it, proposedSlots)?.first?.id }
@@ -55,7 +66,9 @@ fun Event.toPollResultsUiState(
         hasConfirmed = hasConfirmed,
         errorMessage = errorMessage,
         recommendedSlot = slotResults.firstOrNull { it.slotId == bestSlotId },
-        slots = slotResults
+        slots = slotResults,
+        confirmationPhase = confirmationPhase,
+        canRetryConfirmation = canRetryConfirmation
     )
 }
 

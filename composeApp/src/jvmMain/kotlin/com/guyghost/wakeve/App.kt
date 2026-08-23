@@ -20,16 +20,28 @@ import com.guyghost.wakeve.auth.AuthState
 import com.guyghost.wakeve.auth.AuthStateManager
 import com.guyghost.wakeve.auth.BrowserOAuthHelper
 import com.guyghost.wakeve.auth.JvmAuthenticationService
+import com.guyghost.wakeve.analytics.AnalyticsEvent
+import com.guyghost.wakeve.analytics.AnalyticsProvider
 import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.OAuthProvider
 import com.guyghost.wakeve.models.Vote
+import com.guyghost.wakeve.presentation.state.EventManagementContract
+import com.guyghost.wakeve.presentation.statemachine.EventManagementStateMachine
+import com.guyghost.wakeve.presentation.usecase.CreateEventUseCase
+import com.guyghost.wakeve.presentation.usecase.LoadEventsUseCase
 import com.guyghost.wakeve.security.JvmSecureTokenStorage
 import com.guyghost.wakeve.sync.JvmNetworkStatusDetector
 import com.guyghost.wakeve.sync.KtorSyncHttpClient
 import com.guyghost.wakeve.sync.SyncManager
 import com.guyghost.wakeve.ui.event.toPollResultsUiState
+import com.guyghost.wakeve.viewmodel.PollViewModel
+import com.guyghost.wakeve.viewmodel.newPollConfirmationOperationId
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 /**
@@ -87,6 +99,20 @@ class SyncedEventRepository(
             }
         }
     }
+
+    override suspend fun confirmPollDate(
+        command: EventManagementContract.ConfirmPollDateCommand
+    ): EventManagementContract.ConfirmationResult = eventRepository.confirmPollDate(command)
+
+    override suspend fun markConfirmationSynced(
+        receiptId: String
+    ): EventManagementContract.ConfirmationProjection? =
+        eventRepository.markConfirmationSynced(receiptId)
+
+    override fun loadConfirmationProjection(
+        eventId: String
+    ): EventManagementContract.ConfirmationProjection =
+        eventRepository.loadConfirmationProjection(eventId)
 
     override fun isDeadlinePassed(deadline: String): Boolean = eventRepository.isDeadlinePassed(deadline)
 
@@ -330,49 +356,63 @@ fun App() {
                         Screen.POLL_RESULTS -> {
                             val event = repository.getEvent(appState.currentEventId ?: "")
                             if (event != null) {
-                                val poll = repository.getPoll(event.id)
-                                var selectedFinalSlotId by remember(event.id, state.userId) {
-                                    mutableStateOf<String?>(null)
+                                val confirmationStateMachine =
+                                    rememberJvmPollConfirmationStateMachine(event.id, repository)
+                                val pollViewModel = remember(
+                                    event.id,
+                                    state.userId,
+                                    confirmationStateMachine
+                                ) {
+                                    PollViewModel(
+                                        eventRepository = repository,
+                                        eventId = event.id,
+                                        analyticsProvider = JvmNoOpAnalyticsProvider,
+                                        confirmationStateMachine = confirmationStateMachine,
+                                        confirmationOperationIdProvider = ::newPollConfirmationOperationId
+                                    )
                                 }
-                                var isConfirming by remember(event.id, state.userId) { mutableStateOf(false) }
-                                var confirmationError by remember(event.id, state.userId) { mutableStateOf<String?>(null) }
-                                var hasConfirmed by remember(event.id, state.userId) { mutableStateOf(false) }
+                                DisposableEffect(pollViewModel) {
+                                    onDispose { pollViewModel.disposeConfirmationAdapter() }
+                                }
+                                val poll by pollViewModel.poll.collectAsState()
+                                val selectedFinalSlotId by pollViewModel.selectedFinalSlotId.collectAsState()
+                                val isConfirming by pollViewModel.isConfirmingFinalDate.collectAsState()
+                                val confirmationError by pollViewModel.confirmationError.collectAsState()
+                                val hasConfirmed by pollViewModel.hasConfirmedFinalDate.collectAsState()
+                                val confirmationPhase by pollViewModel.confirmationPhase.collectAsState()
+                                val canRetryConfirmation by
+                                    pollViewModel.canRetryFinalDateConfirmation.collectAsState()
                                 val pollResultsState = event.toPollResultsUiState(
                                     poll = poll,
                                     isOrganizer = repository.isOrganizer(event.id, state.userId),
                                     selectedSlotId = selectedFinalSlotId,
                                     isConfirming = isConfirming,
                                     hasConfirmed = hasConfirmed,
-                                    errorMessage = confirmationError
+                                    errorMessage = confirmationError,
+                                    confirmationPhase = confirmationPhase,
+                                    canRetryConfirmation = canRetryConfirmation
                                 )
 
                                 PollResultsScreen(
                                     state = pollResultsState,
-                                    onSlotSelected = { selectedFinalSlotId = it },
-                                    onConfirmFinalDate = onConfirmFinalDate@{
-                                        val selectedSlot = event.proposedSlots.firstOrNull { it.id == selectedFinalSlotId }
-                                        if (selectedSlot == null) {
-                                            confirmationError = "Select a time slot before confirming"
-                                            return@onConfirmFinalDate
-                                        }
-                                        scope.launch {
-                                            isConfirming = true
-                                            val result = repository.updateEventStatus(
-                                                event.id,
-                                                EventStatus.CONFIRMED,
-                                                selectedSlot.start
-                                            )
-                                            isConfirming = false
-                                            result
-                                                .onSuccess {
-                                                    hasConfirmed = true
-                                                    appState = appState.copy(currentEventId = event.id)
-                                                }
-                                                .onFailure { failure ->
-                                                    confirmationError = failure.message ?: "Failed to confirm final date"
-                                                }
-                                        }
+                                    onSlotSelected = pollViewModel::selectFinalSlot,
+                                    onConfirmFinalDate = {
+                                        pollViewModel.confirmFinalDate(
+                                            event = event,
+                                            userId = state.userId,
+                                            onSuccess = {
+                                                appState = appState.copy(currentEventId = event.id)
+                                            }
+                                        )
                                     },
+                                    onSubmitFinalDateConfirmation =
+                                        pollViewModel::submitFinalDateConfirmation,
+                                    onCancelFinalDateConfirmation =
+                                        pollViewModel::cancelFinalDateConfirmation,
+                                    onRetryFinalDateConfirmation =
+                                        pollViewModel::retryFinalDateConfirmation,
+                                    onDismissFinalDateConfirmationFailure =
+                                        pollViewModel::dismissFinalDateConfirmationFailure,
                                     onBack = {
                                         appState = appState.copy(currentScreen = Screen.HOME)
                                     }
@@ -402,4 +442,40 @@ fun App() {
             }
         }
     }
+}
+
+private class JvmPollConfirmationMachineHolder(
+    val stateMachine: EventManagementStateMachine,
+    val scope: CoroutineScope
+)
+
+@Composable
+private fun rememberJvmPollConfirmationStateMachine(
+    eventId: String,
+    repository: EventRepositoryInterface
+): EventManagementStateMachine {
+    val holder = remember(eventId, repository) {
+        val stateMachineScope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
+        JvmPollConfirmationMachineHolder(
+            stateMachine = EventManagementStateMachine(
+                loadEventsUseCase = LoadEventsUseCase(repository),
+                createEventUseCase = CreateEventUseCase(repository),
+                eventRepository = repository,
+                scope = stateMachineScope
+            ),
+            scope = stateMachineScope
+        )
+    }
+    DisposableEffect(holder) {
+        onDispose { holder.scope.cancel() }
+    }
+    return holder.stateMachine
+}
+
+private object JvmNoOpAnalyticsProvider : AnalyticsProvider {
+    override fun trackEvent(event: AnalyticsEvent, properties: Map<String, Any?>) = Unit
+    override fun setUserProperty(name: String, value: String) = Unit
+    override fun setUserId(userId: String?) = Unit
+    override fun setEnabled(enabled: Boolean) = Unit
+    override fun clearUserData() = Unit
 }

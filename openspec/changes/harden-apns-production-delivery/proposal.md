@@ -16,12 +16,12 @@ Cette divergence peut faire croire aux organisateurs qu'une invitation, une conf
 
 ## What Changes
 
-- Formaliser deux machines déterministes : `iosNotificationRegistration` pour permission/APNs/backend/logout et `notificationDelivery` pour politique/outbox/authentification APNs/envoi/retries/terminaux.
+- Formaliser deux machines runtime déterministes — `iosNotificationRegistration` pour permission/APNs/backend/logout et `notificationDelivery` pour politique/outbox/authentification APNs/envoi/retries/terminaux — ainsi qu'une saga backend séparée pour la convergence legacy/v2 pendant la migration.
 - Imposer, avant tout code de production, deux modèles XState v5 sous `/models` comme source de vérité exécutable, avec tests de transitions autorisées et interdites.
 - Remplacer la permission au lancement par une simple lecture de statut ; le prompt système ne peut suivre qu'une action explicite de l'utilisateur.
 - Rendre l'inscription backend observable et récupérable, y compris attente d'authentification, erreurs temporaires, annulation et désinscription avant effacement du JWT.
 - Autoriser plusieurs installations iOS par utilisateur et gérer rotation, invalidation et déconnexion d'un seul appareil.
-- Introduire une outbox durable et idempotente avec un état de livraison par appareil, des leases de worker, une expiration et un backoff borné avec jitter.
+- Introduire une outbox durable et idempotente avec un état de livraison par association d'inscription, des leases de worker, une expiration et un backoff borné avec jitter.
 - Implémenter ultérieurement un provider APNs HTTP/2/TLS avec authentification JWT ES256, séparation sandbox/production, classification stricte des réponses et secrets exclusivement côté backend.
 - Définir `sent_at` comme une acceptation fournisseur prouvée : pour APNs, uniquement après une réponse HTTP `200`, jamais lors de la mise en file ni lors d'une tentative au résultat inconnu.
 - Ajouter des gates tests-first, sécurité, observabilité, migration/rollback et preuves sur appareil réel puis TestFlight avec l'environnement APNs production.
@@ -82,14 +82,14 @@ Cette proposition ne rend pas Wakeve prête pour la production à elle seule. Au
 
 1. validation stricte de ce changement ;
 2. approbation humaine de la proposition ;
-3. création et review des deux machines XState dans `/models` ;
+3. création et review des deux machines runtime XState et de la saga de compatibilité legacy/v2 dans `/models` ;
 4. validation des cas nominaux, erreurs, annulations, retries, permissions et terminaux ;
 5. écriture des tests en échec qui matérialisent ces modèles.
 
 ## Architecture Amendment: Delivery Authority
 
 - `DatabaseEventRepository` owns only the local SQLDelight `confirmation_effect_outbox`: it produces a stable domain-effect envelope and acknowledges local persistence, never provider delivery.
-- The backend owns `notification_recipient` and `notification_delivery`; after accepting a synced envelope it resolves recipients and fans out one delivery per eligible installation.
+- The backend owns `notification_recipient` and `notification_delivery`; after accepting a synced envelope it resolves recipients and fans out one delivery per eligible active `registrationId`.
 - No transaction or atomicity guarantee spans SQLDelight and the backend database. Producer, consumer, and acknowledgement boundaries are explicit and independently retryable.
 - Normative identities are `domainEventId`, `effectKey`, `recipientKey`, `deliveryKey`, and `calendarArtifactKey`. A unique `delivery_authority` prevents two active senders during migration.
 - A missing target remains a pending `notification_recipient`; later membership or token availability resumes fan-out without a client-side guessed target.

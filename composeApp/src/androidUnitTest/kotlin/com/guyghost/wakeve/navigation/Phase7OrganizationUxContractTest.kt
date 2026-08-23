@@ -719,36 +719,65 @@ class Phase7OrganizationUxContractTest {
         val navHost = projectFile(
             "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/WakeveNavHost.kt"
         ).readText()
-        val phase5RouteBlocks = listOf(
-            routeBlock(navHost, "Screen.MeetingList.route"),
-            routeBlock(navHost, "Screen.PaymentPot.route"),
-            routeBlock(navHost, "Screen.Tricount.route"),
-            routeBlock(navHost, "Screen.BudgetOverview.route"),
-            routeBlock(navHost, "Screen.BudgetDetail.route")
+        val routeContracts = listOf(
+            AccessDeniedRouteContract("meetings", "Screen.MeetingList.route", "access_denied_meetings", "réunions"),
+            AccessDeniedRouteContract("payment pot", "Screen.PaymentPot.route", "access_denied_payment_pot", "cagnotte"),
+            AccessDeniedRouteContract("Tricount", "Screen.Tricount.route", "access_denied_tricount", "Tricount"),
+            AccessDeniedRouteContract("budget", "Screen.BudgetOverview.route", "access_denied_budget", "budget"),
+            AccessDeniedRouteContract("expenses", "Screen.BudgetDetail.route", "access_denied_expenses", "dépenses")
         )
-        val accessDeniedMessages = phase5RouteBlocks.flatMap { block ->
-            Regex("""AccessDenied\s*\([\s\S]{0,220}message\s*=\s*"([^"]+)"""")
-                .findAll(block)
-                .map { it.groupValues[1] }
-                .toList()
+        val routesMissingResourceContract = routeContracts.filter { contract ->
+            val route = routeBlock(navHost, contract.routeMarker)
+            !Regex(
+                """AccessDenied\s*\([\s\S]{0,220}message\s*=\s*stringResource\(\s*R\.string\.${contract.resourceName}\s*\)"""
+            ).containsMatchIn(route)
         }
-        val englishMessages = accessDeniedMessages.filter { message ->
-            containsAny(message, "Confirm your attendance", "before opening", "payment details", "budget details", "expense details")
+        val defaultFrenchResources = androidStringResources(
+            "composeApp/src/androidMain/res/values/strings.xml"
+        )
+        val englishResources = androidStringResources(
+            "composeApp/src/androidMain/res/values-en/strings.xml"
+        )
+        val missingFrenchResources = routeContracts.filterNot { contract ->
+            defaultFrenchResources.containsKey(contract.resourceName)
+        }
+        val invalidFrenchResources = routeContracts.mapNotNull { contract ->
+            val frenchValue = defaultFrenchResources[contract.resourceName] ?: return@mapNotNull null
+            val englishValue = englishResources[contract.resourceName]
+            val hasFrenchGuidance = containsAny(frenchValue, "Confirmez votre présence") &&
+                containsAny(frenchValue, "accéder", "ouvrir") &&
+                containsAny(frenchValue, contract.destination)
+            val differsFromEnglish = englishValue == null ||
+                normalizeResourceText(frenchValue) != normalizeResourceText(englishValue)
+            val containsEnglishPlaceholder = containsAny(
+                frenchValue,
+                "Confirm your attendance",
+                "to access",
+                "to open",
+                "meeting details",
+                "payment pot details",
+                "budget details",
+                "expense details"
+            )
+
+            if (hasFrenchGuidance && differsFromEnglish && !containsEnglishPlaceholder) null
+            else "${contract.resourceName}=\"$frenchValue\""
         }
 
         assertTrue(
-            accessDeniedMessages.isNotEmpty(),
-            "Android Phase 5 routes must expose explicit access-denied copy for unauthorized users."
+            routesMissingResourceContract.isEmpty(),
+            "Each Phase 5 access-denied route must use its assigned Android resource ID. Missing: " +
+                routesMissingResourceContract.joinToString { "${it.label} -> R.string.${it.resourceName}" }
         )
         assertTrue(
-            englishMessages.isEmpty(),
-            "Android Phase 5 access-denied visible copy must be French/product-ready, not English placeholder text. Found: $englishMessages"
+            missingFrenchResources.isEmpty(),
+            "Default French resources must define every Phase 5 access-denied message. Missing: " +
+                missingFrenchResources.joinToString { it.resourceName }
         )
         assertTrue(
-            accessDeniedMessages.all { message ->
-                containsAny(message, "Confirmez", "présence", "accéder", "ouvrir", "détails")
-            },
-            "Android Phase 5 access-denied messages should explain in French that attendance confirmation is required. Found: $accessDeniedMessages"
+            invalidFrenchResources.isEmpty(),
+            "Default French access-denied resources must be non-English and guide the participant to confirm attendance before opening the relevant details. " +
+                "Invalid: $invalidFrenchResources"
         )
     }
 
@@ -780,6 +809,17 @@ class Phase7OrganizationUxContractTest {
 
     private fun routeBlock(source: String, routeMarker: String): String =
         slice(source, "route = $routeMarker", "\n        composable(")
+
+    private fun androidStringResources(relativePath: String): Map<String, String> =
+        Regex(
+            """<string\s+name="([^"]+)"[^>]*>(.*?)</string>""",
+            setOf(RegexOption.DOT_MATCHES_ALL)
+        ).findAll(projectFile(relativePath).readText()).associate { match ->
+            match.groupValues[1] to match.groupValues[2].trim()
+        }
+
+    private fun normalizeResourceText(value: String): String =
+        value.replace(Regex("""\s+"""), " ").trim().lowercase()
 
     private fun slice(source: String, from: String, to: String): String {
         val start = source.indexOf(from)
@@ -848,4 +888,11 @@ class Phase7OrganizationUxContractTest {
     ) {
         fun display(): String = "$relativePath:$line \"$text\""
     }
+
+    private data class AccessDeniedRouteContract(
+        val label: String,
+        val routeMarker: String,
+        val resourceName: String,
+        val destination: String
+    )
 }

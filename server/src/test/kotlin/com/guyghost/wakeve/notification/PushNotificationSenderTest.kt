@@ -79,7 +79,7 @@ class PushNotificationSenderTest {
     }
 
     @Test
-    fun apnsSenderFailsUntilHttp2ProviderIsImplemented() = runBlocking {
+    fun apnsSenderRejectsMalformedP8BeforeProviderWork() = runBlocking {
         val result = ServerAPNsSender(
             apnsKeyId = "key-id",
             apnsTeamId = "team-id",
@@ -94,6 +94,6 @@ class PushNotificationSenderTest {
         )
 
         assertTrue(result.isFailure)
-        assertContains(result.exceptionOrNull()?.message.orEmpty(), "not implemented")
+        assertContains(result.exceptionOrNull()?.message.orEmpty(), "APNs credentials")
     }
 }

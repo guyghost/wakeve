@@ -405,6 +405,7 @@ class NotificationServiceTest {
         assertNotNull(persisted)
         assertEquals("user123", persisted.user_id)
         assertEquals("Invitation", persisted.title)
+        assertNull(persisted.sent_at, "history without a target token must remain unaccepted")
     }
 
     @Test
@@ -423,18 +424,14 @@ class NotificationServiceTest {
             )
         )
 
-        assertTrue(result.isSuccess)
-        val notificationId = result.getOrThrow()
+        assertTrue(result.isFailure)
         assertEquals(1, fcmSender.callCount)
         assertEquals(1, apnsSender.callCount)
         assertTrue(fcmSender.sentTokens.isEmpty())
         assertTrue(apnsSender.sentTokens.isEmpty())
 
-        assertNotNull(
-            database.notificationQueries
-                .getNotificationById(notificationId)
-                .executeAsOneOrNull()
-        )
+        val persisted = service.getNotifications("user123").single()
+        assertNull(persisted.sentAt)
     }
 
     @Test
@@ -452,18 +449,14 @@ class NotificationServiceTest {
             )
         )
 
-        assertTrue(result.isSuccess)
-        val notificationId = result.getOrThrow()
+        assertTrue(result.isFailure)
         assertEquals(1, fcmSender.callCount)
         assertEquals(1, apnsSender.callCount)
         assertTrue(fcmSender.sentTokens.isEmpty())
         assertEquals(listOf("apns-token"), apnsSender.sentTokens)
 
-        assertNotNull(
-            database.notificationQueries
-                .getNotificationById(notificationId)
-                .executeAsOneOrNull()
-        )
+        val persisted = service.getNotifications("user123").single()
+        assertNotNull(persisted.sentAt)
     }
 
     @Test

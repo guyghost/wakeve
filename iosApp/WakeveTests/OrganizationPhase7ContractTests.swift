@@ -642,7 +642,7 @@ final class OrganizationPhase7ContractTests: XCTestCase {
         let meetingNavigation = slice(content, from: "private func navigateToMeeting", to: "private func isParticipantConfirmed")
 
         XCTAssertTrue(
-            deepLinkSwitch.contains(#"case ("meeting", let meetingId?, _):"#),
+            deepLinkSwitch.contains("case .meetingDetail(let meetingId):"),
             "ContentView must consume DeepLinkService meeting routes instead of dropping them."
         )
         XCTAssertTrue(

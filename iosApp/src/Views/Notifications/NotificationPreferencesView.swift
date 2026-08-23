@@ -1,9 +1,5 @@
 import SwiftUI
 import Shared
-import UserNotifications
-#if canImport(UIKit)
-import UIKit
-#endif
 
 /// Notification preferences screen for iOS.
 /// Allows users to configure notification types, quiet hours, sound and vibration.
@@ -13,11 +9,11 @@ struct NotificationPreferencesView: View {
     @StateObject private var viewModel: NotificationPreferencesViewModel
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.scenePhase) private var scenePhase
-    @State private var systemPermissionStatus: UNAuthorizationStatus = .notDetermined
+    private let registrationAdapter: IosNotificationRegistrationAdapter?
 
     init(userId: String) {
         _viewModel = StateObject(wrappedValue: NotificationPreferencesViewModel(userId: userId))
+        registrationAdapter = APNsService.shared.registrationAdapter
     }
 
 #if DEBUG
@@ -37,6 +33,7 @@ struct NotificationPreferencesView: View {
                 vibrationEnabled: vibrationEnabled
             )
         )
+        registrationAdapter = APNsService.shared.registrationAdapter
     }
 #endif
 
@@ -60,49 +57,18 @@ struct NotificationPreferencesView: View {
         .tint(WakeveTheme.ColorToken.permissionBlue)
         .onAppear {
             viewModel.load()
-            refreshSystemPermissionStatus()
-        }
-        .onChange(of: scenePhase) { _, phase in
-            guard phase == .active else { return }
-            refreshSystemPermissionStatus()
         }
     }
 
     private var systemPermissionSection: some View {
         Section {
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: systemPermissionIcon)
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(systemPermissionColor)
-                    .frame(width: 34, height: 34)
-                    .background(systemPermissionColor.opacity(0.12))
-                    .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.sm, style: .continuous))
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(String(localized: "notifications.system_permission.title"))
-                        .font(WakeveTheme.Typography.bodySemibold)
-                        .foregroundStyle(.primary)
-
-                    Text(systemPermissionDescription)
-                        .font(WakeveTheme.Typography.callout)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                Spacer(minLength: 8)
-
-                if shouldShowOpenSettings {
-                    Button(String(localized: "notifications.system_permission.open_settings")) {
-                        openAppSettings()
-                    }
-                    .font(WakeveTheme.Typography.caption)
-                    .buttonStyle(.bordered)
-                }
+            if let registrationAdapter {
+                IosNotificationRegistrationStatusView(adapter: registrationAdapter)
             }
-            .listRowBackground(WakeveTheme.ColorToken.cardFill(for: colorScheme))
         } footer: {
             Text(String(localized: "notifications.system_permission.footer"))
         }
+        .listRowBackground(WakeveTheme.ColorToken.cardFill(for: colorScheme))
     }
 
     // MARK: - Notification Types Section
@@ -191,64 +157,89 @@ struct NotificationPreferencesView: View {
         )
     }
 
-    private var systemPermissionIcon: String {
-        switch systemPermissionStatus {
-        case .authorized, .provisional, .ephemeral:
-            return "checkmark.circle.fill"
-        case .denied:
-            return "exclamationmark.triangle.fill"
-        case .notDetermined:
-            return "bell.badge"
-        @unknown default:
-            return "questionmark.circle.fill"
+}
+
+private struct IosNotificationRegistrationStatusView: View {
+    @StateObject private var viewModel: IosNotificationRegistrationViewModel
+
+    init(adapter: IosNotificationRegistrationAdapter) {
+        _viewModel = StateObject(
+            wrappedValue: IosNotificationRegistrationViewModel(adapter: adapter)
+        )
+    }
+
+    private var presentation: IosNotificationRegistrationPresentation {
+        viewModel.presentation
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "bell.badge.fill")
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(WakeveTheme.ColorToken.permissionBlue)
+                .frame(width: 34, height: 34)
+                .background(WakeveTheme.ColorToken.permissionBlue.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.sm, style: .continuous))
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(localized(presentation.statusDescriptionKey))
+                    .font(WakeveTheme.Typography.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier(presentation.statusAccessibilityIdentifier)
+            .accessibilityLabel(localized(presentation.statusAccessibilityLabelKey))
+            .accessibilityHint(localized(presentation.statusAccessibilityHintKey))
+
+            Spacer(minLength: 8)
+
+            primaryAction
         }
     }
 
-    private var systemPermissionColor: Color {
-        switch systemPermissionStatus {
-        case .authorized, .provisional, .ephemeral:
-            return WakeveColors.success
-        case .denied:
-            return WakeveColors.error
-        case .notDetermined:
-            return WakeveTheme.ColorToken.permissionBlue
-        @unknown default:
-            return WakeveColors.warning
+    @ViewBuilder
+    private var primaryAction: some View {
+        let semantics = IosNotificationRegistrationViewModel.controlSemantics(for: presentation)
+        if presentation.primaryEvent != nil,
+           let titleKey = presentation.primaryActionTitleKey,
+           presentation.primaryActionAccessibilityIdentifier != nil,
+           presentation.primaryActionAccessibilityLabelKey != nil,
+           let accessibilityIdentifier = semantics.accessibilityIdentifier,
+           let accessibilityLabelKey = semantics.accessibilityLabelKey,
+           let accessibilityHintKey = semantics.accessibilityHintKey {
+            Button {
+                viewModel.performPrimaryAction()
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.up.right.square")
+                        .accessibilityHidden(semantics.decorativeIconHiddenFromVoiceOver)
+                    Text(localizedPrimaryActionTitle(titleKey))
+                        .font(WakeveTheme.Typography.caption)
+                        .fixedSize(horizontal: false, vertical: semantics.supportsDynamicType)
+                }
+                .frame(minHeight: CGFloat(semantics.minimumHitTargetPoints))
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.bordered)
+            .accessibilityIdentifier(accessibilityIdentifier)
+            .accessibilityLabel(localized(accessibilityLabelKey))
+            .accessibilityHint(localized(accessibilityHintKey))
         }
     }
 
-    private var systemPermissionDescription: String {
-        switch systemPermissionStatus {
-        case .authorized:
-            return String(localized: "notifications.system_permission.authorized")
-        case .provisional:
-            return String(localized: "notifications.system_permission.provisional")
-        case .ephemeral:
-            return String(localized: "notifications.system_permission.ephemeral")
-        case .denied:
-            return String(localized: "notifications.system_permission.denied")
-        case .notDetermined:
-            return String(localized: "notifications.system_permission.not_determined")
-        @unknown default:
-            return String(localized: "notifications.system_permission.unknown")
-        }
+    private func localized(_ key: String) -> String {
+        Bundle.main.localizedString(forKey: key, value: nil, table: nil)
     }
 
-    private var shouldShowOpenSettings: Bool {
-        systemPermissionStatus == .denied
-    }
-
-    private func refreshSystemPermissionStatus() {
-        APNsService.shared.checkAuthorizationStatus { status in
-            systemPermissionStatus = status
-        }
-    }
-
-    private func openAppSettings() {
-        #if canImport(UIKit)
-        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
-        UIApplication.shared.open(url)
-        #endif
+    private func localizedPrimaryActionTitle(_ key: String) -> String {
+        let supportedKeys = [
+            "notifications.system_permission.enable",
+            "notifications.system_permission.open_settings"
+        ]
+        guard supportedKeys.contains(key) else { return "" }
+        return localized(key)
     }
 }
 

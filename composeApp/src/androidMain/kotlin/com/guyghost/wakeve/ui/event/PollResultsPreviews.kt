@@ -13,6 +13,10 @@ private fun PollResultsPhonePreview() {
             state = previewPollResultsState(),
             onSlotSelected = {},
             onConfirmFinalDate = {},
+            onSubmitFinalDateConfirmation = {},
+            onCancelFinalDateConfirmation = {},
+            onRetryFinalDateConfirmation = {},
+            onDismissFinalDateConfirmationFailure = {},
             onBack = {}
         )
     }
@@ -26,6 +30,10 @@ private fun PollResultsTabletPreview() {
             state = previewPollResultsState(),
             onSlotSelected = {},
             onConfirmFinalDate = {},
+            onSubmitFinalDateConfirmation = {},
+            onCancelFinalDateConfirmation = {},
+            onRetryFinalDateConfirmation = {},
+            onDismissFinalDateConfirmationFailure = {},
             onBack = {}
         )
     }

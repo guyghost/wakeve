@@ -245,6 +245,31 @@ class EventDetailModelsTest {
     }
 
     @Test
+    fun rsvpStatusProjectionKeepsNonApplicableAndUnavailableVisibleToTheParticipant() {
+        // Bug caught: the event-detail status label did not project sentinel RSVP values.
+        val expectedStatusLabels = mapOf(
+            ParticipantRsvp.NOT_APPLICABLE to "Participation non applicable",
+            ParticipantRsvp.UNAVAILABLE to "Participation indisponible"
+        )
+
+        expectedStatusLabels.forEach { (rsvp, expectedStatusLabel) ->
+            val uiState = EventManagementContract.State(
+                selectedEvent = event(status = EventStatus.CONFIRMED),
+                participantAccessStates = listOf(
+                    ParticipantAccessState.member(
+                        userId = "participant-1",
+                        rsvp = rsvp,
+                        dateValidation = DateValidationState.NOT_APPLICABLE
+                    )
+                )
+            ).toEventDetailUiState(eventId = eventId, currentUserId = "participant-1")
+
+            assertEquals(rsvp, uiState.rsvp?.selectedResponse)
+            assertEquals(expectedStatusLabel, uiState.rsvp?.statusLabel)
+        }
+    }
+
+    @Test
     fun organizerRsvpStateIsLockedAccepted() {
         val uiState = EventManagementContract.State(
             selectedEvent = event(status = EventStatus.CONFIRMED),

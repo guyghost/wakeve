@@ -1234,5 +1234,7 @@ private fun ParticipantAccessState.toRsvpUiState(isOrganizer: Boolean): EventRsv
             ParticipantRsvp.PENDING -> "Réponse en attente"
             ParticipantRsvp.ACCEPTED -> "Participation confirmée"
             ParticipantRsvp.DECLINED -> "Participation refusée"
+            ParticipantRsvp.NOT_APPLICABLE -> "Participation non applicable"
+            ParticipantRsvp.UNAVAILABLE -> "Participation indisponible"
         }
     )

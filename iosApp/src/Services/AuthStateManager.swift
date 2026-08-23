@@ -10,8 +10,30 @@ import SwiftUI
 
 // MARK: - AuthStateManager
 
+enum PushLogoutState: Equatable {
+    case idle
+    case unregistering
+    case retry
+    case offline
+    case blocked
+    case completed
+}
+
+private enum PushUnregistrationTerminal {
+    case PUSH_UNREGISTERED
+    case blocked
+}
+
+protocol PushUnregistrationPort: AnyObject {
+    var authenticationSessionID: String? { get }
+    var hasUsableCredential: Bool { get }
+    var registrationState: IosNotificationRegistrationState? { get }
+    func bindCredentialLifecyclePort(_ port: CredentialLifecyclePort)
+    func unregisterToken(completion: @escaping (Bool, Error?) -> Void)
+}
+
 @MainActor
-public class AuthStateManager: ObservableObject {
+public class AuthStateManager: ObservableObject, @preconcurrency CredentialLifecyclePort {
 
     /// Current authentication state
     @Published var isAuthenticated: Bool = false
@@ -28,17 +50,30 @@ public class AuthStateManager: ObservableObject {
     /// Last authentication error message
     @Published var authError: String? = nil
 
+    /// Observable logout progress. Authentication remains usable in retry/offline states.
+    @Published private(set) var pushLogoutState: PushLogoutState = .idle
+
     private let authService: AuthenticationService
     private let enableOAuth: Bool
+    private let pushRegistration: PushUnregistrationPort
+    private var signOutTask: Task<Void, Never>?
+    private var pushUnregistrationContinuation: CheckedContinuation<PushUnregistrationTerminal, Never>?
 
     private enum GuestSessionKeys {
         static let userId = "wakeve_guest_user_id"
         static let userName = "wakeve_guest_user_name"
     }
 
-    init(authService: AuthenticationService, enableOAuth: Bool = false) {
+    init(
+        authService: AuthenticationService,
+        enableOAuth: Bool = false,
+        pushRegistration: PushUnregistrationPort? = nil
+    ) {
         self.authService = authService
         self.enableOAuth = enableOAuth
+        let resolvedPushRegistration = pushRegistration ?? APNsService.shared
+        self.pushRegistration = resolvedPushRegistration
+        resolvedPushRegistration.bindCredentialLifecyclePort(self)
     }
 
     // MARK: - Sign In
@@ -149,26 +184,96 @@ public class AuthStateManager: ObservableObject {
      * Sign out the current user and clear all stored tokens.
      */
     func signOut() {
-        // Unregister push token from backend before clearing auth
-        APNsService.shared.unregisterToken { success, error in
-            if !success {
-                debugLog("[AuthStateManager] Push token unregistration failed: \(error?.localizedDescription ?? "unknown")")
+        guard signOutTask == nil else { return }
+
+        isLoading = true
+        authError = nil
+        pushLogoutState = .unregistering
+        signOutTask = Task { [weak self] in
+            guard let self else { return }
+
+            // LOGOUT_REQUESTED is dispatched through the approved notification adapter.
+            let terminal = await self.awaitPushUnregistration()
+            switch terminal {
+            case .blocked:
+                // A terminal notification configuration failure is observable and retryable.
+                // Credentials remain intact until a later actor reaches PUSH_UNREGISTERED.
+                self.pushLogoutState = .blocked
+                self.authError = "Push notification cleanup is blocked. Please try signing out again."
+                self.isLoading = false
+                self.signOutTask = nil
+                return
+            case .PUSH_UNREGISTERED:
+                break
+            }
+
+            // PUSH_UNREGISTERED is the only terminal allowed to clear the authenticated session.
+            await authService.signOut()
+            clearGuestSession()
+            isAuthenticated = false
+            currentUser = nil
+            authError = nil
+            hasCheckedAuthStatus = true
+            isLoading = false
+            pushLogoutState = .completed
+            signOutTask = nil
+
+            debugLog("[AuthStateManager] User signed out after push unregistration")
+        }
+    }
+
+    var authenticationSessionID: String? {
+        pushRegistration.authenticationSessionID
+    }
+
+    var hasUsableCredential: Bool {
+        pushRegistration.hasUsableCredential
+    }
+
+    func clearCredentialAfterPushUnregistered() {
+        guard pushRegistration.registrationState == .unregistered else { return }
+        resolvePushUnregistrationTerminal(.PUSH_UNREGISTERED)
+    }
+
+    private func awaitPushUnregistration() async -> PushUnregistrationTerminal {
+        await withCheckedContinuation { continuation in
+            pushUnregistrationContinuation = continuation
+            pushRegistration.unregisterToken { [weak self] success, error in
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    if success,
+                       self.pushRegistration.registrationState == .unregistered {
+                        self.resolvePushUnregistrationTerminal(.PUSH_UNREGISTERED)
+                    } else if self.pushRegistration.registrationState == .misconfigured {
+                        self.resolvePushUnregistrationTerminal(.blocked)
+                    } else {
+                        self.pushLogoutState = self.isOfflineUnregistrationFailure(error)
+                            ? .offline
+                            : .retry
+                    }
+                }
             }
         }
+    }
 
-        Task {
-            await authService.signOut()
+    private func resolvePushUnregistrationTerminal(_ terminal: PushUnregistrationTerminal) {
+        guard let continuation = pushUnregistrationContinuation else { return }
+        pushUnregistrationContinuation = nil
+        if case .PUSH_UNREGISTERED = terminal {
+            pushLogoutState = .completed
         }
+        continuation.resume(returning: terminal)
+    }
 
-        clearGuestSession()
-
-        // Clear authentication state
-        isAuthenticated = false
-        currentUser = nil
-        authError = nil
-        hasCheckedAuthStatus = true
-
-        debugLog("[AuthStateManager] User signed out")
+    private func isOfflineUnregistrationFailure(_ error: Error?) -> Bool {
+        guard let error = error as NSError?, error.domain == NSURLErrorDomain else { return false }
+        return [
+            NSURLErrorNotConnectedToInternet,
+            NSURLErrorNetworkConnectionLost,
+            NSURLErrorCannotFindHost,
+            NSURLErrorCannotConnectToHost,
+            NSURLErrorDNSLookupFailed,
+        ].contains(error.code)
     }
 
     /**

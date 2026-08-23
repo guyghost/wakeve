@@ -31,7 +31,14 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             apnsService.didReceiveRemoteNotification(userInfo: remoteNotification)
         }
 
+        // APP_BECAME_ACTIVE only reads permission; it never displays the system prompt.
+        apnsService.applicationBecameActive()
+
         return true
+    }
+
+    func applicationDidBecomeActive(_ application: UIApplication) {
+        APNsService.shared.applicationBecameActive()
     }
 
     // MARK: - Remote Notification Registration

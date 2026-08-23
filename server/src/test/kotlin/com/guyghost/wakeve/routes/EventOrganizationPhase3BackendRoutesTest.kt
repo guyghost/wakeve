@@ -65,10 +65,16 @@ class EventOrganizationPhase3BackendRoutesTest {
     }
 
     @Test
-    fun `confirmed participant can list scenarios for confirmed event`() = testApplication {
+    fun `confirmed participant can list scenarios after first scenario transitions event to comparing`() = testApplication {
         val fixture = createFixture("scenario-list-confirmed", EventStatus.CONFIRMED)
         val participantToken = createTestJwt(fixture.confirmedParticipantId)
         val client = createJsonClient()
+
+        assertEquals(
+            EventStatus.COMPARING.name,
+            fixture.database.eventQueries.selectById(fixture.eventId).executeAsOne().status,
+            "The fixture scenario is the first scenario and transitions a confirmed event to COMPARING"
+        )
 
         application {
             module(fixture.database)
@@ -970,6 +976,7 @@ class EventOrganizationPhase3BackendRoutesTest {
         val roomId = "room-$suffix"
         val roomNumber = "Room $suffix"
         val now = "2026-05-22T10:00:00Z"
+        val seedStatus = if (status == EventStatus.FINALIZED) EventStatus.CONFIRMED else status
 
         insertUser(database, organizerId, "Organizer $suffix")
         insertUser(database, confirmedParticipantId, "Confirmed Participant $suffix")
@@ -992,7 +999,7 @@ class EventOrganizationPhase3BackendRoutesTest {
                 )
             ),
             deadline = "2026-06-01T00:00:00Z",
-            status = status,
+            status = seedStatus,
             finalDate = "2026-06-21T14:00:00Z",
             createdAt = now,
             updatedAt = now,
@@ -1081,6 +1088,44 @@ class EventOrganizationPhase3BackendRoutesTest {
                 updatedAt = now
             )
         )
+
+        if (status == EventStatus.FINALIZED) {
+            // Test-only lifecycle seed: full finalization readiness is outside this isolated route fixture.
+            // Child writers run while mutable; finalization still consumes and clears a fence authorization.
+            val aggregateBeforeFinalization = database.eventQueries.selectById(eventId).executeAsOne()
+            val authorizationId = "fixture-finalize:$eventId:${aggregateBeforeFinalization.aggregateRevision}"
+            database.transaction {
+                database.invitationExperienceQueries.authorizeAggregateWrite(
+                    writer_schema_version = aggregateBeforeFinalization.aggregateSchemaVersion,
+                    operation_id = authorizationId,
+                    created_at = now,
+                    id = eventId,
+                    aggregateRevision = aggregateBeforeFinalization.aggregateRevision,
+                    aggregateSchemaVersion = aggregateBeforeFinalization.aggregateSchemaVersion
+                )
+                check(
+                    database.invitationExperienceQueries
+                        .selectAggregateWriteAuthorization(eventId)
+                        .executeAsOneOrNull()
+                        ?.operation_id == authorizationId
+                ) { "Fixture finalization requires a matching aggregate writer authorization" }
+                database.eventQueries.updateEventStatus(
+                    status = EventStatus.FINALIZED.name,
+                    updatedAt = now,
+                    id = eventId
+                )
+                database.invitationExperienceQueries.clearAggregateWriteAuthorization(eventId, authorizationId)
+            }
+            val aggregateAfterFinalization = database.eventQueries.selectById(eventId).executeAsOne()
+            check(aggregateAfterFinalization.status == EventStatus.FINALIZED.name)
+            check(aggregateAfterFinalization.aggregateRevision == aggregateBeforeFinalization.aggregateRevision + 1)
+            check(aggregateAfterFinalization.aggregateSchemaVersion == aggregateBeforeFinalization.aggregateSchemaVersion)
+            check(
+                database.invitationExperienceQueries
+                    .selectAggregateWriteAuthorization(eventId)
+                    .executeAsOneOrNull() == null
+            ) { "Fixture finalization must clear its aggregate writer authorization" }
+        }
 
         return Phase3BackendFixture(
             database = database,

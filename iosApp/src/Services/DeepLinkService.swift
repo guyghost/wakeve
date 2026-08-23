@@ -208,15 +208,15 @@ class DeepLinkService: ObservableObject {
      * https://wakeve.app/... universal links.
      */
     func parseDeepLink(_ url: URL) -> DeepLinkType? {
-        Log.debug("Parsing deep link: \(url.absoluteString)")
+        Log.debug("parse_started")
 
         guard isSafeWakeveURL(url) else {
-            Log.error("Unsafe deep link rejected: \(url.absoluteString)")
+            Log.error("parse_rejected_unsafe")
             return nil
         }
 
         guard let scheme = url.scheme else {
-            Log.error("Deep link missing scheme: \(url.absoluteString)")
+            Log.error("parse_rejected_missing_scheme")
             return nil
         }
 
@@ -228,12 +228,12 @@ class DeepLinkService: ObservableObject {
         }
 
         guard scheme == "wakeve" else {
-            Log.error("Invalid deep link scheme: \(scheme)")
+            Log.error("parse_rejected_invalid_scheme")
             return nil
         }
 
         guard let host = url.host else {
-            Log.error("Deep link missing host: \(url.absoluteString)")
+            Log.error("parse_rejected_missing_host")
             return nil
         }
 
@@ -242,7 +242,7 @@ class DeepLinkService: ObservableObject {
     }
 
     private func parseUniversalLink(_ url: URL, query: [String: String]) -> DeepLinkType? {
-        Log.debug("Parsing Universal Link: \(url.absoluteString)")
+        Log.debug("parse_universal_link")
 
         let path = normalizedPathComponents(url)
         guard let resourceType = path.first else {
@@ -295,7 +295,7 @@ class DeepLinkService: ObservableObject {
             return .invite(token: token)
 
         default:
-            Log.error("Unknown deep link resource: \(resource)")
+            Log.error("parse_rejected_unknown_resource")
             return nil
         }
     }
@@ -325,10 +325,10 @@ class DeepLinkService: ObservableObject {
      */
     @discardableResult
     func handleDeepLink(_ url: URL, isAuthenticated: Bool = true) -> Bool {
-        Log.debug("Handling deep link: \(url.absoluteString)")
+        Log.debug("handle_started")
 
         guard let deepLink = parseDeepLink(url) else {
-            Log.warning("Failed to parse deep link: \(url.absoluteString)")
+            Log.warning("handle_rejected_parse_failure")
             return false
         }
 

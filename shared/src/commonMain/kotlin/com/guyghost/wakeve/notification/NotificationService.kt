@@ -72,9 +72,8 @@ class NotificationService(
             }
 
             val notificationId = Uuid.random().toString()
-            val nowMs = Clock.System.now().toEpochMilliseconds()
+            val createdAtMs = Clock.System.now().toEpochMilliseconds()
             val payload = normalizedRequest.data + ("notificationId" to notificationId)
-
             database.notificationQueries.insertNotification(
                 id = notificationId,
                 user_id = normalizedRequest.userId,
@@ -82,29 +81,47 @@ class NotificationService(
                 title = normalizedRequest.title,
                 body = normalizedRequest.body,
                 data_ = Json.encodeToString(payload),
-                created_at = nowMs,
-                sent_at = nowMs
+                created_at = createdAtMs,
+                sent_at = null
             )
 
             val tokens = database.notificationQueries.getTokensByUser(normalizedRequest.userId).executeAsList()
-            for (token in tokens) {
-                when (token.platform.uppercase()) {
-                    Platform.ANDROID.name -> {
-                        runCatching {
+            val transportAttempts = tokens.map { token ->
+                val platform = runCatching {
+                    Platform.valueOf(token.platform.uppercase())
+                }.getOrNull()
+                NotificationTransportAttempt(
+                    platform = platform?.name ?: UNSUPPORTED_NOTIFICATION_PLATFORM,
+                    result = runCatching {
+                        when (platform) {
+                            Platform.ANDROID ->
                             fcmSender
                                 .sendNotification(token.token, normalizedRequest.title, normalizedRequest.body, payload)
                                 .getOrThrow()
-                        }
-                    }
-                    Platform.IOS.name -> {
-                        runCatching {
+
+                            Platform.IOS ->
                             apnsSender
                                 .sendNotification(token.token, normalizedRequest.title, normalizedRequest.body, payload)
                                 .getOrThrow()
+
+                            else -> error("Unsupported notification transport platform")
                         }
                     }
-                }
+                )
             }
+
+            val acceptedAtMs = transportAttempts
+                .takeIf { attempts -> attempts.any { it.result.isSuccess } }
+                ?.let { Clock.System.now().toEpochMilliseconds() }
+            if (acceptedAtMs != null) {
+                database.notificationQueries.markNotificationSent(
+                    sent_at = acceptedAtMs,
+                    id = notificationId
+                )
+            }
+
+            val failedAttempts = transportAttempts.filter { it.result.isFailure }
+            if (failedAttempts.isNotEmpty()) throw failedAttempts.asDeliveryFailure()
 
             notificationId
         }
@@ -211,6 +228,19 @@ class NotificationService(
         preferencesRepository.savePreferences(preferences)
 }
 
+private data class NotificationTransportAttempt(
+    val platform: String,
+    val result: Result<Unit>
+)
+
+private fun List<NotificationTransportAttempt>.asDeliveryFailure(): IllegalStateException {
+    val failedPlatforms = map(NotificationTransportAttempt::platform)
+        .distinct()
+        .sorted()
+        .joinToString()
+    return IllegalStateException("Notification transport delivery failed for $failedPlatforms")
+}
+
 internal fun normalizeNotificationRequest(request: NotificationRequest): Result<NotificationRequest> {
     val normalizedUserId = normalizeNotificationUserId(request.userId).getOrElse { return Result.failure(it) }
 
@@ -265,6 +295,7 @@ internal fun normalizeNotificationHistoryLimit(limit: Int): Int =
 
 private const val MIN_NOTIFICATION_HISTORY_LIMIT = 1
 private const val MAX_NOTIFICATION_HISTORY_LIMIT = 100
+private const val UNSUPPORTED_NOTIFICATION_PLATFORM = "UNSUPPORTED"
 
 private fun Notification.toNotificationMessage(): NotificationMessage {
     return NotificationMessage(
