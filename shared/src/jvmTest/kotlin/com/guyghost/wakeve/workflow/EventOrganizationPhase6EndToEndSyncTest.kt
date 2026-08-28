@@ -5,6 +5,7 @@ import com.guyghost.wakeve.budget.BudgetRepository
 import com.guyghost.wakeve.budget.ExpenseRepository
 import com.guyghost.wakeve.calendar.CalendarService
 import com.guyghost.wakeve.calendar.PlatformCalendarService
+import com.guyghost.wakeve.confirmation.ConfirmationClock
 import com.guyghost.wakeve.createFreshTestDatabase
 import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.meeting.MeetingService
@@ -56,11 +57,16 @@ class EventOrganizationPhase6EndToEndSyncTest {
     private lateinit var paymentPotRepository: PaymentPotRepository
     private lateinit var tricountHandoffRepository: TricountHandoffRepository
     private lateinit var readinessRepository: EventOrganizationReadinessRepository
+    private var repositoryNow = Instant.parse("2026-05-22T10:00:00Z")
 
     @BeforeTest
     fun setUp() {
+        repositoryNow = Instant.parse("2026-05-22T10:00:00Z")
         database = createFreshTestDatabase()
-        eventRepository = DatabaseEventRepository(database)
+        eventRepository = DatabaseEventRepository(
+            database,
+            ConfirmationClock { repositoryNow }
+        )
         scenarioRepository = ScenarioRepository(database)
         accommodationRepository = AccommodationRepository(database)
         transportRepository = TransportRepository(database)
@@ -99,6 +105,7 @@ class EventOrganizationPhase6EndToEndSyncTest {
         confirmedParticipants.drop(1).forEach { participantId ->
             eventRepository.addVote(eventId, participantId, "slot-1", Vote.YES).getOrThrow()
         }
+        repositoryNow = Instant.parse("2026-05-22T10:01:00Z")
         eventRepository.confirmEventDate(eventId, "slot-1", organizerId).getOrThrow()
         confirmedParticipants.forEach { markParticipantDateValidated(eventId, it) }
 

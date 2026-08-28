@@ -1,0 +1,65 @@
+CREATE TABLE pollBallotCommandJournal (
+    operationKey TEXT PRIMARY KEY NOT NULL,
+    eventId TEXT NOT NULL,
+    actorId TEXT NOT NULL,
+    pollRevision INTEGER NOT NULL,
+    operationId TEXT NOT NULL,
+    ballotFingerprint TEXT NOT NULL,
+    commandPayload TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('STAGED_NOT_DISPATCHED', 'DISPATCHED', 'CANCELLED', 'DISPATCH_CANCELLATION_TOMBSTONED')),
+    terminalDestination TEXT,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY (eventId) REFERENCES event(id) ON DELETE CASCADE
+);
+
+selectByOperationKey:
+SELECT * FROM pollBallotCommandJournal WHERE operationKey = ?;
+
+selectDispatchableBySubject:
+SELECT * FROM pollBallotCommandJournal
+WHERE eventId = ? AND actorId = ? AND status = 'DISPATCHED'
+ORDER BY operationKey;
+
+selectAllBySubject:
+SELECT * FROM pollBallotCommandJournal
+WHERE eventId = ? AND actorId = ?
+ORDER BY updatedAt DESC, operationKey DESC;
+
+insertStaged:
+INSERT INTO pollBallotCommandJournal(
+    operationKey, eventId, actorId, pollRevision, operationId,
+    ballotFingerprint, commandPayload, status, terminalDestination, updatedAt
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, 'STAGED_NOT_DISPATCHED', NULL, ?);
+
+markDispatched:
+UPDATE pollBallotCommandJournal
+SET status = 'DISPATCHED', updatedAt = ?
+WHERE operationKey = ?
+  AND ballotFingerprint = ?
+  AND status = 'STAGED_NOT_DISPATCHED';
+
+cancelStaged:
+UPDATE pollBallotCommandJournal
+SET status = 'CANCELLED', updatedAt = ?
+WHERE operationKey = ?
+  AND ballotFingerprint = ?
+  AND status = 'STAGED_NOT_DISPATCHED';
+
+tombstoneDispatched:
+UPDATE pollBallotCommandJournal
+SET status = 'DISPATCH_CANCELLATION_TOMBSTONED', terminalDestination = ?, updatedAt = ?
+WHERE operationKey = ?
+  AND ballotFingerprint = ?
+  AND status = 'DISPATCHED';
+
+markOutcomeUnknownIfDispatched:
+UPDATE pollBallotCommandJournal
+SET updatedAt = ?
+WHERE operationKey = ?
+  AND ballotFingerprint = ?
+  AND status = 'DISPATCHED'
+  AND terminalDestination IS NULL;
+
+CREATE INDEX idx_poll_ballot_journal_subject
+ON pollBallotCommandJournal(eventId, actorId, status);

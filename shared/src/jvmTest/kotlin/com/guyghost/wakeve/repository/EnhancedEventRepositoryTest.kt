@@ -1,5 +1,6 @@
 package com.guyghost.wakeve.repository
 
+import com.guyghost.wakeve.confirmation.ConfirmationClock
 import com.guyghost.wakeve.repository.EventRepository
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
@@ -9,6 +10,7 @@ import com.guyghost.wakeve.models.TimeOfDay
 import com.guyghost.wakeve.models.Vote
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.Instant
 import kotlin.test.BeforeTest
 import kotlin.test.AfterTest
 import kotlin.test.Test
@@ -53,7 +55,9 @@ class EnhancedEventRepositoryTest {
 
     @BeforeTest
     fun setup() {
-        repository = EventRepository()
+        repository = EventRepository(
+            confirmationClock = ConfirmationClock { Instant.parse("2025-11-12T10:00:00Z") }
+        )
     }
 
     @AfterTest

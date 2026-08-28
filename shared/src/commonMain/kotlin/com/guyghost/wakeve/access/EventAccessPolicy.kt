@@ -165,6 +165,28 @@ data class AccessDecision(
 )
 
 object EventAccessPolicy {
+    /** The exact organizer or an accepted active member may submit a poll ballot. */
+    fun canSubmitPollBallot(
+        event: Event,
+        viewer: ParticipantAccessState
+    ): AccessDecision {
+        if (viewer.userId == event.organizerId && viewer.role == ParticipantAccessState.Role.ORGANIZER) {
+            return AccessDecision(isAllowed = true)
+        }
+        if (viewer.role != ParticipantAccessState.Role.MEMBER || !event.participants.contains(viewer.userId)) {
+            return AccessDecision(isAllowed = false, reason = AccessDeniedReason.NOT_EVENT_MEMBER)
+        }
+        return when (viewer.rsvp) {
+            ParticipantRsvp.ACCEPTED -> AccessDecision(isAllowed = true)
+            ParticipantRsvp.DECLINED ->
+                AccessDecision(isAllowed = false, reason = AccessDeniedReason.PARTICIPATION_DECLINED)
+            ParticipantRsvp.PENDING,
+            ParticipantRsvp.NOT_APPLICABLE,
+            ParticipantRsvp.UNAVAILABLE ->
+                AccessDecision(isAllowed = false, reason = AccessDeniedReason.ATTENDANCE_NOT_CONFIRMED)
+        }
+    }
+
     fun invitationPreviewFor(
         event: Event,
         viewer: ParticipantAccessState

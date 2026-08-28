@@ -4,6 +4,7 @@ import com.guyghost.wakeve.models.TimeSlot
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 class CreationStudioStateMachineContractTest {
     private val machine = CreationStudioStateMachine()
@@ -330,6 +331,118 @@ class CreationStudioStateMachineContractTest {
         assertEquals(
             CreationStudioState.Closed,
             machine.transition(CreationStudioState.Closed, CreationStudioEvent.UpdateFields(0, validFields()))
+        )
+    }
+
+    @Test
+    fun `close during commit detaches and a second close is consumed without cancellation`() {
+        val committing = committingState("operation-detach")
+
+        val detached = machine.transition(committing, CreationStudioEvent.Close)
+
+        assertEquals(
+            "DetachedCommitting",
+            detached::class.simpleName,
+            "Close must detach presentation while preserving the durable commit envelope."
+        )
+        assertEquals(
+            detached,
+            machine.transition(detached, CreationStudioEvent.Close),
+            "A repeated close during detached work is consumed and cannot cancel the operation."
+        )
+    }
+
+    @Test
+    fun `commit gate close is inert when no durable commit is active`() {
+        val idle = CreationStudioState.Idle(StudioMode.New)
+
+        assertEquals(
+            idle,
+            machine.transition(idle, CreationStudioEvent.Close),
+            "Presentation dismissal outside a commit must not fabricate a durable terminal workflow state."
+        )
+    }
+
+    @Test
+    fun `late local commit after close exposes detached pending binding for immediate sync`() {
+        val legacyCommitting = committingState("operation-late")
+        val envelope = StudioCommitEnvelopeFactory.build(
+            UpdateDraftAggregateCommand(
+                eventId = "event-late",
+                actorId = "actor-late",
+                expectedBaseRevision = 0,
+                eventDraft = legacyCommitting.draft.fields,
+                artwork = legacyCommitting.artwork,
+                operationId = legacyCommitting.operationId,
+                draftRevision = legacyCommitting.draft.draftRevision
+            )
+        )
+        val committing = legacyCommitting.copy(
+            durableOperationRef = envelope.durableOperationRef,
+            requestFingerprint = envelope.requestFingerprint,
+            resolutionRetryBudget = envelope.maxResolutionAttempts,
+            envelope = envelope
+        )
+        val detached = machine.transition(committing, CreationStudioEvent.Close)
+
+        val late = machine.transition(
+            detached,
+            CreationStudioEvent.LocalCommit(
+                eventId = "event-late",
+                draftRevision = committing.draft.draftRevision,
+                committedRevision = 1,
+                operationId = committing.operationId,
+                pendingSync = true
+            )
+        )
+
+        val pending = assertIs<CreationStudioState.DetachedPendingSync>(
+            late,
+            "A late local receipt must remain visibly pending and provide the exact durable sync subject."
+        )
+        assertEquals("event-late", pending.binding.eventId)
+        assertEquals(1L, pending.binding.aggregateRevision)
+        assertEquals(committing.operationId, pending.binding.operationId)
+        assertEquals(envelope.durableOperationRef, pending.binding.durableOperationRef)
+        assertEquals(envelope.requestFingerprint, pending.binding.requestFingerprint)
+        assertEquals(envelope, pending.envelope)
+        assertIs<CreationStudioState.Completed>(
+            machine.transition(
+                pending,
+                CreationStudioEvent.SyncCompleted(
+                    eventId = pending.binding.eventId,
+                    committedRevision = pending.binding.aggregateRevision,
+                    operationId = pending.binding.operationId
+                )
+            ),
+            "The binding exposed to the immediate trigger must accept its correlated sync ACK."
+        )
+    }
+
+    @Test
+    fun `initial commit unknown and resolution attempt unknown remain distinct failure codes`() {
+        val codes = InvitationExperienceError.entries.map { it.name }.toSet()
+
+        assertTrue("COMMIT_OUTCOME_UNKNOWN" in codes)
+        assertTrue("RESOLUTION_OUTCOME_UNKNOWN" in codes)
+        assertTrue(
+            "COMMIT_OUTCOME_UNKNOWN" != "RESOLUTION_OUTCOME_UNKNOWN",
+            "An initial persistence uncertainty cannot be folded into a resolution retry failure."
+        )
+    }
+
+    private fun committingState(operationId: String): CreationStudioState.Committing {
+        val previewing = CreationStudioState.Previewing(
+            mode = StudioMode.New,
+            baseRevision = StudioBaseRevision.NotApplicable,
+            draft = draft(9, ArtworkChoice.Preset("weekend")),
+            artwork = presetArtwork("weekend")
+        )
+        return assertIs(
+            machine.transition(
+                previewing,
+                CreationStudioEvent.ConfirmCommit(9, operationId)
+            )
         )
     }
 

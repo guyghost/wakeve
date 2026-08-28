@@ -1,5 +1,6 @@
 package com.guyghost.wakeve.performance
 
+import com.guyghost.wakeve.confirmation.ConfirmationClock
 import com.guyghost.wakeve.repository.EventRepository
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.EventType
@@ -9,6 +10,7 @@ import com.guyghost.wakeve.test.createTestEvent
 import com.guyghost.wakeve.test.createTestTimeSlot
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.Instant
 import kotlin.system.measureTimeMillis
 import kotlin.test.Test
 import kotlin.test.assertTrue
@@ -21,7 +23,9 @@ import kotlin.test.assertTrue
  */
 class SimplePerformanceBenchmarks {
 
-    private val repository = EventRepository()
+    private val repository = EventRepository(
+        confirmationClock = ConfirmationClock { Instant.parse("2025-11-20T10:00:00Z") }
+    )
 
     @Test
     fun benchmarkAppStartup() {

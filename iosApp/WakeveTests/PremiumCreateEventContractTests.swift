@@ -125,6 +125,35 @@ final class PremiumCreateEventContractTests: XCTestCase {
         }
     }
 
+    func testPreviewConfirmationUsesTheSingleInFlightGateForLoadingAndDoubleTapProtection() throws {
+        let source = try readProjectFile("iosApp/src/Views/Events/CreateEventSheet.swift")
+        let presentation = slice(source, from: ".fullScreenCover(isPresented: $showingPreview)", to: ".onAppear")
+        let preview = slice(source, from: "private struct EventPreviewSheet", to: "// MARK: - Rounded Corner Shape")
+        let submit = slice(source, from: "private func createEvent()", to: "struct EventCreationContext")
+
+        XCTAssertTrue(
+            presentation.contains("isCreationInFlight: viewModel.isCreationInFlight"),
+            "The preview must consume the same state-machine-owned in-flight gate as persistence."
+        )
+        XCTAssertTrue(preview.contains("let isCreationInFlight: Bool"))
+        XCTAssertTrue(
+            preview.contains(".disabled(isCreationInFlight)") ||
+                preview.contains("isDisabled: isCreationInFlight"),
+            "The visible Create button must become a real disabled control while the commit is in flight."
+        )
+        XCTAssertTrue(
+            preview.contains("isLoading: isCreationInFlight") ||
+                preview.contains("ProgressView()"),
+            "The disabled preview action must expose its in-flight state."
+        )
+        XCTAssertFalse(
+            preview.contains("@State private var isCreationInFlight"),
+            "A presentation-local flag would race the persistence owner's gate."
+        )
+        XCTAssertTrue(submit.contains("guard !viewModel.isCreationInFlight"))
+        XCTAssertEqual(submit.components(separatedBy: "viewModel.createEvent(").count - 1, 1)
+    }
+
     private func readProjectFile(_ relativePath: String) throws -> String {
         let fileURL = URL(fileURLWithPath: #filePath)
         let testsDir = fileURL.deletingLastPathComponent()

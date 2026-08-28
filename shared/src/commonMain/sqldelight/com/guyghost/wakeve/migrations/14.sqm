@@ -1,0 +1,8 @@
+ALTER TABLE event_operation_receipt
+ADD COLUMN durable_operation_ref TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE event_operation_receipt
+ADD COLUMN commit_envelope TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE event_operation_receipt
+ADD COLUMN server_receipt_id TEXT;

@@ -1,5 +1,6 @@
 package com.guyghost.wakeve.invitationexperience
 
+import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertTrue
 
@@ -23,6 +24,33 @@ class InvitationExperiencePublicApiRedTest {
             "Artwork",
             "ArtworkSelectionCapability",
             "UpdateDraftAggregateUseCase"
+        )
+    }
+
+    @Test
+    fun `studio commit gate persists its envelope retry budget and correlated resolution fence`() {
+        val source = listOf(
+            File("src/commonMain/kotlin/com/guyghost/wakeve/invitationexperience/InvitationExperiencePublicContracts.kt"),
+            File("shared/src/commonMain/kotlin/com/guyghost/wakeve/invitationexperience/InvitationExperiencePublicContracts.kt")
+        ).first(File::isFile).readText()
+        val gate = source.substringAfter("sealed interface CreationStudioState")
+            .substringBefore("enum class StudioResolutionOutcome")
+
+        for (field in listOf(
+            "durableOperationRef",
+            "requestFingerprint",
+            "resolutionRetryBudget",
+            "attemptId",
+            "fence"
+        )) {
+            assertTrue(
+                gate.contains(field),
+                "The shared Studio reducer is missing the reviewed commit-gate field $field."
+            )
+        }
+        assertTrue(
+            gate.contains("COMMIT_OUTCOME_UNKNOWN") && gate.contains("RESOLUTION_OUTCOME_UNKNOWN"),
+            "Database uncertainty and resolution uncertainty must remain distinct terminal evidence."
         )
     }
 

@@ -283,22 +283,13 @@ struct AuthenticatedView: View {
                 userName: authStateManager.currentUser?.name,
                 initialScenario: eventCreationScenario
             ) { event, context in
-                // Save event to repository
-                Task {
-                    do {
-                        try await repository.saveEvent(event: event)
-                        persistCreationContext(context, for: event)
-                        await MainActor.run {
-                            // Navigate to participant management
-                            selectedEvent = event
-                            selectedTab = .home
-                            currentView = event.planningMode == .scenarioMatrix ? .scenarioList : .participantManagement
-                            eventCreationScenario = nil
-                        }
-                    } catch {
-                        debugLog("Failed to save event: \(error)")
-                    }
-                }
+                // The state machine already committed the event. This owner only
+                // persists the auxiliary creation context and navigates.
+                persistCreationContext(context, for: event)
+                selectedEvent = event
+                selectedTab = .home
+                currentView = event.planningMode == .scenarioMatrix ? .scenarioList : .participantManagement
+                eventCreationScenario = nil
             }
         }
         .sheet(isPresented: $showNotificationPreferencesSheet) {
@@ -629,7 +620,11 @@ struct AuthenticatedView: View {
             if !invitationExperienceRolloutEnabled, let event = selectedEvent {
                 rolloutReadOnlyFallback(for: event)
             } else if let event = selectedEvent {
-                EventArchiveView(eventId: event.id, viewerId: userId)
+                EventArchiveView(
+                    eventId: event.id,
+                    viewerId: userId,
+                    onReturn: { currentView = .eventList }
+                )
             }
             
         case .participantManagement:
@@ -655,6 +650,7 @@ struct AuthenticatedView: View {
                 PollVotingView(
                     event: event,
                     repository: repository,
+                    journal: RepositoryProvider.shared.ballotCommandJournal,
                     participantId: userId,
                     onVoteSubmitted: {
                         currentView = .eventDetail

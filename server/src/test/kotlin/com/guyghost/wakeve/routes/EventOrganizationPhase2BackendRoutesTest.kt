@@ -12,6 +12,7 @@ import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.models.Vote
 import com.guyghost.wakeve.module
 import com.guyghost.wakeve.repository.DatabaseEventRepository
+import com.guyghost.wakeve.repository.TimeSlotStorageIdentity
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
 import io.ktor.client.request.header
@@ -74,7 +75,10 @@ class EventOrganizationPhase2BackendRoutesTest {
 
         assertEquals(HttpStatusCode.Created, response.status)
         val vote = fixture.database.voteQueries
-            .selectByTimeslotAndParticipant(fixture.secondSlotId, fixture.participantRecordId)
+            .selectByTimeslotAndParticipant(
+                TimeSlotStorageIdentity.physicalId(fixture.eventId, fixture.secondSlotId),
+                fixture.participantRecordId
+            )
             .executeAsOneOrNull()
         assertNotNull(vote)
         assertEquals(Vote.YES.name, vote.vote)
@@ -388,22 +392,22 @@ class EventOrganizationPhase2BackendRoutesTest {
             proposedSlots = listOf(
                 TimeSlot(
                     id = firstSlotId,
-                    start = "2026-06-20T09:00:00Z",
-                    end = "2026-06-20T11:00:00Z",
+                    start = "2099-06-20T09:00:00Z",
+                    end = "2099-06-20T11:00:00Z",
                     timezone = "UTC",
                     timeOfDay = TimeOfDay.SPECIFIC
                 ),
                 TimeSlot(
                     id = secondSlotId,
-                    start = "2026-06-21T14:00:00Z",
-                    end = "2026-06-21T16:00:00Z",
+                    start = "2099-06-21T14:00:00Z",
+                    end = "2099-06-21T16:00:00Z",
                     timezone = "UTC",
                     timeOfDay = TimeOfDay.SPECIFIC
                 )
             ),
-            deadline = "2026-06-01T00:00:00Z",
+            deadline = "2099-06-01T00:00:00Z",
             status = status,
-            finalDate = if (confirmed) "2026-06-21T14:00:00Z" else null,
+            finalDate = if (confirmed) "2099-06-21T14:00:00Z" else null,
             createdAt = now,
             updatedAt = now,
             eventType = EventType.OTHER
@@ -433,7 +437,7 @@ class EventOrganizationPhase2BackendRoutesTest {
             database.confirmedDateQueries.insertConfirmedDate(
                 id = "confirmed-$suffix",
                 eventId = eventId,
-                timeslotId = secondSlotId,
+                timeslotId = TimeSlotStorageIdentity.physicalId(eventId, secondSlotId),
                 confirmedByOrganizerId = organizerId,
                 confirmedAt = "2026-05-22T11:00:00Z",
                 updatedAt = "2026-05-22T11:00:00Z"

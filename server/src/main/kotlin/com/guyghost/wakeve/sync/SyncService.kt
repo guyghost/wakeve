@@ -2,6 +2,7 @@ package com.guyghost.wakeve.sync
 
 import com.guyghost.wakeve.repository.DatabaseEventRepository
 import com.guyghost.wakeve.repository.UserRepository
+import com.guyghost.wakeve.repository.TimeSlotStorageIdentity
 import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.SyncChange
 import com.guyghost.wakeve.models.ConfirmationEnvelopeAcknowledgement
@@ -11,16 +12,43 @@ import com.guyghost.wakeve.models.SyncOperation
 import com.guyghost.wakeve.models.SyncParticipantData
 import com.guyghost.wakeve.models.SyncRequest
 import com.guyghost.wakeve.models.SyncResponse
+import com.guyghost.wakeve.invitationexperience.Artwork
+import com.guyghost.wakeve.invitationexperience.ArtworkSelectionCapability
+import com.guyghost.wakeve.invitationexperience.DatabaseUpdateDraftAggregateUseCase
+import com.guyghost.wakeve.invitationexperience.StudioEventFields
+import com.guyghost.wakeve.invitationexperience.StudioCommitEnvelopeFactory
+import com.guyghost.wakeve.invitationexperience.StudioCommitDisposition
+import com.guyghost.wakeve.invitationexperience.StudioCommitSubject
+import com.guyghost.wakeve.invitationexperience.StudioPendingSyncSubject
+import com.guyghost.wakeve.invitationexperience.StudioSyncAck
+import com.guyghost.wakeve.invitationexperience.StudioSyncOutcome
+import com.guyghost.wakeve.invitationexperience.StudioCommitTransactionFinalizer
+import com.guyghost.wakeve.invitationexperience.UpdateDraftAggregateCommand
+import com.guyghost.wakeve.invitationexperience.UpdateDraftAggregateResult
 import com.guyghost.wakeve.notification.ConfirmationFanOutReadiness
 import com.guyghost.wakeve.models.SyncVoteData
+import com.guyghost.wakeve.poll.PollBallotContract
+import kotlinx.coroutines.delay
 import kotlinx.datetime.Clock
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
+private const val LEGACY_VOTES_MUTATION_FORBIDDEN = "LEGACY_VOTES_MUTATION_FORBIDDEN"
+private const val STUDIO_COMMIT_TABLE = "studio_commit"
+
+private class StudioSyncRejection(
+    val code: String,
+    val retryable: Boolean = false
+) : IllegalStateException(code)
+
 /**
  * Service de synchronisation serveur pour le traitement des changements offline
  */
-class SyncService(private val db: WakeveDb) {
+class SyncService(
+    private val db: WakeveDb,
+    internal val studioPreReadNoneBarrier: suspend (String) -> Unit = {},
+    internal val studioAfterCommitTransactionBarrier: suspend (String) -> Unit = {}
+) {
 
     private val eventRepository = DatabaseEventRepository(db)
     private val userRepository = UserRepository(db)
@@ -42,6 +70,8 @@ class SyncService(private val db: WakeveDb) {
         val conflicts = mutableListOf<SyncConflict>()
         var appliedChanges = 0
         val confirmationAcknowledgements = mutableListOf<ConfirmationEnvelopeAcknowledgement>()
+        val ballotAcknowledgements = mutableListOf<PollBallotContract.BallotServerAck>()
+        val studioAcknowledgements = mutableListOf<StudioSyncAck>()
 
         try {
             for (change in request.changes) {
@@ -53,8 +83,26 @@ class SyncService(private val db: WakeveDb) {
                         recordId = change.recordId,
                         clientData = change.data,
                         serverData = "",
-                        resolution = "REJECTED"
+                        resolution = "REJECTED",
+                        code = if (change.table == STUDIO_COMMIT_TABLE) "FORBIDDEN" else null,
+                        retryable = if (change.table == STUDIO_COMMIT_TABLE) false else null
                     ))
+                    continue
+                }
+
+                if (change.table == "votes") {
+                    conflicts.add(
+                        SyncConflict(
+                            changeId = change.id,
+                            table = change.table,
+                            recordId = change.recordId,
+                            clientData = change.data,
+                            serverData = getServerData(change.table, change.recordId).orEmpty(),
+                            resolution = "REJECTED",
+                            code = LEGACY_VOTES_MUTATION_FORBIDDEN,
+                            retryable = false
+                        )
+                    )
                     continue
                 }
 
@@ -62,16 +110,21 @@ class SyncService(private val db: WakeveDb) {
                 if (result.isSuccess) {
                     appliedChanges++
                     result.getOrNull()?.confirmationAcknowledgement?.let(confirmationAcknowledgements::add)
+                    result.getOrNull()?.ballotAcknowledgement?.let(ballotAcknowledgements::add)
+                    result.getOrNull()?.studioAcknowledgement?.let(studioAcknowledgements::add)
                 } else {
                     // Handle conflict
                     val serverData = getServerData(change.table, change.recordId)
+                    val typedRejection = result.exceptionOrNull() as? StudioSyncRejection
                     conflicts.add(SyncConflict(
                         changeId = change.id,
                         table = change.table,
                         recordId = change.recordId,
                         clientData = change.data,
                         serverData = serverData ?: "",
-                        resolution = "SERVER_WINS"  // Last-write-wins strategy
+                        resolution = if (typedRejection != null) "REJECTED" else "SERVER_WINS",
+                        code = typedRejection?.code,
+                        retryable = typedRejection?.retryable
                     ))
                 }
             }
@@ -87,7 +140,9 @@ class SyncService(private val db: WakeveDb) {
                     conflicts = conflicts,
                     acknowledgedConfirmationEnvelope = confirmationAcknowledgements.isNotEmpty()
                 ),
-                confirmationAcknowledgements = confirmationAcknowledgements
+                confirmationAcknowledgements = confirmationAcknowledgements,
+                ballotAcknowledgements = ballotAcknowledgements,
+                studioAcknowledgements = studioAcknowledgements
             )
 
         } catch (e: Exception) {
@@ -97,7 +152,9 @@ class SyncService(private val db: WakeveDb) {
                 conflicts = conflicts,
                 serverTimestamp = getCurrentUtcIsoString(),
                 message = serverSyncFailureMessage(),
-                confirmationAcknowledgements = confirmationAcknowledgements
+                confirmationAcknowledgements = confirmationAcknowledgements,
+                ballotAcknowledgements = ballotAcknowledgements,
+                studioAcknowledgements = studioAcknowledgements
             )
         }
     }
@@ -115,13 +172,300 @@ class SyncService(private val db: WakeveDb) {
                 applyParticipantChange(change)
                 SyncChangeDisposition.STANDARD
             }
-            "votes" -> {
-                applyVoteChange(change)
-                SyncChangeDisposition.STANDARD
-            }
+            "votes" -> error(LEGACY_VOTES_MUTATION_FORBIDDEN)
+            "poll_ballot" -> applyPollBallotChange(change)
+            "studio_commit" -> applyStudioCommit(change)
             "confirmation_effect_outbox" -> confirmationEnvelopeIngestor.acknowledge(change)
             else -> throw IllegalArgumentException("Unknown table: ${change.table}")
         }
+    }
+
+    private suspend fun applyPollBallotChange(change: SyncChange): SyncChangeDisposition {
+        require(SyncOperation.valueOf(change.operation) == SyncOperation.UPDATE) {
+            "Complete ballot sync only accepts UPDATE"
+        }
+        val payload = json.decodeFromString(
+            PollBallotContract.BallotSyncPayload.serializer(),
+            change.data
+        )
+        require(payload.localReceiptId == change.recordId) {
+            "Ballot sync record does not match its local receipt"
+        }
+        require(payload.command.identity.actorId == change.userId) {
+            "Cannot sync a ballot for another actor"
+        }
+        return SyncChangeDisposition(
+            ballotAcknowledgement = eventRepository.applySyncedCompleteBallot(
+                payload = payload,
+                authenticatedActorId = change.userId
+            )
+        )
+    }
+
+    private suspend fun applyStudioCommit(change: SyncChange): SyncChangeDisposition {
+        val subject = json.decodeFromString(StudioPendingSyncSubject.serializer(), change.data)
+        require(subject.schemaVersion == 1 && subject.localReceiptId == change.recordId) {
+            "Studio sync subject identity is invalid"
+        }
+        if (subject.envelope.requestPayload.actorId != change.userId) {
+            throw StudioSyncRejection("FORBIDDEN")
+        }
+        require(StudioCommitEnvelopeFactory.isValid(subject.envelope)) {
+            "Studio commit envelope is not canonical"
+        }
+        require(subject.envelope.requestPayload.subject.eventId == subject.eventId) {
+            "Studio commit subject event is divergent"
+        }
+        require(subject.expectedResultingArtwork == subject.envelope.expectedResultingArtwork) {
+            "Studio expected artwork is divergent"
+        }
+        val draft = json.decodeFromString<ServerStudioCanonicalDraft>(
+            subject.envelope.requestPayload.canonicalDraftJson
+        )
+        require(draft.artwork == subject.expectedResultingArtwork) {
+            "Studio resulting artwork does not match the fingerprinted snapshot"
+        }
+        val commitSubject = subject.envelope.requestPayload.subject
+        val expectedBaseRevision = when (commitSubject) {
+            is StudioCommitSubject.New -> {
+                require(SyncOperation.valueOf(change.operation) == SyncOperation.CREATE &&
+                    subject.committedRevision == 1L
+                ) { "New Studio commits require CREATE at revision 1" }
+                0L
+            }
+            is StudioCommitSubject.EditExisting -> {
+                require(SyncOperation.valueOf(change.operation) == SyncOperation.UPDATE &&
+                    subject.committedRevision == commitSubject.baseRevision + 1L
+                ) { "Studio edit revision is divergent" }
+                commitSubject.baseRevision
+            }
+        }
+
+        val replayBeforeMutation = try {
+            readDurableStudioAck(subject, change.userId, commitSubject)
+        } catch (rejection: StudioSyncRejection) {
+            throw rejection
+        } catch (_: Exception) {
+            awaitDurableStudioAck(subject, change.userId, commitSubject)
+        }
+        replayBeforeMutation?.let { durableAck ->
+            return SyncChangeDisposition(
+                studioAcknowledgement = durableAck
+            )
+        }
+
+        val currentEvent = db.eventQueries.selectById(subject.eventId).executeAsOneOrNull()
+        when (commitSubject) {
+            is StudioCommitSubject.New -> {
+                if (currentEvent != null) {
+                    readDurableStudioAck(subject, change.userId, commitSubject)?.let { durableAck ->
+                        return SyncChangeDisposition(studioAcknowledgement = durableAck)
+                    }
+                    if (currentEvent.organizerId != change.userId) throw StudioSyncRejection("FORBIDDEN")
+                    if (currentEvent.status != com.guyghost.wakeve.models.EventStatus.DRAFT.name) {
+                        throw StudioSyncRejection("EVENT_NOT_DRAFT")
+                    }
+                    throw StudioSyncRejection("STALE_BASE_REVISION")
+                }
+            }
+            is StudioCommitSubject.EditExisting -> {
+                if (currentEvent == null || currentEvent.organizerId != change.userId) {
+                    throw StudioSyncRejection("FORBIDDEN")
+                }
+                if (currentEvent.status != com.guyghost.wakeve.models.EventStatus.DRAFT.name) {
+                    throw StudioSyncRejection("EVENT_NOT_DRAFT")
+                }
+                if (currentEvent.aggregateRevision != commitSubject.baseRevision) {
+                    throw StudioSyncRejection("STALE_BASE_REVISION")
+                }
+            }
+        }
+
+        val command = draft.toCommand(
+            eventId = subject.eventId,
+            actorId = change.userId,
+            operationId = subject.localReceiptId,
+            expectedBaseRevision = expectedBaseRevision,
+            draftRevision = subject.envelope.identity.draftRevision
+        )
+        require(StudioCommitEnvelopeFactory.build(command) == subject.envelope) {
+            "Studio command reconstruction diverges from its canonical envelope"
+        }
+        studioPreReadNoneBarrier(subject.localReceiptId)
+        var transactionAck: StudioSyncAck? = null
+        val aggregateOwner = DatabaseUpdateDraftAggregateUseCase(db)
+        val finalizer = StudioCommitTransactionFinalizer { committed, envelope, committedAt ->
+                val ack = StudioSyncAck(
+                    localReceiptId = committed.operationId,
+                    serverReceiptId = "studio-server-ack:${envelope.durableOperationRef}",
+                    eventId = committed.eventId,
+                    committedRevision = committed.committedRevision,
+                    durableOperationRef = envelope.durableOperationRef,
+                    requestFingerprint = envelope.requestFingerprint,
+                    outcome = StudioSyncOutcome.APPLIED,
+                    disposition = when (commitSubject) {
+                        is StudioCommitSubject.New -> StudioCommitDisposition.CREATED
+                        is StudioCommitSubject.EditExisting -> StudioCommitDisposition.UPDATED
+                    },
+                    artwork = command.expectedResultingArtwork
+                )
+                db.invitationExperienceQueries.finalizeStudioServerOperationReceipt(
+                    server_receipt_id = ack.serverReceiptId,
+                    server_ack_payload = json.encodeToString(StudioSyncAck.serializer(), ack),
+                    updated_at = committedAt,
+                    operation_id = committed.operationId,
+                    event_id = committed.eventId,
+                    aggregate_revision = committed.committedRevision,
+                    durable_operation_ref = envelope.durableOperationRef,
+                    request_fingerprint = envelope.requestFingerprint
+                )
+                val finalized = db.invitationExperienceQueries
+                    .selectOperationReceiptByOperationId(committed.operationId)
+                    .executeAsOneOrNull()
+                check(finalized?.server_ack_payload == json.encodeToString(StudioSyncAck.serializer(), ack) &&
+                    finalized.status == "COMMITTED" && finalized.server_receipt_id == ack.serverReceiptId
+                ) { "Studio server acknowledgement was not finalized atomically" }
+                db.syncMetadataQueries.markSynced("studio:${committed.operationId}")
+            transactionAck = ack
+        }
+        val committed = when (val result = aggregateOwner.executeWithFinalizer(command, finalizer)) {
+            is UpdateDraftAggregateResult.Committed -> {
+                if (transactionAck == null) {
+                    transactionAck = result.serverReceiptProof?.let { proof ->
+                        val captured = runCatching {
+                            json.decodeFromString(
+                                StudioSyncAck.serializer(),
+                                proof.serverAckPayload
+                            )
+                        }.getOrNull() ?: throw StudioSyncRejection("REPOSITORY_INCONSISTENT")
+                        validateCapturedStudioAck(captured, proof, subject, commitSubject)
+                    } ?: readDurableStudioAck(subject, change.userId, commitSubject)
+                        ?: awaitDurableStudioAck(subject, change.userId, commitSubject)
+                }
+                result
+            }
+            is UpdateDraftAggregateResult.Rejected -> {
+                awaitDurableStudioAck(subject, change.userId, commitSubject)?.let { durableAck ->
+                    return SyncChangeDisposition(studioAcknowledgement = durableAck)
+                }
+                when (result.error) {
+                    com.guyghost.wakeve.invitationexperience.InvitationExperienceError.FORBIDDEN ->
+                        throw StudioSyncRejection("FORBIDDEN")
+                    com.guyghost.wakeve.invitationexperience.InvitationExperienceError.CONFLICT ->
+                        throw StudioSyncRejection("STALE_BASE_REVISION")
+                    else -> error("Studio commit rejected: ${result.error}")
+                }
+            }
+            is UpdateDraftAggregateResult.OutcomeUnknown -> {
+                awaitDurableStudioAck(subject, change.userId, commitSubject)?.let { durableAck ->
+                    return SyncChangeDisposition(studioAcknowledgement = durableAck)
+                }
+                error("Studio commit outcome is unknown")
+            }
+        }
+        check(committed.committedRevision == subject.committedRevision) {
+            "Studio transaction result revision diverges from its durable subject"
+        }
+        studioAfterCommitTransactionBarrier(subject.localReceiptId)
+        return SyncChangeDisposition(
+            studioAcknowledgement = transactionAck
+                ?: error("Studio server acknowledgement was not produced in the aggregate transaction")
+        )
+    }
+
+    private fun validateCapturedStudioAck(
+        acknowledgement: StudioSyncAck,
+        receiptProof: UpdateDraftAggregateResult.StudioServerReceiptProof,
+        subject: StudioPendingSyncSubject,
+        commitSubject: StudioCommitSubject
+    ): StudioSyncAck {
+        val expectedDisposition = when (commitSubject) {
+            is StudioCommitSubject.New -> StudioCommitDisposition.CREATED
+            is StudioCommitSubject.EditExisting -> StudioCommitDisposition.UPDATED
+        }
+        if (receiptProof.status != "COMMITTED" ||
+            receiptProof.serverReceiptId.isNullOrBlank() ||
+            receiptProof.serverReceiptId != acknowledgement.serverReceiptId ||
+            acknowledgement.localReceiptId != subject.localReceiptId ||
+            acknowledgement.serverReceiptId.isBlank() ||
+            acknowledgement.eventId != subject.eventId ||
+            acknowledgement.committedRevision != subject.committedRevision ||
+            acknowledgement.durableOperationRef != subject.envelope.durableOperationRef ||
+            acknowledgement.requestFingerprint != subject.envelope.requestFingerprint ||
+            acknowledgement.disposition != expectedDisposition ||
+            acknowledgement.artwork != subject.expectedResultingArtwork ||
+            acknowledgement.outcome !in setOf(
+                StudioSyncOutcome.APPLIED,
+                StudioSyncOutcome.ALREADY_APPLIED
+            )
+        ) throw StudioSyncRejection("REPOSITORY_INCONSISTENT")
+        return acknowledgement
+    }
+
+    private fun readDurableStudioAck(
+        subject: StudioPendingSyncSubject,
+        authenticatedActorId: String,
+        commitSubject: StudioCommitSubject
+    ): StudioSyncAck? {
+        val receipt = db.invitationExperienceQueries
+            .selectOperationReceiptByOperationId(subject.localReceiptId)
+            .executeAsOneOrNull()
+            ?: return null
+        val persistedEnvelope = runCatching {
+            json.decodeFromString(
+                com.guyghost.wakeve.invitationexperience.StudioCommitEnvelope.serializer(),
+                receipt.commit_envelope
+            )
+        }.getOrNull()
+        if (receipt.event_id != subject.eventId ||
+            receipt.actor_id != authenticatedActorId ||
+            receipt.action != "UPDATE_DRAFT_AGGREGATE" ||
+            receipt.aggregate_revision != subject.committedRevision ||
+            receipt.durable_operation_ref != subject.envelope.durableOperationRef ||
+            receipt.request_fingerprint != subject.envelope.requestFingerprint ||
+            persistedEnvelope != subject.envelope ||
+            subject.expectedResultingArtwork != subject.envelope.expectedResultingArtwork
+        ) throw StudioSyncRejection("IDEMPOTENCY_CONFLICT")
+        val durableAckPayload = receipt.server_ack_payload
+            ?: throw StudioSyncRejection("REPOSITORY_INCONSISTENT")
+        val durableAck = runCatching {
+            json.decodeFromString(StudioSyncAck.serializer(), durableAckPayload)
+        }.getOrNull() ?: throw StudioSyncRejection("REPOSITORY_INCONSISTENT")
+        validateCapturedStudioAck(
+            durableAck,
+            UpdateDraftAggregateResult.StudioServerReceiptProof(
+                status = receipt.status,
+                serverReceiptId = receipt.server_receipt_id,
+                serverAckPayload = durableAckPayload
+            ),
+            subject,
+            commitSubject
+        )
+        if (durableAck.localReceiptId != receipt.operation_id ||
+            durableAck.eventId != receipt.event_id ||
+            durableAck.committedRevision != receipt.aggregate_revision ||
+            durableAck.durableOperationRef != receipt.durable_operation_ref ||
+            durableAck.requestFingerprint != receipt.request_fingerprint
+        ) throw StudioSyncRejection("REPOSITORY_INCONSISTENT")
+        return durableAck
+    }
+
+    private suspend fun awaitDurableStudioAck(
+        subject: StudioPendingSyncSubject,
+        authenticatedActorId: String,
+        commitSubject: StudioCommitSubject
+    ): StudioSyncAck? {
+        repeat(40) {
+            try {
+                readDurableStudioAck(subject, authenticatedActorId, commitSubject)?.let { return it }
+            } catch (rejection: StudioSyncRejection) {
+                throw rejection
+            } catch (_: Exception) {
+                // A second SQLite connection can briefly observe BUSY while the winner commits.
+            }
+            delay(5)
+        }
+        return readDurableStudioAck(subject, authenticatedActorId, commitSubject)
     }
 
     private suspend fun applyEventChange(change: SyncChange) {
@@ -210,7 +554,8 @@ class SyncService(private val db: WakeveDb) {
             if (event.organizerId != change.userId) {
                 throw IllegalArgumentException("Only the event organizer can sync confirmation")
             }
-            val slot = db.timeSlotQueries.selectById(slotId).executeAsOneOrNull()
+            val persistedSlotId = TimeSlotStorageIdentity.physicalId(change.recordId, slotId)
+            val slot = db.timeSlotQueries.selectById(persistedSlotId).executeAsOneOrNull()
                 ?: throw IllegalArgumentException("Confirmed event sync slot was not found")
             if (slot.eventId != change.recordId || slot.startTime != finalDate) {
                 throw IllegalArgumentException("Confirmed event sync does not match the selected slot")
@@ -228,13 +573,13 @@ class SyncService(private val db: WakeveDb) {
                     db.confirmedDateQueries.insertConfirmedDate(
                         id = "confirmed_${change.recordId}",
                         eventId = change.recordId,
-                        timeslotId = slotId,
+                        timeslotId = persistedSlotId,
                         confirmedByOrganizerId = change.userId,
                         confirmedAt = change.timestamp,
                         updatedAt = now
                     )
                 }
-                confirmedDate?.timeslotId == slotId &&
+                confirmedDate?.timeslotId == persistedSlotId &&
                     event.status == com.guyghost.wakeve.models.EventStatus.CONFIRMED.name -> Unit
                 else -> throw IllegalStateException("Confirmed event sync conflicts with the durable server decision")
             }
@@ -292,64 +637,6 @@ class SyncService(private val db: WakeveDb) {
         }
     }
 
-    private suspend fun applyVoteChange(change: SyncChange) {
-        val voteData = json.decodeFromString<SyncVoteData>(change.data)
-        if (voteData.participantId != change.userId) {
-            throw IllegalArgumentException("Cannot sync a vote for another participant")
-        }
-        val event = eventRepository.getEvent(voteData.eventId)
-            ?: throw IllegalArgumentException("Event not found: ${voteData.eventId}")
-        if (!event.participants.contains(change.userId)) {
-            throw IllegalArgumentException("Participant not in event")
-        }
-        val slot = db.timeSlotQueries.selectById(voteData.slotId).executeAsOneOrNull()
-            ?: throw IllegalArgumentException("Time slot not found: ${voteData.slotId}")
-        if (slot.eventId != voteData.eventId) {
-            throw IllegalArgumentException("Vote slot does not belong to event")
-        }
-
-        when (SyncOperation.valueOf(change.operation)) {
-            SyncOperation.CREATE -> {
-                // For votes, we need to check if it already exists
-                // Since the repository doesn't have a getVote method, we'll try to add it and handle the error
-                try {
-                    val preference = com.guyghost.wakeve.models.Vote.valueOf(voteData.preference)
-                    eventRepository.addVote(voteData.eventId, voteData.participantId, voteData.slotId, preference)
-                } catch (e: Exception) {
-                    // Vote might already exist, skip
-                }
-            }
-            SyncOperation.UPDATE -> {
-                // Mettre a jour la preference du vote (last-write-wins sur le timestamp)
-                val voteId = "vote_${voteData.slotId}_${voteData.participantId}"
-                val existingVote = voteQueries.selectById(voteId).executeAsOneOrNull()
-                    ?: throw IllegalArgumentException("Vote not found: $voteId")
-
-                // Conflit : last-write-wins base sur le timestamp
-                if (existingVote.updatedAt > change.timestamp) {
-                    throw IllegalStateException("Server version is newer for vote $voteId")
-                }
-
-                val now = getCurrentUtcIsoString()
-                voteQueries.updateVote(
-                    vote = voteData.preference,
-                    updatedAt = now,
-                    id = voteId
-                )
-            }
-            SyncOperation.DELETE -> {
-                // Supprimer le vote
-                val voteId = "vote_${voteData.slotId}_${voteData.participantId}"
-                val existingVote = voteQueries.selectById(voteId).executeAsOneOrNull()
-
-                if (existingVote != null) {
-                    voteQueries.deleteVote(voteId)
-                }
-                // Deja supprime : rien a faire
-            }
-        }
-    }
-
     /**
      * Recuperer les donnees serveur actuelles pour la resolution de conflits
      */
@@ -382,6 +669,10 @@ class SyncService(private val db: WakeveDb) {
                     null
                 }
             }
+            "poll_ballot" -> db.pollBallotReceiptQueries
+                .selectByReceiptId(recordId)
+                .executeAsOneOrNull()
+                ?.syncPayload
             else -> null
         }
     }
@@ -411,8 +702,70 @@ class SyncService(private val db: WakeveDb) {
 private const val CONFIRMATION_ENVELOPE_ACKNOWLEDGED_PENDING_DISPATCH =
     "confirmation-envelope-acknowledged; effect-dispatch-pending; fan-out-disabled"
 
+@Serializable
+private data class ServerStudioCanonicalSlot(
+    val id: String,
+    val start: String?,
+    val end: String?,
+    val timezone: String,
+    val timeOfDay: String
+)
+
+@Serializable
+private data class ServerStudioCanonicalDraft(
+    val title: String,
+    val description: String,
+    val deadline: String,
+    val eventType: String,
+    val eventTypeCustom: String?,
+    val minParticipants: Int?,
+    val maxParticipants: Int?,
+    val expectedParticipants: Int?,
+    val planningMode: String,
+    val slots: List<ServerStudioCanonicalSlot>,
+    val artwork: Artwork
+) {
+    fun toCommand(
+        eventId: String,
+        actorId: String,
+        operationId: String,
+        expectedBaseRevision: Long,
+        draftRevision: Long
+    ): UpdateDraftAggregateCommand = UpdateDraftAggregateCommand(
+        eventId = eventId,
+        actorId = actorId,
+        expectedBaseRevision = expectedBaseRevision,
+        eventDraft = StudioEventFields(
+            title = title,
+            description = description,
+            proposedSlots = slots.map { slot ->
+                com.guyghost.wakeve.models.TimeSlot(
+                    id = slot.id,
+                    start = slot.start,
+                    end = slot.end,
+                    timezone = slot.timezone,
+                    timeOfDay = com.guyghost.wakeve.models.TimeOfDay.valueOf(slot.timeOfDay)
+                )
+            },
+            deadline = deadline,
+            eventType = com.guyghost.wakeve.models.EventType.valueOf(eventType),
+            eventTypeCustom = eventTypeCustom,
+            minParticipants = minParticipants,
+            maxParticipants = maxParticipants,
+            expectedParticipants = expectedParticipants,
+            planningMode = com.guyghost.wakeve.models.EventPlanningMode.valueOf(planningMode)
+        ),
+        artwork = artwork,
+        operationId = operationId,
+        artworkCapability = ArtworkSelectionCapability.Hidden,
+        draftRevision = draftRevision
+    )
+}
+
 private data class SyncChangeDisposition(
-    val confirmationAcknowledgement: ConfirmationEnvelopeAcknowledgement? = null
+    val confirmationAcknowledgement: ConfirmationEnvelopeAcknowledgement? = null,
+    val ballotAcknowledgement: PollBallotContract.BallotServerAck? = null,
+    val studioAcknowledgement: StudioSyncAck? = null
 ) {
     companion object {
         val STANDARD = SyncChangeDisposition()
@@ -467,7 +820,8 @@ private class ConfirmationEnvelopeIngestor(
         require(event.status == com.guyghost.wakeve.models.EventStatus.CONFIRMED) {
             "Confirmation envelope event is not confirmed"
         }
-        val slot = db.timeSlotQueries.selectById(envelope.slotId).executeAsOneOrNull()
+        val persistedSlotId = TimeSlotStorageIdentity.physicalId(envelope.eventId, envelope.slotId)
+        val slot = db.timeSlotQueries.selectById(persistedSlotId).executeAsOneOrNull()
             ?: error("Confirmation envelope slot was not found")
         require(slot.eventId == envelope.eventId) {
             "Confirmation envelope slot does not belong to its event"
@@ -476,7 +830,7 @@ private class ConfirmationEnvelopeIngestor(
             .selectByEventId(envelope.eventId)
             .executeAsOneOrNull()
             ?: error("Confirmation envelope event does not have a durable confirmed date")
-        require(confirmedDate.timeslotId == envelope.slotId) {
+        require(confirmedDate.timeslotId == persistedSlotId) {
             "Confirmation envelope slot does not match the durable confirmed date"
         }
         db.transaction {
@@ -488,7 +842,7 @@ private class ConfirmationEnvelopeIngestor(
                     domainEventId = envelope.domainEventId,
                     effectKey = envelope.effectKey,
                     eventId = envelope.eventId,
-                    slotId = envelope.slotId,
+                    slotId = persistedSlotId,
                     operationId = envelope.operationId,
                     status = ACKNOWLEDGED_PENDING_DISPATCH_STATUS,
                     createdAt = envelope.createdAt
@@ -497,7 +851,7 @@ private class ConfirmationEnvelopeIngestor(
                 require(
                     existing.effectKey == envelope.effectKey &&
                         existing.eventId == envelope.eventId &&
-                        existing.slotId == envelope.slotId &&
+                        existing.slotId == persistedSlotId &&
                         existing.operationId == envelope.operationId
                 ) {
                     "Confirmation envelope conflicts with a prior acknowledgement"

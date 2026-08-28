@@ -22,6 +22,9 @@ class CreateEventViewModel: StateMachineViewModel<
 
     var onEventCreated: ((WakeveEvent) -> Void)?
     var onDismiss: (() -> Void)?
+    private var pendingCreationEvent: WakeveEvent?
+    @Published private(set) var isCreating = false
+    var isCreationInFlight: Bool { isCreating }
 
     // MARK: - WakeveAI
 
@@ -67,7 +70,9 @@ class CreateEventViewModel: StateMachineViewModel<
         expectedParticipants: Int32? = nil,
         planningMode: EventPlanningMode = .timeSlotPoll
     ) {
+        guard !isCreating else { return }
         guard !title.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        isCreating = true
 
         let iso8601 = ISO8601DateFormatter()
         let now = iso8601.string(from: Date())
@@ -99,11 +104,25 @@ class CreateEventViewModel: StateMachineViewModel<
             aggregateSchemaVersion: 1
         )
 
-        // Dispatch to StateMachine — persists to SQLDelight DB
+        // Dispatch to the single persistence owner. Completion is derived from
+        // the refreshed state, never from the fact that dispatch returned.
+        pendingCreationEvent = event
         dispatch(EventManagementContractIntentCreateEvent(event: event))
+    }
 
-        // Also notify parent directly so UI can close immediately
-        onEventCreated?(event)
+    override func onStateDidChange() {
+        guard let pending = pendingCreationEvent, !state.isLoading else { return }
+        guard state.error == nil else {
+            pendingCreationEvent = nil
+            isCreating = false
+            return
+        }
+        guard let persisted = state.events.first(where: { $0.id == pending.id }) else { return }
+        pendingCreationEvent = nil
+        isCreating = false
+        let completion = onEventCreated
+        onEventCreated = nil
+        completion?(persisted)
     }
 
     func updateSmartEventDraftPhrase(_ phrase: String) {

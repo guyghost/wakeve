@@ -6,6 +6,7 @@ import com.guyghost.wakeve.gamification.GamificationService
 import com.guyghost.wakeve.gamification.PointsAction
 import com.guyghost.wakeve.models.AddParticipantRequest
 import com.guyghost.wakeve.repository.DatabaseEventRepository
+import com.guyghost.wakeve.repository.TimeSlotStorageIdentity
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
@@ -203,8 +204,12 @@ fun Route.participantRoutes(
                         mapOf("error" to "Event has no confirmed retained date")
                     )
 
+                val persistedRequestedSlotId = TimeSlotStorageIdentity.physicalId(
+                    eventId,
+                    requestedSlotId
+                )
                 val requestedSlot = database.timeSlotQueries
-                    .selectById(requestedSlotId)
+                    .selectById(persistedRequestedSlotId)
                     .executeAsOneOrNull()
                 if (requestedSlot == null || requestedSlot.eventId != eventId) {
                     return@post call.respond(
@@ -213,7 +218,14 @@ fun Route.participantRoutes(
                     )
                 }
 
-                if (confirmedDate.timeslotId != requestedSlotId) {
+                val confirmedLogicalSlotId = TimeSlotStorageIdentity.logicalId(
+                    eventId,
+                    confirmedDate.timeslotId
+                ) ?: return@post call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("error" to "Retained RSVP slot identity is inconsistent")
+                )
+                if (confirmedLogicalSlotId != requestedSlotId) {
                     return@post call.respond(
                         HttpStatusCode.BadRequest,
                         mapOf("error" to "RSVP slot must match the retained date")

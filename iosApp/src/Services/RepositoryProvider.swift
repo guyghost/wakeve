@@ -18,6 +18,7 @@ class RepositoryProvider {
     /// The database instance - exposed for state machine creation
     let database: WakeveDb
     private let _repository: DatabaseEventRepository
+    let ballotCommandJournal: DatabaseBallotCommandJournal
 
     /// SyncManager for offline-first synchronization
     let syncManager: SyncManager
@@ -29,6 +30,7 @@ class RepositoryProvider {
         // Initialize the database factory and create the database
         self.databaseFactory = IosDatabaseFactory()
         self.database = DatabaseProvider.shared.getDatabase(factory: databaseFactory)
+        self.ballotCommandJournal = DatabaseBallotCommandJournal(db: database)
 
         // Create sync dependencies
         let networkDetector = KtorSyncHttpClientKt.createNetworkStatusDetector()

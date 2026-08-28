@@ -6,6 +6,7 @@ import Shared
 struct PollVotingView: View {
     let event: Event
     let repository: EventRepositoryInterface
+    let journal: DatabaseBallotCommandJournal
     let participantId: String
     let onVoteSubmitted: () -> Void
     let onBack: () -> Void
@@ -16,6 +17,11 @@ struct PollVotingView: View {
     @State private var showError = false
     @State private var showSuccess = false
     @State private var hasVoted = false
+    @State private var votingClosed = false
+    @State private var localPending = false
+    @State private var pendingCommand: PollBallotContract.CommitCompleteBallotCommand?
+    @State private var pendingReceipt: PollBallotContract.Receipt?
+    @State private var ballotRetryAvailable = false
 
     var body: some View {
         PollVotingContentView(
@@ -23,15 +29,23 @@ struct PollVotingView: View {
             votes: $votes,
             isLoading: isLoading,
             hasVoted: hasVoted,
+            votingClosed: votingClosed,
             onSubmitVotes: {
                 Task { await submitVotes() }
             },
-            onBack: onBack
+            onBack: { Task { await handleBack() } }
         )
         .onAppear {
+            votingClosed = repository.isDeadlinePassed(deadline: event.deadline)
             checkExistingVotes()
+            Task { await rehydrateBallotJournal() }
         }
         .alert(String(localized: "common.error"), isPresented: $showError) {
+            if ballotRetryAvailable {
+                Button(String(localized: "common.retry")) {
+                    Task { await retryPendingCommand() }
+                }
+            }
             Button(String(localized: "common.ok"), role: .cancel) {}
         } message: {
             Text(errorMessage)
@@ -43,76 +57,397 @@ struct PollVotingView: View {
         } message: {
             Text(String(localized: "poll.voting.success_message"))
         }
+        .alert(
+            String(localized: "poll.results.confirmation.pending_sync.title"),
+            isPresented: $localPending
+        ) {
+            Button(String(localized: "common.retry")) {
+                Task { await retryLocalPendingSync() }
+            }
+            Button(String(localized: "common.continue")) {
+                onVoteSubmitted()
+            }
+        } message: {
+            Text(String(localized: "poll.results.confirmation.pending_sync.message"))
+        }
     }
 
     private func checkExistingVotes() {
         if let poll = repository.getPoll(eventId: event.id) {
             if let participantVoteMap = poll.votes[participantId] {
-                hasVoted = !participantVoteMap.isEmpty
+                hasVoted = repository.hasCompleteBallot(
+                    eventId: event.id,
+                    participantId: participantId
+                )
 
-                if hasVoted {
-                    votes = participantVoteMap.reduce(into: [String: PollVote]()) { result, entry in
-                        switch entry.value {
-                        case .yes:
-                            result[entry.key] = .yes
-                        case .maybe:
-                            result[entry.key] = .maybe
-                        case .no:
-                            result[entry.key] = .no
-                        default:
-                            break
-                        }
+                votes = participantVoteMap.reduce(into: [String: PollVote]()) { result, entry in
+                    switch entry.value {
+                    case .yes:
+                        result[entry.key] = .yes
+                    case .maybe:
+                        result[entry.key] = .maybe
+                    case .no:
+                        result[entry.key] = .no
+                    default:
+                        break
                     }
                 }
             }
         }
     }
 
-    private func submitVotes() async {
-        guard votes.count == event.proposedSlots.count else { return }
+    private func handleBack() async {
+        let projections = journal.loadRehydrationProjections(
+            eventId: event.id,
+            actorId: participantId
+        )
+        guard !projections.isEmpty else {
+            onBack()
+            return
+        }
+        guard projections.allSatisfy({ $0 is BallotJournalProjectionValid }) else { return }
+        guard let valid = projections.first as? BallotJournalProjectionValid else { return }
+        let command = PollBallotContract.shared.command(envelope: valid.record.command)
+        let operationKey = valid.record.operationKey
+        let ballotFingerprint = valid.record.command.ballotFingerprint
+        switch valid.record.status {
+        case .dispatched:
+            let marked: any BallotJournalResult
+            do {
+                marked = try await journal.markOutcomeUnknownIfDispatched(
+                    operationKey: operationKey,
+                    ballotFingerprint: ballotFingerprint
+                )
+            } catch {
+                return
+            }
+            if !(marked is BallotJournalResultStored) { return }
+            do {
+                let proof = try await repository.resolveCompleteBallotOutcome(command: command)
+                if let committed = proof as? PollBallotContractResolutionResultCommitted {
+                    presentCommittedReceipt(committed.receipt)
+                    return
+                }
+                guard let notCommitted = proof as? PollBallotContractResolutionResultProvenNotCommitted,
+                      notCommitted.operationKey == operationKey,
+                      notCommitted.ballotFingerprint == ballotFingerprint else { return }
+                let tombstone = try await journal.tombstoneDispatchedCommand(
+                    command: command,
+                    destination: PollBallotContractBallotTerminalDestinationCancelled.shared
+                )
+                guard tombstone is BallotJournalResultStored else { return }
+                let resolved = journal.loadRehydrationProjections(
+                    eventId: event.id,
+                    actorId: participantId
+                )
+                guard let durable = resolved.first as? BallotJournalProjectionValid,
+                      durable.record.operationKey == operationKey,
+                      durable.record.command.ballotFingerprint == ballotFingerprint,
+                      durable.record.status == .dispatchCancellationTombstoned,
+                      consumeTerminalDestination(durable.record.terminalDestination) else { return }
+                pendingCommand = nil
+                ballotRetryAvailable = false
+                onBack()
+            } catch {
+                return
+            }
+        case .stagedNotDispatched:
+            let cancelled: any BallotJournalResult
+            do {
+                cancelled = try await journal.cancelCommand(command: command)
+            } catch {
+                return
+            }
+            guard cancelled is BallotJournalResultStored else { return }
+            onBack()
+        case .cancelled:
+            onBack()
+        case .dispatchCancellationTombstoned:
+            switch valid.record.terminalDestination {
+            case is PollBallotContractBallotTerminalDestinationCancelled:
+                guard consumeTerminalDestination(valid.record.terminalDestination) else { return }
+                pendingCommand = nil
+                ballotRetryAvailable = false
+                onBack()
+            case is PollBallotContractBallotTerminalDestinationRevised:
+                guard consumeTerminalDestination(valid.record.terminalDestination) else { return }
+                pendingCommand = nil
+                ballotRetryAvailable = false
+            case is PollBallotContractBallotTerminalDestinationTerminalFailure:
+                _ = consumeTerminalDestination(valid.record.terminalDestination)
+            default:
+                return
+            }
+        default:
+            return
+        }
+    }
 
+    private func consumeTerminalDestination(
+        _ terminalDestination: (any PollBallotContractBallotTerminalDestination)?
+    ) -> Bool {
+        switch terminalDestination {
+        case is PollBallotContractBallotTerminalDestinationCancelled,
+             is PollBallotContractBallotTerminalDestinationRevised:
+            return true
+        case let failure as PollBallotContractBallotTerminalDestinationTerminalFailure:
+            ballotRetryAvailable = false
+            errorMessage = String(localized: "poll.voting.error.submit_failed")
+            showError = true
+            _ = failure.failureCode
+            return false
+        default:
+            return false
+        }
+    }
+
+    private func submitVotes() async {
+        votingClosed = repository.isDeadlinePassed(deadline: event.deadline)
+        guard !votingClosed, !isLoading else { return }
+
+        // A durable DISPATCHED command is an outcome-unknown fence. It must be retried with
+        // its exact persisted identity before a later submission may allocate another UUID.
+        let durableProjections = journal.loadRehydrationProjections(
+            eventId: event.id,
+            actorId: participantId
+        )
+        if durableProjections.contains(where: { $0 is BallotJournalProjectionInconsistent }) {
+            pendingCommand = nil
+            ballotRetryAvailable = false
+            errorMessage = String(localized: "poll.voting.error.submit_failed")
+            showError = true
+            return
+        }
+        if let dispatched = durableProjections
+            .compactMap({ $0 as? BallotJournalProjectionValid })
+            .first(where: { $0.record.status == .dispatched }) {
+            pendingCommand = PollBallotContract.shared.command(envelope: dispatched.record.command)
+            ballotRetryAvailable = true
+            errorMessage = String(localized: "poll.voting.error.submit_failed")
+            showError = true
+            return
+        }
+
+        let entries: [PollBallotContract.BallotEntry] = event.proposedSlots.compactMap { slot in
+            guard let pollVote = votes[slot.id] else { return nil }
+            let sharedVote: Vote_ = switch pollVote {
+            case .yes: .yes
+            case .maybe: .maybe
+            case .no: .no
+            }
+            return PollBallotContract.BallotEntry(slotId: slot.id, vote: sharedVote)
+        }
+        guard entries.count == event.proposedSlots.count else { return }
+
+        let command = PollBallotContract.CommitCompleteBallotCommand(
+            eventId: event.id,
+            actorId: participantId,
+            pollRevision: event.aggregateRevision,
+            entries: entries,
+            operationId: "poll-ballot-\(UUID().uuidString.lowercased())",
+            authoritativeDeadlineIso: event.deadline
+        )
+        pendingCommand = command
         isLoading = true
 
-        var successCount = 0
-        var lastError: Error?
-
-        for (slotId, pollVote) in votes {
-            do {
-                let sharedVote: Vote_ = {
-                    switch pollVote {
-                    case .yes: return .yes
-                    case .maybe: return .maybe
-                    case .no: return .no
-                    }
-                }()
-
-                _ = try await repository.addVote(
-                    eventId: event.id,
-                    participantId: participantId,
-                    slotId: slotId,
-                    vote: sharedVote
-                )
-
-                let submittedVotes = repository.getPoll(eventId: event.id)?.votes[participantId] as? [String: Vote_]
-                if submittedVotes?[slotId] != nil {
-                    successCount += 1
-                }
-            } catch {
-                lastError = error
+        do {
+            let staged = try await journal.stageCommand(command: command)
+            guard staged is BallotJournalResultStored else {
+                pendingCommand = nil
+                ballotRetryAvailable = false
+                throw BallotJournalFailure.stage
             }
-        }
-
-        isLoading = false
-
-        if successCount == votes.count {
-            hasVoted = true
-            WakeveHaptics.success()
-            showSuccess = true
-        } else {
+            let dispatched = try await journal.markCommandDispatched(command: command)
+            guard dispatched is BallotJournalResultStored else {
+                do {
+                    _ = try await journal.cancelCommand(command: command)
+                } catch {
+                    // The durable STAGED record remains visible for fail-closed rehydration.
+                }
+                pendingCommand = nil
+                ballotRetryAvailable = false
+                throw BallotJournalFailure.dispatch
+            }
+            await dispatchPersistedCommand(command)
+        } catch {
+            isLoading = false
             WakeveHaptics.warning()
-            errorMessage = lastError?.localizedDescription ?? String(localized: "poll.voting.error.submit_failed")
+            errorMessage = error.localizedDescription
             showError = true
         }
+    }
+
+    /// Only durable DISPATCHED records are eligible for unknown-outcome rehydration.
+    private func rehydrateBallotJournal() async {
+        let projections = journal.loadRehydrationProjections(
+            eventId: event.id,
+            actorId: participantId
+        )
+        if let inconsistency = projections.first(where: {
+            $0 is BallotJournalProjectionInconsistent
+        }) as? BallotJournalProjectionInconsistent {
+            pendingCommand = nil
+            ballotRetryAvailable = inconsistency.retryable
+            errorMessage = String(localized: "poll.voting.error.submit_failed")
+            showError = true
+            return
+        }
+        guard let valid = projections.first as? BallotJournalProjectionValid else { return }
+        let command = PollBallotContract.shared.command(envelope: valid.record.command)
+        switch valid.record.status {
+        case .dispatched:
+            pendingCommand = command
+            await dispatchPersistedCommand(command)
+        case .stagedNotDispatched:
+            do {
+                let cancelled = try await journal.cancelCommand(command: command)
+                if cancelled is BallotJournalResultStored {
+                    pendingCommand = nil
+                    ballotRetryAvailable = false
+                }
+            } catch {
+                return
+            }
+        case .cancelled:
+            pendingCommand = nil
+            ballotRetryAvailable = false
+        case .dispatchCancellationTombstoned:
+            switch valid.record.terminalDestination {
+            case is PollBallotContractBallotTerminalDestinationCancelled:
+                guard consumeTerminalDestination(valid.record.terminalDestination) else { return }
+                pendingCommand = nil
+                ballotRetryAvailable = false
+                onBack()
+            case is PollBallotContractBallotTerminalDestinationRevised:
+                guard consumeTerminalDestination(valid.record.terminalDestination) else { return }
+                pendingCommand = nil
+                ballotRetryAvailable = false
+            case is PollBallotContractBallotTerminalDestinationTerminalFailure:
+                _ = consumeTerminalDestination(valid.record.terminalDestination)
+                pendingCommand = nil
+                ballotRetryAvailable = false
+            default:
+                pendingCommand = nil
+                ballotRetryAvailable = false
+                errorMessage = String(localized: "poll.voting.error.submit_failed")
+                showError = true
+            }
+        default:
+            pendingCommand = nil
+            ballotRetryAvailable = false
+        }
+    }
+
+    private func retryPendingCommand() async {
+        let durableCommands = journal.loadDispatchableCommands(
+            eventId: event.id,
+            actorId: participantId
+        )
+        guard durableCommands.count == 1, let command = durableCommands.first else {
+            ballotRetryAvailable = false
+            pendingCommand = nil
+            errorMessage = String(localized: "poll.voting.error.submit_failed")
+            showError = true
+            return
+        }
+        pendingCommand = command
+        await dispatchPersistedCommand(command)
+    }
+
+    private func dispatchPersistedCommand(
+        _ command: PollBallotContract.CommitCompleteBallotCommand
+    ) async {
+        isLoading = true
+        do {
+            let result = try await repository.commitCompleteBallot(command: command)
+            isLoading = false
+            if let committed = result as? PollBallotContractCommitResultCommitted {
+                presentCommittedReceipt(committed.receipt)
+            } else if let replay = result as? PollBallotContractCommitResultAlreadyCommitted {
+                presentCommittedReceipt(replay.receipt)
+            } else if let rejected = result as? PollBallotContractCommitResultRejected {
+                if rejected.failure.code == PollBallotContract.FailureCode.deadlineReached {
+                    votingClosed = true
+                }
+                ballotRetryAvailable = rejected.failure.retryable
+                if !rejected.failure.retryable {
+                    do {
+                        let tombstone = try await journal.tombstoneDispatchedCommand(
+                            command: command,
+                            destination: PollBallotContractBallotTerminalDestinationTerminalFailure(
+                                failureCode: rejected.failure.code,
+                                commitOutcome: rejected.failure.commitOutcome
+                            )
+                        )
+                        if tombstone is BallotJournalResultStored {
+                            let durable = journal.loadRehydrationProjections(
+                                eventId: event.id,
+                                actorId: participantId
+                            )
+                            if let record = durable.first as? BallotJournalProjectionValid,
+                               record.record.status == .dispatchCancellationTombstoned,
+                               record.record.terminalDestination is PollBallotContractBallotTerminalDestinationTerminalFailure {
+                                pendingCommand = nil
+                            }
+                        }
+                    } catch {
+                        // Keep the DISPATCHED command available; the durable CAS did not complete.
+                    }
+                }
+                WakeveHaptics.warning()
+                errorMessage = String(localized: "poll.voting.error.submit_failed")
+                showError = true
+            }
+        } catch {
+            isLoading = false
+            ballotRetryAvailable = true
+            WakeveHaptics.warning()
+            errorMessage = error.localizedDescription
+            showError = true
+        }
+    }
+
+    private func presentCommittedReceipt(_ receipt: PollBallotContract.Receipt) {
+        hasVoted = true
+        ballotRetryAvailable = false
+        pendingReceipt = receipt
+        WakeveHaptics.success()
+        if receipt.syncStatus == PollBallotContract.SyncStatus.localPending {
+            localPending = true
+        } else {
+            showSuccess = true
+        }
+    }
+
+    /// Sync retry replays the durable BallotSyncPayload; it never creates a second ballot.
+    private func retryLocalPendingSync() async {
+        guard let receipt = pendingReceipt else { return }
+        isLoading = true
+        do {
+            let acknowledged = try await RepositoryProvider.shared.syncManager
+                .retryPendingBallotSync(localReceiptId: receipt.receiptId)
+            isLoading = false
+            guard acknowledged.boolValue else {
+                errorMessage = String(localized: "poll.voting.error.submit_failed")
+                showError = true
+                return
+            }
+            localPending = false
+            showSuccess = true
+        } catch {
+            isLoading = false
+            errorMessage = error.localizedDescription
+            showError = true
+        }
+    }
+}
+
+private enum BallotJournalFailure: LocalizedError {
+    case stage
+    case dispatch
+
+    var errorDescription: String? {
+        String(localized: "poll.voting.error.submit_failed")
     }
 }
 
@@ -126,6 +461,7 @@ struct PollVotingContentView: View {
     @Binding var votes: [String: PollVote]
     let isLoading: Bool
     let hasVoted: Bool
+    var votingClosed: Bool = false
     let onSubmitVotes: () -> Void
     let onBack: () -> Void
 
@@ -313,7 +649,8 @@ struct PollVotingContentView: View {
                 vote: .yes,
                 title: String(localized: "poll.results.vote.yes"),
                 subtitle: String(localized: "poll.voting.option.yes.subtitle"),
-                isSelected: activeVote == .yes
+                isSelected: activeVote == .yes,
+                isDisabled: votingClosed
             ) {
                 selectVote(.yes)
             }
@@ -322,7 +659,8 @@ struct PollVotingContentView: View {
                 vote: .maybe,
                 title: String(localized: "poll.results.vote.maybe"),
                 subtitle: String(localized: "poll.voting.option.maybe.subtitle"),
-                isSelected: activeVote == .maybe
+                isSelected: activeVote == .maybe,
+                isDisabled: votingClosed
             ) {
                 selectVote(.maybe)
             }
@@ -331,11 +669,13 @@ struct PollVotingContentView: View {
                 vote: .no,
                 title: String(localized: "poll.results.vote.no"),
                 subtitle: String(localized: "poll.voting.option.no.subtitle"),
-                isSelected: activeVote == .no
+                isSelected: activeVote == .no,
+                isDisabled: votingClosed
             ) {
                 selectVote(.no)
             }
         }
+        .opacity(votingClosed ? 0.55 : 1)
     }
 
     @ViewBuilder
@@ -388,7 +728,7 @@ struct PollVotingContentView: View {
                     nextActionTitle,
                     systemImage: isLastSlot ? "paperplane.fill" : "arrow.right",
                     variant: .primary,
-                    isDisabled: activeVote == nil || isLoading || (isLastSlot && !canSubmitVotes),
+                    isDisabled: votingClosed || activeVote == nil || isLoading || (isLastSlot && !canSubmitVotes),
                     isLoading: isLoading,
                     action: advanceOrSubmit
                 )
@@ -433,7 +773,7 @@ struct PollVotingContentView: View {
     }
 
     private func advanceOrSubmit() {
-        guard activeVote != nil else { return }
+        guard !votingClosed, activeVote != nil else { return }
         if isLastSlot {
             onSubmitVotes()
         } else {

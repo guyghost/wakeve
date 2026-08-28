@@ -370,11 +370,13 @@ final class FindingsRegressionTests: XCTestCase {
         )
     }
 
-    func testCreateEventTurnsSelectedDateIntoProposedSlot() {
+    func testCreateEventTurnsSelectedDateIntoProposedSlot() async {
         let viewModel = CreateEventViewModel()
         var proposedSlotStarts: [String?] = []
+        let created = expectation(description: "State-machine-owned event creation completed")
         viewModel.onEventCreated = { event in
             proposedSlotStarts = event.proposedSlots.map(\.start)
+            created.fulfill()
         }
 
         viewModel.createEvent(
@@ -384,19 +386,23 @@ final class FindingsRegressionTests: XCTestCase {
             selectedDate: "2026-06-12T18:00:00Z"
         )
 
+        await fulfillment(of: [created], timeout: 2)
+
         XCTAssertEqual(proposedSlotStarts.count, 1)
         XCTAssertEqual(proposedSlotStarts.first ?? nil, "2026-06-12T18:00:00Z")
     }
 
-    func testCreateEventTurnsMultipleSelectedSlotsIntoProposedSlots() {
+    func testCreateEventTurnsMultipleSelectedSlotsIntoProposedSlots() async {
         let viewModel = CreateEventViewModel()
         var proposedSlotStarts: [String?] = []
         var proposedSlotEnds: [String?] = []
         var proposedSlotTimesOfDay: [Shared.TimeOfDay] = []
+        let created = expectation(description: "State-machine-owned event creation completed")
         viewModel.onEventCreated = { event in
             proposedSlotStarts = event.proposedSlots.map(\.start)
             proposedSlotEnds = event.proposedSlots.map(\.end)
             proposedSlotTimesOfDay = event.proposedSlots.map(\.timeOfDay)
+            created.fulfill()
         }
 
         viewModel.createEvent(
@@ -417,12 +423,114 @@ final class FindingsRegressionTests: XCTestCase {
             ]
         )
 
+        await fulfillment(of: [created], timeout: 2)
+
         XCTAssertEqual(proposedSlotStarts, [
             "2026-06-12T18:00:00Z",
             "2026-06-13T09:00:00Z"
         ])
         XCTAssertEqual(proposedSlotEnds.first ?? nil, "2026-06-12T20:00:00Z")
         XCTAssertEqual(proposedSlotTimesOfDay, [.specific, .allDay])
+    }
+
+    func testCreateEventCompletionIsEmittedOnlyAfterTheStateMachinePersists() async throws {
+        let viewModel = CreateEventViewModel()
+        let repository = RepositoryProvider.shared.databaseRepository
+        var callbackEvent: WakeveEvent?
+        var eventWasPersistedAtCallback = false
+        let created = expectation(description: "Persisted event callback")
+        viewModel.onEventCreated = { event in
+            callbackEvent = event
+            eventWasPersistedAtCallback = repository.getEvent(id: event.id) != nil
+            created.fulfill()
+        }
+
+        viewModel.createEvent(
+            title: "Création propriétaire \(UUID().uuidString)",
+            description: "Le callback attend la transaction locale.",
+            userId: "creation-owner",
+            selectedDate: "2026-10-10T18:00:00Z"
+        )
+
+        XCTAssertNil(
+            callbackEvent,
+            "Dispatch is not a persistence receipt; completion must not fire in the same stack frame."
+        )
+        await fulfillment(of: [created], timeout: 2)
+        let persisted = try XCTUnwrap(callbackEvent)
+        XCTAssertTrue(eventWasPersistedAtCallback)
+        XCTAssertEqual(repository.getEvent(id: persisted.id)?.title, persisted.title)
+        _ = try? await repository.deleteEvent(eventId: persisted.id)
+    }
+
+    func testLegacyCreationWiringDoesNotSaveTwiceOrDismissBeforeOwnerCompletion() throws {
+        let contentView = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
+        let createSheet = try readProjectFile("iosApp/src/Views/Events/CreateEventSheet.swift")
+        let contentCompletion = slice(
+            contentView,
+            from: "CreateEventSheet(",
+            to: ".sheet(isPresented: $showNotificationPreferencesSheet)"
+        )
+        let submit = slice(
+            createSheet,
+            from: "private func createEvent()",
+            to: "struct EventCreationContext"
+        )
+
+        XCTAssertFalse(
+            contentCompletion.contains("repository.saveEvent"),
+            "ContentView receives an already-persisted event and must not become a second aggregate writer."
+        )
+        XCTAssertFalse(
+            submit.contains("\n        dismiss()"),
+            "CreateEventSheet may dismiss only from its persisted completion callback, never immediately after dispatch."
+        )
+    }
+
+    func testRapidDoubleCreateIsGatedByOneInFlightOperation() throws {
+        let viewModel = try readProjectFile("iosApp/src/ViewModels/CreateEventViewModel.swift")
+        let createSheet = try readProjectFile("iosApp/src/Views/Events/CreateEventSheet.swift")
+        let createMethod = slice(
+            viewModel,
+            from: "func createEvent(",
+            to: "override func onStateDidChange()"
+        )
+        let completion = slice(
+            viewModel,
+            from: "override func onStateDidChange()",
+            to: "func updateSmartEventDraftPhrase"
+        )
+        let submit = slice(
+            createSheet,
+            from: "private func createEvent()",
+            to: "struct EventCreationContext"
+        )
+
+        XCTAssertTrue(
+            viewModel.contains("@Published private(set) var isCreating") ||
+                viewModel.contains("@Published var isCreating"),
+            "Creation needs one observable in-flight gate shared by the button and persistence owner."
+        )
+        XCTAssertTrue(createMethod.contains("guard !isCreating else { return }"))
+        XCTAssertTrue(createMethod.contains("isCreating = true"))
+        XCTAssertTrue(
+            completion.contains("isCreating = false"),
+            "Success and failure must release the in-flight gate only after the state machine resolves."
+        )
+        XCTAssertTrue(
+            submit.contains("guard !viewModel.isCreating else { return }"),
+            "Two rapid taps must dispatch one creation operation."
+        )
+        XCTAssertTrue(
+            createSheet.contains(".disabled(viewModel.isCreating") ||
+                createSheet.contains("isLoading: viewModel.isCreating"),
+            "The visible create action must expose and disable its in-flight state."
+        )
+        XCTAssertEqual(
+            submit.components(separatedBy: "viewModel.createEvent(").count - 1,
+            1,
+            "The sheet delegates exactly one save to the state-machine owner."
+        )
     }
 
     func testAppLaunchDoesNotRequestNotificationAuthorizationImmediately() throws {

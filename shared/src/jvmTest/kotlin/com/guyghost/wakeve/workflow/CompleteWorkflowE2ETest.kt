@@ -1,5 +1,6 @@
 package com.guyghost.wakeve.workflow
 
+import com.guyghost.wakeve.confirmation.ConfirmationClock
 import com.guyghost.wakeve.repository.DatabaseEventRepository
 import com.guyghost.wakeve.repository.EventRepositoryInterface
 import com.guyghost.wakeve.poll.PollLogic
@@ -109,7 +110,10 @@ class CompleteWorkflowE2ETest {
     @BeforeTest
     fun setup() {
         database = createFreshTestDatabase()
-        eventRepository = DatabaseEventRepository(database)
+        eventRepository = DatabaseEventRepository(
+            database,
+            ConfirmationClock { Instant.parse("2025-09-01T00:00:00Z") }
+        )
         scenarioRepository = ScenarioRepository(database)
         meetingRepository = MeetingRepository(database)
         testScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
