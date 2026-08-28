@@ -127,7 +127,7 @@ class ScenarioRepository(private val db: WakeveDb) {
                 status = ScenarioStatus.valueOf(row.status),
                 createdAt = row.createdAt,
                 updatedAt = row.updatedAt,
-                sourceTimeSlotId = row.sourceTimeSlotId,
+                sourceTimeSlotId = logicalSourceTimeSlotId(row.eventId, row.sourceTimeSlotId),
                 sourcePotentialLocationId = row.sourcePotentialLocationId,
                 generationType = parseScenarioGenerationType(row.generationType)
             )
@@ -152,7 +152,7 @@ class ScenarioRepository(private val db: WakeveDb) {
                 status = ScenarioStatus.valueOf(row.status),
                 createdAt = row.createdAt,
                 updatedAt = row.updatedAt,
-                sourceTimeSlotId = row.sourceTimeSlotId,
+                sourceTimeSlotId = logicalSourceTimeSlotId(row.eventId, row.sourceTimeSlotId),
                 sourcePotentialLocationId = row.sourcePotentialLocationId,
                 generationType = parseScenarioGenerationType(row.generationType)
             )
@@ -179,7 +179,7 @@ class ScenarioRepository(private val db: WakeveDb) {
                         status = ScenarioStatus.valueOf(row.status),
                         createdAt = row.createdAt,
                         updatedAt = row.updatedAt,
-                        sourceTimeSlotId = row.sourceTimeSlotId,
+                        sourceTimeSlotId = logicalSourceTimeSlotId(row.eventId, row.sourceTimeSlotId),
                         sourcePotentialLocationId = row.sourcePotentialLocationId,
                         generationType = parseScenarioGenerationType(row.generationType)
                     )
@@ -204,7 +204,7 @@ class ScenarioRepository(private val db: WakeveDb) {
                 status = ScenarioStatus.valueOf(row.status),
                 createdAt = row.createdAt,
                 updatedAt = row.updatedAt,
-                sourceTimeSlotId = row.sourceTimeSlotId,
+                sourceTimeSlotId = logicalSourceTimeSlotId(row.eventId, row.sourceTimeSlotId),
                 sourcePotentialLocationId = row.sourcePotentialLocationId,
                 generationType = parseScenarioGenerationType(row.generationType)
             )
@@ -259,7 +259,10 @@ class ScenarioRepository(private val db: WakeveDb) {
                     estimatedBudgetPerPerson = normalized.estimatedBudgetPerPerson,
                     description = normalized.description,
                     updatedAt = now,
-                    sourceTimeSlotId = normalized.sourceTimeSlotId,
+                    sourceTimeSlotId = persistedSourceTimeSlotId(
+                        normalized.eventId,
+                        normalized.sourceTimeSlotId
+                    ),
                     sourcePotentialLocationId = normalized.sourcePotentialLocationId,
                     generationType = normalized.generationType.name,
                     id = normalized.id,
@@ -662,7 +665,8 @@ class ScenarioRepository(private val db: WakeveDb) {
                 eventId = eventId,
                 timeSlots = timeSlotQueries.selectByEventId(eventId).executeAsList().map {
                     TimeSlot(
-                        id = it.id,
+                        id = logicalSourceTimeSlotId(eventId, it.id)
+                            ?: error("Time slot identity is missing"),
                         start = it.startTime,
                         end = it.endTime,
                         timezone = it.timezone,
@@ -844,7 +848,7 @@ class ScenarioRepository(private val db: WakeveDb) {
             status = scenario.status.name,
             createdAt = scenario.createdAt,
             updatedAt = updatedAt,
-            sourceTimeSlotId = scenario.sourceTimeSlotId,
+            sourceTimeSlotId = persistedSourceTimeSlotId(scenario.eventId, scenario.sourceTimeSlotId),
             sourcePotentialLocationId = scenario.sourcePotentialLocationId,
             generationType = scenario.generationType.name
         )
@@ -868,7 +872,9 @@ class ScenarioRepository(private val db: WakeveDb) {
     private fun confirmMatrixScenario(eventId: String, scenarioId: String, organizerId: String, now: String) {
         val scenario = getScenarioById(scenarioId) ?: return
         val slotId = scenario.sourceTimeSlotId ?: throw IllegalStateException("Matrix scenario has no source time slot")
-        val selectedSlot = timeSlotQueries.selectById(slotId).executeAsOneOrNull()
+        val persistedSlotId = persistedSourceTimeSlotId(eventId, slotId)
+            ?: throw IllegalStateException("Matrix scenario has no source time slot")
+        val selectedSlot = timeSlotQueries.selectById(persistedSlotId).executeAsOneOrNull()
             ?: throw IllegalStateException("Source time slot not found")
         if (selectedSlot.eventId != eventId) {
             throw IllegalStateException("Source time slot does not belong to event")
@@ -879,7 +885,7 @@ class ScenarioRepository(private val db: WakeveDb) {
         confirmedDateQueries.insertConfirmedDate(
             id = "confirmed_$eventId",
             eventId = eventId,
-            timeslotId = slotId,
+            timeslotId = persistedSlotId,
             confirmedByOrganizerId = organizerId,
             confirmedAt = now,
             updatedAt = now
@@ -948,5 +954,22 @@ class ScenarioRepository(private val db: WakeveDb) {
             timestamp = uniqueTimestamp,
             synced = 0
         )
+    }
+
+    private fun persistedSourceTimeSlotId(eventId: String, slotId: String?): String? {
+        slotId ?: return null
+        val decoded = TimeSlotStorageIdentity.decode(slotId)
+        return if (decoded?.eventId == eventId) {
+            slotId
+        } else {
+            TimeSlotStorageIdentity.physicalId(eventId, slotId)
+        }
+    }
+
+    private fun logicalSourceTimeSlotId(eventId: String, slotId: String?): String? {
+        slotId ?: return null
+        val decoded = TimeSlotStorageIdentity.decode(slotId) ?: return slotId
+        check(decoded.eventId == eventId) { "Scenario source slot belongs to another event" }
+        return decoded.logicalSlotId
     }
 }

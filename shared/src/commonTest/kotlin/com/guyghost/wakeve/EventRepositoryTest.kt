@@ -1,11 +1,13 @@
 package com.guyghost.wakeve
 
+import com.guyghost.wakeve.confirmation.ConfirmationClock
 import com.guyghost.wakeve.repository.EventRepository
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.models.Vote
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -14,7 +16,9 @@ import kotlin.test.assertTrue
 
 class EventRepositoryTest {
 
-    private val repository = EventRepository()
+    private val repository = EventRepository(
+        confirmationClock = ConfirmationClock { Instant.parse("2025-11-20T10:00:00Z") }
+    )
 
     private val slot1 = TimeSlot(
         id = "slot-1",

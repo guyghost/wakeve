@@ -180,7 +180,8 @@ final class InvitationExperienceRuntimeSurfaceTests: XCTestCase {
                 ),
                 artwork: ArtworkNone.shared,
                 operationId: operationId,
-                artworkCapability: ArtworkSelectionCapabilityHidden.shared
+                artworkCapability: ArtworkSelectionCapabilityHidden.shared,
+                draftRevision: 0
             )
         )
         let committed = try XCTUnwrap(result as? UpdateDraftAggregateResultCommitted)
@@ -194,7 +195,10 @@ final class InvitationExperienceRuntimeSurfaceTests: XCTestCase {
             repository: repository,
             database: database,
             aggregateOwner: aggregateOwner,
-            syncOwner: DatabaseCreationStudioSyncOwner(database: database)
+            syncOwner: DatabaseCreationStudioSyncOwner(
+                database: database,
+                syncManager: nil
+            )
         )
         for _ in 0..<20 where !(relaunched.studioState is CreationStudioStatePendingSync) {
             try await Task.sleep(nanoseconds: 10_000_000)
@@ -219,6 +223,77 @@ final class InvitationExperienceRuntimeSurfaceTests: XCTestCase {
         XCTAssertTrue(
             rendered.traits["eventCreationStudioPrimaryAction"]?.contains(.notEnabled) == true,
             "Studio must derive validation from its current draft; a caller boolean cannot authorize preview of an empty draft."
+        )
+    }
+
+    func testStudioPreviewProjectsTheExactKMPDescriptionScalar() {
+        let viewModel = EventCreationStudioViewModel(actorId: "studio-owner")
+        viewModel.title = "Week-end à Annecy"
+        viewModel.eventDescription = "Une description exacte destinée aux invités."
+        viewModel.updateFields()
+
+        let preview = viewModel.currentPreviewEvent
+
+        XCTAssertEqual(preview.description_, "Une description exacte destinée aux invités.")
+        XCTAssertFalse(
+            preview.description_.contains("StudioEventFields("),
+            "The preview must bind the exported KMP description_ scalar, never NSObject's debug description."
+        )
+    }
+
+    func testStudioLocalCommitPendingSyncIsNavigableAndSyncRetryDoesNotRecreate() async throws {
+        let event = EventFactory.make(
+            id: "studio-local-first-\(UUID().uuidString.lowercased())",
+            title: "Titre avant édition",
+            description: "Description avant édition",
+            organizerId: "studio-owner",
+            deadline: "2099-01-01T00:00:00Z",
+            status: .draft
+        )
+        let repository = RepositoryProvider.shared.databaseRepository
+        let database = RepositoryProvider.shared.database
+        _ = try await repository.saveEvent(event: event)
+        defer {
+            Task { try? await repository.deleteEvent(eventId: event.id) }
+        }
+        let persisted = try XCTUnwrap(repository.getEvent(id: event.id))
+        let viewModel = EventCreationStudioViewModel(
+            eventId: event.id,
+            actorId: event.organizerId,
+            baseRevision: persisted.aggregateRevision,
+            existingArtwork: ArtworkNone.shared,
+            repository: repository
+        )
+        viewModel.title = "Titre validé"
+        viewModel.eventDescription = "Description scalaire validée"
+        viewModel.updateFields()
+        var preview: InvitationStudioPreviewSnapshot?
+        var commit: (() async -> Bool)?
+
+        await viewModel.performPrimaryAction { snapshot, confirm in
+            preview = snapshot
+            commit = confirm
+        }
+
+        XCTAssertEqual(preview?.event.description_, "Description scalaire validée")
+        let didCommit = await commit?() ?? false
+        XCTAssertTrue(
+            didCommit,
+            "A durable local commit is navigation success even while its independent sync remains pending."
+        )
+        XCTAssertTrue(
+            viewModel.studioState is CreationStudioStatePendingSync ||
+                viewModel.studioState is CreationStudioStateCompleted
+        )
+        XCTAssertEqual(repository.getEvent(id: event.id)?.description_, "Description scalaire validée")
+        XCTAssertEqual(
+            database.invitationExperienceQueries
+                .selectOperationReceiptsByEventId(event_id: event.id)
+                .executeAsList()
+                .filter { $0.action == "UPDATE_DRAFT_AGGREGATE" }
+                .count,
+            1,
+            "Local-first completion must create exactly one aggregate receipt."
         )
     }
 
@@ -705,6 +780,70 @@ final class InvitationExperienceRuntimeSurfaceTests: XCTestCase {
                 "eventArchiveDelete",
                 "eventArchiveNotificationWrite"
             ])
+        )
+    }
+
+    func testArchiveExitContractIsAccessibleAndReturnsToTheLibraryOwner() throws {
+        let archive = try readProjectFile("iosApp/src/Views/Invitations/EventArchiveView.swift")
+        let contentView = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
+        let archiveRoute = contentView
+            .components(separatedBy: "case .eventArchive:")
+            .dropFirst()
+            .first?
+            .components(separatedBy: "case .participantManagement:")
+            .first ?? ""
+
+        XCTAssertTrue(
+            archive.contains("let onReturn: () -> Void"),
+            "Archive needs an explicit typed return closure because its tab bar is hidden."
+        )
+        XCTAssertTrue(
+            archive.contains("eventArchiveReturnAction"),
+            "The visible return control needs a stable accessibility identifier."
+        )
+        XCTAssertTrue(
+            archive.contains("action: onReturn") || archive.contains("onReturn()"),
+            "The archive control must invoke the owner closure, not infer or mutate navigation state."
+        )
+        XCTAssertTrue(archiveRoute.contains("onReturn:"))
+        XCTAssertTrue(
+            archiveRoute.contains("currentView = .eventList"),
+            "ContentView owns the explicit RETURN transition back to the event Library."
+        )
+    }
+
+    func testConfirmedPollResolvesPersistedTimestampBackToItsSlot() {
+        let finalSlot = TimeSlot(
+            id: "slot-final",
+            start: "2026-09-12T18:00:00Z",
+            end: "2026-09-12T22:00:00Z",
+            timezone: "Europe/Paris",
+            timeOfDay: .evening
+        )
+        let event = EventFactory.make(
+            id: "confirmed-timestamp-event",
+            title: "Dîner confirmé",
+            proposedSlots: [finalSlot],
+            status: .confirmed,
+            finalDate: finalSlot.start
+        )
+
+        let rendered = render(
+            PollResultsContentView(
+                event: event,
+                slotScores: [],
+                bestSlot: nil,
+                canConfirmDate: false,
+                isLoading: false,
+                onConfirmDate: {},
+                onBack: {}
+            ),
+            viewport: CGSize(width: 390, height: 1_400)
+        )
+
+        XCTAssertTrue(
+            rendered.identifiers.contains("pollDecisionAnnouncementCard"),
+            "A confirmed finalDate is persisted as the slot start timestamp and must resolve to the complete slot projection."
         )
     }
 

@@ -1,0 +1,181 @@
+-- Slot storage identity migration v1.
+-- Validation completes before the marker exists or any referenced row changes. The reference
+-- rewrite itself is executed by one trigger invocation, so SQLite applies every physical key and
+-- relational reference together or rolls that statement back.
+PRAGMA defer_foreign_keys = 1;
+
+CREATE TABLE _slot_identity_v1_map (
+    oldPhysicalId TEXT PRIMARY KEY NOT NULL,
+    eventId TEXT NOT NULL,
+    logicalSlotId TEXT NOT NULL,
+    newPhysicalId TEXT NOT NULL
+);
+
+INSERT INTO _slot_identity_v1_map(oldPhysicalId, eventId, logicalSlotId, newPhysicalId)
+WITH candidates AS (
+    SELECT
+        id,
+        eventId,
+        'slot:v1|' || length(CAST(eventId AS BLOB)) || ':' || lower(hex(eventId)) || '|' AS eventPrefix,
+        CASE
+            WHEN id LIKE eventId || '::%' THEN substr(id, length(eventId) + 3)
+            ELSE id
+        END AS legacyLogicalId
+    FROM timeSlot
+), classified AS (
+    SELECT
+        *,
+        substr(id, length(eventPrefix) + 1) AS logicalComponent,
+        instr(substr(id, length(eventPrefix) + 1), ':') AS logicalSeparator
+    FROM candidates
+)
+SELECT
+    id,
+    eventId,
+    CASE
+        WHEN id LIKE eventPrefix || '%'
+          AND logicalSeparator > 1
+          AND substr(logicalComponent, 1, logicalSeparator - 1) =
+              CAST(CAST(substr(logicalComponent, 1, logicalSeparator - 1) AS INTEGER) AS TEXT)
+          AND length(substr(logicalComponent, logicalSeparator + 1)) =
+              2 * CAST(substr(logicalComponent, 1, logicalSeparator - 1) AS INTEGER)
+          AND substr(logicalComponent, logicalSeparator + 1) =
+              lower(substr(logicalComponent, logicalSeparator + 1))
+          AND substr(logicalComponent, logicalSeparator + 1) NOT GLOB '*[^0-9a-f]*'
+        THEN id
+        ELSE legacyLogicalId
+    END,
+    CASE
+        WHEN id LIKE eventPrefix || '%'
+          AND logicalSeparator > 1
+          AND substr(logicalComponent, 1, logicalSeparator - 1) =
+              CAST(CAST(substr(logicalComponent, 1, logicalSeparator - 1) AS INTEGER) AS TEXT)
+          AND length(substr(logicalComponent, logicalSeparator + 1)) =
+              2 * CAST(substr(logicalComponent, 1, logicalSeparator - 1) AS INTEGER)
+          AND substr(logicalComponent, logicalSeparator + 1) =
+              lower(substr(logicalComponent, logicalSeparator + 1))
+          AND substr(logicalComponent, logicalSeparator + 1) NOT GLOB '*[^0-9a-f]*'
+        THEN id
+        ELSE eventPrefix
+            || length(CAST(legacyLogicalId AS BLOB)) || ':' || lower(hex(legacyLogicalId))
+    END
+FROM classified;
+
+CREATE TABLE _slot_identity_v1_guard (failure TEXT NOT NULL);
+CREATE TRIGGER _slot_identity_v1_abort
+BEFORE INSERT ON _slot_identity_v1_guard
+BEGIN
+    SELECT RAISE(ROLLBACK, 'SLOT_IDENTITY_MIGRATION_INCONSISTENT');
+END;
+
+-- Invalid identifiers, target collisions, and dangling physical references all fail closed.
+INSERT INTO _slot_identity_v1_guard(failure)
+SELECT 'INVALID_IDENTIFIER'
+WHERE EXISTS (
+    SELECT 1 FROM _slot_identity_v1_map
+    WHERE trim(eventId) = '' OR trim(eventId) != eventId
+       OR trim(logicalSlotId) = '' OR trim(logicalSlotId) != logicalSlotId
+);
+
+INSERT INTO _slot_identity_v1_guard(failure)
+SELECT 'TARGET_ID_COLLISION'
+WHERE EXISTS (
+    SELECT newPhysicalId FROM _slot_identity_v1_map
+    GROUP BY newPhysicalId HAVING COUNT(*) > 1
+);
+
+INSERT INTO _slot_identity_v1_guard(failure)
+SELECT 'MISSING_SLOT_REFERENCE'
+WHERE EXISTS (
+    SELECT 1 FROM vote v
+    LEFT JOIN _slot_identity_v1_map m ON m.oldPhysicalId = v.timeslotId
+    WHERE m.oldPhysicalId IS NULL
+    UNION ALL
+    SELECT 1 FROM confirmedDate c
+    LEFT JOIN _slot_identity_v1_map m ON m.oldPhysicalId = c.timeslotId
+    WHERE m.oldPhysicalId IS NULL
+    UNION ALL
+    SELECT 1 FROM confirmation_effect_outbox o
+    LEFT JOIN _slot_identity_v1_map m ON m.oldPhysicalId = o.slotId
+    WHERE m.oldPhysicalId IS NULL
+);
+
+-- pollBallotReceipt.syncPayload and syncMetadata.payload are canonical domain envelopes: their
+-- slot ids remain logical by contract. They are named here deliberately so a storage migration
+-- never rewrites a signed/fingerprinted payload into a physical database identifier.
+-- Rebuild syncMetadata at the same boundary to remove the legacy `(entityType, entityId,
+-- timestamp)` uniqueness constraint: an injected deterministic clock may legitimately stamp
+-- the event decision and its effect envelope at the same instant.
+CREATE TABLE syncMetadata_slot_v13 (
+    id TEXT PRIMARY KEY NOT NULL,
+    entityType TEXT NOT NULL,
+    entityId TEXT NOT NULL,
+    operation TEXT NOT NULL,
+    payload TEXT NOT NULL DEFAULT '{}',
+    timestamp TEXT NOT NULL,
+    retryState TEXT NOT NULL DEFAULT 'READY',
+    retryCount INTEGER NOT NULL DEFAULT 0,
+    synced INTEGER NOT NULL DEFAULT 0
+);
+
+INSERT INTO syncMetadata_slot_v13(
+    id, entityType, entityId, operation, payload, timestamp, retryState, retryCount, synced
+)
+SELECT id, entityType, entityId, operation, payload, timestamp, retryState, retryCount, synced
+FROM syncMetadata;
+
+DROP TABLE syncMetadata;
+ALTER TABLE syncMetadata_slot_v13 RENAME TO syncMetadata;
+
+CREATE TABLE slotIdentityMigration (
+    migrationVersion INTEGER PRIMARY KEY NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('MIGRATION_COMPLETE')),
+    completedAt TEXT NOT NULL
+);
+
+CREATE TABLE _slot_identity_v1_apply_gate (apply INTEGER PRIMARY KEY NOT NULL);
+CREATE TRIGGER _slot_identity_v1_apply
+BEFORE INSERT ON _slot_identity_v1_apply_gate
+BEGIN
+    UPDATE vote
+    SET timeslotId = (
+        SELECT newPhysicalId FROM _slot_identity_v1_map
+        WHERE oldPhysicalId = vote.timeslotId
+    );
+
+    UPDATE confirmedDate
+    SET timeslotId = (
+        SELECT newPhysicalId FROM _slot_identity_v1_map
+        WHERE oldPhysicalId = confirmedDate.timeslotId
+    );
+
+    UPDATE confirmation_effect_outbox
+    SET slotId = (
+        SELECT newPhysicalId FROM _slot_identity_v1_map
+        WHERE oldPhysicalId = confirmation_effect_outbox.slotId
+    );
+
+    UPDATE scenario
+    SET sourceTimeSlotId = (
+        SELECT newPhysicalId FROM _slot_identity_v1_map
+        WHERE oldPhysicalId = scenario.sourceTimeSlotId
+    )
+    WHERE sourceTimeSlotId IN (SELECT oldPhysicalId FROM _slot_identity_v1_map);
+
+    UPDATE timeSlot
+    SET id = (
+        SELECT newPhysicalId FROM _slot_identity_v1_map
+        WHERE oldPhysicalId = timeSlot.id
+    );
+
+    INSERT INTO slotIdentityMigration(migrationVersion, status, completedAt)
+    VALUES (13, 'MIGRATION_COMPLETE', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+END;
+
+INSERT INTO _slot_identity_v1_apply_gate(apply) VALUES (1);
+
+DROP TRIGGER _slot_identity_v1_apply;
+DROP TABLE _slot_identity_v1_apply_gate;
+DROP TRIGGER _slot_identity_v1_abort;
+DROP TABLE _slot_identity_v1_guard;
+DROP TABLE _slot_identity_v1_map;

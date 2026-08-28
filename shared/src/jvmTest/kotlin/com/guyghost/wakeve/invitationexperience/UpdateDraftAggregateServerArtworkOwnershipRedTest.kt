@@ -103,7 +103,8 @@ class UpdateDraftAggregateServerArtworkOwnershipRedTest {
             fixture.serverAssetCommand("asset-new", operationId = "studio-rollback")
         )
 
-        assertIs<UpdateDraftAggregateResult.Rejected>(result)
+        val unknown = assertIs<UpdateDraftAggregateResult.OutcomeUnknown>(result)
+        assertEquals(InvitationExperienceError.COMMIT_OUTCOME_UNKNOWN, unknown.error)
         assertEquals("Original event event-1", fixture.text("SELECT title FROM event WHERE id = 'event-1'"))
         assertEquals(4L, fixture.number("SELECT aggregateRevision FROM event WHERE id = 'event-1'"))
         assertEquals("asset-old", fixture.text("SELECT server_asset_id FROM event_artwork WHERE event_id = 'event-1'"))

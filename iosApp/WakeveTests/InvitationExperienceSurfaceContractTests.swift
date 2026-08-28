@@ -554,6 +554,371 @@ final class InvitationExperienceSurfaceContractTests: XCTestCase {
         )
     }
 
+    func testStudioCloseDetachesInFlightCommitAndKeepsUnknownOutcomesDistinct() throws {
+        let studio = try readProjectFile(
+            "iosApp/src/Views/Invitations/EventCreationStudioView.swift"
+        )
+        let viewModel = sourceSlice(
+            studio,
+            from: "final class EventCreationStudioViewModel",
+            to: "struct EventCreationStudioView"
+        )
+        let view = sourceSlice(
+            studio,
+            from: "struct EventCreationStudioView",
+            to: "private func artworkButton"
+        )
+        let shared = try readProjectFile(
+            "shared/src/commonMain/kotlin/com/guyghost/wakeve/invitationexperience/InvitationExperiencePublicContracts.kt"
+        )
+
+        XCTAssertTrue(viewModel.contains("CreationStudioEventClose"))
+        XCTAssertTrue(
+            viewModel.contains("CreationStudioStateDetachedCommitting") &&
+                viewModel.contains("CreationStudioStateDetachedResolving"),
+            "Closing during a commit must detach presentation without cancelling durable work."
+        )
+        XCTAssertTrue(
+            viewModel.contains("CreationStudioEventOutcomeUnknown") &&
+                viewModel.contains("CreationStudioEventResolutionResult"),
+            "Initial commit uncertainty and resolution-attempt uncertainty are disjoint modeled events."
+        )
+        XCTAssertTrue(
+            viewModel.contains("CreationStudioEventLateLocalCommit") &&
+                shared.contains("data class DetachedPendingSync") &&
+                shared.contains("val binding: CreationStudioSyncBinding"),
+            "A late local PENDING_SYNC commit must preserve its durable binding after the sheet closes."
+        )
+        XCTAssertTrue(
+            view.contains("viewModel.close") || view.contains("viewModel.consumeClose"),
+            "The Cancel control must be inert outside valid states and consumed by the reducer while work is in flight."
+        )
+        XCTAssertFalse(
+            view.contains("Button(String(localized: \"common.cancel\"), action: onCancel)"),
+            "The presentation must not bypass the commit reducer when closing."
+        )
+    }
+
+    func testStudioCarriesDurableCommitEnvelopeAndBoundsCorrelatedUnknownResolution() throws {
+        let studio = try readProjectFile(
+            "iosApp/src/Views/Invitations/EventCreationStudioView.swift"
+        )
+        let shared = try readProjectFile(
+            "shared/src/commonMain/kotlin/com/guyghost/wakeve/invitationexperience/InvitationExperiencePublicContracts.kt"
+        )
+        let combined = shared + "\n" + studio
+
+        for field in [
+            "durableOperationRef",
+            "requestFingerprint",
+            "resolutionRetryBudget",
+            "attemptId",
+            "fence"
+        ] {
+            XCTAssertTrue(
+                combined.contains(field),
+                "Studio commit/resolution is missing the durable correlation field \(field)."
+            )
+        }
+        XCTAssertTrue(
+            combined.contains("MAX_RESOLUTION_ATTEMPTS") || combined.contains("resolutionRetryBudget > 0"),
+            "COMMIT_OUTCOME_UNKNOWN may start only a bounded number of resolution attempts."
+        )
+        XCTAssertTrue(
+            studio.contains("CreationStudioEventOutcomeUnknown") &&
+                studio.contains("CreationStudioEventResolutionResult"),
+            "A thrown database call must remain UNKNOWN until a correlated attempt proves its outcome."
+        )
+        let executeCommit = sourceSlice(
+            studio,
+            from: "private func executeCommit() async -> Bool",
+            to: "private func beginResolutionAttempt"
+        )
+        let commitCatch = executeCommit.components(separatedBy: "} catch {").last ?? ""
+        XCTAssertTrue(
+            commitCatch.contains("CreationStudioEventOutcomeUnknown"),
+            "The database exception path must enter unknown-outcome resolution."
+        )
+        XCTAssertFalse(
+            commitCatch.contains("CreationStudioEventFailBeforeLocalCommit"),
+            "An unclassified database exception is not proof that the local transaction did not commit."
+        )
+    }
+
+    func testStudioCorruptRehydrationBecomesRepositoryInconsistentUnknownAndNeverRestoresEditing() throws {
+        let studio = try readProjectFile(
+            "iosApp/src/Views/Invitations/EventCreationStudioView.swift"
+        )
+        let restore = sourceSlice(
+            studio,
+            from: "private func restorePersistedSync() async",
+            to: "func cancelSyncObservation()"
+        )
+
+        XCTAssertTrue(
+            restore.contains("REPOSITORY_INCONSISTENT") ||
+                restore.contains("repositoryInconsistent"),
+            "Missing or divergent commitEnvelope/pendingSubject data must surface the stable repository inconsistency code."
+        )
+        XCTAssertTrue(
+            restore.contains("COMMIT_OUTCOME_UNKNOWN") ||
+                restore.contains("commitOutcomeUnknown") ||
+                restore.contains("CreationStudioEventOutcomeUnknown"),
+            "Corrupt durable Studio state has UNKNOWN commit outcome and cannot fall back to an editable draft."
+        )
+        XCTAssertTrue(
+            restore.contains("consumeSyncFailure") || restore.contains("stateMachine.transition"),
+            "Every corrupt rehydration branch must explicitly enter the blocked terminal projection."
+        )
+        XCTAssertFalse(
+            restore.contains(
+                "operationId: receipt.operation_id\n        ) else { return }"
+            ),
+            "A failed durable binding/envelope load must not silently return and leave the editor enabled."
+        )
+    }
+
+    func testStudioUnknownResolutionCorrelatesInnerEnvelopeAndPendingSubjectAndForbidsBlankReplay() throws {
+        let studio = try readProjectFile(
+            "iosApp/src/Views/Invitations/EventCreationStudioView.swift"
+        )
+        let shared = try readProjectFile(
+            "shared/src/commonMain/kotlin/com/guyghost/wakeve/invitationexperience/InvitationExperiencePublicContracts.kt"
+        )
+        let resolve = sourceSlice(
+            studio,
+            from: "private func resolveUnknownCommit",
+            to: "private func observeSync"
+        )
+        let replay = sourceSlice(
+            shared,
+            from: "if (receipt != null)",
+            to: "var event = database.eventQueries"
+        )
+
+        XCTAssertTrue(
+            resolve.contains("commit_envelope") &&
+                (resolve.contains("StudioCommitEnvelope") || resolve.contains("loadCommitEnvelope")),
+            "UNKNOWN resolution must decode the persisted inner commit envelope before proving local commit."
+        )
+        XCTAssertTrue(
+            resolve.contains("syncMetadataQueries") &&
+                resolve.contains("StudioPendingSyncSubject"),
+            "UNKNOWN resolution must decode and correlate the exact pending Studio subject."
+        )
+        XCTAssertTrue(
+            resolve.contains("repositoryInconsistent") ||
+                resolve.contains("REPOSITORY_INCONSISTENT"),
+            "Missing, malformed, or divergent inner records are repository inconsistency, never localCommitted."
+        )
+        XCTAssertFalse(
+            replay.contains("receipt.commit_envelope.isBlank()") ||
+                replay.contains("receipt.durable_operation_ref.isBlank()"),
+            "A blank legacy inner record cannot be accepted as a valid idempotent Studio replay."
+        )
+    }
+
+    func testStudioTerminalRetryabilityCrossesClientStateAndBlocksRetrySync() throws {
+        let studio = try readProjectFile(
+            "iosApp/src/Views/Invitations/EventCreationStudioView.swift"
+        )
+        let contracts = try readProjectFile(
+            "shared/src/commonMain/kotlin/com/guyghost/wakeve/invitationexperience/InvitationExperiencePublicContracts.kt"
+        )
+        let syncManager = try readProjectFile(
+            "shared/src/commonMain/kotlin/com/guyghost/wakeve/sync/SyncManager.kt"
+        )
+        let terminalCodes = sourceSlice(
+            syncManager,
+            from: "STUDIO_TERMINAL_REJECTION_CODES = setOf(",
+            to: ")\n\ninternal fun syncFailureMessage"
+        )
+        let failedState = sourceSlice(
+            contracts,
+            from: "data class SyncFailed(",
+            to: "data class Completed("
+        )
+        let retryReducer = sourceSlice(
+            contracts,
+            from: "private fun retrySync(",
+            to: "private fun retryBeforeCommit("
+        )
+        let retryProjection = sourceSlice(
+            studio,
+            from: "var retryAvailable: Bool",
+            to: "var isPendingSync: Bool"
+        )
+
+        for code in ["IDEMPOTENCY_CONFLICT", "REPOSITORY_INCONSISTENT"] {
+            XCTAssertTrue(terminalCodes.contains("\"\(code)\""), "Missing terminal Studio code \(code).")
+        }
+        XCTAssertTrue(
+            failedState.contains("retryable"),
+            "The correlated server retryability flag must survive in CreationStudioState.SyncFailed."
+        )
+        XCTAssertTrue(
+            retryReducer.contains("failed.retryable") &&
+                (retryReducer.contains("!failed.retryable") || retryReducer.contains("failed.retryable == false")),
+            "RetrySync must be rejected by the reducer for a terminal non-retryable Studio failure."
+        )
+        XCTAssertTrue(
+            retryProjection.contains("retryable"),
+            "The Swift retry affordance must project the modeled retryability flag, not every SyncFailed state."
+        )
+    }
+
+    func testStudioCorruptInnerResolutionIsTerminalRepositoryInconsistentAndNeverDetachedCommitting() throws {
+        let studio = try readProjectFile(
+            "iosApp/src/Views/Invitations/EventCreationStudioView.swift"
+        )
+        let resolve = sourceSlice(
+            studio,
+            from: "private func resolveUnknownCommit",
+            to: "private func observeSync"
+        )
+        let corruptInnerBranch = resolve.components(separatedBy: "} else {").last ?? ""
+
+        XCTAssertTrue(
+            corruptInnerBranch.contains("repositoryInconsistent") ||
+                corruptInnerBranch.contains("REPOSITORY_INCONSISTENT")
+        )
+        XCTAssertTrue(
+            corruptInnerBranch.contains("retryable: false") &&
+                (corruptInnerBranch.contains("CreationStudioStateDetachedResolutionFailed") ||
+                    corruptInnerBranch.contains("CreationStudioStateSyncFailed") ||
+                    corruptInnerBranch.contains("CreationStudioEventRepositoryInconsistent")),
+            "Malformed or divergent inner Studio data must enter a terminal non-retryable inconsistency state."
+        )
+        XCTAssertFalse(
+            corruptInnerBranch.contains("outcome: .unknown") ||
+                corruptInnerBranch.contains("CreationStudioEventOutcomeUnknown"),
+            "Repository corruption is not an unresolved transport outcome and must never recreate DetachedCommitting."
+        )
+    }
+
+    func testDetachedPendingStudioRestoreRetainsBindingProjectsPendingAndTriggersImmediateSync() throws {
+        let studio = try readProjectFile(
+            "iosApp/src/Views/Invitations/EventCreationStudioView.swift"
+        )
+        let restore = sourceSlice(
+            studio,
+            from: "private func restorePersistedSync() async",
+            to: "func cancelSyncObservation()"
+        )
+        let pendingProjection = sourceSlice(
+            studio,
+            from: "var isPendingSync: Bool",
+            to: "var primaryActionAvailable: Bool"
+        )
+
+        XCTAssertTrue(
+            restore.contains("CreationStudioStateDetachedPendingSync"),
+            "A detached local PENDING_SYNC receipt must restore as DETACHED_PENDING_SYNC, not as attached terminal commit."
+        )
+        XCTAssertTrue(
+            restore.contains("binding:") || restore.contains("syncBinding:"),
+            "Detached restoration must retain the exact durable binding that owns retries and ACK correlation."
+        )
+        XCTAssertTrue(
+            pendingProjection.contains("CreationStudioStateDetachedPendingSync"),
+            "DETACHED_PENDING_SYNC must remain visible through isPendingSync."
+        )
+        XCTAssertTrue(
+            restore.contains("observeSync(binding)") ||
+                restore.contains("triggerSyncImmediately(binding)") ||
+                restore.contains("syncOwner.retry(binding: binding)"),
+            "Restoring the detached receipt must immediately and idempotently trigger its typed sync subject."
+        )
+    }
+
+    func testPendingStudioBindingCorruptionBecomesTerminalRepositoryInconsistentUnknown() throws {
+        let studio = try readProjectFile(
+            "iosApp/src/Views/Invitations/EventCreationStudioView.swift"
+        )
+        let execute = sourceSlice(
+            studio,
+            from: "private func executeCommit() async",
+            to: "private func beginResolutionAttempt"
+        )
+        let pendingBindingLoad = sourceSlice(
+            execute,
+            from: "if committed.pendingSync {",
+            to: "return studioState is"
+        )
+        let retryBindingLoad = sourceSlice(
+            studio,
+            from: "else if let failed = studioState as? CreationStudioStateSyncFailed",
+            to: "} else if let detached = studioState as? CreationStudioStateDetachedCommitting"
+        )
+        let resultConsumption = sourceSlice(
+            studio,
+            from: "private func consumeSyncResult",
+            to: "private func consumeSyncFailure"
+        )
+
+        XCTAssertFalse(
+            pendingBindingLoad.contains("else { return false }"),
+            "A committed PendingSync with a missing/malformed binding cannot silently return and remain pending."
+        )
+        XCTAssertTrue(
+            pendingBindingLoad.contains("repositoryInconsistent") ||
+                (pendingBindingLoad.contains("commitOutcomeUnknown") &&
+                    pendingBindingLoad.contains("retryable: false")),
+            "The first failed binding load must project terminal REPOSITORY_INCONSISTENT / UNKNOWN."
+        )
+        XCTAssertFalse(
+            retryBindingLoad.contains("else { return }"),
+            "Retry must not silently abandon a missing or corrupt durable binding."
+        )
+        XCTAssertTrue(
+            retryBindingLoad.contains("repositoryInconsistent") ||
+                (retryBindingLoad.contains("commitOutcomeUnknown") &&
+                    retryBindingLoad.contains("retryable: false")),
+            "A retry-time binding failure must become the same terminal inconsistency."
+        )
+        XCTAssertTrue(
+            resultConsumption.contains("failed.code") &&
+                resultConsumption.contains("failed.commitOutcome"),
+            "DetachedPendingSync must preserve the typed REPOSITORY_INCONSISTENT and UNKNOWN proof returned by KMP."
+        )
+    }
+
+    func testStudioEnvelopeAndPendingSubjectFingerprintExpectedResultingArtworkForKeepExisting() throws {
+        let shared = try readProjectFile(
+            "shared/src/commonMain/kotlin/com/guyghost/wakeve/invitationexperience/InvitationExperiencePublicContracts.kt"
+        )
+        let studio = try readProjectFile(
+            "iosApp/src/Views/Invitations/EventCreationStudioView.swift"
+        )
+        let envelope = sourceSlice(
+            shared,
+            from: "data class StudioCommitEnvelope(",
+            to: "data class StudioPendingSyncSubject("
+        )
+        let pendingSubject = sourceSlice(
+            shared,
+            from: "data class StudioPendingSyncSubject(",
+            to: "enum class StudioSyncOutcome"
+        )
+        let commandConstruction = sourceSlice(
+            studio,
+            from: "private func makeCommitCommand",
+            to: "private func executeCommit"
+        )
+
+        XCTAssertTrue(
+            envelope.contains("expectedResultingArtwork") &&
+                pendingSubject.contains("expectedResultingArtwork"),
+            "The KEEP_EXISTING snapshot result must be repeated in the fingerprinted envelope and pending subject."
+        )
+        XCTAssertTrue(
+            commandConstruction.contains("expectedResultingArtwork") &&
+                (commandConstruction.contains("existingArtwork") ||
+                    commandConstruction.contains("resolvedArtwork")),
+            "Swift must bind KEEP_EXISTING to the resolved pre-commit artwork snapshot, not a later mutable aggregate."
+        )
+    }
+
     func testNewSurfacesUseTypedOwnersAndNoConstructionPlaceholder() {
         let combined = surfacePaths.map(readProjectFileIfPresent).joined(separator: "\n")
 

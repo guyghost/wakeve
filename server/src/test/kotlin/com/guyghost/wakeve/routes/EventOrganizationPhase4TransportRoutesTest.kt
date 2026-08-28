@@ -14,6 +14,7 @@ import com.guyghost.wakeve.models.TimeOfDay
 import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.module
 import com.guyghost.wakeve.repository.DatabaseEventRepository
+import com.guyghost.wakeve.repository.TimeSlotStorageIdentity
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
@@ -694,7 +695,7 @@ class EventOrganizationPhase4TransportRoutesTest {
         database.confirmedDateQueries.insertConfirmedDate(
             id = "confirmed-$suffix",
             eventId = eventId,
-            timeslotId = slotId,
+            timeslotId = TimeSlotStorageIdentity.physicalId(eventId, slotId),
             confirmedByOrganizerId = organizerId,
             confirmedAt = now,
             updatedAt = now

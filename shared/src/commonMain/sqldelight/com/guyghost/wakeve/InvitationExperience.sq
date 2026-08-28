@@ -271,6 +271,10 @@ CREATE TABLE event_operation_receipt (
     action TEXT NOT NULL,
     aggregate_revision INTEGER NOT NULL,
     request_fingerprint TEXT NOT NULL DEFAULT '',
+    durable_operation_ref TEXT NOT NULL DEFAULT '',
+    commit_envelope TEXT NOT NULL DEFAULT '',
+    server_receipt_id TEXT,
+    server_ack_payload TEXT,
     status TEXT NOT NULL,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
@@ -429,9 +433,45 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 insertEventOperationReceipt:
 INSERT INTO event_operation_receipt(
     operation_id, event_id, actor_id, action, aggregate_revision,
-    request_fingerprint, status, created_at, updated_at
+    request_fingerprint, durable_operation_ref, commit_envelope, server_receipt_id,
+    status, created_at, updated_at
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+acknowledgeStudioOperationReceipt:
+UPDATE event_operation_receipt
+SET status = 'COMMITTED', server_receipt_id = ?, updated_at = ?
+WHERE operation_id = ?
+  AND event_id = ?
+  AND aggregate_revision = ?
+  AND durable_operation_ref = ?
+  AND request_fingerprint = ?
+  AND status = 'PENDING_SYNC'
+  AND server_receipt_id IS NULL;
+
+finalizeStudioServerOperationReceipt:
+UPDATE event_operation_receipt
+SET status = 'COMMITTED', server_receipt_id = :server_receipt_id,
+    server_ack_payload = :server_ack_payload, updated_at = :updated_at
+WHERE operation_id = :operation_id
+  AND event_id = :event_id
+  AND aggregate_revision = :aggregate_revision
+  AND durable_operation_ref = :durable_operation_ref
+  AND request_fingerprint = :request_fingerprint
+  AND status = 'PENDING_SYNC'
+  AND server_receipt_id IS NULL
+  AND server_ack_payload IS NULL;
+
+markStudioOperationReceiptTerminalFailure:
+UPDATE event_operation_receipt
+SET status = 'TERMINAL_FAILURE', updated_at = :updated_at
+WHERE operation_id = :operation_id
+  AND event_id = :event_id
+  AND aggregate_revision = :aggregate_revision
+  AND durable_operation_ref = :durable_operation_ref
+  AND request_fingerprint = :request_fingerprint
+  AND status = 'PENDING_SYNC'
+  AND server_receipt_id IS NULL;
 
 selectDirectInviteBatch:
 SELECT * FROM direct_invite_batch WHERE batch_id = ?;

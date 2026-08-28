@@ -186,8 +186,8 @@ struct CreateEventSheet: View {
                 expectedParticipants: expectedParticipants,
                 planningMode: planningMode,
                 matrixScenarioCount: scenarioMatrixPreviewCount,
+                isCreationInFlight: viewModel.isCreationInFlight,
                 onNext: {
-                    showingPreview = false
                     createEvent()
                 }
             )
@@ -1179,7 +1179,9 @@ struct CreateEventSheet: View {
             WakeveActionButton(
                 String(localized: "events.create_event_button"),
                 systemImage: "checkmark",
-                variant: .eventNext
+                variant: .eventNext,
+                isDisabled: viewModel.isCreating,
+                isLoading: viewModel.isCreating
             ) {
                 if canCreate {
                     showValidationError = false
@@ -1192,6 +1194,7 @@ struct CreateEventSheet: View {
                     }
                 }
             }
+            .disabled(viewModel.isCreating)
 
             if showValidationError, let msg = validationMessage {
                 Text(msg)
@@ -1284,6 +1287,7 @@ struct CreateEventSheet: View {
     }
     
     private var canCreate: Bool {
+        !viewModel.isCreationInFlight &&
         hasRequiredEventText &&
         (planningMode == .timeSlotPoll || selectedLocation != nil)
     }
@@ -1606,7 +1610,8 @@ struct CreateEventSheet: View {
     }
     
     private func createEvent() {
-        guard canCreate else {
+        guard !viewModel.isCreating else { return }
+        guard !viewModel.isCreationInFlight, canCreate else {
             showValidationError = true
             validationMessage = validationMessageForCurrentStep
             return
@@ -1621,6 +1626,7 @@ struct CreateEventSheet: View {
                     preparedChecklist: preparedCreationChecklist
                 )
             )
+            dismiss()
         }
         viewModel.createEvent(
             title: title,
@@ -1632,7 +1638,6 @@ struct CreateEventSheet: View {
             planningMode: planningMode
         )
 
-        dismiss()
     }
 
 }
@@ -2142,6 +2147,7 @@ private struct EventPreviewSheet: View {
     var expectedParticipants: Int? = nil
     var planningMode: EventPlanningMode = .timeSlotPoll
     var matrixScenarioCount: Int = 0
+    let isCreationInFlight: Bool
     var onNext: () -> Void = {}
 
     @State private var mapPosition: MapCameraPosition = .automatic
@@ -2276,7 +2282,14 @@ private struct EventPreviewSheet: View {
                     Spacer()
 
                     Button(action: onNext) {
-                        Text(String(localized: "events.create_event_button"))
+                        Group {
+                            if isCreationInFlight {
+                                ProgressView()
+                                    .tint(Color(hex: "1A1A3E"))
+                            } else {
+                                Text(String(localized: "events.create_event_button"))
+                            }
+                        }
                             .font(WakeveTheme.Typography.bodySemibold)
                             .foregroundColor(Color(hex: "1A1A3E"))
                             .padding(.horizontal, 20)
@@ -2284,6 +2297,7 @@ private struct EventPreviewSheet: View {
                             .background(Color(hex: "F5F0E8"))
                             .cornerRadius(20)
                     }
+                    .disabled(isCreationInFlight)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 60)

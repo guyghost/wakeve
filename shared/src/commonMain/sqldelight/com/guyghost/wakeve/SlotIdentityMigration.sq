@@ -1,0 +1,12 @@
+CREATE TABLE slotIdentityMigration (
+    migrationVersion INTEGER PRIMARY KEY NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('MIGRATION_COMPLETE')),
+    completedAt TEXT NOT NULL
+);
+
+selectStatus:
+SELECT status FROM slotIdentityMigration WHERE migrationVersion = ?;
+
+markComplete:
+INSERT OR REPLACE INTO slotIdentityMigration(migrationVersion, status, completedAt)
+VALUES (?, 'MIGRATION_COMPLETE', ?);

@@ -12,6 +12,7 @@ import com.guyghost.wakeve.models.TimeOfDay
 import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.presentation.state.EventManagementContract
 import com.guyghost.wakeve.repository.DatabaseEventRepository
+import com.guyghost.wakeve.repository.TimeSlotStorageIdentity
 import com.guyghost.wakeve.repository.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -181,7 +182,7 @@ class ConfirmationEnvelopeSyncManagerRedTest {
         database.voteQueries.insertVote(
             id = "vote-$EVENT_ID-$SLOT_ID",
             eventId = EVENT_ID,
-            timeslotId = SLOT_ID,
+            timeslotId = TimeSlotStorageIdentity.physicalId(EVENT_ID, SLOT_ID),
             participantId = "org_$EVENT_ID",
             vote = "YES",
             createdAt = TIMESTAMP,

@@ -1,5 +1,6 @@
 package com.guyghost.wakeve
 
+import com.guyghost.wakeve.confirmation.ConfirmationClock
 import com.guyghost.wakeve.repository.DatabaseEventRepository
 import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.Event
@@ -7,6 +8,7 @@ import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.models.Vote
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.Instant
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -32,7 +34,10 @@ class OfflineScenarioTest {
     fun setup() {
         // Create a fresh database for each test
         db = createFreshTestDatabase()
-        repository = DatabaseEventRepository(db)
+        repository = DatabaseEventRepository(
+            db,
+            ConfirmationClock { Instant.parse("2025-11-20T10:00:00Z") }
+        )
     }
 
     @Test

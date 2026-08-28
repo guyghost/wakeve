@@ -6,9 +6,18 @@ import com.guyghost.wakeve.models.EventPlanningMode
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.EventType
 import com.guyghost.wakeve.models.TimeSlot
-import com.guyghost.wakeve.util.sha256Hash
+import com.guyghost.wakeve.poll.PollBallotContract
+import com.guyghost.wakeve.repository.TimeSlotStorageIdentity
+import com.guyghost.wakeve.sync.SyncManager
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.buildJsonArray
 
 enum class LibraryProjection {
     DRAFTS,
@@ -70,6 +79,8 @@ enum class InvitationExperienceError {
     REMOTE_ARTWORK_UNAVAILABLE,
     PROVIDER_UNAVAILABLE,
     SERVER_UNAVAILABLE,
+    COMMIT_OUTCOME_UNKNOWN,
+    RESOLUTION_OUTCOME_UNKNOWN,
     PERMANENT_FAILURE
 }
 
@@ -233,15 +244,20 @@ class EventLibraryProjector {
     }
 }
 
+@Serializable
 sealed interface Artwork {
+    @Serializable
     data object None : Artwork
+    @Serializable
     data class Structured(
         val version: Int,
         val ref: ArtworkRef
     ) : Artwork
+    @Serializable
     data class LegacyRemote(val validatedHttpsUrl: String) : Artwork
 }
 
+@Serializable
 data class ArtworkRef(
     val source: ArtworkSource,
     val alt: ArtworkAlt,
@@ -249,8 +265,11 @@ data class ArtworkRef(
     val crop: ArtworkCrop
 )
 
+@Serializable
 sealed interface ArtworkSource {
+    @Serializable
     data class Preset(val presetId: String) : ArtworkSource
+    @Serializable
     data class ServerAsset(
         val assetId: String,
         val canonicalHttpsUrl: String,
@@ -258,13 +277,18 @@ sealed interface ArtworkSource {
     ) : ArtworkSource
 }
 
+@Serializable
 sealed interface ArtworkAlt {
+    @Serializable
     data object Decorative : ArtworkAlt
+    @Serializable
     data class Informative(val localizedText: String) : ArtworkAlt
 }
 
+@Serializable
 data class ArtworkFocalPoint(val x: Double, val y: Double)
 
+@Serializable
 enum class ArtworkCrop {
     FILL,
     FIT
@@ -572,6 +596,200 @@ data class CreationDraft(
     val artworkChoice: ArtworkChoice
 )
 
+/** One immutable identity owns a Studio commit from confirmation through server ACK. */
+@Serializable
+data class StudioCommitIdentity(
+    val operationId: String,
+    val draftRevision: Long
+)
+
+@Serializable
+sealed interface StudioCommitSubject {
+    val eventId: String
+
+    @Serializable
+    data class New(override val eventId: String) : StudioCommitSubject
+
+    @Serializable
+    data class EditExisting(
+        override val eventId: String,
+        val baseRevision: Long
+    ) : StudioCommitSubject
+}
+
+@Serializable
+data class StudioCommitRequestPayload(
+    val schemaVersion: Int = 1,
+    val subject: StudioCommitSubject,
+    val actorId: String,
+    val draftRevision: Long,
+    val canonicalDraftJson: String,
+    val expectedResultingArtwork: Artwork
+)
+
+@Serializable
+data class StudioCommitEnvelope(
+    val identity: StudioCommitIdentity,
+    val requestPayload: StudioCommitRequestPayload,
+    val durableOperationRef: String,
+    val requestFingerprint: String,
+    val maxResolutionAttempts: Int = MAX_RESOLUTION_ATTEMPTS,
+    val expectedResultingArtwork: Artwork
+)
+
+@Serializable
+data class StudioPendingSyncSubject(
+    val schemaVersion: Int = 1,
+    val eventId: String,
+    val committedRevision: Long,
+    val localReceiptId: String,
+    val envelope: StudioCommitEnvelope,
+    val expectedResultingArtwork: Artwork = envelope.expectedResultingArtwork
+)
+
+@Serializable
+enum class StudioSyncOutcome { APPLIED, ALREADY_APPLIED }
+
+@Serializable
+enum class StudioCommitDisposition { CREATED, UPDATED }
+
+@Serializable
+data class StudioSyncAck(
+    val localReceiptId: String,
+    val serverReceiptId: String,
+    val eventId: String,
+    val committedRevision: Long,
+    val durableOperationRef: String,
+    val requestFingerprint: String,
+    val outcome: StudioSyncOutcome,
+    val disposition: StudioCommitDisposition,
+    val artwork: Artwork
+)
+
+@Serializable
+private data class StudioCanonicalSlot(
+    val id: String,
+    val start: String?,
+    val end: String?,
+    val timezone: String,
+    val timeOfDay: String
+)
+
+@Serializable
+private data class StudioCanonicalDraft(
+    val title: String,
+    val description: String,
+    val deadline: String,
+    val eventType: String,
+    val eventTypeCustom: String?,
+    val minParticipants: Int?,
+    val maxParticipants: Int?,
+    val expectedParticipants: Int?,
+    val planningMode: String,
+    val slots: List<StudioCanonicalSlot>,
+    val artwork: Artwork
+)
+
+/** Pure KMP owner for the canonical request identity consumed by Swift and persistence. */
+object StudioCommitEnvelopeFactory {
+    private val canonicalJson = Json { encodeDefaults = true }
+
+    fun build(command: UpdateDraftAggregateCommand): StudioCommitEnvelope {
+        val payload = StudioCommitRequestPayload(
+            subject = if (command.expectedBaseRevision == 0L) {
+                StudioCommitSubject.New(command.eventId)
+            } else {
+                StudioCommitSubject.EditExisting(command.eventId, command.expectedBaseRevision)
+            },
+            actorId = command.actorId,
+            draftRevision = command.draftRevision,
+            expectedResultingArtwork = command.expectedResultingArtwork,
+            canonicalDraftJson = canonicalJson.encodeToString(
+                StudioCanonicalDraft(
+                    title = command.eventDraft.title,
+                    description = command.eventDraft.description,
+                    deadline = command.eventDraft.deadline,
+                    eventType = command.eventDraft.eventType.name,
+                    eventTypeCustom = command.eventDraft.eventTypeCustom,
+                    minParticipants = command.eventDraft.minParticipants,
+                    maxParticipants = command.eventDraft.maxParticipants,
+                    expectedParticipants = command.eventDraft.expectedParticipants,
+                    planningMode = command.eventDraft.planningMode.name,
+                    slots = command.eventDraft.proposedSlots.map { slot ->
+                        StudioCanonicalSlot(
+                            slot.id, slot.start, slot.end, slot.timezone, slot.timeOfDay.name
+                        )
+                    },
+                    artwork = command.artwork
+                )
+            )
+        )
+        return build(
+            identity = StudioCommitIdentity(command.operationId, command.draftRevision),
+            requestPayload = payload,
+            maxResolutionAttempts = MAX_RESOLUTION_ATTEMPTS
+        )
+    }
+
+    fun build(
+        identity: StudioCommitIdentity,
+        requestPayload: StudioCommitRequestPayload,
+        maxResolutionAttempts: Int
+    ): StudioCommitEnvelope {
+        val requestFingerprint = requestFingerprint(requestPayload)
+        return StudioCommitEnvelope(
+            identity = identity,
+            requestPayload = requestPayload,
+            durableOperationRef = "studio-operation:v1:${identity.operationId.encodeUtf8Hex()}:$requestFingerprint",
+            requestFingerprint = requestFingerprint,
+            maxResolutionAttempts = maxResolutionAttempts,
+            expectedResultingArtwork = requestPayload.expectedResultingArtwork
+        )
+    }
+
+    fun isValid(envelope: StudioCommitEnvelope): Boolean =
+        envelope.identity.operationId.isNotBlank() &&
+            envelope.identity.draftRevision in 0L..MAX_SAFE_INTEGER &&
+            envelope.requestPayload.schemaVersion == 1 &&
+            envelope.requestPayload.subject.eventId.isNotBlank() &&
+            envelope.requestPayload.actorId.isNotBlank() &&
+            envelope.requestPayload.draftRevision == envelope.identity.draftRevision &&
+            envelope.requestPayload.canonicalDraftJson.isNotBlank() &&
+            envelope.expectedResultingArtwork == envelope.requestPayload.expectedResultingArtwork &&
+            canonicalArtwork(envelope.requestPayload.canonicalDraftJson) ==
+                envelope.expectedResultingArtwork &&
+            envelope.maxResolutionAttempts > 0 &&
+            envelope.requestFingerprint == requestFingerprint(envelope.requestPayload) &&
+            envelope.durableOperationRef ==
+                "studio-operation:v1:${envelope.identity.operationId.encodeUtf8Hex()}:${envelope.requestFingerprint}"
+
+    private const val MAX_SAFE_INTEGER = 9_007_199_254_740_991L
+
+    private fun requestFingerprint(payload: StudioCommitRequestPayload): String {
+        val subject = payload.subject
+        val canonical = buildJsonArray {
+            add(payload.schemaVersion)
+            add(if (subject is StudioCommitSubject.New) "NEW" else "EDIT_EXISTING")
+            add(subject.eventId)
+            val edit = subject as? StudioCommitSubject.EditExisting
+            if (edit == null) add("NOT_APPLICABLE") else add(edit.baseRevision)
+            add(payload.actorId)
+            add(payload.draftRevision)
+            add(payload.canonicalDraftJson)
+            add(canonicalJson.encodeToString(Artwork.serializer(), payload.expectedResultingArtwork))
+        }.toString()
+        return "studio-request:v1:${canonical.encodeUtf8Hex()}"
+    }
+
+    private fun canonicalArtwork(canonicalDraftJson: String): Artwork? = runCatching {
+        canonicalJson.decodeFromString(StudioCanonicalDraft.serializer(), canonicalDraftJson).artwork
+    }.getOrNull()
+
+    private fun String.encodeUtf8Hex(): String = encodeToByteArray().joinToString("") { byte ->
+        byte.toUByte().toString(16).padStart(2, '0')
+    }
+}
+
 sealed interface PreviousStableStudioState {
     data class Idle(val mode: StudioMode) : PreviousStableStudioState
     data class Editing(
@@ -625,25 +843,90 @@ sealed interface CreationStudioState {
         val operationId: String,
         val mode: StudioMode,
         val draft: CreationDraft,
-        val artwork: Artwork
+        val artwork: Artwork,
+        val durableOperationRef: String,
+        val requestFingerprint: String,
+        val resolutionRetryBudget: Int,
+        val envelope: StudioCommitEnvelope? = null
+    ) : CreationStudioState
+    data class DetachedCommitting(
+        val operationId: String,
+        val mode: StudioMode,
+        val draft: CreationDraft,
+        val artwork: Artwork,
+        val durableOperationRef: String,
+        val requestFingerprint: String,
+        val resolutionRetryBudget: Int,
+        val resolutionAttempt: Int = 0,
+        val lastAttemptId: String? = null,
+        val lastFence: Int? = null,
+        val error: InvitationExperienceError? = null,
+        val envelope: StudioCommitEnvelope? = null
+    ) : CreationStudioState
+    data class DetachedResolving(
+        val operationId: String,
+        val mode: StudioMode,
+        val draft: CreationDraft,
+        val artwork: Artwork,
+        val durableOperationRef: String,
+        val requestFingerprint: String,
+        val resolutionRetryBudget: Int,
+        val resolutionAttempt: Int,
+        val attemptId: String,
+        val fence: Int,
+        val error: InvitationExperienceError = InvitationExperienceError.COMMIT_OUTCOME_UNKNOWN,
+        val envelope: StudioCommitEnvelope? = null
+    ) : CreationStudioState
+    data class DetachedCommitted(
+        val eventId: String,
+        val committedRevision: Long,
+        val operationId: String,
+        val pendingSync: Boolean,
+        val envelope: StudioCommitEnvelope? = null
+    ) : CreationStudioState
+    data class DetachedResolutionFailed(
+        val operationId: String,
+        val error: InvitationExperienceError = InvitationExperienceError.RESOLUTION_OUTCOME_UNKNOWN,
+        val durableOperationRef: String,
+        val requestFingerprint: String,
+        val resolutionRetryBudget: Int,
+        val attemptId: String? = null,
+        val fence: Int? = null,
+        val envelope: StudioCommitEnvelope? = null
     ) : CreationStudioState
     data class PendingSync(
         val eventId: String,
         val committedRevision: Long,
-        val operationId: String
+        val operationId: String,
+        val envelope: StudioCommitEnvelope? = null
+    ) : CreationStudioState
+    data class DetachedPendingSync(
+        val eventId: String,
+        val committedRevision: Long,
+        val operationId: String,
+        val binding: CreationStudioSyncBinding,
+        val envelope: StudioCommitEnvelope
     ) : CreationStudioState
     data class FailedBeforeCommit(
         val error: InvitationExperienceError,
         val mode: StudioMode,
         val draft: CreationDraft,
         val operationId: String? = null,
-        val artwork: Artwork? = null
+        val artwork: Artwork? = null,
+        val durableOperationRef: String? = null,
+        val requestFingerprint: String? = null,
+        val resolutionRetryBudget: Int = MAX_RESOLUTION_ATTEMPTS,
+        val envelope: StudioCommitEnvelope? = null
     ) : CreationStudioState
     data class SyncFailed(
         val eventId: String,
         val committedRevision: Long,
         val operationId: String,
-        val error: InvitationExperienceError
+        val error: InvitationExperienceError,
+        val retryable: Boolean = true,
+        val code: PollBallotContract.FailureCode? = null,
+        val commitOutcome: PollBallotContract.CommitOutcome? = null,
+        val envelope: StudioCommitEnvelope? = null
     ) : CreationStudioState
     data class Completed(
         val eventId: String,
@@ -679,7 +962,11 @@ sealed interface CreationStudioEvent {
     data class OpenPreview(val expectedDraftRevision: Long) : CreationStudioEvent
     data class ConfirmCommit(
         val expectedDraftRevision: Long,
-        val operationId: String
+        val operationId: String,
+        val durableOperationRef: String = "studio-operation:$operationId",
+        val requestFingerprint: String = "studio-request:$operationId:$expectedDraftRevision",
+        val resolutionRetryBudget: Int = MAX_RESOLUTION_ATTEMPTS,
+        val envelope: StudioCommitEnvelope? = null
     ) : CreationStudioEvent
     data class LocalCommit(
         val eventId: String,
@@ -693,11 +980,49 @@ sealed interface CreationStudioEvent {
         val operationId: String,
         val error: InvitationExperienceError
     ) : CreationStudioEvent
+    data class OutcomeUnknown(
+        val draftRevision: Long,
+        val operationId: String,
+        val retryable: Boolean = true
+    ) : CreationStudioEvent
+    data class RetryResolution(
+        val draftRevision: Long,
+        val operationId: String,
+        val attemptId: String,
+        val fence: Int
+    ) : CreationStudioEvent
+    data class ResolutionResult(
+        val draftRevision: Long,
+        val operationId: String,
+        val outcome: StudioResolutionOutcome,
+        val eventId: String? = null,
+        val committedRevision: Long? = null,
+        val pendingSync: Boolean = true,
+        val attemptId: String,
+        val fence: Int
+    ) : CreationStudioEvent
+    data class RepositoryInconsistent(
+        val draftRevision: Long,
+        val operationId: String,
+        val attemptId: String,
+        val fence: Int,
+        val retryable: Boolean = false
+    ) : CreationStudioEvent
+    data class LateLocalCommit(
+        val eventId: String,
+        val draftRevision: Long,
+        val committedRevision: Long,
+        val operationId: String,
+        val pendingSync: Boolean
+    ) : CreationStudioEvent
     data class SyncFailed(
         val eventId: String,
         val committedRevision: Long,
         val operationId: String,
-        val error: InvitationExperienceError
+        val error: InvitationExperienceError,
+        val retryable: Boolean = true,
+        val code: PollBallotContract.FailureCode? = null,
+        val commitOutcome: PollBallotContract.CommitOutcome? = null
     ) : CreationStudioEvent
     data class SyncCompleted(
         val eventId: String,
@@ -713,6 +1038,14 @@ sealed interface CreationStudioEvent {
     data object CancelLoad : CreationStudioEvent
     data object Close : CreationStudioEvent
 }
+
+enum class StudioResolutionOutcome {
+    LOCAL_COMMITTED,
+    PROVEN_NOT_COMMITTED,
+    UNKNOWN
+}
+
+const val MAX_RESOLUTION_ATTEMPTS: Int = 3
 
 class CreationStudioStateMachine {
     fun transition(
@@ -732,13 +1065,18 @@ class CreationStudioStateMachine {
             is CreationStudioEvent.ConfirmCommit -> confirmCommit(state, event)
             is CreationStudioEvent.LocalCommit -> localCommit(state, event)
             is CreationStudioEvent.FailBeforeLocalCommit -> failBeforeCommit(state, event)
+            is CreationStudioEvent.OutcomeUnknown -> outcomeUnknown(state, event)
+            is CreationStudioEvent.RetryResolution -> retryResolution(state, event)
+            is CreationStudioEvent.ResolutionResult -> resolutionResult(state, event)
+            is CreationStudioEvent.RepositoryInconsistent -> repositoryInconsistent(state, event)
+            is CreationStudioEvent.LateLocalCommit -> lateLocalCommit(state, event)
             is CreationStudioEvent.SyncFailed -> syncFailed(state, event)
             is CreationStudioEvent.SyncCompleted -> syncCompleted(state, event)
             is CreationStudioEvent.RetryBeforeCommit -> retryBeforeCommit(state, event)
             is CreationStudioEvent.RetrySync -> retrySync(state, event)
             is CreationStudioEvent.ExistingLoaded -> existingLoaded(state, event)
             CreationStudioEvent.CancelLoad -> cancelLoad(state)
-            CreationStudioEvent.Close -> CreationStudioState.Closed
+            CreationStudioEvent.Close -> close(state)
             is CreationStudioEvent.LoadExisting -> state
         }
     }
@@ -830,12 +1168,27 @@ class CreationStudioStateMachine {
     ): CreationStudioState {
         val previewing = state as? CreationStudioState.Previewing ?: return state
         if (event.expectedDraftRevision != previewing.draft.draftRevision) return state
-        if (event.operationId.isBlank()) return state
+        if (event.operationId.isBlank() ||
+            event.durableOperationRef.isBlank() ||
+            event.requestFingerprint.isBlank() ||
+            event.resolutionRetryBudget <= 0 ||
+            (event.envelope != null &&
+                (!StudioCommitEnvelopeFactory.isValid(event.envelope) ||
+                    event.envelope.identity.operationId != event.operationId ||
+                    event.envelope.identity.draftRevision != event.expectedDraftRevision ||
+                    event.envelope.durableOperationRef != event.durableOperationRef ||
+                    event.envelope.requestFingerprint != event.requestFingerprint ||
+                    event.envelope.maxResolutionAttempts != event.resolutionRetryBudget))
+        ) return state
         return CreationStudioState.Committing(
             operationId = event.operationId,
             mode = previewing.mode,
             draft = previewing.draft,
-            artwork = previewing.artwork
+            artwork = previewing.artwork,
+            durableOperationRef = event.durableOperationRef,
+            requestFingerprint = event.requestFingerprint,
+            resolutionRetryBudget = event.resolutionRetryBudget,
+            envelope = event.envelope
         )
     }
 
@@ -843,7 +1196,12 @@ class CreationStudioStateMachine {
         state: CreationStudioState,
         event: CreationStudioEvent.LocalCommit
     ): CreationStudioState {
-        val committing = state as? CreationStudioState.Committing ?: return state
+        val committing = when (state) {
+            is CreationStudioState.Committing -> state
+            is CreationStudioState.DetachedCommitting -> return detachedCommit(state, event)
+            is CreationStudioState.DetachedResolving -> return detachedCommit(state, event)
+            else -> return state
+        }
         if (
             event.draftRevision != committing.draft.draftRevision ||
             event.operationId != committing.operationId ||
@@ -856,12 +1214,307 @@ class CreationStudioStateMachine {
             CreationStudioState.PendingSync(
                 eventId = event.eventId,
                 committedRevision = event.committedRevision,
-                operationId = event.operationId
+                operationId = event.operationId,
+                envelope = committing.envelope
             )
         } else {
             CreationStudioState.Completed(event.eventId, event.committedRevision)
         }
     }
+
+    private fun detachedCommit(
+        state: CreationStudioState,
+        event: CreationStudioEvent.LocalCommit
+    ): CreationStudioState {
+        val envelope = when (state) {
+            is CreationStudioState.DetachedCommitting -> DetachedEnvelope(
+                state.operationId, state.mode, state.draft, state.artwork,
+                state.durableOperationRef, state.requestFingerprint, state.resolutionRetryBudget,
+                state.envelope
+            )
+            is CreationStudioState.DetachedResolving -> DetachedEnvelope(
+                state.operationId, state.mode, state.draft, state.artwork,
+                state.durableOperationRef, state.requestFingerprint, state.resolutionRetryBudget,
+                state.envelope
+            )
+            else -> return state
+        }
+        if (event.draftRevision != envelope.draft.draftRevision ||
+            event.operationId != envelope.operationId ||
+            event.eventId.isBlank() ||
+            event.committedRevision < 1 ||
+            (envelope.mode is StudioMode.EditExisting && envelope.mode.eventId != event.eventId)
+        ) return state
+        val durableEnvelope = envelope.durableEnvelope
+        return if (event.pendingSync) {
+            if (durableEnvelope != null) {
+                CreationStudioState.DetachedPendingSync(
+                    eventId = event.eventId,
+                    committedRevision = event.committedRevision,
+                    operationId = event.operationId,
+                    binding = CreationStudioSyncBinding(
+                        eventId = event.eventId,
+                        aggregateRevision = event.committedRevision,
+                        operationId = event.operationId,
+                        durableOperationRef = durableEnvelope.durableOperationRef,
+                        requestFingerprint = durableEnvelope.requestFingerprint
+                    ),
+                    envelope = durableEnvelope
+                )
+            } else {
+                CreationStudioState.DetachedResolutionFailed(
+                    operationId = event.operationId,
+                    error = InvitationExperienceError.COMMIT_OUTCOME_UNKNOWN,
+                    durableOperationRef = envelope.durableOperationRef,
+                    requestFingerprint = envelope.requestFingerprint,
+                    resolutionRetryBudget = envelope.resolutionRetryBudget
+                )
+            }
+        } else {
+            CreationStudioState.DetachedCommitted(
+                eventId = event.eventId,
+                committedRevision = event.committedRevision,
+                operationId = event.operationId,
+                pendingSync = event.pendingSync,
+                envelope = durableEnvelope
+            )
+        }
+    }
+
+    private fun outcomeUnknown(
+        state: CreationStudioState,
+        event: CreationStudioEvent.OutcomeUnknown
+    ): CreationStudioState {
+        val envelope = when (state) {
+            is CreationStudioState.Committing -> DetachedEnvelope(
+                state.operationId, state.mode, state.draft, state.artwork,
+                state.durableOperationRef, state.requestFingerprint, state.resolutionRetryBudget,
+                state.envelope
+            )
+            is CreationStudioState.DetachedCommitting -> DetachedEnvelope(
+                state.operationId, state.mode, state.draft, state.artwork,
+                state.durableOperationRef, state.requestFingerprint, state.resolutionRetryBudget,
+                state.envelope
+            )
+            else -> return state
+        }
+        if (event.draftRevision != envelope.draft.draftRevision ||
+            event.operationId != envelope.operationId
+        ) return state
+        if (!event.retryable) {
+            return CreationStudioState.DetachedResolutionFailed(
+                operationId = envelope.operationId,
+                error = InvitationExperienceError.COMMIT_OUTCOME_UNKNOWN,
+                durableOperationRef = envelope.durableOperationRef,
+                requestFingerprint = envelope.requestFingerprint,
+                resolutionRetryBudget = envelope.resolutionRetryBudget,
+                envelope = envelope.durableEnvelope
+            )
+        }
+        return CreationStudioState.DetachedCommitting(
+            operationId = envelope.operationId,
+            mode = envelope.mode,
+            draft = envelope.draft,
+            artwork = envelope.artwork,
+            durableOperationRef = envelope.durableOperationRef,
+            requestFingerprint = envelope.requestFingerprint,
+            resolutionRetryBudget = envelope.resolutionRetryBudget,
+            error = InvitationExperienceError.COMMIT_OUTCOME_UNKNOWN,
+            envelope = envelope.durableEnvelope
+        )
+    }
+
+    private fun retryResolution(
+        state: CreationStudioState,
+        event: CreationStudioEvent.RetryResolution
+    ): CreationStudioState {
+        val detached = state as? CreationStudioState.DetachedCommitting ?: return state
+        if (event.draftRevision != detached.draft.draftRevision ||
+            event.operationId != detached.operationId ||
+            event.attemptId.isBlank() ||
+            event.fence != detached.resolutionAttempt + 1 ||
+            event.attemptId == detached.lastAttemptId ||
+            detached.resolutionAttempt >= detached.resolutionRetryBudget
+        ) return state
+        return CreationStudioState.DetachedResolving(
+            operationId = detached.operationId,
+            mode = detached.mode,
+            draft = detached.draft,
+            artwork = detached.artwork,
+            durableOperationRef = detached.durableOperationRef,
+            requestFingerprint = detached.requestFingerprint,
+            resolutionRetryBudget = detached.resolutionRetryBudget,
+            resolutionAttempt = event.fence,
+            attemptId = event.attemptId,
+            fence = event.fence,
+            error = detached.error ?: InvitationExperienceError.COMMIT_OUTCOME_UNKNOWN,
+            envelope = detached.envelope
+        )
+    }
+
+    private fun resolutionResult(
+        state: CreationStudioState,
+        event: CreationStudioEvent.ResolutionResult
+    ): CreationStudioState {
+        val resolving = state as? CreationStudioState.DetachedResolving ?: return state
+        if (event.draftRevision != resolving.draft.draftRevision ||
+            event.operationId != resolving.operationId ||
+            event.attemptId != resolving.attemptId ||
+            event.fence != resolving.fence
+        ) return state
+        return when (event.outcome) {
+            StudioResolutionOutcome.LOCAL_COMMITTED -> {
+                val eventId = event.eventId ?: return state
+                val revision = event.committedRevision ?: return state
+                if (eventId.isBlank() || revision < 1) return state
+                val durableEnvelope = resolving.envelope
+                if (event.pendingSync) {
+                    if (durableEnvelope != null) {
+                        CreationStudioState.DetachedPendingSync(
+                            eventId = eventId,
+                            committedRevision = revision,
+                            operationId = event.operationId,
+                            binding = CreationStudioSyncBinding(
+                                eventId = eventId,
+                                aggregateRevision = revision,
+                                operationId = event.operationId,
+                                durableOperationRef = durableEnvelope.durableOperationRef,
+                                requestFingerprint = durableEnvelope.requestFingerprint
+                            ),
+                            envelope = durableEnvelope
+                        )
+                    } else {
+                        CreationStudioState.DetachedResolutionFailed(
+                            operationId = event.operationId,
+                            error = InvitationExperienceError.COMMIT_OUTCOME_UNKNOWN,
+                            durableOperationRef = resolving.durableOperationRef,
+                            requestFingerprint = resolving.requestFingerprint,
+                            resolutionRetryBudget = resolving.resolutionRetryBudget,
+                            attemptId = resolving.attemptId,
+                            fence = resolving.fence
+                        )
+                    }
+                } else {
+                    CreationStudioState.DetachedCommitted(
+                        eventId, revision, event.operationId, event.pendingSync, durableEnvelope
+                    )
+                }
+            }
+            StudioResolutionOutcome.PROVEN_NOT_COMMITTED -> CreationStudioState.Closed
+            StudioResolutionOutcome.UNKNOWN -> if (
+                resolving.resolutionAttempt < resolving.resolutionRetryBudget
+            ) {
+                CreationStudioState.DetachedCommitting(
+                    operationId = resolving.operationId,
+                    mode = resolving.mode,
+                    draft = resolving.draft,
+                    artwork = resolving.artwork,
+                    durableOperationRef = resolving.durableOperationRef,
+                    requestFingerprint = resolving.requestFingerprint,
+                    resolutionRetryBudget = resolving.resolutionRetryBudget,
+                    resolutionAttempt = resolving.resolutionAttempt,
+                    lastAttemptId = resolving.attemptId,
+                    lastFence = resolving.fence,
+                    error = InvitationExperienceError.RESOLUTION_OUTCOME_UNKNOWN,
+                    envelope = resolving.envelope
+                )
+            } else {
+                CreationStudioState.DetachedResolutionFailed(
+                    operationId = event.operationId,
+                    error = InvitationExperienceError.RESOLUTION_OUTCOME_UNKNOWN,
+                    durableOperationRef = resolving.durableOperationRef,
+                    requestFingerprint = resolving.requestFingerprint,
+                    resolutionRetryBudget = resolving.resolutionRetryBudget,
+                    attemptId = resolving.attemptId,
+                    fence = resolving.fence,
+                    envelope = resolving.envelope
+                )
+            }
+        }
+    }
+
+    private fun repositoryInconsistent(
+        state: CreationStudioState,
+        event: CreationStudioEvent.RepositoryInconsistent
+    ): CreationStudioState {
+        val resolving = state as? CreationStudioState.DetachedResolving ?: return state
+        if (event.retryable ||
+            event.draftRevision != resolving.draft.draftRevision ||
+            event.operationId != resolving.operationId ||
+            event.attemptId != resolving.attemptId ||
+            event.fence != resolving.fence
+        ) return state
+        return CreationStudioState.DetachedResolutionFailed(
+            operationId = resolving.operationId,
+            error = InvitationExperienceError.COMMIT_OUTCOME_UNKNOWN,
+            durableOperationRef = resolving.durableOperationRef,
+            requestFingerprint = resolving.requestFingerprint,
+            resolutionRetryBudget = resolving.resolutionRetryBudget,
+            attemptId = resolving.attemptId,
+            fence = resolving.fence,
+            envelope = resolving.envelope
+        )
+    }
+
+    private fun lateLocalCommit(
+        state: CreationStudioState,
+        event: CreationStudioEvent.LateLocalCommit
+    ): CreationStudioState = localCommit(
+        state,
+        CreationStudioEvent.LocalCommit(
+            event.eventId,
+            event.draftRevision,
+            event.committedRevision,
+            event.operationId,
+            event.pendingSync
+        )
+    )
+
+    private fun close(state: CreationStudioState): CreationStudioState = when (state) {
+        is CreationStudioState.Committing -> CreationStudioState.DetachedCommitting(
+            state.operationId,
+            state.mode,
+            state.draft,
+            state.artwork,
+            state.durableOperationRef,
+            state.requestFingerprint,
+            state.resolutionRetryBudget,
+            envelope = state.envelope
+        )
+        is CreationStudioState.DetachedCommitting,
+        is CreationStudioState.DetachedResolving,
+        is CreationStudioState.DetachedCommitted,
+        is CreationStudioState.DetachedPendingSync,
+        is CreationStudioState.DetachedResolutionFailed -> state
+        is CreationStudioState.PendingSync -> {
+            val envelope = state.envelope ?: return state
+            CreationStudioState.DetachedPendingSync(
+                eventId = state.eventId,
+                committedRevision = state.committedRevision,
+                operationId = state.operationId,
+                binding = CreationStudioSyncBinding(
+                    eventId = state.eventId,
+                    aggregateRevision = state.committedRevision,
+                    operationId = state.operationId,
+                    durableOperationRef = envelope.durableOperationRef,
+                    requestFingerprint = envelope.requestFingerprint
+                ),
+                envelope = envelope
+            )
+        }
+        else -> state
+    }
+
+    private data class DetachedEnvelope(
+        val operationId: String,
+        val mode: StudioMode,
+        val draft: CreationDraft,
+        val artwork: Artwork,
+        val durableOperationRef: String,
+        val requestFingerprint: String,
+        val resolutionRetryBudget: Int,
+        val durableEnvelope: StudioCommitEnvelope?
+    )
 
     private fun failBeforeCommit(
         state: CreationStudioState,
@@ -877,7 +1530,11 @@ class CreationStudioStateMachine {
             mode = committing.mode,
             draft = committing.draft,
             operationId = committing.operationId,
-            artwork = committing.artwork
+            artwork = committing.artwork,
+            durableOperationRef = committing.durableOperationRef,
+            requestFingerprint = committing.requestFingerprint,
+            resolutionRetryBudget = committing.resolutionRetryBudget,
+            envelope = committing.envelope
         )
     }
 
@@ -885,7 +1542,18 @@ class CreationStudioStateMachine {
         state: CreationStudioState,
         event: CreationStudioEvent.SyncFailed
     ): CreationStudioState {
-        val pending = state as? CreationStudioState.PendingSync ?: return state
+        val pending = when (state) {
+            is CreationStudioState.PendingSync -> PendingStudioIdentity(
+                state.eventId, state.committedRevision, state.operationId, state.envelope
+            )
+            is CreationStudioState.DetachedPendingSync -> PendingStudioIdentity(
+                state.eventId, state.committedRevision, state.operationId, state.envelope
+            )
+            is CreationStudioState.SyncFailed -> PendingStudioIdentity(
+                state.eventId, state.committedRevision, state.operationId, state.envelope
+            )
+            else -> return state
+        }
         if (
             pending.eventId != event.eventId ||
             pending.committedRevision != event.committedRevision ||
@@ -895,7 +1563,11 @@ class CreationStudioStateMachine {
             eventId = event.eventId,
             committedRevision = event.committedRevision,
             operationId = event.operationId,
-            error = event.error
+            error = event.error,
+            retryable = event.retryable,
+            code = event.code,
+            commitOutcome = event.commitOutcome,
+            envelope = pending.envelope
         )
     }
 
@@ -909,6 +1581,10 @@ class CreationStudioStateMachine {
                     state.committedRevision == event.committedRevision &&
                     state.operationId == event.operationId
             is CreationStudioState.SyncFailed ->
+                state.eventId == event.eventId &&
+                    state.committedRevision == event.committedRevision &&
+                    state.operationId == event.operationId
+            is CreationStudioState.DetachedPendingSync ->
                 state.eventId == event.eventId &&
                     state.committedRevision == event.committedRevision &&
                     state.operationId == event.operationId
@@ -929,14 +1605,23 @@ class CreationStudioStateMachine {
         if (
             failed.eventId != event.eventId ||
             failed.committedRevision != event.committedRevision ||
-            failed.operationId != event.operationId
+            failed.operationId != event.operationId ||
+            !failed.retryable
         ) return state
         return CreationStudioState.PendingSync(
             eventId = failed.eventId,
             committedRevision = failed.committedRevision,
-            operationId = failed.operationId
+            operationId = failed.operationId,
+            envelope = failed.envelope
         )
     }
+
+    private data class PendingStudioIdentity(
+        val eventId: String,
+        val committedRevision: Long,
+        val operationId: String,
+        val envelope: StudioCommitEnvelope?
+    )
 
     private fun retryBeforeCommit(
         state: CreationStudioState,
@@ -945,12 +1630,18 @@ class CreationStudioStateMachine {
         val failed = state as? CreationStudioState.FailedBeforeCommit ?: return state
         val operationId = failed.operationId ?: return state
         val artwork = failed.artwork ?: return state
+        val durableOperationRef = failed.durableOperationRef ?: return state
+        val requestFingerprint = failed.requestFingerprint ?: return state
         if (operationId != event.operationId || !failed.error.isRetryableBeforeCommit()) return state
         return CreationStudioState.Committing(
             operationId = operationId,
             mode = failed.mode,
             draft = failed.draft,
-            artwork = artwork
+            artwork = artwork,
+            durableOperationRef = durableOperationRef,
+            requestFingerprint = requestFingerprint,
+            resolutionRetryBudget = failed.resolutionRetryBudget,
+            envelope = failed.envelope
         )
     }
 
@@ -964,6 +1655,8 @@ class CreationStudioStateMachine {
         InvitationExperienceError.FORBIDDEN,
         InvitationExperienceError.VALIDATION,
         InvitationExperienceError.CONFLICT,
+        InvitationExperienceError.COMMIT_OUTCOME_UNKNOWN,
+        InvitationExperienceError.RESOLUTION_OUTCOME_UNKNOWN,
         InvitationExperienceError.PERMANENT_FAILURE -> false
     }
 
@@ -1053,19 +1746,36 @@ data class UpdateDraftAggregateCommand(
     val eventDraft: StudioEventFields,
     val artwork: Artwork,
     val operationId: String,
-    val artworkCapability: ArtworkSelectionCapability = ArtworkSelectionCapability.Hidden
-)
+    val artworkCapability: ArtworkSelectionCapability = ArtworkSelectionCapability.Hidden,
+    val draftRevision: Long = expectedBaseRevision
+) {
+    /** Fingerprint-bound snapshot of the artwork the aggregate must expose after commit. */
+    val expectedResultingArtwork: Artwork
+        get() = artwork
+}
 
 sealed interface UpdateDraftAggregateResult {
+    data class StudioServerReceiptProof(
+        val status: String,
+        val serverReceiptId: String?,
+        val serverAckPayload: String
+    )
+
     data class Committed(
         val eventId: String,
         val committedRevision: Long,
         val operationId: String,
-        val pendingSync: Boolean
+        val pendingSync: Boolean,
+        val serverAckPayload: String? = null,
+        val serverReceiptProof: StudioServerReceiptProof? = null
     ) : UpdateDraftAggregateResult
     data class Rejected(
         val operationId: String,
         val error: InvitationExperienceError
+    ) : UpdateDraftAggregateResult
+    data class OutcomeUnknown(
+        val operationId: String,
+        val error: InvitationExperienceError = InvitationExperienceError.COMMIT_OUTCOME_UNKNOWN
     ) : UpdateDraftAggregateResult
 }
 
@@ -1073,13 +1783,27 @@ fun interface UpdateDraftAggregateUseCase {
     suspend fun execute(command: UpdateDraftAggregateCommand): UpdateDraftAggregateResult
 }
 
+/** Optional server-side finalizer executed inside the aggregate's SQL transaction. */
+fun interface StudioCommitTransactionFinalizer {
+    fun finalize(
+        committed: UpdateDraftAggregateResult.Committed,
+        envelope: StudioCommitEnvelope,
+        committedAt: String
+    )
+}
+
 data class CreationStudioSyncBinding(
     val eventId: String,
     val aggregateRevision: Long,
-    val operationId: String
+    val operationId: String,
+    val durableOperationRef: String = "",
+    val requestFingerprint: String = ""
 ) {
     init {
-        require(eventId.isNotBlank() && aggregateRevision > 0L && operationId.isNotBlank()) {
+        require(
+            eventId.isNotBlank() && aggregateRevision > 0L && operationId.isNotBlank() &&
+                (durableOperationRef.isBlank() == requestFingerprint.isBlank())
+        ) {
             "Creation Studio sync binding must be complete"
         }
     }
@@ -1098,7 +1822,10 @@ sealed interface CreationStudioSyncResult {
 
     data class Failed(
         override val binding: CreationStudioSyncBinding,
-        val error: InvitationExperienceError
+        val error: InvitationExperienceError,
+        val code: PollBallotContract.FailureCode? = null,
+        val retryable: Boolean = false,
+        val commitOutcome: PollBallotContract.CommitOutcome? = null
     ) : CreationStudioSyncResult
 }
 
@@ -1108,94 +1835,330 @@ interface CreationStudioSyncOwner {
 }
 
 class DatabaseCreationStudioSyncOwner(
-    private val database: WakeveDb
+    private val database: WakeveDb,
+    private val syncManager: SyncManager? = null
 ) : CreationStudioSyncOwner {
+    private val studioJson = Json { encodeDefaults = true; ignoreUnknownKeys = false }
+    private val immediateDispatchMutex = Mutex()
+    private val immediatelyDispatchedOperations = mutableSetOf<String>()
+
+    fun loadBinding(eventId: String, operationId: String): CreationStudioSyncBinding? {
+        val receipt = database.invitationExperienceQueries
+            .selectOperationReceipt(operationId, eventId)
+            .executeAsOneOrNull()
+            ?: return null
+        if (receipt.durable_operation_ref.isBlank() || receipt.request_fingerprint.isBlank()) return null
+        return CreationStudioSyncBinding(
+            eventId = receipt.event_id,
+            aggregateRevision = receipt.aggregate_revision,
+            operationId = receipt.operation_id,
+            durableOperationRef = receipt.durable_operation_ref,
+            requestFingerprint = receipt.request_fingerprint
+        )
+    }
+
     override suspend fun observe(binding: CreationStudioSyncBinding): CreationStudioSyncResult {
+        val observed = inspect(binding)
+        if (observed is CreationStudioSyncResult.Pending) {
+            val shouldDispatch = immediateDispatchMutex.withLock {
+                immediatelyDispatchedOperations.add(binding.operationId)
+            }
+            if (shouldDispatch) {
+                syncManager?.retryPendingStudioSync(binding)
+                return inspect(binding)
+            }
+        }
+        return observed
+    }
+
+    private fun inspect(binding: CreationStudioSyncBinding): CreationStudioSyncResult {
         return try {
             val receipt = database.invitationExperienceQueries
                 .selectOperationReceipt(binding.operationId, binding.eventId)
                 .executeAsOneOrNull()
-                ?: return binding.syncFailure(InvitationExperienceError.FORBIDDEN)
+                ?: return if (binding.hasDurableIdentity()) {
+                    binding.repositoryInconsistent()
+                } else {
+                    binding.syncFailure(InvitationExperienceError.FORBIDDEN)
+                }
             val event = database.eventQueries.selectById(binding.eventId).executeAsOneOrNull()
                 ?: return binding.syncFailure(InvitationExperienceError.NOT_FOUND)
             val sync = database.syncMetadataQueries
                 .selectById("studio:${binding.operationId}")
                 .executeAsOneOrNull()
-                ?: return binding.syncFailure(InvitationExperienceError.REPOSITORY_UNAVAILABLE)
+                ?: return if (binding.hasDurableIdentity()) {
+                    binding.repositoryInconsistent()
+                } else {
+                    binding.syncFailure(InvitationExperienceError.REPOSITORY_UNAVAILABLE)
+                }
+            if (binding.hasDurableIdentity()) {
+                val envelope = decodeStudioEnvelope(receipt.commit_envelope)
+                    ?: return binding.repositoryInconsistent()
+                val subject = decodeStudioPendingSubject(sync.payload)
+                    ?: return binding.repositoryInconsistent()
+                val expectedOperation = when (envelope.requestPayload.subject) {
+                    is StudioCommitSubject.New -> "CREATE"
+                    is StudioCommitSubject.EditExisting -> "UPDATE"
+                }
+                if (!StudioCommitEnvelopeFactory.isValid(envelope) ||
+                    envelope.identity.operationId != binding.operationId ||
+                    envelope.requestPayload.subject.eventId != binding.eventId ||
+                    envelope.durableOperationRef != binding.durableOperationRef ||
+                    envelope.requestFingerprint != binding.requestFingerprint ||
+                    receipt.actor_id != envelope.requestPayload.actorId ||
+                    receipt.durable_operation_ref != envelope.durableOperationRef ||
+                    receipt.request_fingerprint != envelope.requestFingerprint ||
+                    subject.schemaVersion != 1 ||
+                    subject.eventId != binding.eventId ||
+                    subject.committedRevision != binding.aggregateRevision ||
+                    subject.localReceiptId != binding.operationId ||
+                    subject.envelope != envelope ||
+                    subject.expectedResultingArtwork != envelope.expectedResultingArtwork ||
+                    sync.id != "studio:${binding.operationId}" ||
+                    sync.operation != expectedOperation
+                ) {
+                    return binding.repositoryInconsistent()
+                }
+            }
             if (
                 receipt.action != UPDATE_DRAFT_AGGREGATE_ACTION ||
                 receipt.aggregate_revision != binding.aggregateRevision ||
+                (binding.durableOperationRef.isNotBlank() &&
+                    receipt.durable_operation_ref != binding.durableOperationRef) ||
+                (binding.requestFingerprint.isNotBlank() &&
+                    receipt.request_fingerprint != binding.requestFingerprint) ||
                 event.aggregateRevision != binding.aggregateRevision ||
                 event.aggregateSchemaVersion != SUPPORTED_AGGREGATE_SCHEMA_VERSION ||
-                sync.entityType != "event" || sync.entityId != binding.eventId
+                sync.entityId != binding.eventId ||
+                sync.entityType !in setOf("event", STUDIO_SYNC_ENTITY_TYPE)
             ) {
-                return binding.syncFailure(InvitationExperienceError.FORBIDDEN)
+                return if (binding.hasDurableIdentity()) {
+                    binding.repositoryInconsistent()
+                } else {
+                    binding.syncFailure(InvitationExperienceError.FORBIDDEN)
+                }
             }
             when {
                 receipt.status == "COMMITTED" && sync.synced == 1L ->
                     CreationStudioSyncResult.Completed(binding)
                 receipt.status == PENDING_SYNC_STATUS && sync.synced == 0L &&
                     sync.retryState == "READY" -> CreationStudioSyncResult.Pending(binding)
-                sync.retryState == "PERMANENT_FAILURE" ->
-                    binding.syncFailure(InvitationExperienceError.PERMANENT_FAILURE)
+                sync.retryState == "PERMANENT_FAILURE" -> binding.syncFailure(
+                    when (sync.rejectionCode) {
+                        "FORBIDDEN" -> InvitationExperienceError.FORBIDDEN
+                        "EVENT_NOT_DRAFT", "STALE_BASE_REVISION", "IDEMPOTENCY_CONFLICT" ->
+                            InvitationExperienceError.CONFLICT
+                        "REPOSITORY_INCONSISTENT" -> InvitationExperienceError.COMMIT_OUTCOME_UNKNOWN
+                        else -> InvitationExperienceError.PERMANENT_FAILURE
+                    }
+                )
                 sync.retryState == "CONFLICT" ->
                     binding.syncFailure(InvitationExperienceError.CONFLICT)
                 else -> binding.syncFailure(InvitationExperienceError.SERVER_UNAVAILABLE)
             }
         } catch (_: Exception) {
-            binding.syncFailure(InvitationExperienceError.REPOSITORY_UNAVAILABLE)
+            if (binding.hasDurableIdentity()) {
+                binding.repositoryInconsistent()
+            } else {
+                binding.syncFailure(InvitationExperienceError.REPOSITORY_UNAVAILABLE)
+            }
         }
     }
 
     override suspend fun retry(binding: CreationStudioSyncBinding): CreationStudioSyncResult {
-        val observed = observe(binding)
+        val observed = inspect(binding)
         if (
-            observed !is CreationStudioSyncResult.Failed ||
-            observed.error == InvitationExperienceError.PERMANENT_FAILURE ||
-            observed.error == InvitationExperienceError.CONFLICT ||
-            observed.error == InvitationExperienceError.FORBIDDEN ||
-            observed.error == InvitationExperienceError.NOT_FOUND
+            observed is CreationStudioSyncResult.Completed ||
+            (observed is CreationStudioSyncResult.Failed &&
+                observed.error in setOf(
+                    InvitationExperienceError.PERMANENT_FAILURE,
+                    InvitationExperienceError.CONFLICT,
+                    InvitationExperienceError.FORBIDDEN,
+                    InvitationExperienceError.NOT_FOUND,
+                    InvitationExperienceError.COMMIT_OUTCOME_UNKNOWN
+                ))
         ) return observed
 
-        return try {
-            database.transactionWithResult {
-                val syncId = "studio:${binding.operationId}"
-                val before = database.syncMetadataQueries.selectById(syncId).executeAsOneOrNull()
-                    ?: return@transactionWithResult observed
-                if (
-                    before.entityType != "event" || before.entityId != binding.eventId ||
-                    before.synced != 0L || before.retryState != "FAILED"
-                ) return@transactionWithResult observed
-                database.syncMetadataQueries.retryStudioSyncSubject(syncId, binding.eventId)
-                CreationStudioSyncResult.Pending(binding)
-            }
-        } catch (_: Exception) {
-            observed
+        val manager = syncManager
+        if (manager != null) {
+            manager.retryPendingStudioSync(binding)
+            return inspect(binding)
         }
+        // Compatibility for callers which have not yet injected transport. Production iOS injects
+        // SyncManager; this adapter only preserves old local fixtures without recreating an event.
+        return LegacyStudioSyncRetryAdapter(database).prepare(binding, observed)
     }
 
     private fun CreationStudioSyncBinding.syncFailure(error: InvitationExperienceError) =
-        CreationStudioSyncResult.Failed(this, error)
+        CreationStudioSyncResult.Failed(
+            binding = this,
+            error = error,
+            retryable = error in setOf(
+                InvitationExperienceError.NETWORK_UNAVAILABLE,
+                InvitationExperienceError.SERVER_UNAVAILABLE,
+                InvitationExperienceError.REPOSITORY_UNAVAILABLE
+            )
+        )
+
+    private fun CreationStudioSyncBinding.repositoryInconsistent() = CreationStudioSyncResult.Failed(
+        binding = this,
+        error = InvitationExperienceError.COMMIT_OUTCOME_UNKNOWN,
+        code = PollBallotContract.FailureCode.REPOSITORY_INCONSISTENT,
+        retryable = false,
+        commitOutcome = PollBallotContract.CommitOutcome.UNKNOWN
+    )
+
+    private fun CreationStudioSyncBinding.hasDurableIdentity(): Boolean =
+        durableOperationRef.isNotBlank() && requestFingerprint.isNotBlank()
+
+    private fun decodeStudioEnvelope(value: String): StudioCommitEnvelope? = try {
+        studioJson.decodeFromString(StudioCommitEnvelope.serializer(), value)
+    } catch (_: Exception) {
+        null
+    }
+
+    private fun decodeStudioPendingSubject(value: String): StudioPendingSyncSubject? = try {
+        studioJson.decodeFromString(StudioPendingSyncSubject.serializer(), value)
+    } catch (_: Exception) {
+        null
+    }
 
     private companion object {
         const val SUPPORTED_AGGREGATE_SCHEMA_VERSION = 1L
         const val UPDATE_DRAFT_AGGREGATE_ACTION = "UPDATE_DRAFT_AGGREGATE"
         const val PENDING_SYNC_STATUS = "PENDING_SYNC"
+        const val STUDIO_SYNC_ENTITY_TYPE = "studio_commit"
+    }
+}
+
+private class LegacyStudioSyncRetryAdapter(private val database: WakeveDb) {
+    fun prepare(
+        binding: CreationStudioSyncBinding,
+        fallback: CreationStudioSyncResult
+    ): CreationStudioSyncResult = try {
+        database.transactionWithResult {
+            val syncId = "studio:${binding.operationId}"
+            val before = database.syncMetadataQueries.selectById(syncId).executeAsOneOrNull()
+                ?: return@transactionWithResult fallback
+            if (before.entityId != binding.eventId || before.synced != 0L || before.retryState != "FAILED") {
+                return@transactionWithResult fallback
+            }
+            database.syncMetadataQueries.markStudioSyncReadyForDispatch(syncId, binding.eventId)
+            CreationStudioSyncResult.Pending(binding)
+        }
+    } catch (_: Exception) {
+        fallback
     }
 }
 
 class DatabaseUpdateDraftAggregateUseCase(
     private val database: WakeveDb
 ) : UpdateDraftAggregateUseCase {
+    private val studioJson = Json { encodeDefaults = true; ignoreUnknownKeys = false }
+
+    fun loadSyncBinding(eventId: String, operationId: String): CreationStudioSyncBinding? {
+        val receipt = database.invitationExperienceQueries
+            .selectOperationReceipt(operationId, eventId)
+            .executeAsOneOrNull()
+            ?: return null
+        val envelope = decodeStudioEnvelope(receipt.commit_envelope) ?: return null
+        val metadata = database.syncMetadataQueries
+            .selectById("studio:$operationId")
+            .executeAsOneOrNull()
+            ?: return null
+        val pendingSubject = try {
+            studioJson.decodeFromString(StudioPendingSyncSubject.serializer(), metadata.payload)
+        } catch (_: Exception) {
+            null
+        } ?: return null
+        if (!StudioCommitEnvelopeFactory.isValid(envelope) ||
+            receipt.durable_operation_ref != envelope.durableOperationRef ||
+            receipt.request_fingerprint != envelope.requestFingerprint ||
+            envelope.identity.operationId != operationId ||
+            envelope.requestPayload.subject.eventId != eventId ||
+            pendingSubject.schemaVersion != 1 ||
+            pendingSubject.eventId != eventId ||
+            pendingSubject.committedRevision != receipt.aggregate_revision ||
+            pendingSubject.localReceiptId != operationId ||
+            pendingSubject.envelope != envelope ||
+            pendingSubject.expectedResultingArtwork != envelope.expectedResultingArtwork ||
+            metadata.entityId != eventId ||
+            metadata.entityType != "event"
+        ) return null
+        return CreationStudioSyncBinding(
+            eventId = receipt.event_id,
+            aggregateRevision = receipt.aggregate_revision,
+            operationId = receipt.operation_id,
+            durableOperationRef = envelope.durableOperationRef,
+            requestFingerprint = envelope.requestFingerprint
+        )
+    }
+
+    fun loadCommitEnvelope(eventId: String, operationId: String): StudioCommitEnvelope? {
+        val receipt = database.invitationExperienceQueries
+            .selectOperationReceipt(operationId, eventId)
+            .executeAsOneOrNull()
+            ?: return null
+        val envelope = decodeStudioEnvelope(receipt.commit_envelope) ?: return null
+        return envelope.takeIf {
+            StudioCommitEnvelopeFactory.isValid(it) &&
+                receipt.durable_operation_ref == it.durableOperationRef &&
+                receipt.request_fingerprint == it.requestFingerprint
+        }
+    }
+
+    fun loadPendingSyncSubject(eventId: String, operationId: String): StudioPendingSyncSubject? {
+        val receipt = database.invitationExperienceQueries
+            .selectOperationReceipt(operationId, eventId)
+            .executeAsOneOrNull()
+            ?: return null
+        val envelope = decodeStudioEnvelope(receipt.commit_envelope) ?: return null
+        val metadata = database.syncMetadataQueries.selectById("studio:$operationId")
+            .executeAsOneOrNull()
+            ?: return null
+        val subject = try {
+            studioJson.decodeFromString(StudioPendingSyncSubject.serializer(), metadata.payload)
+        } catch (_: Exception) {
+            null
+        } ?: return null
+        return subject.takeIf {
+            StudioCommitEnvelopeFactory.isValid(envelope) &&
+                it.schemaVersion == 1 &&
+                it.eventId == eventId &&
+                it.committedRevision == receipt.aggregate_revision &&
+                it.localReceiptId == operationId &&
+                it.envelope == envelope &&
+                it.expectedResultingArtwork == envelope.expectedResultingArtwork &&
+                metadata.entityType == "event" &&
+                metadata.entityId == eventId &&
+                receipt.durable_operation_ref == envelope.durableOperationRef &&
+                receipt.request_fingerprint == envelope.requestFingerprint
+        }
+    }
+
     override suspend fun execute(
         command: UpdateDraftAggregateCommand
+    ): UpdateDraftAggregateResult = executeInternal(command, null)
+
+    suspend fun executeWithFinalizer(
+        command: UpdateDraftAggregateCommand,
+        transactionFinalizer: StudioCommitTransactionFinalizer
+    ): UpdateDraftAggregateResult = executeInternal(command, transactionFinalizer)
+
+    private suspend fun executeInternal(
+        command: UpdateDraftAggregateCommand,
+        transactionFinalizer: StudioCommitTransactionFinalizer?
     ): UpdateDraftAggregateResult {
         val persistedArtwork = command.artwork.toPersistedArtwork()
             ?: return command.rejected(InvitationExperienceError.VALIDATION)
         if (!command.isStructurallyValid() || !command.isArtworkAuthorized()) {
             return command.rejected(InvitationExperienceError.VALIDATION)
         }
-        val requestFingerprint = command.requestFingerprint()
+        val envelope = StudioCommitEnvelopeFactory.build(command)
+        if (!StudioCommitEnvelopeFactory.isValid(envelope)) {
+            return command.rejected(InvitationExperienceError.VALIDATION)
+        }
+        val requestFingerprint = envelope.requestFingerprint
 
         return try {
             database.transactionWithResult {
@@ -1207,13 +2170,24 @@ class DatabaseUpdateDraftAggregateUseCase(
                         receipt.event_id == command.eventId &&
                         receipt.actor_id == command.actorId &&
                         receipt.action == UPDATE_DRAFT_AGGREGATE_ACTION &&
-                        receipt.request_fingerprint == requestFingerprint
+                        receipt.request_fingerprint == requestFingerprint &&
+                        receipt.durable_operation_ref == envelope.durableOperationRef &&
+                        decodeStudioEnvelope(receipt.commit_envelope) == envelope
                     ) {
+                        val serverReceiptProof = receipt.server_ack_payload?.let { serverAckPayload ->
+                            UpdateDraftAggregateResult.StudioServerReceiptProof(
+                                status = receipt.status,
+                                serverReceiptId = receipt.server_receipt_id,
+                                serverAckPayload = serverAckPayload
+                            )
+                        }
                         UpdateDraftAggregateResult.Committed(
                             eventId = receipt.event_id,
                             committedRevision = receipt.aggregate_revision,
                             operationId = receipt.operation_id,
-                            pendingSync = receipt.status == PENDING_SYNC_STATUS
+                            pendingSync = receipt.status == PENDING_SYNC_STATUS,
+                            serverAckPayload = receipt.server_ack_payload,
+                            serverReceiptProof = serverReceiptProof
                         )
                     } else {
                         command.rejected(InvitationExperienceError.CONFLICT)
@@ -1386,7 +2360,7 @@ class DatabaseUpdateDraftAggregateUseCase(
                 database.timeSlotQueries.deleteByEventId(command.eventId)
                 fields.proposedSlots.forEach { slot ->
                     database.timeSlotQueries.insertTimeSlot(
-                        id = slot.id,
+                        id = TimeSlotStorageIdentity.physicalId(command.eventId, slot.id),
                         eventId = command.eventId,
                         startTime = slot.start,
                         endTime = slot.end,
@@ -1433,35 +2407,50 @@ class DatabaseUpdateDraftAggregateUseCase(
                     action = UPDATE_DRAFT_AGGREGATE_ACTION,
                     aggregate_revision = committedRevision,
                     request_fingerprint = requestFingerprint,
+                    durable_operation_ref = envelope.durableOperationRef,
+                    commit_envelope = studioJson.encodeToString(envelope),
+                    server_receipt_id = null,
                     status = PENDING_SYNC_STATUS,
                     created_at = now,
                     updated_at = now
                 )
-                database.syncMetadataQueries.insertSyncMetadata(
+                val pendingSubject = StudioPendingSyncSubject(
+                    eventId = command.eventId,
+                    committedRevision = committedRevision,
+                    localReceiptId = command.operationId,
+                    envelope = envelope,
+                    expectedResultingArtwork = command.expectedResultingArtwork
+                )
+                database.syncMetadataQueries.insertSyncMetadataWithPayload(
                     id = "studio:${command.operationId}",
                     entityType = "event",
                     entityId = command.eventId,
                     operation = if (isNewAggregate) "CREATE" else "UPDATE",
+                    payload = studioJson.encodeToString(pendingSubject),
                     timestamp = now,
+                    retryState = "READY",
+                    retryCount = 0L,
                     synced = 0L
                 )
 
-                UpdateDraftAggregateResult.Committed(
+                val committed = UpdateDraftAggregateResult.Committed(
                     eventId = command.eventId,
                     committedRevision = committedRevision,
                     operationId = command.operationId,
                     pendingSync = true
                 )
+                transactionFinalizer?.finalize(committed, envelope, now)
+                committed
             }
         } catch (_: Exception) {
-            command.rejected(InvitationExperienceError.REPOSITORY_UNAVAILABLE)
+            UpdateDraftAggregateResult.OutcomeUnknown(command.operationId)
         }
     }
 
     private fun UpdateDraftAggregateCommand.isStructurallyValid(): Boolean {
         val fields = eventDraft
         if (
-            eventId.isBlank() || actorId.isBlank() || operationId.isBlank() ||
+            eventId.isBlank() || actorId.isBlank() || operationId.isBlank() || draftRevision < 0L ||
             expectedBaseRevision < 0L || fields.title.isBlank() || fields.description.isBlank() ||
             runCatching { Instant.parse(fields.deadline) }.isFailure ||
             (fields.eventType == EventType.CUSTOM && fields.eventTypeCustom.isNullOrBlank()) ||
@@ -1570,38 +2559,15 @@ class DatabaseUpdateDraftAggregateUseCase(
     private fun String.isAllowedHttpsArtworkUrl(): Boolean =
         ALLOWED_ARTWORK_URL.matches(this)
 
-    private fun UpdateDraftAggregateCommand.requestFingerprint(): String = sha256Hash(
-        buildString {
-            appendFramed(eventId)
-            appendFramed(actorId)
-            appendFramed(expectedBaseRevision.toString())
-            appendFramed(eventDraft.title)
-            appendFramed(eventDraft.description)
-            appendFramed(eventDraft.deadline)
-            appendFramed(eventDraft.eventType.name)
-            appendFramed(eventDraft.eventTypeCustom.orEmpty())
-            appendFramed(eventDraft.minParticipants?.toString().orEmpty())
-            appendFramed(eventDraft.maxParticipants?.toString().orEmpty())
-            appendFramed(eventDraft.expectedParticipants?.toString().orEmpty())
-            appendFramed(eventDraft.planningMode.name)
-            eventDraft.proposedSlots.forEach { slot ->
-                appendFramed(slot.id)
-                appendFramed(slot.start.orEmpty())
-                appendFramed(slot.end.orEmpty())
-                appendFramed(slot.timezone)
-                appendFramed(slot.timeOfDay.name)
-            }
-            appendFramed(artwork.toString())
-        }
-    )
-
-    private fun StringBuilder.appendFramed(value: String) {
-        append(value.length).append(':').append(value).append('|')
-    }
-
     private fun UpdateDraftAggregateCommand.rejected(
         error: InvitationExperienceError
     ) = UpdateDraftAggregateResult.Rejected(operationId = operationId, error = error)
+
+    private fun decodeStudioEnvelope(value: String): StudioCommitEnvelope? = try {
+        studioJson.decodeFromString(StudioCommitEnvelope.serializer(), value)
+    } catch (_: Exception) {
+        null
+    }
 
     private data class PersistedArtwork(
         val kind: String,
@@ -1623,6 +2589,7 @@ class DatabaseUpdateDraftAggregateUseCase(
         const val SUPPORTED_AGGREGATE_SCHEMA_VERSION = 1L
         const val UPDATE_DRAFT_AGGREGATE_ACTION = "UPDATE_DRAFT_AGGREGATE"
         const val PENDING_SYNC_STATUS = "PENDING_SYNC"
+        const val STUDIO_SYNC_ENTITY_TYPE = "studio_commit"
         val RELEASE_ONE_PRESET_IDS = setOf("weekend", "wakeve-celebration")
         val ALLOWED_ARTWORK_URL = Regex(
             "^https://(?:cdn|api)\\.wakeve\\.app(?:/[^@?#]*)?$",
@@ -2143,6 +3110,8 @@ class DefaultDirectInviteBatchUseCase : DirectInviteBatchUseCase {
         InvitationExperienceError.VALIDATION,
         InvitationExperienceError.CONFLICT,
         InvitationExperienceError.REMOTE_ARTWORK_UNAVAILABLE,
+        InvitationExperienceError.COMMIT_OUTCOME_UNKNOWN,
+        InvitationExperienceError.RESOLUTION_OUTCOME_UNKNOWN,
         InvitationExperienceError.PERMANENT_FAILURE -> false
     }
 }

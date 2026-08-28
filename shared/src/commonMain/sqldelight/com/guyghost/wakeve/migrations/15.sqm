@@ -1,0 +1,5 @@
+ALTER TABLE syncMetadata
+ADD COLUMN rejectionCode TEXT;
+
+ALTER TABLE event_operation_receipt
+ADD COLUMN server_ack_payload TEXT;

@@ -121,12 +121,19 @@ class DatabaseEventRepositoryConfirmationDurabilityBlockerTest {
         WakeveDb.Schema.create(driver)
         val database = WakeveDb(driver)
         val injectedNow = Instant.parse("2031-05-06T07:08:09Z")
+        var repositoryNow = Instant.parse("2031-05-05T07:08:09Z")
         val repository = DatabaseEventRepository(
             database,
-            confirmationClock = ConfirmationClock { injectedNow }
+            confirmationClock = ConfirmationClock { repositoryNow }
         )
-        val event = pollingEvent("event-injected-clock")
+        val event = pollingEvent(
+            id = "event-injected-clock",
+            deadline = "2031-06-01T23:59:59Z",
+            slotStart = "2031-07-11T14:00:00Z",
+            slotEnd = "2031-07-11T16:00:00Z"
+        )
         persistEventAndVote(repository, database, event)
+        repositoryNow = injectedNow
 
         assertIs<EventManagementContract.ConfirmationResult.Committed>(
             repository.confirmPollDate(
@@ -256,7 +263,7 @@ class DatabaseEventRepositoryConfirmationDurabilityBlockerTest {
         database.confirmedDateQueries.insertConfirmedDate(
             id = "confirmed_${unambiguousEvent.id}",
             eventId = unambiguousEvent.id,
-            timeslotId = selectedSlotId,
+            timeslotId = TimeSlotStorageIdentity.physicalId(unambiguousEvent.id, selectedSlotId),
             confirmedByOrganizerId = organizerId,
             confirmedAt = "2025-12-01T10:00:00Z",
             updatedAt = "2025-12-01T10:00:00Z"
@@ -336,15 +343,23 @@ class DatabaseEventRepositoryConfirmationDurabilityBlockerTest {
         WakeveDb.Schema.create(driver)
         val database = WakeveDb(driver)
         var clockReads = 0
+        var repositoryNow = Instant.parse("2035-02-02T04:05:06Z")
         val repository = DatabaseEventRepository(
             database,
             confirmationClock = ConfirmationClock {
                 clockReads += 1
-                Instant.parse("2035-02-03T04:05:06Z")
+                repositoryNow
             }
         )
-        val event = pollingEvent("event-legacy-temporal-authority")
+        val event = pollingEvent(
+            id = "event-legacy-temporal-authority",
+            deadline = "2035-03-01T23:59:59Z",
+            slotStart = "2035-04-11T14:00:00Z",
+            slotEnd = "2035-04-11T16:00:00Z"
+        )
         persistEventAndVote(repository, database, event)
+        clockReads = 0
+        repositoryNow = Instant.parse("2035-02-03T04:05:06Z")
 
         assertTrue(
             repository.confirmEventDateCommand(
@@ -370,15 +385,23 @@ class DatabaseEventRepositoryConfirmationDurabilityBlockerTest {
         WakeveDb.Schema.create(driver)
         val database = WakeveDb(driver)
         var clockReads = 0
+        var repositoryNow = Instant.parse("2035-03-03T05:06:07Z")
         val repository = DatabaseEventRepository(
             database,
             confirmationClock = ConfirmationClock {
                 clockReads += 1
-                Instant.parse("2035-03-04T05:06:07Z")
+                repositoryNow
             }
         )
-        val event = pollingEvent("event-legacy-convenience-temporal-authority")
+        val event = pollingEvent(
+            id = "event-legacy-convenience-temporal-authority",
+            deadline = "2035-04-01T23:59:59Z",
+            slotStart = "2035-05-11T14:00:00Z",
+            slotEnd = "2035-05-11T16:00:00Z"
+        )
         persistEventAndVote(repository, database, event)
+        clockReads = 0
+        repositoryNow = Instant.parse("2035-03-04T05:06:07Z")
 
         assertTrue(repository.confirmEventDate(event.id, selectedSlotId, organizerId).isSuccess)
 
@@ -421,7 +444,7 @@ class DatabaseEventRepositoryConfirmationDurabilityBlockerTest {
         database.voteQueries.insertVote(
             id = "vote-${event.id}",
             eventId = event.id,
-            timeslotId = selectedSlotId,
+            timeslotId = TimeSlotStorageIdentity.physicalId(event.id, selectedSlotId),
             participantId = "participant-${event.id}",
             vote = "YES",
             createdAt = "2026-07-09T19:23:45Z",
@@ -429,16 +452,21 @@ class DatabaseEventRepositoryConfirmationDurabilityBlockerTest {
         )
     }
 
-    private fun pollingEvent(id: String): Event = createTestEvent(
+    private fun pollingEvent(
+        id: String,
+        deadline: String = "2026-07-01T23:59:59Z",
+        slotStart: String = "2026-07-11T14:00:00Z",
+        slotEnd: String = "2026-07-11T16:00:00Z"
+    ): Event = createTestEvent(
         id = id,
         organizerId = organizerId,
         status = EventStatus.POLLING,
-        deadline = "2026-07-01T23:59:59Z",
+        deadline = deadline,
         proposedSlots = listOf(
             createTestTimeSlot(
                 id = selectedSlotId,
-                start = "2026-07-11T14:00:00Z",
-                end = "2026-07-11T16:00:00Z"
+                start = slotStart,
+                end = slotEnd
             )
         )
     )

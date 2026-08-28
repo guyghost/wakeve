@@ -3,6 +3,7 @@ package com.guyghost.wakeve.routes
 import com.guyghost.wakeve.auth.userId
 import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.repository.DatabaseEventRepository
+import com.guyghost.wakeve.repository.TimeSlotStorageIdentity
 import com.guyghost.wakeve.gamification.GamificationService
 import com.guyghost.wakeve.gamification.PointsAction
 import com.guyghost.wakeve.models.CreateEventRequest
@@ -456,7 +457,10 @@ fun io.ktor.server.routing.Route.eventRoutes(
                         HttpStatusCode.BadRequest,
                         mapOf("error" to "slotId is required when confirming an event")
                     )
-                    val selectedSlot = database?.timeSlotQueries?.selectById(slotId)?.executeAsOneOrNull()
+                    val persistedSlotId = TimeSlotStorageIdentity.physicalId(eventId, slotId)
+                    val selectedSlot = database?.timeSlotQueries
+                        ?.selectById(persistedSlotId)
+                        ?.executeAsOneOrNull()
                     if (selectedSlot == null || selectedSlot.eventId != eventId) {
                         return@put call.respond(
                             HttpStatusCode.BadRequest,

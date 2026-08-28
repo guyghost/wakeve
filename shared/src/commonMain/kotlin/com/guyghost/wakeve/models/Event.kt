@@ -123,6 +123,7 @@ data class Poll(
     val votes: Map<String, Map<String, Vote>> // participantId -> slotId -> vote
 )
 
+@kotlinx.serialization.Serializable
 enum class Vote {
     YES, MAYBE, NO
 }

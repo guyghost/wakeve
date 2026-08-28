@@ -7,9 +7,9 @@ CREATE TABLE syncMetadata (
     payload TEXT NOT NULL DEFAULT '{}',
     timestamp TEXT NOT NULL, -- ISO 8601 UTC, when change occurred
     retryState TEXT NOT NULL DEFAULT 'READY',
+    rejectionCode TEXT,
     retryCount INTEGER NOT NULL DEFAULT 0,
-    synced INTEGER NOT NULL DEFAULT 0, -- boolean: 0 (pending) or 1 (synced)
-    UNIQUE(entityType, entityId, timestamp)
+    synced INTEGER NOT NULL DEFAULT 0 -- boolean: 0 (pending) or 1 (synced)
 );
 
 -- Queries
@@ -36,6 +36,15 @@ insertSyncMetadataWithPayload:
 INSERT INTO syncMetadata(id, entityType, entityId, operation, payload, timestamp, retryState, retryCount, synced)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
 
+markStudioSyncPermanentFailure:
+UPDATE syncMetadata
+SET retryState = 'PERMANENT_FAILURE', rejectionCode = :rejectionCode
+WHERE id = :id
+  AND entityType = 'event'
+  AND entityId = :eventId
+  AND synced = 0
+  AND retryState = 'READY';
+
 markSynced:
 UPDATE syncMetadata
 SET synced = 1
@@ -46,7 +55,7 @@ UPDATE syncMetadata
 SET synced = 1
 WHERE entityType = ? AND entityId = ? AND timestamp = ?;
 
-retryStudioSyncSubject:
+markStudioSyncReadyForDispatch:
 UPDATE syncMetadata
 SET retryState = 'READY', retryCount = retryCount + 1
 WHERE id = :id

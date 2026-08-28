@@ -1,5 +1,8 @@
 package com.guyghost.wakeve.repository
 
+import com.guyghost.wakeve.access.EventAccessPolicy
+import com.guyghost.wakeve.access.ParticipantAccessMapper
+import com.guyghost.wakeve.access.ParticipantAccessState
 import com.guyghost.wakeve.access.ParticipantRepositoryRecord
 import com.guyghost.wakeve.confirmation.ConfirmationClock
 import com.guyghost.wakeve.confirmation.SystemConfirmationClock
@@ -27,6 +30,7 @@ import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.models.TrendingEventsResponse
 import com.guyghost.wakeve.models.Vote
 import com.guyghost.wakeve.organization.EventOrganizationReadinessRepository
+import com.guyghost.wakeve.poll.PollBallotContract
 import com.guyghost.wakeve.presentation.state.EventManagementContract
 import com.guyghost.wakeve.repository.OrderBy
 import com.guyghost.wakeve.sync.SyncManager
@@ -35,9 +39,11 @@ import com.guyghost.wakeve.workflow.WorkflowOutboxType
 import com.guyghost.wakeve.workflow.PendingWorkflowStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.Instant
+import kotlinx.serialization.json.Json
 import kotlin.math.PI
 import kotlin.math.asin
 import kotlin.math.cos
@@ -73,7 +79,13 @@ class DatabaseEventRepository private constructor(
     private val confirmationEffectOutboxQueries = db.confirmationEffectOutboxQueries
     private val confirmationLegacyClassificationQueries = db.confirmationLegacyClassificationQueries
     private val invitationExperienceQueries = db.invitationExperienceQueries
+    private val pollBallotReceiptQueries = db.pollBallotReceiptQueries
+    private val ballotJson = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+    }
     private val confirmationMutex = Mutex()
+    private val ballotMutex = Mutex()
 
     override suspend fun createEvent(event: Event): Result<Event> {
         return try {
@@ -149,7 +161,7 @@ class DatabaseEventRepository private constructor(
 
                 event.proposedSlots.forEach { slot ->
                     timeSlotQueries.insertTimeSlot(
-                        id = slot.id,
+                        id = physicalSlotId(event.id, slot.id),
                         eventId = event.id,
                         startTime = slot.start,
                         endTime = slot.end,
@@ -202,7 +214,7 @@ class DatabaseEventRepository private constructor(
                 participants = participants.map { it.userId },
                 proposedSlots = timeSlots.map {
                     TimeSlot(
-                        id = it.id,
+                        id = logicalSlotId(id, it.id),
                         start = it.startTime,
                         end = it.endTime,
                         timezone = it.timezone,
@@ -237,7 +249,7 @@ class DatabaseEventRepository private constructor(
         
         allVotes.forEach { voteRow ->
             val participantId = voteRow.userId
-            val slotId = voteRow.timeslotId
+            val slotId = logicalSlotId(eventId, voteRow.timeslotId)
             val voteValue = parseVote(voteRow.vote)
 
             if (!votes.containsKey(participantId)) {
@@ -350,11 +362,15 @@ class DatabaseEventRepository private constructor(
 
         return try {
             val now = getCurrentUtcIsoString()
-            val voteId = "vote_${slotId}_${participantId}"
+            val persistedSlotId = physicalSlotId(eventId, slotId)
+            if (timeSlotQueries.selectById(persistedSlotId).executeAsOneOrNull()?.eventId != eventId) {
+                return Result.failure(IllegalArgumentException("Time slot not in event"))
+            }
+            val voteId = "vote_${persistedSlotId}_${participantId}"
             voteQueries.insertVote(
                 id = voteId,
                 eventId = eventId,
-                timeslotId = slotId,
+                timeslotId = persistedSlotId,
                 participantId = participantRecord.id,  // Use the actual participant record ID
                 vote = vote.name,
                 createdAt = now,
@@ -385,7 +401,457 @@ class DatabaseEventRepository private constructor(
         }
     }
 
-    override suspend fun updateEvent(event: Event): Result<Event> {
+    override suspend fun commitCompleteBallot(
+        command: PollBallotContract.CommitCompleteBallotCommand
+    ): PollBallotContract.CommitResult = ballotMutex.withLock {
+        commitCompleteBallotLocked(command, serverApply = false)
+    }
+
+    override suspend fun resolveCompleteBallotOutcome(
+        command: PollBallotContract.CommitCompleteBallotCommand
+    ): PollBallotContract.ResolutionResult = ballotMutex.withLock {
+        val operationKey = runCatching { PollBallotContract.operationKey(command) }.getOrNull()
+            ?: return@withLock PollBallotContract.ResolutionResult.Unknown(
+                PollBallotContract.Failure(
+                    PollBallotContract.FailureCode.INVALID_POLL_REVISION,
+                    retryable = false,
+                    commitOutcome = PollBallotContract.CommitOutcome.UNKNOWN
+                )
+            )
+        val fingerprint = runCatching { PollBallotContract.envelope(command).ballotFingerprint }
+            .getOrNull()
+            ?: return@withLock PollBallotContract.ResolutionResult.Unknown(
+                PollBallotContract.Failure(
+                    PollBallotContract.FailureCode.REPOSITORY_INCONSISTENT,
+                    retryable = false,
+                    commitOutcome = PollBallotContract.CommitOutcome.UNKNOWN
+                )
+            )
+        val row = selectBallotReceipt(command)
+            ?: return@withLock PollBallotContract.ResolutionResult.ProvenNotCommitted(
+                operationKey,
+                fingerprint
+            )
+        when (val replay = classifyBallotReplay(command, row)) {
+            is PollBallotContract.CommitResult.Committed ->
+                PollBallotContract.ResolutionResult.Committed(replay.receipt)
+            is PollBallotContract.CommitResult.AlreadyCommitted ->
+                PollBallotContract.ResolutionResult.Committed(replay.receipt)
+            is PollBallotContract.CommitResult.Rejected ->
+                PollBallotContract.ResolutionResult.Unknown(
+                    replay.failure.copy(commitOutcome = PollBallotContract.CommitOutcome.UNKNOWN)
+                )
+        }
+    }
+
+    /** Server-only atomic application. It never emits another local sync row. */
+    suspend fun applySyncedCompleteBallot(
+        payload: PollBallotContract.BallotSyncPayload,
+        authenticatedActorId: String
+    ): PollBallotContract.BallotServerAck = ballotMutex.withLock {
+        require(payload.schemaVersion == PollBallotContract.SCHEMA_VERSION) { "Unsupported ballot payload" }
+        require(payload.localReceiptId.isNotBlank()) { "Ballot local receipt is required" }
+        require(payload.command.schemaVersion == PollBallotContract.SCHEMA_VERSION) { "Unsupported ballot command" }
+        require(payload.command.identity.actorId == authenticatedActorId) { "Ballot actor does not match authentication" }
+        val normalizedPayload = if (payload.command.authoritativeDeadlineIso.isBlank()) {
+            val deadline = eventQueries.selectById(payload.command.identity.eventId)
+                .executeAsOneOrNull()
+                ?.deadline
+                ?: error("Ballot event was not found")
+            payload.copy(command = payload.command.copy(authoritativeDeadlineIso = deadline))
+        } else {
+            payload
+        }
+        val command = PollBallotContract.command(normalizedPayload.command)
+        require(PollBallotContract.matches(normalizedPayload.command, command)) { "Ballot envelope is not canonical" }
+        val result = commitCompleteBallotLocked(
+            command = command,
+            serverApply = true,
+            incomingPayload = normalizedPayload
+        )
+        val receipt = when (result) {
+            is PollBallotContract.CommitResult.Committed -> result.receipt
+            is PollBallotContract.CommitResult.AlreadyCommitted -> result.receipt
+            is PollBallotContract.CommitResult.Rejected -> error(result.failure.code.name)
+        }
+        PollBallotContract.BallotServerAck(
+            localReceiptId = normalizedPayload.localReceiptId,
+            serverReceiptId = receipt.serverReceiptId ?: receipt.receiptId,
+            identity = normalizedPayload.command.identity,
+            ballotFingerprint = normalizedPayload.command.ballotFingerprint,
+            outcome = if (result is PollBallotContract.CommitResult.Committed) {
+                PollBallotContract.BallotServerOutcome.APPLIED
+            } else {
+                PollBallotContract.BallotServerOutcome.ALREADY_APPLIED
+            }
+        )
+    }
+
+    private suspend fun commitCompleteBallotLocked(
+        command: PollBallotContract.CommitCompleteBallotCommand,
+        serverApply: Boolean,
+        incomingPayload: PollBallotContract.BallotSyncPayload? = null
+    ): PollBallotContract.CommitResult {
+        if (!PollBallotContract.isValidPollRevision(command.pollRevision)) {
+            return ballotRejected(command, PollBallotContract.FailureCode.INVALID_POLL_REVISION)
+        }
+        // Resolve an unknown outcome before consulting the current deadline.
+        // A durable identical receipt remains authoritative after the poll closes.
+        selectBallotReceipt(command)?.let { row ->
+            return classifyBallotReplay(command, row)
+        }
+
+        return try {
+            val committed = db.transactionWithResult {
+                // Re-read every mutable authority inside the same transaction that
+                // writes the ballot and receipt.
+                val eventRow = eventQueries.selectById(command.eventId).executeAsOneOrNull()
+                    ?: return@transactionWithResult ballotRejected(
+                        command,
+                        PollBallotContract.FailureCode.EVENT_NOT_FOUND
+                    )
+                val participant = participantQueries
+                    .selectByEventIdAndUserId(command.eventId, command.actorId)
+                    .executeAsOneOrNull()
+                    ?: return@transactionWithResult ballotRejected(
+                        command,
+                        PollBallotContract.FailureCode.FORBIDDEN
+                    )
+                val event = getEvent(command.eventId)
+                    ?: return@transactionWithResult ballotRejected(
+                        command,
+                        PollBallotContract.FailureCode.EVENT_NOT_FOUND
+                    )
+                val viewer = ParticipantAccessMapper.fromRepositoryRecord(
+                    ParticipantRepositoryRecord(
+                        id = participant.id,
+                        eventId = participant.eventId,
+                        userId = participant.userId,
+                        role = participant.role,
+                        rsvp = participant.rsvpState,
+                        hasValidatedDate = participant.hasValidatedDate,
+                        dateValidation = participant.dateValidationState
+                    )
+                )
+                if (!EventAccessPolicy.canSubmitPollBallot(event, viewer).isAllowed) {
+                    return@transactionWithResult ballotRejected(
+                        command,
+                        PollBallotContract.FailureCode.FORBIDDEN
+                    )
+                }
+                if (eventRow.status != EventStatus.POLLING.name) {
+                    return@transactionWithResult ballotRejected(
+                        command,
+                        PollBallotContract.FailureCode.INVALID_EVENT_STATUS
+                    )
+                }
+                if (eventRow.aggregateRevision != command.pollRevision) {
+                    return@transactionWithResult ballotRejected(
+                        command,
+                        PollBallotContract.FailureCode.POLL_REVISION_CONFLICT
+                    )
+                }
+
+                val authoritativeDeadlineIso = command.authoritativeDeadlineIso
+                    .ifBlank { eventRow.deadline }
+                val effectiveCommand = command.copy(
+                    authoritativeDeadlineIso = authoritativeDeadlineIso
+                )
+                val envelope = PollBallotContract.envelope(effectiveCommand)
+                if (incomingPayload != null && incomingPayload.command != envelope) {
+                    return@transactionWithResult ballotRejected(
+                        command,
+                        PollBallotContract.FailureCode.IDEMPOTENCY_CONFLICT
+                    )
+                }
+                if (authoritativeDeadlineIso != eventRow.deadline) {
+                    return@transactionWithResult ballotRejected(
+                        command,
+                        PollBallotContract.FailureCode.POLL_REVISION_CONFLICT
+                    )
+                }
+                val deadline = try {
+                    Instant.parse(authoritativeDeadlineIso)
+                } catch (_: Exception) {
+                    return@transactionWithResult ballotRejected(
+                        command,
+                        PollBallotContract.FailureCode.INVALID_DEADLINE_ISO
+                    )
+                }
+                val acceptedAt = try {
+                    confirmationClock.now()
+                } catch (_: Exception) {
+                    return@transactionWithResult ballotRejected(
+                        command,
+                        PollBallotContract.FailureCode.CLOCK_UNAVAILABLE,
+                        retryable = true
+                    )
+                }
+                if (acceptedAt >= deadline) {
+                    return@transactionWithResult ballotRejected(
+                        command,
+                        PollBallotContract.FailureCode.DEADLINE_REACHED
+                    )
+                }
+
+                val currentSlots = timeSlotQueries.selectByEventId(command.eventId).executeAsList()
+                val physicalIdsByLogicalId = currentSlots.associate { row ->
+                    logicalSlotId(command.eventId, row.id) to row.id
+                }
+                PollBallotContract.validateEntries(
+                    physicalIdsByLogicalId.keys,
+                    command.entries
+                )?.let { failure ->
+                    return@transactionWithResult ballotRejected(
+                        command,
+                        failure
+                    )
+                }
+
+                val acceptedAtIso = acceptedAt.toString()
+                voteQueries.deleteByEventAndParticipant(command.eventId, participant.id)
+                envelope.entries.forEach { entry ->
+                    val persistedSlotId = requireNotNull(physicalIdsByLogicalId[entry.slotId])
+                    voteQueries.insertVote(
+                        id = "vote_${persistedSlotId}_${command.actorId}",
+                        eventId = command.eventId,
+                        timeslotId = persistedSlotId,
+                        participantId = participant.id,
+                        vote = entry.vote.name,
+                        createdAt = acceptedAtIso,
+                        updatedAt = acceptedAtIso
+                    )
+                }
+
+                val operationKey = PollBallotContract.operationKey(envelope.identity)
+                val receiptId = incomingPayload?.localReceiptId ?: "poll-ballot:$operationKey"
+                val payload = incomingPayload ?: PollBallotContract.BallotSyncPayload(
+                    localReceiptId = receiptId,
+                    command = envelope
+                )
+                val serverReceiptId = "server-poll-ballot:$operationKey".takeIf { serverApply }
+                val receipt = PollBallotContract.Receipt(
+                    receiptId = receiptId,
+                    operationId = command.operationId,
+                    eventId = command.eventId,
+                    actorId = command.actorId,
+                    pollRevision = command.pollRevision,
+                    ballotFingerprint = envelope.ballotFingerprint,
+                    authoritativeDeadlineIso = authoritativeDeadlineIso,
+                    acceptedAtIso = acceptedAtIso,
+                    syncStatus = if (serverApply) {
+                        PollBallotContract.SyncStatus.SYNCED
+                    } else {
+                        PollBallotContract.SyncStatus.LOCAL_PENDING
+                    },
+                    syncPayload = payload,
+                    serverReceiptId = serverReceiptId
+                )
+                pollBallotReceiptQueries.insertReceipt(
+                    operationId = receipt.operationId,
+                    receiptId = receipt.receiptId,
+                    eventId = receipt.eventId,
+                    actorId = receipt.actorId,
+                    pollRevision = receipt.pollRevision,
+                    operationKey = operationKey,
+                    ballotFingerprint = receipt.ballotFingerprint,
+                    syncPayload = ballotJson.encodeToString(
+                        PollBallotContract.BallotSyncPayload.serializer(),
+                        payload
+                    ),
+                    acceptedAt = receipt.acceptedAtIso,
+                    syncStatus = if (serverApply) "SERVER_ACKNOWLEDGED" else "LOCAL_PENDING",
+                    serverReceiptId = serverReceiptId
+                )
+                if (!serverApply) {
+                    syncMetadataQueries.insertSyncMetadataWithPayload(
+                        id = "poll-ballot:$operationKey",
+                        entityType = "poll_ballot",
+                        entityId = receipt.receiptId,
+                        operation = "UPDATE",
+                        payload = ballotJson.encodeToString(
+                            PollBallotContract.BallotSyncPayload.serializer(),
+                            payload
+                        ),
+                        timestamp = acceptedAtIso,
+                        retryState = "READY",
+                        retryCount = 0,
+                        synced = 0
+                    )
+                }
+                PollBallotContract.CommitResult.Committed(receipt)
+            }
+            committed
+        } catch (failure: Exception) {
+            // An independent connection may have won the composite-key race. The durable
+            // tuple, not the exception text, resolves that unknown outcome.
+            if (failure.causesContain("busy") || failure.causesContain("locked")) {
+                repeat(50) {
+                    delay(10)
+                    selectBallotReceipt(command)?.let { row ->
+                        return classifyBallotReplay(command, row)
+                    }
+                }
+            }
+            selectBallotReceipt(command)?.let { row ->
+                return classifyBallotReplay(command, row)
+            }
+            val code = if (failure.message.orEmpty().contains("UNIQUE", ignoreCase = true)) {
+                PollBallotContract.FailureCode.REPOSITORY_INCONSISTENT
+            } else {
+                PollBallotContract.FailureCode.LOCAL_TRANSACTION_FAILED
+            }
+            ballotRejected(
+                command,
+                code,
+                retryable = true,
+                commitOutcome = PollBallotContract.CommitOutcome.UNKNOWN
+            )
+        }
+    }
+
+    private fun selectBallotReceipt(command: PollBallotContract.CommitCompleteBallotCommand) =
+        pollBallotReceiptQueries.selectByIdentity(
+            eventId = command.eventId,
+            actorId = command.actorId,
+            pollRevision = command.pollRevision,
+            operationId = command.operationId
+        ).executeAsOneOrNull()
+
+    private fun Throwable.causesContain(fragment: String): Boolean {
+        var current: Throwable? = this
+        while (current != null) {
+            if (current.message.orEmpty().contains(fragment, ignoreCase = true)) return true
+            current = current.cause
+        }
+        return false
+    }
+
+    private fun physicalSlotId(eventId: String, logicalSlotId: String): String =
+        TimeSlotStorageIdentity.physicalId(eventId, logicalSlotId)
+
+    private fun logicalSlotId(eventId: String, persistedSlotId: String): String =
+        TimeSlotStorageIdentity.logicalId(eventId, persistedSlotId)
+            // Legacy rows are accepted only as a read compatibility path. Every production
+            // writer below persists the deterministic v1 physical identity.
+            ?: persistedSlotId.takeUnless { persistedSlotId.startsWith("slot:v1|") }
+            ?: error("REPOSITORY_INCONSISTENT")
+
+    private fun classifyBallotReplay(
+        command: PollBallotContract.CommitCompleteBallotCommand,
+        row: com.guyghost.wakeve.PollBallotReceipt
+    ): PollBallotContract.CommitResult {
+        val receipt = row.toBallotReceipt()
+            ?: return ballotRejected(
+                command,
+                PollBallotContract.FailureCode.REPOSITORY_INCONSISTENT,
+                retryable = false,
+                commitOutcome = PollBallotContract.CommitOutcome.UNKNOWN
+            )
+        val replayEnvelope = runCatching {
+            PollBallotContract.envelope(
+                command.copy(authoritativeDeadlineIso = command.authoritativeDeadlineIso.ifBlank {
+                    receipt.authoritativeDeadlineIso
+                })
+            )
+        }.getOrNull() ?: return ballotRejected(
+            command,
+            PollBallotContract.FailureCode.IDEMPOTENCY_CONFLICT
+        )
+        return if (receipt.syncPayload.command == replayEnvelope) {
+            PollBallotContract.CommitResult.AlreadyCommitted(receipt)
+        } else {
+            ballotRejected(command, PollBallotContract.FailureCode.IDEMPOTENCY_CONFLICT)
+        }
+    }
+
+    override fun hasCompleteBallot(eventId: String, participantId: String): Boolean {
+        return try {
+            val requiredSlotIds = timeSlotQueries.selectByEventId(eventId)
+                .executeAsList()
+                .map { it.id }
+                .toSet()
+            if (requiredSlotIds.isEmpty()) return false
+            val submittedSlotIds = voteQueries.selectVotesForEventTimeslots(eventId)
+                .executeAsList()
+                .filter { it.userId == participantId }
+                .map { it.timeslotId }
+                .toSet()
+            submittedSlotIds == requiredSlotIds
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private fun ballotRejected(
+        command: PollBallotContract.CommitCompleteBallotCommand,
+        code: PollBallotContract.FailureCode,
+        retryable: Boolean = false,
+        commitOutcome: PollBallotContract.CommitOutcome = PollBallotContract.CommitOutcome.NOT_COMMITTED
+    ) = PollBallotContract.CommitResult.Rejected(
+        operationId = command.operationId,
+        failure = PollBallotContract.Failure(code, retryable, commitOutcome)
+    )
+
+    private fun com.guyghost.wakeve.PollBallotReceipt.toBallotReceipt(): PollBallotContract.Receipt? {
+        val payload = try {
+            ballotJson.decodeFromString(
+                PollBallotContract.BallotSyncPayload.serializer(),
+                syncPayload
+            )
+        } catch (_: Exception) {
+            return null
+        }
+        val identity = payload.command.identity
+        val expectedOperationKey = runCatching {
+            PollBallotContract.operationKey(identity)
+        }.getOrNull() ?: return null
+        val acceptedAtInstant = runCatching { Instant.parse(acceptedAt) }.getOrNull() ?: return null
+        val authoritativeDeadline = runCatching {
+            Instant.parse(payload.command.authoritativeDeadlineIso)
+        }.getOrNull() ?: return null
+        val canonicalEntries = PollBallotContract.canonicalize(payload.command.entries)
+        if (payload.schemaVersion != PollBallotContract.SCHEMA_VERSION ||
+            payload.localReceiptId != receiptId ||
+            payload.command.schemaVersion != PollBallotContract.SCHEMA_VERSION ||
+            identity.eventId != eventId ||
+            identity.actorId != actorId ||
+            identity.pollRevision != pollRevision ||
+            identity.operationId != operationId ||
+            expectedOperationKey != operationKey ||
+            payload.command.entries != canonicalEntries ||
+            payload.command.ballotFingerprint != PollBallotContract.fingerprint(canonicalEntries) ||
+            payload.command.ballotFingerprint != ballotFingerprint ||
+            acceptedAtInstant >= authoritativeDeadline ||
+            syncStatus !in setOf("LOCAL_PENDING", "SERVER_ACKNOWLEDGED") ||
+            (syncStatus == "LOCAL_PENDING" && serverReceiptId != null) ||
+            (syncStatus == "SERVER_ACKNOWLEDGED" && serverReceiptId.isNullOrBlank())
+        ) return null
+        return PollBallotContract.Receipt(
+            receiptId = receiptId,
+            operationId = operationId,
+            eventId = eventId,
+            actorId = actorId,
+            pollRevision = pollRevision,
+            ballotFingerprint = ballotFingerprint,
+            authoritativeDeadlineIso = payload.command.authoritativeDeadlineIso,
+            acceptedAtIso = acceptedAt,
+            syncStatus = when (syncStatus) {
+                "SERVER_ACKNOWLEDGED" -> PollBallotContract.SyncStatus.SYNCED
+                else -> PollBallotContract.SyncStatus.LOCAL_PENDING
+            },
+            syncPayload = payload,
+            serverReceiptId = serverReceiptId
+        )
+    }
+
+    override suspend fun updateEvent(event: Event): Result<Event> =
+        updateEventInternal(event, synchronizeSlots = false)
+
+    private suspend fun updateEventInternal(
+        event: Event,
+        synchronizeSlots: Boolean
+    ): Result<Event> {
         return try {
             val isSample = com.guyghost.wakeve.sample.SampleEventFactory.isSampleEventId(event.id)
             val now = getCurrentUtcIsoString()
@@ -446,6 +912,9 @@ class DatabaseEventRepository private constructor(
                     updatedAt = now,
                     id = event.id
                 )
+                if (synchronizeSlots) {
+                    replaceTimeSlotsInTransaction(event.id, event.proposedSlots, now)
+                }
                 invitationExperienceQueries.clearAggregateWriteAuthorization(
                     event.id,
                     authorizationId
@@ -466,6 +935,15 @@ class DatabaseEventRepository private constructor(
                 data = """{"title":"${event.title}","description":"${event.description}","status":"${event.status}","deadline":"${event.deadline}"}""",
                 userId = event.organizerId
             )
+            if (synchronizeSlots) {
+                syncManager?.recordLocalChange(
+                    table = "timeSlots",
+                    operation = SyncOperation.UPDATE,
+                    recordId = event.id,
+                    data = """{"count":"${event.proposedSlots.size}"}""",
+                    userId = event.organizerId
+                )
+            }
 
             getEvent(event.id)?.let(Result.Companion::success)
                 ?: Result.failure(IllegalStateException("Event update was not readable after commit"))
@@ -487,14 +965,7 @@ class DatabaseEventRepository private constructor(
         return try {
             val existingEvent = getEvent(event.id)
             if (existingEvent != null) {
-                val updateResult = updateEvent(event)
-                if (updateResult.isFailure) {
-                    return updateResult
-                }
-
-                // Also update time slots
-                syncTimeSlots(event.id, event.proposedSlots)
-                updateResult
+                updateEventInternal(event, synchronizeSlots = true)
             } else {
                 // Event doesn't exist, create it (createEvent already handles time slots)
                 createEvent(event)
@@ -510,38 +981,28 @@ class DatabaseEventRepository private constructor(
      * @param eventId The event ID
      * @param timeSlots The new list of time slots
      */
-    private suspend fun syncTimeSlots(eventId: String, timeSlots: List<TimeSlot>) {
-        try {
-            // Delete existing time slots for this event
-            timeSlotQueries.deleteByEventId(eventId)
+    private fun replaceTimeSlotsInTransaction(
+        eventId: String,
+        timeSlots: List<TimeSlot>,
+        now: String
+    ) {
+        val logicalIds = timeSlots.map { it.id }
+        require(logicalIds.size == logicalIds.toSet().size) { "DUPLICATE_LOGICAL_MAPPING" }
+        logicalIds.forEach { physicalSlotId(eventId, it) }
 
-            // Insert new time slots
-            val now = getCurrentUtcIsoString()
-            timeSlots.forEach { slot ->
-                timeSlotQueries.insertTimeSlot(
-                    id = slot.id,
-                    eventId = eventId,
-                    startTime = slot.start,
-                    endTime = slot.end,
-                    timezone = slot.timezone,
-                    proposedByParticipantId = null,
-                    createdAt = now,
-                    updatedAt = now,
-                    timeOfDay = slot.timeOfDay.name
-                )
-            }
-
-            // Record sync change
-            syncManager?.recordLocalChange(
-                table = "timeSlots",
-                operation = SyncOperation.UPDATE,
-                recordId = eventId,
-                data = """{"count":"${timeSlots.size}"}""",
-                userId = getEvent(eventId)?.organizerId ?: "unknown"
+        timeSlotQueries.deleteByEventId(eventId)
+        timeSlots.forEach { slot ->
+            timeSlotQueries.insertTimeSlot(
+                id = physicalSlotId(eventId, slot.id),
+                eventId = eventId,
+                startTime = slot.start,
+                endTime = slot.end,
+                timezone = slot.timezone,
+                proposedByParticipantId = null,
+                createdAt = now,
+                updatedAt = now,
+                timeOfDay = slot.timeOfDay.name
             )
-        } catch (e: Exception) {
-            // Log error but don't fail the entire save operation
-            println(databaseEventRepositoryTimeSlotSyncFailureLogMessage())
         }
     }
 
@@ -615,7 +1076,7 @@ class DatabaseEventRepository private constructor(
                 confirmedDateQueries.insertConfirmedDate(
                     id = confirmedId,
                     eventId = id,
-                    timeslotId = firstTimeSlot,
+                    timeslotId = physicalSlotId(id, firstTimeSlot),
                     confirmedByOrganizerId = event.organizerId,
                     confirmedAt = finalDate,
                     updatedAt = now
@@ -751,7 +1212,14 @@ class DatabaseEventRepository private constructor(
             )
         }
 
-        val slot = timeSlotQueries.selectById(command.slotId).executeAsOneOrNull()
+        val persistedSlotId = runCatching {
+            physicalSlotId(command.eventId, command.slotId)
+        }.getOrNull() ?: return confirmationFailure(
+            command.operationId,
+            EventManagementContract.ConfirmationFailureCode.SLOT_NOT_FOUND,
+            retryable = false
+        )
+        val slot = timeSlotQueries.selectById(persistedSlotId).executeAsOneOrNull()
             ?: return confirmationFailure(
                 command.operationId,
                 EventManagementContract.ConfirmationFailureCode.SLOT_NOT_FOUND,
@@ -801,7 +1269,7 @@ class DatabaseEventRepository private constructor(
         confirmedDateQueries.insertConfirmedDate(
             id = "confirmed_${command.eventId}",
             eventId = command.eventId,
-            timeslotId = command.slotId,
+            timeslotId = persistedSlotId,
             confirmedByOrganizerId = command.actorId,
             confirmedAt = now,
             updatedAt = now
@@ -810,7 +1278,7 @@ class DatabaseEventRepository private constructor(
             domainEventId = effectKeys.domainEventId,
             effectKey = effectKeys.effectKey,
             eventId = command.eventId,
-            slotId = command.slotId,
+            slotId = persistedSlotId,
             operationId = command.operationId,
             status = "QUEUED",
             createdAt = now
@@ -1052,16 +1520,14 @@ class DatabaseEventRepository private constructor(
 
     override fun isDeadlinePassed(deadline: String): Boolean {
         return try {
-            deadline < getCurrentUtcIsoString()
-        } catch (e: Exception) {
-            false
+            confirmationClock.now() >= Instant.parse(deadline)
+        } catch (_: Exception) {
+            true
         }
     }
 
     private fun getCurrentUtcIsoString(): String {
-        // For Phase 1, we use a fixed test date
-        // In Phase 2, integrate with kotlinx.datetime for full timezone support
-        return "2025-11-12T10:00:00Z"
+        return confirmationClock.now().toString()
     }
 
     override fun isOrganizer(eventId: String, userId: String): Boolean {
@@ -1671,7 +2137,7 @@ class DatabaseEventRepository private constructor(
                 // 3. Insert time slots
                 event.proposedSlots.forEach { slot ->
                     timeSlotQueries.insertTimeSlot(
-                        id = slot.id,
+                        id = physicalSlotId(event.id, slot.id),
                         eventId = event.id,
                         startTime = slot.start,
                         endTime = slot.end,
@@ -1691,10 +2157,11 @@ class DatabaseEventRepository private constructor(
                     ).executeAsOneOrNull() ?: return@forEach
 
                     slotVotes.forEach { (slotId, vote) ->
+                        val persistedSlotId = physicalSlotId(event.id, slotId)
                         voteQueries.insertVote(
-                            id = "sample-vote-${slotId}-${userId}",
+                            id = "sample-vote-${persistedSlotId}-${userId}",
                             eventId = event.id,
-                            timeslotId = slotId,
+                            timeslotId = persistedSlotId,
                             participantId = participantRecord.id,
                             vote = vote.name,
                             createdAt = now,

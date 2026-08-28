@@ -1,0 +1,50 @@
+CREATE TABLE pollBallotReceipt (
+    operationId TEXT NOT NULL,
+    receiptId TEXT NOT NULL UNIQUE,
+    eventId TEXT NOT NULL,
+    actorId TEXT NOT NULL,
+    pollRevision INTEGER NOT NULL,
+    operationKey TEXT NOT NULL UNIQUE,
+    ballotFingerprint TEXT NOT NULL,
+    syncPayload TEXT NOT NULL,
+    acceptedAt TEXT NOT NULL,
+    syncStatus TEXT NOT NULL CHECK (syncStatus IN ('LOCAL_PENDING', 'SERVER_ACKNOWLEDGED')),
+    serverReceiptId TEXT,
+    PRIMARY KEY (eventId, actorId, pollRevision, operationId),
+    FOREIGN KEY (eventId) REFERENCES event(id) ON DELETE CASCADE
+);
+
+selectByOperationId:
+SELECT * FROM pollBallotReceipt WHERE operationId = ?;
+
+selectByIdentity:
+SELECT * FROM pollBallotReceipt
+WHERE eventId = ? AND actorId = ? AND pollRevision = ? AND operationId = ?;
+
+selectByReceiptId:
+SELECT * FROM pollBallotReceipt WHERE receiptId = ?;
+
+selectPending:
+SELECT * FROM pollBallotReceipt
+WHERE syncStatus = 'LOCAL_PENDING'
+ORDER BY acceptedAt ASC;
+
+selectByEventActorRevision:
+SELECT * FROM pollBallotReceipt
+WHERE eventId = ? AND actorId = ? AND pollRevision = ?
+ORDER BY acceptedAt DESC;
+
+insertReceipt:
+INSERT INTO pollBallotReceipt(
+    operationId, receiptId, eventId, actorId, pollRevision, operationKey,
+    ballotFingerprint, syncPayload, acceptedAt, syncStatus, serverReceiptId
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+markSynced:
+UPDATE pollBallotReceipt
+SET syncStatus = 'SERVER_ACKNOWLEDGED', serverReceiptId = ?
+WHERE receiptId = ? AND syncStatus = 'LOCAL_PENDING';
+
+CREATE INDEX IF NOT EXISTS idx_poll_ballot_receipt_subject
+ON pollBallotReceipt(eventId, actorId, pollRevision);

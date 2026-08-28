@@ -1,17 +1,26 @@
 package com.guyghost.wakeve.repository
 
+import com.guyghost.wakeve.access.EventAccessPolicy
+import com.guyghost.wakeve.access.ParticipantAccessMapper
+import com.guyghost.wakeve.access.ParticipantAccessState
 import com.guyghost.wakeve.access.ParticipantRepositoryRecord
+import com.guyghost.wakeve.confirmation.ConfirmationClock
+import com.guyghost.wakeve.confirmation.SystemConfirmationClock
 import com.guyghost.wakeve.confirmation.confirmationEffectKeys
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.Poll
 import com.guyghost.wakeve.models.Vote
+import com.guyghost.wakeve.poll.PollBallotContract
 import com.guyghost.wakeve.presentation.state.EventManagementContract
 import com.guyghost.wakeve.workflow.WorkflowOutboxRecord
 import com.guyghost.wakeve.workflow.WorkflowOutboxType
 import com.guyghost.wakeve.workflow.PendingWorkflowStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.datetime.Instant
 
 interface EventRepositoryInterface {
     suspend fun createEvent(event: Event): Result<Event>
@@ -34,6 +43,25 @@ interface EventRepositoryInterface {
         }
     }
     suspend fun addVote(eventId: String, participantId: String, slotId: String, vote: Vote): Result<Boolean>
+    suspend fun commitCompleteBallot(
+        command: PollBallotContract.CommitCompleteBallotCommand
+    ): PollBallotContract.CommitResult = PollBallotContract.CommitResult.Rejected(
+        operationId = command.operationId,
+        failure = PollBallotContract.Failure(
+            PollBallotContract.FailureCode.REPOSITORY_UNAVAILABLE,
+            retryable = true
+        )
+    )
+    suspend fun resolveCompleteBallotOutcome(
+        command: PollBallotContract.CommitCompleteBallotCommand
+    ): PollBallotContract.ResolutionResult = PollBallotContract.ResolutionResult.Unknown(
+        PollBallotContract.Failure(
+            PollBallotContract.FailureCode.REPOSITORY_UNAVAILABLE,
+            retryable = true,
+            commitOutcome = PollBallotContract.CommitOutcome.UNKNOWN
+        )
+    )
+    fun hasCompleteBallot(eventId: String, participantId: String): Boolean = false
     suspend fun updateEvent(event: Event): Result<Event>
     suspend fun updateEventStatus(id: String, status: EventStatus, finalDate: String?): Result<Boolean>
     suspend fun confirmEventDate(
@@ -101,10 +129,17 @@ interface EventRepositoryInterface {
     ): kotlinx.coroutines.flow.Flow<List<Event>>
 }
 
-class EventRepository : EventRepositoryInterface {
+class EventRepository(
+    private val confirmationClock: ConfirmationClock = SystemConfirmationClock,
+    @Suppress("unused") private val constructorMarker: Unit = Unit
+) : EventRepositoryInterface {
+    /** Explicit no-arg constructor retained for Kotlin/Native preview and legacy Swift code. */
+    constructor() : this(SystemConfirmationClock, Unit)
     private val events = mutableMapOf<String, Event>()
     private val polls = mutableMapOf<String, Poll>()
     private val workflowOutbox = mutableListOf<WorkflowOutboxRecord>()
+    private val ballotReceipts = mutableMapOf<String, PollBallotContract.Receipt>()
+    private val ballotMutex = Mutex()
 
     override suspend fun createEvent(event: Event): Result<Event> {
         return try {
@@ -177,6 +212,158 @@ class EventRepository : EventRepositoryInterface {
         
         return Result.success(true)
     }
+
+    override suspend fun commitCompleteBallot(
+        command: PollBallotContract.CommitCompleteBallotCommand
+    ): PollBallotContract.CommitResult = ballotMutex.withLock {
+        if (!PollBallotContract.isValidPollRevision(command.pollRevision)) {
+            return@withLock ballotRejected(command, PollBallotContract.FailureCode.INVALID_POLL_REVISION)
+        }
+        val operationKey = PollBallotContract.operationKey(command)
+        ballotReceipts[operationKey]?.let { receipt ->
+            val replayEnvelope = PollBallotContract.envelope(
+                command.copy(authoritativeDeadlineIso = command.authoritativeDeadlineIso.ifBlank {
+                    receipt.authoritativeDeadlineIso
+                })
+            )
+            return@withLock if (receipt.syncPayload.command == replayEnvelope) {
+                PollBallotContract.CommitResult.AlreadyCommitted(receipt)
+            } else {
+                ballotRejected(command, PollBallotContract.FailureCode.IDEMPOTENCY_CONFLICT)
+            }
+        }
+
+        val event = events[command.eventId]
+            ?: return@withLock ballotRejected(command, PollBallotContract.FailureCode.EVENT_NOT_FOUND)
+        val viewer = if (command.actorId == event.organizerId) {
+            ParticipantAccessState.organizer(command.actorId)
+        } else {
+            getParticipantRecords(command.eventId)
+                ?.firstOrNull { it.userId == command.actorId }
+                ?.let(ParticipantAccessMapper::fromRepositoryRecord)
+                ?: ParticipantAccessState.nonMember(command.actorId)
+        }
+        if (!EventAccessPolicy.canSubmitPollBallot(event, viewer).isAllowed) {
+            return@withLock ballotRejected(command, PollBallotContract.FailureCode.FORBIDDEN)
+        }
+        if (event.status != EventStatus.POLLING) {
+            return@withLock ballotRejected(command, PollBallotContract.FailureCode.INVALID_EVENT_STATUS)
+        }
+        if (event.aggregateRevision != command.pollRevision) {
+            return@withLock ballotRejected(command, PollBallotContract.FailureCode.POLL_REVISION_CONFLICT)
+        }
+        val authoritativeDeadlineIso = command.authoritativeDeadlineIso.ifBlank { event.deadline }
+        if (authoritativeDeadlineIso != event.deadline) {
+            return@withLock ballotRejected(command, PollBallotContract.FailureCode.POLL_REVISION_CONFLICT)
+        }
+        val effectiveCommand = command.copy(authoritativeDeadlineIso = authoritativeDeadlineIso)
+        val envelope = PollBallotContract.envelope(effectiveCommand)
+        val deadline = try {
+            Instant.parse(authoritativeDeadlineIso)
+        } catch (_: Exception) {
+            return@withLock ballotRejected(command, PollBallotContract.FailureCode.INVALID_DEADLINE_ISO)
+        }
+        val acceptedAt = try {
+            confirmationClock.now()
+        } catch (_: Exception) {
+            return@withLock ballotRejected(
+                command,
+                PollBallotContract.FailureCode.CLOCK_UNAVAILABLE,
+                retryable = true
+            )
+        }
+        if (acceptedAt >= deadline) {
+            return@withLock ballotRejected(command, PollBallotContract.FailureCode.DEADLINE_REACHED)
+        }
+
+        PollBallotContract.validateEntries(
+            event.proposedSlots.map { it.id },
+            command.entries
+        )?.let { failure ->
+            return@withLock ballotRejected(command, failure)
+        }
+
+        val poll = polls[command.eventId]
+            ?: return@withLock ballotRejected(
+                command,
+                PollBallotContract.FailureCode.REPOSITORY_UNAVAILABLE,
+                true
+            )
+        val completeVotes = command.entries.associate { it.slotId to it.vote }
+        polls[command.eventId] = poll.copy(votes = poll.votes + (command.actorId to completeVotes))
+        val acceptedAtIso = acceptedAt.toString()
+        val receiptId = "poll-ballot:$operationKey"
+        val syncPayload = PollBallotContract.BallotSyncPayload(
+            localReceiptId = receiptId,
+            command = envelope
+        )
+        val receipt = PollBallotContract.Receipt(
+            receiptId = receiptId,
+            operationId = command.operationId,
+            eventId = command.eventId,
+            actorId = command.actorId,
+            pollRevision = command.pollRevision,
+            ballotFingerprint = envelope.ballotFingerprint,
+            authoritativeDeadlineIso = authoritativeDeadlineIso,
+            acceptedAtIso = acceptedAtIso,
+            syncStatus = PollBallotContract.SyncStatus.LOCAL_PENDING,
+            syncPayload = syncPayload
+        )
+        ballotReceipts[operationKey] = receipt
+        PollBallotContract.CommitResult.Committed(receipt)
+    }
+
+    override suspend fun resolveCompleteBallotOutcome(
+        command: PollBallotContract.CommitCompleteBallotCommand
+    ): PollBallotContract.ResolutionResult = ballotMutex.withLock {
+        val operationKey = runCatching { PollBallotContract.operationKey(command) }.getOrNull()
+            ?: return@withLock PollBallotContract.ResolutionResult.Unknown(
+                PollBallotContract.Failure(
+                    PollBallotContract.FailureCode.INVALID_POLL_REVISION,
+                    retryable = false,
+                    commitOutcome = PollBallotContract.CommitOutcome.UNKNOWN
+                )
+            )
+        val envelope = runCatching { PollBallotContract.envelope(command) }.getOrNull()
+            ?: return@withLock PollBallotContract.ResolutionResult.Unknown(
+                PollBallotContract.Failure(
+                    PollBallotContract.FailureCode.REPOSITORY_INCONSISTENT,
+                    retryable = false,
+                    commitOutcome = PollBallotContract.CommitOutcome.UNKNOWN
+                )
+            )
+        val receipt = ballotReceipts[operationKey]
+        when {
+            receipt == null -> PollBallotContract.ResolutionResult.ProvenNotCommitted(
+                operationKey,
+                envelope.ballotFingerprint
+            )
+            receipt.syncPayload.command == envelope ->
+                PollBallotContract.ResolutionResult.Committed(receipt)
+            else -> PollBallotContract.ResolutionResult.Unknown(
+                PollBallotContract.Failure(
+                    PollBallotContract.FailureCode.REPOSITORY_INCONSISTENT,
+                    retryable = false,
+                    commitOutcome = PollBallotContract.CommitOutcome.UNKNOWN
+                )
+            )
+        }
+    }
+
+    override fun hasCompleteBallot(eventId: String, participantId: String): Boolean {
+        val requiredSlots = events[eventId]?.proposedSlots?.map { it.id }?.toSet() ?: return false
+        val submittedSlots = polls[eventId]?.votes?.get(participantId)?.keys ?: return false
+        return requiredSlots.isNotEmpty() && submittedSlots == requiredSlots
+    }
+
+    private fun ballotRejected(
+        command: PollBallotContract.CommitCompleteBallotCommand,
+        code: PollBallotContract.FailureCode,
+        retryable: Boolean = false
+    ) = PollBallotContract.CommitResult.Rejected(
+        command.operationId,
+        PollBallotContract.Failure(code, retryable)
+    )
 
     override suspend fun updateEvent(event: Event): Result<Event> {
         return try {
@@ -259,18 +446,15 @@ class EventRepository : EventRepositoryInterface {
     }
 
     override fun isDeadlinePassed(deadline: String): Boolean {
-        // Simple string comparison for ISO format (works for UTC "2025-12-31T23:59:59Z")
         return try {
-            deadline < getCurrentUtcIsoString()
-        } catch (e: Exception) {
-            false
+            confirmationClock.now() >= Instant.parse(deadline)
+        } catch (_: Exception) {
+            true
         }
     }
 
     private fun getCurrentUtcIsoString(): String {
-        // For Phase 1, we use a simple approach
-        // In Phase 2, integrate with kotlinx.datetime for full timezone support
-        return "2025-11-12T10:00:00Z" // Use current test date (will be updated with actual time in Phase 2)
+        return confirmationClock.now().toString()
     }
 
     override fun isOrganizer(eventId: String, userId: String): Boolean {

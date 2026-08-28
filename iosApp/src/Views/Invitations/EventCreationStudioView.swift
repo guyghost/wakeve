@@ -46,7 +46,8 @@ final class EventCreationStudioViewModel: ObservableObject {
             database: RepositoryProvider.shared.database
         ),
         syncOwner: any CreationStudioSyncOwner = DatabaseCreationStudioSyncOwner(
-            database: RepositoryProvider.shared.database
+            database: RepositoryProvider.shared.database,
+            syncManager: RepositoryProvider.shared.syncManager
         ),
         stateMachine: CreationStudioStateMachine = CreationStudioStateMachine()
     ) {
@@ -114,6 +115,12 @@ final class EventCreationStudioViewModel: ObservableObject {
         if let state = studioState as? CreationStudioStateCommitting {
             return state.artwork
         }
+        if let state = studioState as? CreationStudioStateDetachedCommitting {
+            return state.artwork
+        }
+        if let state = studioState as? CreationStudioStateDetachedResolving {
+            return state.artwork
+        }
         if let state = studioState as? CreationStudioStateFailedBeforeCommit {
             return state.artwork ?? resolvedArtwork(artworkSelection)
         }
@@ -175,12 +182,14 @@ final class EventCreationStudioViewModel: ObservableObject {
     }
 
     var retryAvailable: Bool {
-        studioState is CreationStudioStateSyncFailed ||
-            studioState is CreationStudioStateFailedBeforeCommit
+        (studioState as? CreationStudioStateSyncFailed)?.retryable == true ||
+            studioState is CreationStudioStateFailedBeforeCommit ||
+            studioState is CreationStudioStateDetachedCommitting
     }
 
     var isPendingSync: Bool {
-        studioState is CreationStudioStatePendingSync
+        studioState is CreationStudioStatePendingSync ||
+            studioState is CreationStudioStateDetachedPendingSync
     }
 
     var primaryActionAvailable: Bool {
@@ -207,6 +216,8 @@ final class EventCreationStudioViewModel: ObservableObject {
         if let state = studioState as? CreationStudioStatePreviewReady { return state.draft }
         if let state = studioState as? CreationStudioStatePreviewing { return state.draft }
         if let state = studioState as? CreationStudioStateCommitting { return state.draft }
+        if let state = studioState as? CreationStudioStateDetachedCommitting { return state.draft }
+        if let state = studioState as? CreationStudioStateDetachedResolving { return state.draft }
         if let state = studioState as? CreationStudioStateFailedBeforeCommit { return state.draft }
         return nil
     }
@@ -310,14 +321,32 @@ final class EventCreationStudioViewModel: ObservableObject {
             return false
         }
         let operationId = "studio-\(UUID().uuidString.lowercased())"
+        let command = makeCommitCommand(
+            previewing: previewing,
+            operationId: operationId
+        )
+        let envelope = StudioCommitEnvelopeFactory.shared.build(command: command)
         studioState = stateMachine.transition(
             state: previewing,
             event: CreationStudioEventConfirmCommit(
                 expectedDraftRevision: previewing.draft.draftRevision,
-                operationId: operationId
+                operationId: operationId,
+                durableOperationRef: envelope.durableOperationRef,
+                requestFingerprint: envelope.requestFingerprint,
+                resolutionRetryBudget: envelope.maxResolutionAttempts,
+                envelope: envelope
             )
         )
         return await executeCommit()
+    }
+
+    /// Closing is a modeled presentation event. An in-flight durable command is detached,
+    /// never cancelled or rewritten by the sheet lifecycle.
+    func close() {
+        studioState = stateMachine.transition(
+            state: studioState,
+            event: CreationStudioEventClose.shared
+        )
     }
 
     func retry() async {
@@ -329,11 +358,18 @@ final class EventCreationStudioViewModel: ObservableObject {
             )
             _ = await executeCommit()
         } else if let failed = studioState as? CreationStudioStateSyncFailed {
-            let binding = CreationStudioSyncBinding(
+            guard let binding = aggregateOwner.loadSyncBinding(
                 eventId: failed.eventId,
-                aggregateRevision: failed.committedRevision,
                 operationId: failed.operationId
-            )
+            ) else {
+                projectRepositoryInconsistentSyncFailure(
+                    eventId: failed.eventId,
+                    committedRevision: failed.committedRevision,
+                    operationId: failed.operationId,
+                    envelope: failed.envelope
+                )
+                return
+            }
             do {
                 let retried = try await syncOwner.retry(binding: binding)
                 consumeSyncResult(retried, binding: binding)
@@ -346,7 +382,33 @@ final class EventCreationStudioViewModel: ObservableObject {
             } catch {
                 consumeSyncFailure(binding, error: .repositoryUnavailable)
             }
+        } else if let detached = studioState as? CreationStudioStateDetachedCommitting {
+            resolveUnknownCommit(detached)
         }
+    }
+
+    private func makeCommitCommand(
+        previewing: CreationStudioStatePreviewing,
+        operationId: String
+    ) -> UpdateDraftAggregateCommand {
+        let expectedBaseRevision: Int64
+        if let edit = previewing.mode as? StudioModeEditExisting {
+            expectedBaseRevision = edit.baseRevision
+        } else {
+            expectedBaseRevision = 0
+        }
+        let resolvedArtwork = previewing.artwork
+        let expectedResultingArtwork = resolvedArtwork
+        return UpdateDraftAggregateCommand(
+            eventId: eventId,
+            actorId: actorId,
+            expectedBaseRevision: expectedBaseRevision,
+            eventDraft: previewing.draft.fields,
+            artwork: expectedResultingArtwork,
+            operationId: operationId,
+            artworkCapability: ArtworkSelectionCapabilityHidden.shared,
+            draftRevision: previewing.draft.draftRevision
+        )
     }
 
     private func executeCommit() async -> Bool {
@@ -364,56 +426,212 @@ final class EventCreationStudioViewModel: ObservableObject {
             eventDraft: committing.draft.fields,
             artwork: committing.artwork,
             operationId: committing.operationId,
-            artworkCapability: ArtworkSelectionCapabilityHidden.shared
+            artworkCapability: ArtworkSelectionCapabilityHidden.shared,
+            draftRevision: committing.draft.draftRevision
         )
+        let envelope = StudioCommitEnvelopeFactory.shared.build(command: command)
+        guard envelope.durableOperationRef == committing.durableOperationRef,
+              envelope.requestFingerprint == committing.requestFingerprint else { return false }
         do {
             let result = try await aggregateOwner.execute(command: command)
             if let committed = result as? UpdateDraftAggregateResultCommitted {
                 persistedEvent = repository.getEvent(id: committed.eventId)
-                studioState = stateMachine.transition(
-                    state: committing,
-                    event: CreationStudioEventLocalCommit(
+                let commitEvent: any CreationStudioEvent
+                if studioState is CreationStudioStateDetachedCommitting ||
+                    studioState is CreationStudioStateDetachedResolving {
+                    commitEvent = CreationStudioEventLateLocalCommit(
                         eventId: committed.eventId,
                         draftRevision: committing.draft.draftRevision,
                         committedRevision: committed.committedRevision,
                         operationId: committed.operationId,
                         pendingSync: committed.pendingSync
                     )
+                } else {
+                    commitEvent = CreationStudioEventLocalCommit(
+                        eventId: committed.eventId,
+                        draftRevision: committing.draft.draftRevision,
+                        committedRevision: committed.committedRevision,
+                        operationId: committed.operationId,
+                        pendingSync: committed.pendingSync
+                    )
+                }
+                studioState = stateMachine.transition(
+                    state: studioState,
+                    event: commitEvent
                 )
                 if committed.pendingSync {
-                    let binding = CreationStudioSyncBinding(
+                    guard let binding = aggregateOwner.loadSyncBinding(
+                        eventId: committed.eventId,
+                        operationId: committed.operationId
+                    ) else {
+                        projectRepositoryInconsistentSyncFailure(
                             eventId: committed.eventId,
-                            aggregateRevision: committed.committedRevision,
-                            operationId: committed.operationId
+                            committedRevision: committed.committedRevision,
+                            operationId: committed.operationId,
+                            envelope: envelope
                         )
+                        return false
+                    }
                     syncObservationTask?.cancel()
                     syncObservationTask = Task { [weak self] in
                         await self?.observeSync(binding)
                     }
                 }
                 return studioState is CreationStudioStatePendingSync ||
+                    studioState is CreationStudioStateDetachedPendingSync ||
                     studioState is CreationStudioStateCompleted
             } else if let rejected = result as? UpdateDraftAggregateResultRejected {
+                if studioState is CreationStudioStateDetachedCommitting ||
+                    studioState is CreationStudioStateDetachedResolving {
+                    if let detached = studioState as? CreationStudioStateDetachedCommitting {
+                        resolveProvenNonCommit(detached)
+                    }
+                } else {
+                    studioState = stateMachine.transition(
+                        state: studioState,
+                        event: CreationStudioEventFailBeforeLocalCommit(
+                            draftRevision: committing.draft.draftRevision,
+                            operationId: committing.operationId,
+                            error: rejected.error
+                        )
+                    )
+                }
+            } else if result is UpdateDraftAggregateResultOutcomeUnknown {
                 studioState = stateMachine.transition(
-                    state: committing,
-                    event: CreationStudioEventFailBeforeLocalCommit(
+                    state: studioState,
+                    event: CreationStudioEventOutcomeUnknown(
                         draftRevision: committing.draft.draftRevision,
                         operationId: committing.operationId,
-                        error: rejected.error
+                        retryable: true
                     )
                 )
+                if let detached = studioState as? CreationStudioStateDetachedCommitting {
+                    resolveUnknownCommit(detached)
+                }
             }
             return false
         } catch {
             studioState = stateMachine.transition(
-                state: committing,
-                event: CreationStudioEventFailBeforeLocalCommit(
+                state: studioState,
+                event: CreationStudioEventOutcomeUnknown(
                     draftRevision: committing.draft.draftRevision,
                     operationId: committing.operationId,
-                    error: .repositoryUnavailable
+                    retryable: true
                 )
             )
+            if let detached = studioState as? CreationStudioStateDetachedCommitting {
+                resolveUnknownCommit(detached)
+            }
             return false
+        }
+    }
+
+    private func beginResolutionAttempt(
+        _ detached: CreationStudioStateDetachedCommitting
+    ) -> (attemptId: String, fence: Int32)? {
+        let attemptId = "studio-resolution-\(UUID().uuidString.lowercased())"
+        let fence = detached.resolutionAttempt + 1
+        studioState = stateMachine.transition(
+            state: studioState,
+            event: CreationStudioEventRetryResolution(
+                draftRevision: detached.draft.draftRevision,
+                operationId: detached.operationId,
+                attemptId: attemptId,
+                fence: fence
+            )
+        )
+        guard let resolving = studioState as? CreationStudioStateDetachedResolving,
+              resolving.attemptId == attemptId,
+              resolving.fence == fence else { return nil }
+        return (attemptId, fence)
+    }
+
+    private func resolveProvenNonCommit(_ detached: CreationStudioStateDetachedCommitting) {
+        guard let attempt = beginResolutionAttempt(detached) else { return }
+        studioState = stateMachine.transition(
+            state: studioState,
+            event: CreationStudioEventResolutionResult(
+                draftRevision: detached.draft.draftRevision,
+                operationId: detached.operationId,
+                outcome: .provenNotCommitted,
+                eventId: nil,
+                committedRevision: nil,
+                pendingSync: false,
+                attemptId: attempt.attemptId,
+                fence: attempt.fence
+            )
+        )
+    }
+
+    private func resolveUnknownCommit(_ detached: CreationStudioStateDetachedCommitting) {
+        guard let attempt = beginResolutionAttempt(detached) else { return }
+        let receipt = database.invitationExperienceQueries
+            .selectOperationReceiptByOperationId(operation_id: detached.operationId)
+            .executeAsOneOrNull()
+        let commitEnvelopePayload = receipt?.commit_envelope
+        let commitEnvelope: StudioCommitEnvelope? = receipt.flatMap {
+            aggregateOwner.loadCommitEnvelope(eventId: $0.event_id, operationId: $0.operation_id)
+        }
+        let syncMetadata = database.syncMetadataQueries
+            .selectById(id: "studio:\(detached.operationId)")
+            .executeAsOneOrNull()
+        let pendingSubject: StudioPendingSyncSubject? = receipt.flatMap {
+            aggregateOwner.loadPendingSyncSubject(eventId: $0.event_id, operationId: $0.operation_id)
+        }
+        let isCorrelatedCommit = receipt?.event_id == eventId &&
+            receipt?.actor_id == actorId &&
+            receipt?.action == "UPDATE_DRAFT_AGGREGATE" &&
+            (receipt?.status == "PENDING_SYNC" || receipt?.status == "COMMITTED") &&
+            receipt?.durable_operation_ref == detached.durableOperationRef &&
+            receipt?.request_fingerprint == detached.requestFingerprint &&
+            commitEnvelopePayload?.isEmpty == false &&
+            commitEnvelope?.identity.operationId == detached.operationId &&
+            commitEnvelope?.requestPayload.subject.eventId == eventId &&
+            commitEnvelope?.requestPayload.actorId == actorId &&
+            commitEnvelope?.durableOperationRef == detached.durableOperationRef &&
+            commitEnvelope?.requestFingerprint == detached.requestFingerprint &&
+            syncMetadata?.entityType == "event" &&
+            syncMetadata?.entityId == eventId &&
+            syncMetadata?.payload.isEmpty == false &&
+            pendingSubject?.eventId == eventId &&
+            pendingSubject?.localReceiptId == detached.operationId &&
+            pendingSubject?.committedRevision == receipt?.aggregate_revision &&
+            pendingSubject?.envelope.durableOperationRef == detached.durableOperationRef &&
+            pendingSubject?.envelope.requestFingerprint == detached.requestFingerprint
+        if isCorrelatedCommit, let receipt {
+            persistedEvent = repository.getEvent(id: receipt.event_id)
+            studioState = stateMachine.transition(
+                state: studioState,
+                event: CreationStudioEventResolutionResult(
+                    draftRevision: detached.draft.draftRevision,
+                    operationId: detached.operationId,
+                    outcome: .localCommitted,
+                    eventId: receipt.event_id,
+                    committedRevision: KotlinLong(value: receipt.aggregate_revision),
+                    pendingSync: true,
+                    attemptId: attempt.attemptId,
+                    fence: attempt.fence
+                )
+            )
+            if let pending = studioState as? CreationStudioStateDetachedPendingSync {
+                syncObservationTask?.cancel()
+                syncObservationTask = Task { [weak self] in
+                    await self?.observeSync(pending.binding)
+                }
+            }
+        } else {
+            let repositoryInconsistent = PollBallotContract.FailureCode.repositoryInconsistent
+            _ = repositoryInconsistent
+            studioState = stateMachine.transition(
+                state: studioState,
+                event: CreationStudioEventRepositoryInconsistent(
+                    draftRevision: detached.draft.draftRevision,
+                    operationId: detached.operationId,
+                    attemptId: attempt.attemptId,
+                    fence: attempt.fence,
+                    retryable: false
+                )
+            )
         }
     }
 
@@ -438,6 +656,33 @@ final class EventCreationStudioViewModel: ObservableObject {
 
     private func restorePersistedSync() async {
         guard let persistedEvent else { return }
+        func repositoryInconsistent(operationId: String, committedRevision: Int64) {
+            let stableCode = PollBallotContract.FailureCode.repositoryInconsistent
+            _ = stableCode
+            let terminal = CreationStudioStateSyncFailed(
+                eventId: eventId,
+                committedRevision: committedRevision,
+                operationId: operationId,
+                error: .commitOutcomeUnknown,
+                retryable: false,
+                code: .repositoryInconsistent,
+                commitOutcome: .unknown,
+                envelope: nil
+            )
+            let reduced = stateMachine.transition(
+                state: studioState,
+                event: CreationStudioEventSyncFailed(
+                    eventId: eventId,
+                    committedRevision: committedRevision,
+                    operationId: operationId,
+                    error: .commitOutcomeUnknown,
+                    retryable: false,
+                    code: .repositoryInconsistent,
+                    commitOutcome: .unknown
+                )
+            )
+            studioState = reduced is CreationStudioStateSyncFailed ? reduced : terminal
+        }
         let receipts = database.invitationExperienceQueries
             .selectOperationReceiptsByEventId(event_id: eventId)
             .executeAsList()
@@ -450,17 +695,34 @@ final class EventCreationStudioViewModel: ObservableObject {
         let sync = database.syncMetadataQueries
             .selectById(id: "studio:\(receipt.operation_id)")
             .executeAsOneOrNull()
-        guard sync?.synced == 0 else { return }
+        guard let sync else {
+            repositoryInconsistent(
+                operationId: receipt.operation_id,
+                committedRevision: receipt.aggregate_revision
+            )
+            return
+        }
+        guard sync.synced == 0 else { return }
 
-        let binding = CreationStudioSyncBinding(
+        guard let binding = aggregateOwner.loadSyncBinding(
             eventId: eventId,
-            aggregateRevision: receipt.aggregate_revision,
             operationId: receipt.operation_id
-        )
-        studioState = CreationStudioStatePendingSync(
+        ), let envelope = aggregateOwner.loadCommitEnvelope(
+            eventId: eventId,
+            operationId: receipt.operation_id
+        ) else {
+            repositoryInconsistent(
+                operationId: receipt.operation_id,
+                committedRevision: receipt.aggregate_revision
+            )
+            return
+        }
+        studioState = CreationStudioStateDetachedPendingSync(
             eventId: binding.eventId,
             committedRevision: binding.aggregateRevision,
-            operationId: binding.operationId
+            operationId: binding.operationId,
+            binding: binding,
+            envelope: envelope
         )
         await observeSync(binding)
     }
@@ -485,7 +747,13 @@ final class EventCreationStudioViewModel: ObservableObject {
                 )
             )
         } else if let failed = result as? CreationStudioSyncResultFailed {
-            consumeSyncFailure(binding, error: failed.error)
+            consumeSyncFailure(
+                binding,
+                error: failed.error,
+                retryable: failed.retryable,
+                code: failed.code,
+                commitOutcome: failed.commitOutcome
+            )
         } else if result is CreationStudioSyncResultPending,
                   let failed = studioState as? CreationStudioStateSyncFailed {
             studioState = stateMachine.transition(
@@ -501,7 +769,10 @@ final class EventCreationStudioViewModel: ObservableObject {
 
     private func consumeSyncFailure(
         _ binding: CreationStudioSyncBinding,
-        error: InvitationExperienceError
+        error: InvitationExperienceError,
+        retryable: Bool = true,
+        code: PollBallotContract.FailureCode? = nil,
+        commitOutcome: PollBallotContract.CommitOutcome? = nil
     ) {
         studioState = stateMachine.transition(
             state: studioState,
@@ -509,9 +780,42 @@ final class EventCreationStudioViewModel: ObservableObject {
                 eventId: binding.eventId,
                 committedRevision: binding.aggregateRevision,
                 operationId: binding.operationId,
-                error: error
+                error: error,
+                retryable: retryable,
+                code: code,
+                commitOutcome: commitOutcome
             )
         )
+    }
+
+    private func projectRepositoryInconsistentSyncFailure(
+        eventId: String,
+        committedRevision: Int64,
+        operationId: String,
+        envelope: StudioCommitEnvelope?
+    ) {
+        let event = CreationStudioEventSyncFailed(
+            eventId: eventId,
+            committedRevision: committedRevision,
+            operationId: operationId,
+            error: .commitOutcomeUnknown,
+            retryable: false,
+            code: .repositoryInconsistent,
+            commitOutcome: .unknown
+        )
+        let reduced = stateMachine.transition(state: studioState, event: event)
+        studioState = reduced is CreationStudioStateSyncFailed
+            ? reduced
+            : CreationStudioStateSyncFailed(
+                eventId: eventId,
+                committedRevision: committedRevision,
+                operationId: operationId,
+                error: .commitOutcomeUnknown,
+                retryable: false,
+                code: .repositoryInconsistent,
+                commitOutcome: .unknown,
+                envelope: envelope
+            )
     }
 
     private func resolvedArtwork(_ selection: StudioArtworkSelection) -> any Artwork {
@@ -562,7 +866,7 @@ final class EventCreationStudioViewModel: ObservableObject {
         return Event(
             id: eventId,
             title: fields.title,
-            description: fields.description,
+            description: fields.description_,
             organizerId: stored?.organizerId ?? actorId,
             participants: stored?.participants ?? [actorId],
             proposedSlots: fields.proposedSlots,
@@ -725,7 +1029,10 @@ struct EventCreationStudioView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(String(localized: "common.cancel"), action: onCancel)
+                    Button(String(localized: "common.cancel")) {
+                        viewModel.close()
+                        onCancel()
+                    }
                 }
             }
             .safeAreaInset(edge: .bottom) {

@@ -218,7 +218,9 @@ struct PollResultsContentView: View {
                     VStack(spacing: 16) {
                         if event.status == .confirmed, let finalDate = event.finalDate {
                             // Confirmed State
-                            let finalSlot = event.proposedSlots.first { $0.id == finalDate }
+                            let finalSlot = event.proposedSlots.first {
+                                $0.id == finalDate || $0.start == finalDate
+                            }
                             ConfirmedDateCard(event: event, finalSlot: finalSlot)
                             if let finalSlot {
                                 PollDecisionAnnouncementCard(event: event, slot: finalSlot, isConfirmed: true)
@@ -605,7 +607,8 @@ struct PollDecisionAnnouncementCard: View {
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassCard(cornerRadius: 20)
-        .accessibilityIdentifier("pollDecisionAnnouncementCard")
+        .accessibilityElement(children: .contain)
+        .invitationAccessibilityIdentifier("pollDecisionAnnouncementCard")
     }
 
     private func copyAnnouncementMessage() {

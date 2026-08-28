@@ -1,6 +1,8 @@
 package com.guyghost.wakeve.models
 
 import com.guyghost.wakeve.auth.UserRole
+import com.guyghost.wakeve.poll.PollBallotContract
+import com.guyghost.wakeve.invitationexperience.StudioSyncAck
 import kotlinx.serialization.Serializable
 
 /**
@@ -175,7 +177,11 @@ data class SyncResponse(
      * confirmation producers can correlate one accepted decision without inferring that
      * other changes in the batch were acknowledged.
      */
-    val confirmationAcknowledgements: List<ConfirmationEnvelopeAcknowledgement> = emptyList()
+    val confirmationAcknowledgements: List<ConfirmationEnvelopeAcknowledgement> = emptyList(),
+    /** Exact ACKs for complete ballot envelopes; generic batch success is not an ACK. */
+    val ballotAcknowledgements: List<PollBallotContract.BallotServerAck> = emptyList(),
+    /** Exact ACKs for durable Studio commit envelopes; batch success alone is inert. */
+    val studioAcknowledgements: List<StudioSyncAck> = emptyList()
 )
 
 /** Durable backend acknowledgement for one locally committed confirmation envelope. */
@@ -197,7 +203,9 @@ data class SyncConflict(
     val recordId: String,
     val clientData: String,
     val serverData: String,
-    val resolution: String  // "CLIENT_WINS", "SERVER_WINS", "MERGE"
+    val resolution: String,  // "CLIENT_WINS", "SERVER_WINS", "MERGE"
+    val code: String? = null,
+    val retryable: Boolean? = null
 )
 
 /**

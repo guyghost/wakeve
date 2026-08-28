@@ -60,6 +60,9 @@ DELETE FROM vote WHERE id = ?;
 deleteByEventId:
 DELETE FROM vote WHERE eventId = ?;
 
+deleteByEventAndParticipant:
+DELETE FROM vote WHERE eventId = ? AND participantId = ?;
+
 deleteByTimeslotId:
 DELETE FROM vote WHERE timeslotId = ?;
 

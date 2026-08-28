@@ -70,7 +70,10 @@ class DatabaseEventRepositoryConfirmDateTest {
         val confirmedDate = db.confirmedDateQueries
             .selectByEventId(event.id)
             .executeAsOne()
-        assertEquals(selectedSecondSlot.id, confirmedDate.timeslotId)
+        assertEquals(
+            TimeSlotStorageIdentity.physicalId(event.id, selectedSecondSlot.id),
+            confirmedDate.timeslotId
+        )
         assertEquals(event.organizerId, confirmedDate.confirmedByOrganizerId)
 
         val storedEvent = db.eventQueries.selectById(event.id).executeAsOne()
@@ -95,7 +98,10 @@ class DatabaseEventRepositoryConfirmDateTest {
 
         assertIs<EventManagementContract.ConfirmationResult.Committed>(result)
         assertEquals(EventStatus.CONFIRMED, repository.getEvent(event.id)?.status)
-        assertEquals("slot-selected", db.confirmedDateQueries.selectByEventId(event.id).executeAsOne().timeslotId)
+        assertEquals(
+            TimeSlotStorageIdentity.physicalId(event.id, "slot-selected"),
+            db.confirmedDateQueries.selectByEventId(event.id).executeAsOne().timeslotId
+        )
         assertEquals(1, durableRowCount("confirmation_effect_outbox", "eventId", event.id))
         assertEquals(
             "poll-date-confirmed:${event.id}:slot-selected:v1",
@@ -235,7 +241,10 @@ class DatabaseEventRepositoryConfirmDateTest {
             EventManagementContract.ConfirmationFailureCode.ALREADY_CONFIRMED_DIFFERENT_SLOT,
             typedConflict.failure.code
         )
-        assertEquals("slot-selected", db.confirmedDateQueries.selectByEventId(event.id).executeAsOne().timeslotId)
+        assertEquals(
+            TimeSlotStorageIdentity.physicalId(event.id, "slot-selected"),
+            db.confirmedDateQueries.selectByEventId(event.id).executeAsOne().timeslotId
+        )
         assertEquals(originalStatus, repository.getEvent(event.id)?.status)
         assertEquals(originalSyncCount, confirmationSyncRows(db, event.id).size)
         assertEquals(originalOutboxCount, durableRowCount("confirmation_effect_outbox", "eventId", event.id))
@@ -405,7 +414,7 @@ class DatabaseEventRepositoryConfirmDateTest {
         database.voteQueries.insertVote(
             id = "vote-${event.id}-$slotId",
             eventId = event.id,
-            timeslotId = slotId,
+            timeslotId = TimeSlotStorageIdentity.physicalId(event.id, slotId),
             participantId = "org_${event.id}",
             vote = "YES",
             createdAt = "2026-07-09T19:23:45Z",

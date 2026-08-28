@@ -5,6 +5,7 @@ import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.TimeSlot
+import com.guyghost.wakeve.repository.TimeSlotStorageIdentity
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -54,7 +55,10 @@ class DatabaseUpdateDraftAggregateUseCaseContractTest {
         assertEquals("Updated event", text(fixture.driver, "SELECT title FROM event WHERE id = 'event-1'"))
         assertEquals(5L, number(fixture.driver, "SELECT aggregateRevision FROM event WHERE id = 'event-1'"))
         assertEquals(1L, number(fixture.driver, "SELECT COUNT(*) FROM timeSlot WHERE eventId = 'event-1'"))
-        assertEquals("slot-new", text(fixture.driver, "SELECT id FROM timeSlot WHERE eventId = 'event-1'"))
+        assertEquals(
+            TimeSlotStorageIdentity.physicalId("event-1", "slot-new"),
+            text(fixture.driver, "SELECT id FROM timeSlot WHERE eventId = 'event-1'")
+        )
         assertEquals("STRUCTURED", text(fixture.driver, "SELECT kind FROM event_artwork WHERE event_id = 'event-1'"))
         assertEquals("weekend", text(fixture.driver, "SELECT preset_id FROM event_artwork WHERE event_id = 'event-1'"))
         assertEquals(

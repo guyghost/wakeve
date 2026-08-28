@@ -73,9 +73,9 @@ class OfflineOnlineIntegrationTest {
             organizerId = "user-1",
             participants = listOf("user-1"),
             proposedSlots = listOf(
-                com.guyghost.wakeve.models.TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
+                com.guyghost.wakeve.models.TimeSlot("slot-1", "2099-12-01T10:00:00Z", "2099-12-01T12:00:00Z", "UTC")
             ),
-            deadline = "2025-11-25T18:00:00Z",
+            deadline = "2099-11-25T18:00:00Z",
             status = com.guyghost.wakeve.models.EventStatus.DRAFT,
             createdAt = now,
             updatedAt = now

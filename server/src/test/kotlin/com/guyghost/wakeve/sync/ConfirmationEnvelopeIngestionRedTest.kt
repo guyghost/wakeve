@@ -12,6 +12,7 @@ import com.guyghost.wakeve.models.SyncRequest
 import com.guyghost.wakeve.models.TimeOfDay
 import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.repository.DatabaseEventRepository
+import com.guyghost.wakeve.repository.TimeSlotStorageIdentity
 import kotlinx.coroutines.runBlocking
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -154,7 +155,7 @@ class ConfirmationEnvelopeIngestionRedTest {
         assertTrue(response.conflicts.isEmpty(), response.conflicts.toString())
         assertEquals(EventStatus.CONFIRMED, DatabaseEventRepository(database).getEvent(EVENT_ID)?.status)
         assertEquals(
-            SLOT_ID,
+            TimeSlotStorageIdentity.physicalId(EVENT_ID, SLOT_ID),
             database.confirmedDateQueries.selectByEventId(EVENT_ID).executeAsOne().timeslotId,
             "The server must persist the exact selected slot before accepting its envelope"
         )
@@ -217,7 +218,7 @@ class ConfirmationEnvelopeIngestionRedTest {
         database.confirmedDateQueries.insertConfirmedDate(
             id = "confirmed-$EVENT_ID",
             eventId = EVENT_ID,
-            timeslotId = confirmedSlotId,
+            timeslotId = TimeSlotStorageIdentity.physicalId(EVENT_ID, confirmedSlotId),
             confirmedByOrganizerId = ORGANIZER_ID,
             confirmedAt = CREATED_AT,
             updatedAt = CREATED_AT

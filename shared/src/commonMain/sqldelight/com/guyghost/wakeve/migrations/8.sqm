@@ -226,14 +226,14 @@ SELECT
     updatedAt
 FROM invitation_event_artwork_source
 WHERE heroImageUrl IS NOT NULL
-  AND NOT (
+  AND (
       (
-          heroImageUrl LIKE 'https://cdn.wakeve.app/%'
-          OR heroImageUrl LIKE 'https://api.wakeve.app/%'
+          heroImageUrl NOT LIKE 'https://cdn.wakeve.app/%'
+          AND heroImageUrl NOT LIKE 'https://api.wakeve.app/%'
       )
-      AND instr(heroImageUrl, '@') = 0
-      AND instr(heroImageUrl, '?') = 0
-      AND instr(heroImageUrl, '#') = 0
+      OR instr(heroImageUrl, '@') != 0
+      OR instr(heroImageUrl, '?') != 0
+      OR instr(heroImageUrl, '#') != 0
   );
 
 DROP TABLE invitation_event_artwork_source;

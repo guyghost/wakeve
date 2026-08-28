@@ -476,7 +476,24 @@ struct VoteOptionCard: View {
     let title: String
     let subtitle: String
     let isSelected: Bool
+    let isDisabled: Bool
     let action: () -> Void
+
+    init(
+        vote: PollVote,
+        title: String,
+        subtitle: String,
+        isSelected: Bool,
+        isDisabled: Bool = false,
+        action: @escaping () -> Void
+    ) {
+        self.vote = vote
+        self.title = title
+        self.subtitle = subtitle
+        self.isSelected = isSelected
+        self.isDisabled = isDisabled
+        self.action = action
+    }
 
     var body: some View {
         Button(action: action) {
@@ -515,9 +532,13 @@ struct VoteOptionCard: View {
             .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.xl, style: .continuous))
         }
         .buttonStyle(.plain)
+        .disabled(isDisabled)
         .scaleEffect(isSelected && !reduceMotion ? 1.018 : 1)
         .animation(reduceMotion ? nil : WakeveTheme.Motion.confirmationSpring, value: isSelected)
         .accessibilityElement(children: .combine)
+        .accessibilityValue(
+            isDisabled ? String(localized: "poll.voting.closed") : ""
+        )
     }
 
     private var icon: String {

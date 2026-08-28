@@ -4,11 +4,43 @@ import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import com.guyghost.wakeve.database.WakeveDb
 import kotlinx.coroutines.test.runTest
+import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 class CreationStudioSyncOwnerRedTest {
+
+    @Test
+    fun `persisted studio sync envelope keeps the original durable operation and fingerprint`() {
+        val source = invitationContractsSource()
+        val binding = source.substringAfter("data class CreationStudioSyncBinding(")
+            .substringBefore("sealed interface CreationStudioSyncResult")
+
+        assertTrue(
+            binding.contains("durableOperationRef") && binding.contains("requestFingerprint"),
+            "Rehydration must carry the exact durable operation reference and request fingerprint, not rebuild them from operationId."
+        )
+    }
+
+    @Test
+    fun `studio pending sync is dispatched and acknowledged through SyncManager rather than SQL retry flags`() {
+        val source = invitationContractsSource()
+        val owner = source.substringAfter("class DatabaseCreationStudioSyncOwner(")
+            .substringBefore("class DatabaseUpdateDraftAggregateUseCase")
+
+        assertTrue(owner.contains("SyncManager"), "Studio needs the real transport owner for dispatch and correlated ACK.")
+        assertTrue(
+            owner.contains("triggerSync") || owner.contains("retryPending") || owner.contains("dispatch"),
+            "PENDING_SYNC must be a successful local commit whose retry performs an actual transport dispatch."
+        )
+        assertFalse(
+            owner.contains("retryStudioSyncSubject"),
+            "Changing syncMetadata flags manually is not dispatch and cannot prove a server acknowledgement."
+        )
+    }
 
     @Test
     fun `observe requires exact receipt and sync subject before pending or completed`() = runTest {
@@ -101,6 +133,15 @@ class CreationStudioSyncOwnerRedTest {
         aggregateRevision = 5,
         operationId = "operation-1"
     )
+
+    private fun invitationContractsSource(): String {
+        val candidates = listOf(
+            File("src/commonMain/kotlin/com/guyghost/wakeve/invitationexperience/InvitationExperiencePublicContracts.kt"),
+            File("shared/src/commonMain/kotlin/com/guyghost/wakeve/invitationexperience/InvitationExperiencePublicContracts.kt")
+        )
+        return candidates.firstOrNull(File::isFile)?.readText()
+            ?: error("InvitationExperiencePublicContracts.kt not found")
+    }
 
     private fun fixture(): Fixture {
         val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)

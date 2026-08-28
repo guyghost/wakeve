@@ -89,13 +89,16 @@ struct EventArchiveView: View {
     @StateObject private var viewModel: EventArchiveViewModel
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    let onReturn: () -> Void
 
     init(
         eventId: String,
         viewerId: String = "",
         repository: DatabaseEventRepository = RepositoryProvider.shared.databaseRepository,
-        database: WakeveDb = RepositoryProvider.shared.database
+        database: WakeveDb = RepositoryProvider.shared.database,
+        onReturn: @escaping () -> Void = {}
     ) {
+        self.onReturn = onReturn
         _viewModel = StateObject(
             wrappedValue: EventArchiveViewModel(
                 eventId: eventId,
@@ -184,6 +187,13 @@ struct EventArchiveView: View {
             }
             .navigationTitle(String(localized: "invitation.archive.title"))
             .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(action: onReturn) {
+                        Label(String(localized: "common.back"), systemImage: "chevron.left")
+                            .frame(minWidth: 44, minHeight: 44)
+                    }
+                    .invitationAccessibilityIdentifier("eventArchiveReturnAction")
+                }
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         Task { await viewModel.reload() }
