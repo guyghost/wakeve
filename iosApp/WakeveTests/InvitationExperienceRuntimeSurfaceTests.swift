@@ -186,6 +186,9 @@ final class InvitationExperienceRuntimeSurfaceTests: XCTestCase {
         )
         let committed = try XCTUnwrap(result as? UpdateDraftAggregateResultCommitted)
         XCTAssertTrue(committed.pendingSync)
+        let expectedBinding = try XCTUnwrap(
+            aggregateOwner.loadSyncBinding(eventId: event.id, operationId: operationId)
+        )
 
         let relaunched = EventCreationStudioViewModel(
             eventId: event.id,
@@ -200,14 +203,19 @@ final class InvitationExperienceRuntimeSurfaceTests: XCTestCase {
                 syncManager: nil
             )
         )
-        for _ in 0..<20 where !(relaunched.studioState is CreationStudioStatePendingSync) {
+        for _ in 0..<20 where !(relaunched.studioState is CreationStudioStateDetachedPendingSync) {
             try await Task.sleep(nanoseconds: 10_000_000)
         }
 
-        let pending = try XCTUnwrap(relaunched.studioState as? CreationStudioStatePendingSync)
+        let pending = try XCTUnwrap(relaunched.studioState as? CreationStudioStateDetachedPendingSync)
         XCTAssertEqual(pending.eventId, event.id)
         XCTAssertEqual(pending.committedRevision, committed.committedRevision)
         XCTAssertEqual(pending.operationId, operationId)
+        XCTAssertEqual(pending.binding.eventId, expectedBinding.eventId)
+        XCTAssertEqual(pending.binding.aggregateRevision, expectedBinding.aggregateRevision)
+        XCTAssertEqual(pending.binding.operationId, expectedBinding.operationId)
+        XCTAssertEqual(pending.binding.durableOperationRef, expectedBinding.durableOperationRef)
+        XCTAssertEqual(pending.binding.requestFingerprint, expectedBinding.requestFingerprint)
     }
 
     func testStudioKeepsPreviewDisabledForAnInvalidEmptyDraft() {

@@ -855,15 +855,18 @@ final class InvitationExperienceSurfaceContractTests: XCTestCase {
             from: "private func consumeSyncResult",
             to: "private func consumeSyncFailure"
         )
+        let repositoryInconsistentProjection = sourceSlice(
+            studio,
+            from: "private func projectRepositoryInconsistentSyncFailure",
+            to: "private func resolvedArtwork"
+        )
 
         XCTAssertFalse(
             pendingBindingLoad.contains("else { return false }"),
             "A committed PendingSync with a missing/malformed binding cannot silently return and remain pending."
         )
         XCTAssertTrue(
-            pendingBindingLoad.contains("repositoryInconsistent") ||
-                (pendingBindingLoad.contains("commitOutcomeUnknown") &&
-                    pendingBindingLoad.contains("retryable: false")),
+            pendingBindingLoad.contains("projectRepositoryInconsistentSyncFailure"),
             "The first failed binding load must project terminal REPOSITORY_INCONSISTENT / UNKNOWN."
         )
         XCTAssertFalse(
@@ -871,10 +874,15 @@ final class InvitationExperienceSurfaceContractTests: XCTestCase {
             "Retry must not silently abandon a missing or corrupt durable binding."
         )
         XCTAssertTrue(
-            retryBindingLoad.contains("repositoryInconsistent") ||
-                (retryBindingLoad.contains("commitOutcomeUnknown") &&
-                    retryBindingLoad.contains("retryable: false")),
+            retryBindingLoad.contains("projectRepositoryInconsistentSyncFailure"),
             "A retry-time binding failure must become the same terminal inconsistency."
+        )
+        XCTAssertTrue(
+            repositoryInconsistentProjection.contains("error: .commitOutcomeUnknown") &&
+                repositoryInconsistentProjection.contains("retryable: false") &&
+                repositoryInconsistentProjection.contains("code: .repositoryInconsistent") &&
+                repositoryInconsistentProjection.contains("commitOutcome: .unknown"),
+            "The shared projection helper must emit the complete terminal inconsistency tuple."
         )
         XCTAssertTrue(
             resultConsumption.contains("failed.code") &&
