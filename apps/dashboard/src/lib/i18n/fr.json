@@ -458,7 +458,29 @@
   "settings": {
     "title": "Paramètres",
     "language": "Langue et région",
-    "notifications": "Notifications",
+    "notifications": {
+      "title": "Notifications",
+      "subtitle": "Choisissez les types de notifications que vous souhaitez recevoir.",
+      "loading": "Chargement des préférences...",
+      "errors": {
+        "load": "Impossible de charger les préférences de notification.",
+        "save": "Échec de l'enregistrement. Modifications annulées."
+      },
+      "types": {
+        "EVENT_INVITE": "Invitation événement",
+        "VOTE_REMINDER": "Rappel de vote",
+        "VOTE_CLOSE_REMINDER": "Fin de vote imminente",
+        "DEADLINE_REMINDER": "Rappel d'échéance",
+        "DATE_CONFIRMED": "Date confirmée",
+        "NEW_SCENARIO": "Nouvelle option",
+        "SCENARIO_SELECTED": "Option retenue",
+        "NEW_COMMENT": "Nouveau commentaire",
+        "MENTION": "Mention",
+        "MEETING_REMINDER": "Rappel réunion",
+        "PAYMENT_DUE": "Paiement dû",
+        "EVENT_UPDATE": "Mise à jour événement"
+      }
+    },
     "account": "Compte",
     "dangerZone": "Zone dangereuse",
     "deleteAccount": "Supprimer mon compte",
