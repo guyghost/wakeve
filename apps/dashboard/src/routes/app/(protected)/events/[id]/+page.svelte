@@ -10,6 +10,7 @@
   import Spinner from '$lib/components/atoms/Spinner.svelte'
   import PollPanel from '$lib/components/organisms/PollPanel.svelte'
   import CommentPanel from '$lib/components/organisms/CommentPanel.svelte'
+  import BudgetPanel from '$lib/components/organisms/BudgetPanel.svelte'
   import ErrorBanner from '$lib/components/ui/ErrorBanner.svelte'
   import SkeletonBlock from '$lib/components/ui/SkeletonBlock.svelte'
   import { EVENT_TYPE_ICONS, EVENT_TYPE_LABELS } from '$lib/utils/event-type'
@@ -33,7 +34,8 @@
   const tabs: { key: DetailTab; label: string }[] = [
     { key: 'info', label: 'Infos' },
     { key: 'poll', label: 'Sondage' },
-    { key: 'comments', label: 'Commentaires' }
+    { key: 'comments', label: 'Commentaires' },
+    { key: 'budget', label: 'Budget' }
   ]
 
   function switchTab(tab: DetailTab) {
@@ -224,6 +226,13 @@
           onaddcomment={handleAddComment}
           commenterror={ctx.commentError}
           iscommenting={stateValue === 'addingComment'}
+        />
+
+      <!-- Budget tab -->
+      {:else if ctx.activeTab === 'budget'}
+        <BudgetPanel
+          eventId={event.id}
+          canManage={event.organizerId === currentUserId && event.status === 'ORGANIZING'}
         />
       {/if}
     </div>
