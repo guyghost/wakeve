@@ -410,6 +410,4 @@ if (initialEvent != null) {
 ## Related Documentation
 
 - [State Machine Integration Guide](./STATE_MACHINE_INTEGRATION_GUIDE.md)
-- [Event Organization Spec](../../openspec/specs/event-organization/spec.md)
-- [Workflow Coordination Spec](../../openspec/specs/workflow-coordination/spec.md)
 - [AGENTS.md](../../AGENTS.md)

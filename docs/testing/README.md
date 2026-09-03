@@ -111,5 +111,5 @@ Les tests sont exécutés automatiquement :
 ## Liens Utiles
 
 - [CONTRIBUTING.md](../../CONTRIBUTING.md) - Guidelines TDD
-- [AGENTS.md](../../AGENTS.md) - Workflow OpenSpec avec tests
+- [AGENTS.md](../../AGENTS.md) - Workflow Swarm DAO avec tests
 - [Architecture](../architecture/README.md) - Architecture testable

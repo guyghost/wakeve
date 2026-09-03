@@ -66,27 +66,6 @@ info() {
     echo -e "  ${BLUE}ℹ️  $1${NC}"
 }
 
-latest_archived_openspec_change_dir() {
-    local change_id="$1"
-    local archive_root="$PROJECT_DIR/openspec/changes/archive"
-
-    [ -d "$archive_root" ] || return 1
-
-    find "$archive_root" -maxdepth 1 -type d -name "*-$change_id" -print 2>/dev/null | sort | tail -n 1
-}
-
-validate_openspec_change_or_archive() {
-    local change_id="$1"
-
-    if (cd "$PROJECT_DIR" && openspec validate "$change_id" --strict >/dev/null 2>&1); then
-        return 0
-    fi
-
-    local archived_change
-    archived_change="$(latest_archived_openspec_change_dir "$change_id")"
-    [ -n "$archived_change" ] && [ -d "$archived_change" ]
-}
-
 # ──────────────────────────────────────────────────────────────
 # Validation functions
 # ──────────────────────────────────────────────────────────────
@@ -1150,10 +1129,6 @@ validate_app_store_final_signoff_record() {
         "require_account_deletion_evidence_if_confirmed"
         "require_ugc_moderation_implementation_if_confirmed"
         "require_ugc_moderation_evidence_if_confirmed"
-        "require_openspec_change_valid \"add-in-app-account-deletion\""
-        "require_openspec_change_valid \"add-ugc-moderation-controls\""
-        "require_openspec_tasks_complete \"add-in-app-account-deletion\""
-        "require_openspec_tasks_complete \"add-ugc-moderation-controls\""
         "APP_STORE_ACCOUNT_DELETION_EVIDENCE_COMPLETE=true"
         "APP_STORE_UGC_MODERATION_EVIDENCE_COMPLETE=true"
         "Account deletion backend route or service is present"
@@ -3662,16 +3637,6 @@ validate_app_store_account_deletion_evidence() {
         fi
     done
 
-    if command -v openspec >/dev/null 2>&1; then
-        if validate_openspec_change_or_archive "add-in-app-account-deletion"; then
-            pass "OpenSpec account deletion proposal: add-in-app-account-deletion validates strictly"
-        else
-            error "OpenSpec account deletion proposal: add-in-app-account-deletion does not validate strictly"
-        fi
-    else
-        warning "OpenSpec account deletion proposal: Cannot validate because openspec is unavailable"
-    fi
-
     local launch_checklist="$PROJECT_DIR/docs/APP_STORE_LAUNCH_CHECKLIST.md"
     if [ -f "$launch_checklist" ] &&
         grep -Fq "docs/APP_STORE_ACCOUNT_DELETION_EVIDENCE.md" "$launch_checklist" &&
@@ -3769,16 +3734,6 @@ validate_app_store_ugc_moderation_evidence() {
             error "App Store UGC moderation evidence: Missing '$phrase'"
         fi
     done
-
-    if command -v openspec >/dev/null 2>&1; then
-        if validate_openspec_change_or_archive "add-ugc-moderation-controls"; then
-            pass "OpenSpec UGC moderation proposal: add-ugc-moderation-controls validates strictly"
-        else
-            error "OpenSpec UGC moderation proposal: add-ugc-moderation-controls does not validate strictly"
-        fi
-    else
-        warning "OpenSpec UGC moderation proposal: Cannot validate because openspec is unavailable"
-    fi
 
     local launch_checklist="$PROJECT_DIR/docs/APP_STORE_LAUNCH_CHECKLIST.md"
     if [ -f "$launch_checklist" ] &&

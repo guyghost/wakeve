@@ -677,10 +677,8 @@ Text(
 
 ## Références
 
-- **Specs complètes** : `openspec/specs/localization/spec.md`
 - **Tests** : `shared/src/commonTest/kotlin/com/guyghost/wakeve/localization/AppLocaleTest.kt`
 - **Architecture** : `skills/shared/architecture.md` (Functional Core & Imperative Shell)
-- **Glossaire** : `openspec/specs/localization/spec.md` (Section Glossaire)
 
 ---
 

@@ -499,7 +499,7 @@ assert_wakeve_ai_device_profile_helper() {
     local required_patterns=(
         'Status: `'
         'TEAM_ID / APPLE_TEAM_ID environment value'
-        'Generated report can close OpenSpec task | `no - preparation evidence only`'
+        'Generated report can close backlog task | `no - preparation evidence only`'
         '## Toolchain Readiness'
         'Xcode version | `'
         'iPhoneOS SDK version | `'
@@ -597,7 +597,7 @@ assert_weatherkit_device_validation_helper() {
     local required_patterns=(
         'Status: `'
         'Source WeatherKit entitlement | `true`'
-        'Generated report can close OpenSpec tasks | `no - preparation evidence only`'
+        'Generated report can close backlog tasks | `no - preparation evidence only`'
         '## Toolchain Readiness'
         'Xcode version | `'
         'iPhoneOS SDK version | `'
@@ -859,8 +859,6 @@ assert_store_metadata_lint_evidence_count() {
 }
 
 cd "$PROJECT_DIR"
-
-run openspec validate --all --strict
 
 run ./scripts/test-app-store-ugc-gates.sh
 

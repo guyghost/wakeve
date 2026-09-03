@@ -281,4 +281,4 @@ Potential enhancements to this test suite:
 - [Jetpack Compose Testing Documentation](https://developer.android.com/jetpack/compose/testing)
 - [UI Testing Best Practices](https://developer.android.com/training/testing/ui-testing)
 - [Kotlin Test Framework](https://kotlinlang.org/docs/testing.html)
-- [Calendar Integration Phase 4.6 Spec](../../../openspec/changes/cleanup-complete-calendar-management/specs/)
+

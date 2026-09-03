@@ -14,7 +14,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * RED contracts for OpenSpec 1.4, 6.1 and 7.1.
+ * RED contracts for legacy notification registration tasks 1.4, 6.1 and 7.1.
  *
  * These tests intentionally name the durable backend port that is still absent.  They do not
  * emulate the saga in test code: production must persist and restore the reviewed XState model

@@ -22,7 +22,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
- * Security RED gate for OpenSpec task 3.1.
+ * Security RED gate for device registration task 3.1.
  *
  * These tests deliberately exercise the real SQLite adapter and its provider-only token port.
  * They neither replace the durable store with an in-memory fake nor weaken the approved 3.1

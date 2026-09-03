@@ -58,29 +58,6 @@ final class ParityRouteInventoryContractTests: XCTestCase {
         )
     }
 
-    func testVerificationMatrixRouteRowsAreClassified() throws {
-        let matrix = try readProjectFile("openspec/changes/align-ios-android-feature-parity/verification-matrix.md")
-        let routeSection = slice(matrix, from: "## Route Classification", to: "## Deep-Link Evidence")
-        let matrixRoutes = routeSection
-            .split(separator: "\n")
-            .filter { $0.hasPrefix("| `") }
-            .flatMap { line -> [String] in
-                let cells = line.split(separator: "|", omittingEmptySubsequences: false)
-                guard cells.count > 1 else { return [] }
-                return extractBacktickedValues(from: String(cells[1]))
-            }
-            .flatMap { value in value.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) } }
-            .filter { !$0.isEmpty }
-        let missing = Set(matrixRoutes)
-            .filter { classifiedAndroidRoutes[$0] == nil }
-            .sorted()
-
-        XCTAssertTrue(
-            missing.isEmpty,
-            "Every verification-matrix route row must have an automated classification. Missing: \(missing)"
-        )
-    }
-
     func testIosRouteModelDefinesAndroidEquivalentDestinations() throws {
         let routes = try readProjectFile("iosApp/src/Models/IosRoute.swift")
         let root = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
@@ -203,10 +180,6 @@ final class ParityRouteInventoryContractTests: XCTestCase {
         return regexCaptures(pattern: pattern, in: source)
             .map(normalizeRoute)
             .filter { !$0.isEmpty }
-    }
-
-    private func extractBacktickedValues(from source: String) -> [String] {
-        regexCaptures(pattern: #"`([^`]+)`"#, in: source)
     }
 
     private func regexCaptures(pattern: String, in source: String) -> [String] {

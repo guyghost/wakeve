@@ -171,7 +171,7 @@ composeTestRule.onNodeWithText("Text").assertDoesNotExist()
 
 - 📖 Full Details: `composeApp/src/androidInstrumentedTest/kotlin/com/guyghost/wakeve/ui/event/README.md`
 - 📊 Summary: `CALENDAR_INTEGRATION_TESTS_SUMMARY.md` (root)
-- 🔧 Phase 4.6 Spec: `openspec/changes/cleanup-complete-calendar-management/specs/`
+
 
 ## CI/CD Integration
 

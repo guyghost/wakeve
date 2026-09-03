@@ -12,7 +12,6 @@ Avant d'ajouter une nouvelle langue à Wakeve, assurez-vous de :
 
 - ✅ **Connaissance natif de la langue** : Vous (ou un traducteur) devez maîtriser la langue cible
 - ✅ **Contexte de l'application** : Comprendre les fonctionnalités et le glossaire Wakeve
-- ✅ **Accès au glossaire** : Consulter `openspec/specs/localization/spec.md` (Section Glossaire)
 - ✅ **Tests** : Prévoir de tester avec un natif de la langue
 - ✅ **Documentation** : Mettre à jour la documentation si nécessaire
 
@@ -413,7 +412,6 @@ Ajoutez la nouvelle langue à la liste des langues :
 
 ### 2. Mettre à jour les specs
 
-Modifier `openspec/specs/localization/spec.md` pour inclure la nouvelle langue dans les exemples.
 
 ### 3. Mettre à jour CONTRIBUTING.md
 
@@ -594,9 +592,7 @@ Avant de considérer la nouvelle langue comme terminée :
 ## Références
 
 - **Guide d'internationalisation** : `docs/guides/developer/INTERNATIONALIZATION_GUIDE.md`
-- **Specs** : `openspec/specs/localization/spec.md`
 - **Tests existants** : `shared/src/commonTest/kotlin/com/guyghost/wakeve/localization/AppLocaleTest.kt`
-- **Glossaire Wakeve** : `openspec/specs/localization/spec.md` (Section Glossaire)
 
 ---
 

@@ -250,85 +250,12 @@ require_source_match() {
     fi
 }
 
-latest_archived_openspec_change_dir() {
-    local change_id="$1"
-    local archive_root="$PROJECT_DIR/openspec/changes/archive"
-
-    if [ ! -d "$archive_root" ]; then
-        return 0
-    fi
-
-    find "$archive_root" -maxdepth 1 -type d -name "????-??-??-${change_id}" | sort | tail -n 1
-}
-
-require_openspec_tasks_complete() {
-    local change_id="$1"
-    local label="$2"
-    local active_tasks="$PROJECT_DIR/openspec/changes/$change_id/tasks.md"
-    local archived_dir=""
-    local archived_tasks=""
-
-    if [ -f "$active_tasks" ]; then
-        if grep -Eq '^- \[ \]' "$active_tasks"; then
-            blocker "$label OpenSpec tasks still contain unchecked items (openspec/changes/$change_id/tasks.md)"
-        else
-            pass "$label OpenSpec tasks have no unchecked items"
-        fi
-        return 0
-    fi
-
-    archived_dir="$(latest_archived_openspec_change_dir "$change_id")"
-    if [ -n "$archived_dir" ]; then
-        archived_tasks="$archived_dir/tasks.md"
-    fi
-
-    if [ -z "$archived_tasks" ] || [ ! -f "$archived_tasks" ]; then
-        blocker "$label OpenSpec tasks are missing; expected active or archived change $change_id"
-        return 0
-    fi
-
-    if grep -Eq '^- \[ \]' "$archived_tasks"; then
-        blocker "$label archived OpenSpec tasks still contain unchecked items (${archived_tasks#$PROJECT_DIR/})"
-    else
-        pass "$label OpenSpec tasks have no unchecked items (archived ${archived_tasks#$PROJECT_DIR/})"
-    fi
-}
-
-require_openspec_change_valid() {
-    local change_id="$1"
-    local label="$2"
-    local active_change="$PROJECT_DIR/openspec/changes/$change_id"
-    local archived_change=""
-
-    if ! command -v openspec >/dev/null 2>&1; then
-        blocker "$label OpenSpec proposal cannot be validated because openspec is unavailable"
-        return 0
-    fi
-
-    if [ -d "$active_change" ]; then
-        if (cd "$PROJECT_DIR" && openspec validate "$change_id" --strict >/dev/null 2>&1); then
-            pass "$label OpenSpec proposal validates strictly"
-        else
-            blocker "$label OpenSpec proposal does not validate strictly ($change_id)"
-        fi
-        return 0
-    fi
-
-    archived_change="$(latest_archived_openspec_change_dir "$change_id")"
-    if [ -n "$archived_change" ]; then
-        pass "$label OpenSpec change is archived (${archived_change#$PROJECT_DIR/})"
-    else
-        blocker "$label OpenSpec change is missing; expected active or archived change $change_id"
-    fi
-}
-
 require_account_deletion_implementation_if_confirmed() {
     if ! truthy_env "APP_STORE_ACCOUNT_DELETION_CONFIRMED"; then
         return 0
     fi
 
     note "Checking account deletion implementation evidence"
-    require_openspec_tasks_complete "add-in-app-account-deletion" "Account deletion"
     require_source_match \
         "Account deletion backend tests cover deletion behavior" \
         "(?i)(account deletion|delete account|deleteAccount|deleteUserAccount|/api/user/delete)" \
@@ -393,7 +320,6 @@ require_ugc_moderation_implementation_if_confirmed() {
     fi
 
     note "Checking UGC moderation implementation evidence"
-    require_openspec_tasks_complete "add-ugc-moderation-controls" "UGC moderation"
     require_source_match \
         "UGC moderation tests cover report/block/unblock/filter behavior" \
         "(?i)(ModerationStatus|ReportReason|ContentReport|UserBlock|reportContent|reportOffensive|blockUser|unblockUser|blockedUser|moderation policy)" \
@@ -893,11 +819,6 @@ require_file "docs/APP_STORE_LIVE_URL_AASA_EVIDENCE.md" "App Store live URL and 
 require_file "docs/APP_STORE_CAPABILITIES_EVIDENCE.md" "Apple Developer capabilities evidence record"
 require_file "docs/APP_STORE_EXPORT_COMPLIANCE_EVIDENCE.md" "App Store export compliance evidence record"
 require_file "docs/APP_STORE_REVIEW_ACCESS_EVIDENCE.md" "App Store review access evidence record"
-
-echo ""
-note "Checking App Store OpenSpec changes"
-require_openspec_change_valid "add-in-app-account-deletion" "Account deletion"
-require_openspec_change_valid "add-ugc-moderation-controls" "UGC moderation"
 
 echo ""
 note "Checking App Review contact"

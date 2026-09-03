@@ -7,10 +7,6 @@ Ce guide décrit l’architecture livrée par `expand-ios-invitation-experience`
 ## Sources de vérité
 
 - [Modèle comportemental](../../../models/ios-event-invitation-experience.md) : états totaux, événements, gardes, propriétaires et invariants.
-- [Proposition OpenSpec](../../../openspec/changes/expand-ios-invitation-experience/proposal.md) : périmètre produit et dépendances.
-- [Design OpenSpec](../../../openspec/changes/expand-ios-invitation-experience/design.md) : décisions d’architecture, migration, rollout et rollback.
-- [Delta organisation](../../../openspec/changes/expand-ios-invitation-experience/specs/event-organization/spec.md), [delta collaboration](../../../openspec/changes/expand-ios-invitation-experience/specs/collaboration-management/spec.md), [delta notifications](../../../openspec/changes/expand-ios-invitation-experience/specs/notification-management/spec.md) et [delta design iOS](../../../openspec/changes/expand-ios-invitation-experience/specs/ios-design-system/spec.md).
-- [Dossier de QA](../../../openspec/changes/expand-ios-invitation-experience/design-qa.md) : environnement, captures, tests, verdict et limites.
 
 `EventManagementStateMachine` reste l’unique propriétaire de `EventStatus`. Les vues projettent des données structurées et transmettent des callbacks typés ; elles ne déduisent jamais un droit ou une transition depuis un texte, une couleur, une image ou un résultat de LLM.
 

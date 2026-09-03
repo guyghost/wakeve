@@ -11,7 +11,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** RED contracts for OpenSpec harden-apns-production-delivery task 2.2. */
+/** RED contracts for APNs production delivery hardening task 2.2. **/
 class APNsProductionDeliveryRedTest {
     private lateinit var database: WakeveDb
     private lateinit var apnsSender: FailingAPNsSender

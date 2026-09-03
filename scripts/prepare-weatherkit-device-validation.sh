@@ -103,7 +103,7 @@ Generated: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 Status: \`$status\`
 
-This report supports OpenSpec tasks \`add-event-weather-forecast\` / \`1.2\` and \`6.2\`.
+This report supports the event weather forecast backlog items.
 It is not completion evidence until a signed build on a real iOS device proves WeatherKit entitlement availability for bundle \`$BUNDLE_ID\`.
 
 ## Source Entitlement Check
@@ -117,7 +117,7 @@ It is not completion evidence until a signed build on a real iOS device proves W
 | Valid code signing identities | \`$valid_signing_identity_count\` |
 | Matching provisioning profiles | \`$(if [ -n "$matching_profiles" ]; then printf '%s' "present"; else printf '%s' "missing"; fi)\` |
 | Matching profiles with WeatherKit entitlement | \`$(if [ -n "$matching_weatherkit_profiles" ]; then printf '%s' "present"; else printf '%s' "missing"; fi)\` |
-| Generated report can close OpenSpec tasks | \`no - preparation evidence only\` |
+| Generated report can close backlog tasks | \`no - preparation evidence only\` |
 
 ## Toolchain Readiness
 
@@ -175,7 +175,7 @@ Generated reports from this helper are never sufficient on their own. They only
 become closure evidence after the table below is filled from a signed physical
 device or TestFlight-equivalent WeatherKit run and reviewed.
 
-Record all fields below before checking off OpenSpec tasks \`1.2\` and \`6.2\`:
+Record all fields below before closing the backlog items:
 
 | Field | Value |
 | --- | --- |
