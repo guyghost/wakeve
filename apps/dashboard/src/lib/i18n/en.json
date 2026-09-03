@@ -458,7 +458,29 @@
   "settings": {
     "title": "Settings",
     "language": "Language & region",
-    "notifications": "Notifications",
+    "notifications": {
+      "title": "Notifications",
+      "subtitle": "Choose which notification types you want to receive.",
+      "loading": "Loading preferences...",
+      "errors": {
+        "load": "Failed to load notification preferences.",
+        "save": "Failed to save. Your changes were reverted."
+      },
+      "types": {
+        "EVENT_INVITE": "Event invitation",
+        "VOTE_REMINDER": "Vote reminder",
+        "VOTE_CLOSE_REMINDER": "Vote closing soon",
+        "DEADLINE_REMINDER": "Deadline reminder",
+        "DATE_CONFIRMED": "Date confirmed",
+        "NEW_SCENARIO": "New option",
+        "SCENARIO_SELECTED": "Selected option",
+        "NEW_COMMENT": "New comment",
+        "MENTION": "Mention",
+        "MEETING_REMINDER": "Meeting reminder",
+        "PAYMENT_DUE": "Payment due",
+        "EVENT_UPDATE": "Event update"
+      }
+    },
     "account": "Account",
     "dangerZone": "Danger zone",
     "deleteAccount": "Delete my account",

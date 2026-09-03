@@ -3,25 +3,86 @@
   import { useAuth } from '$lib/actors/auth.actor.svelte'
   import Modal from '$lib/components/ui/Modal.svelte'
   import Button from '$lib/components/atoms/Button.svelte'
-  import { setLocale, getLocale, SUPPORTED_LOCALES } from '$lib/i18n'
+  import SkeletonBlock from '$lib/components/ui/SkeletonBlock.svelte'
+  import ErrorBanner from '$lib/components/ui/ErrorBanner.svelte'
+  import { setLocale, getLocale, SUPPORTED_LOCALES, t } from '$lib/i18n'
+  import type {
+    NotificationPreferenceType,
+    NotificationPreferences
+  } from '$lib/types/api'
+  import { getPreferences, updatePreferences } from '$lib/api/notifications.api'
 
   const auth = useAuth()
   const user = $derived(auth.snapshot.context.user)
   const currentLocale = $derived(getLocale())
 
-  // ── Notification toggles (UI only) ─────────────────────────────────────────
-  let notifEvents = $state(true)
-  let notifVotes = $state(true)
-  let notifComments = $state(false)
-  let notifReminders = $state(true)
+  // ── Notification preferences (persisted via /api/notifications/preferences) ─
+  // iOS parity: one toggle per notification type (NotificationPreferencesView).
+  const PREF_TYPES: NotificationPreferenceType[] = [
+    'EVENT_INVITE',
+    'VOTE_REMINDER',
+    'VOTE_CLOSE_REMINDER',
+    'DEADLINE_REMINDER',
+    'DATE_CONFIRMED',
+    'NEW_SCENARIO',
+    'SCENARIO_SELECTED',
+    'NEW_COMMENT',
+    'MENTION',
+    'MEETING_REMINDER',
+    'PAYMENT_DUE',
+    'EVENT_UPDATE'
+  ]
 
-  // ── Notification toggles definition (derived) ────────────────────────────────
-  const toggles = $derived<{ label: string; description: string; value: boolean; key: string }[]>([
-    { label: 'Nouveaux événements', description: 'Quand vous êtes invité à un événement', value: notifEvents, key: 'events' },
-    { label: 'Votes reçus', description: 'Quand un participant vote sur vos créneaux', value: notifVotes, key: 'votes' },
-    { label: 'Commentaires', description: 'Quand quelqu\'un commente votre événement', value: notifComments, key: 'comments' },
-    { label: 'Rappels', description: 'Rappels avant la date limite de vote', value: notifReminders, key: 'reminders' }
-  ])
+  let preferences = $state<NotificationPreferences | null>(null)
+  let prefsLoading = $state(true)
+  let prefsLoadError = $state(false)
+  let prefsSaving = $state(false)
+  let prefsSaveError = $state(false)
+
+  async function loadPreferences() {
+    prefsLoading = true
+    prefsLoadError = false
+    prefsSaveError = false
+    try {
+      preferences = await getPreferences()
+    } catch {
+      preferences = null
+      prefsLoadError = true
+    } finally {
+      prefsLoading = false
+    }
+  }
+
+  $effect(() => {
+    void loadPreferences()
+  })
+
+  function isTypeEnabled(type: NotificationPreferenceType): boolean {
+    return preferences?.enabledTypes.includes(type) ?? false
+  }
+
+  /**
+   * Optimistic toggle: flip the switch immediately, PUT the full preferences
+   * object, and roll back visually on failure (save banner).
+   */
+  async function handleTypeToggle(type: NotificationPreferenceType) {
+    if (!preferences || prefsSaving) return
+    const previous = preferences
+    const enabledTypes = previous.enabledTypes.includes(type)
+      ? previous.enabledTypes.filter((enabled) => enabled !== type)
+      : [...previous.enabledTypes, type]
+    preferences = { ...previous, enabledTypes }
+    prefsSaveError = false
+    prefsSaving = true
+    try {
+      await updatePreferences(preferences)
+    } catch {
+      preferences = previous
+      prefsSaveError = true
+    } finally {
+      prefsSaving = false
+    }
+  }
 
   // ── Delete account modal ────────────────────────────────────────────────────
   let deleteModalOpen = $state(false)
@@ -78,41 +139,52 @@
   <!-- ── Notifications ───────────────────────────────────────────────────────── -->
   <section class="bg-white rounded-card shadow-card p-5 flex flex-col gap-4">
     <div class="flex flex-col gap-0.5">
-      <h2 class="text-base font-semibold text-gray-800">Notifications</h2>
-      <p class="text-xs text-gray-500">Gérez les notifications que vous souhaitez recevoir.</p>
+      <h2 class="text-base font-semibold text-gray-800">{t('settings.notifications.title')}</h2>
+      <p class="text-xs text-gray-500">{t('settings.notifications.subtitle')}</p>
     </div>
 
-    <ul class="flex flex-col divide-y divide-gray-100" role="list">
-      {#each toggles as toggle (toggle.key)}
-        <li class="flex items-center justify-between gap-4 py-3.5">
-          <div class="flex flex-col gap-0.5">
-            <span class="text-sm font-medium text-gray-800">{toggle.label}</span>
-            <span class="text-xs text-gray-500">{toggle.description}</span>
-          </div>
-          <!-- Toggle switch -->
-          <button
-            type="button"
-            role="switch"
-            aria-checked={toggle.value}
-            aria-label={toggle.label}
-            onclick={() => {
-              if (toggle.key === 'events') notifEvents = !notifEvents
-              else if (toggle.key === 'votes') notifVotes = !notifVotes
-              else if (toggle.key === 'comments') notifComments = !notifComments
-              else if (toggle.key === 'reminders') notifReminders = !notifReminders
-            }}
-            class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-default
-              focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-wakeve-500
-              {toggle.value ? 'bg-wakeve-600' : 'bg-gray-200'}"
-          >
-            <span
-              class="pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform duration-200
-                {toggle.value ? 'translate-x-5' : 'translate-x-0'}"
-            ></span>
-          </button>
-        </li>
-      {/each}
-    </ul>
+    {#if prefsSaveError}
+      <ErrorBanner message={t('settings.notifications.errors.save')} />
+    {/if}
+
+    {#if prefsLoading}
+      <ul class="flex flex-col divide-y divide-gray-100" role="list" aria-label={t('settings.notifications.loading')}>
+        {#each { length: 4 } as _, i (i)}
+          <li class="flex items-center justify-between gap-4 py-3.5">
+            <SkeletonBlock height="h-4" width="w-40" />
+            <SkeletonBlock height="h-6" width="w-11" rounded="rounded-full" />
+          </li>
+        {/each}
+      </ul>
+    {:else if prefsLoadError}
+      <ErrorBanner message={t('settings.notifications.errors.load')} onretry={loadPreferences} />
+    {:else if preferences}
+      <ul class="flex flex-col divide-y divide-gray-100" role="group" aria-label={t('settings.notifications.title')}>
+        {#each PREF_TYPES as type (type)}
+          <li class="flex items-center justify-between gap-4 py-3.5">
+            <span class="text-sm font-medium text-gray-800">{t(`settings.notifications.types.${type}`)}</span>
+            <!-- Toggle switch -->
+            <button
+              type="button"
+              role="switch"
+              aria-checked={isTypeEnabled(type)}
+              aria-label={t(`settings.notifications.types.${type}`)}
+              disabled={prefsSaving}
+              onclick={() => handleTypeToggle(type)}
+              class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-default
+                focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-wakeve-500
+                disabled:cursor-not-allowed disabled:opacity-60
+                {isTypeEnabled(type) ? 'bg-wakeve-600' : 'bg-gray-200'}"
+            >
+              <span
+                class="pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform duration-200
+                  {isTypeEnabled(type) ? 'translate-x-5' : 'translate-x-0'}"
+              ></span>
+            </button>
+          </li>
+        {/each}
+      </ul>
+    {/if}
   </section>
 
   <!-- ── Account ─────────────────────────────────────────────────────────────── -->
