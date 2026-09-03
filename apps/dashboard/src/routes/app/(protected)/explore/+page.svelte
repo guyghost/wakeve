@@ -5,6 +5,7 @@
   import type { EventResponse, EventStatus } from '$lib/types/api'
   import EventCard from '$lib/components/molecules/EventCard.svelte'
   import SearchInput from '$lib/components/molecules/SearchInput.svelte'
+  import LeaderboardPanel from '$lib/components/organisms/LeaderboardPanel.svelte'
   import SkeletonBlock from '$lib/components/ui/SkeletonBlock.svelte'
   import ErrorBanner from '$lib/components/ui/ErrorBanner.svelte'
 
@@ -146,4 +147,7 @@
       </div>
     {/if}
   {/if}
+
+  <!-- Community leaderboard + current user badges -->
+  <LeaderboardPanel />
 </div>

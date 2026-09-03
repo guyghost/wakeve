@@ -8,7 +8,7 @@
     "settings": "Paramètres",
     "logout": "Déconnexion",
     "notifications": "Notifications",
-    "inbox": "Boîte de réception"
+    "inbox": "Messages"
   },
   "auth": {
     "title": "Bienvenue sur Wakeve",
@@ -464,29 +464,7 @@
   "settings": {
     "title": "Paramètres",
     "language": "Langue et région",
-    "notifications": {
-      "title": "Notifications",
-      "subtitle": "Choisissez les types de notifications que vous souhaitez recevoir.",
-      "loading": "Chargement des préférences...",
-      "errors": {
-        "load": "Impossible de charger les préférences de notification.",
-        "save": "Échec de l'enregistrement. Modifications annulées."
-      },
-      "types": {
-        "EVENT_INVITE": "Invitation événement",
-        "VOTE_REMINDER": "Rappel de vote",
-        "VOTE_CLOSE_REMINDER": "Fin de vote imminente",
-        "DEADLINE_REMINDER": "Rappel d'échéance",
-        "DATE_CONFIRMED": "Date confirmée",
-        "NEW_SCENARIO": "Nouvelle option",
-        "SCENARIO_SELECTED": "Option retenue",
-        "NEW_COMMENT": "Nouveau commentaire",
-        "MENTION": "Mention",
-        "MEETING_REMINDER": "Rappel réunion",
-        "PAYMENT_DUE": "Paiement dû",
-        "EVENT_UPDATE": "Mise à jour événement"
-      }
-    },
+    "notifications": "Notifications",
     "account": "Compte",
     "dangerZone": "Zone dangereuse",
     "deleteAccount": "Supprimer mon compte",
@@ -612,6 +590,58 @@
       "load": "Impossible de charger les participants.",
       "add": "Impossible d'ajouter le participant.",
       "rsvp": "Impossible d'enregistrer la réponse."
+    }
+  },
+  "leaderboard": {
+    "title": "Classement communautaire",
+    "subtitle": "Les membres les plus actifs de la communauté Wakeve",
+    "rank": "Rang {rank}",
+    "you": "vous",
+    "points": "points",
+    "pointsShort": "pts",
+    "badges": "badges",
+    "yourStats": "Vos statistiques",
+    "yourRank": "Votre rang : {rank}",
+    "level": "Niveau {level}",
+    "nextLevel": "{points} points avant le niveau suivant",
+    "yourBadges": "Vos badges",
+    "noBadges": "Aucun badge débloqué pour le moment. Participez à des événements pour en gagner !",
+    "empty": "Aucun membre classé pour le moment",
+    "error": "Impossible de charger le classement"
+  },
+  "badgeRarity": {
+    "COMMON": "Commun",
+    "RARE": "Rare",
+    "EPIC": "Épique",
+    "LEGENDARY": "Légendaire"
+  },
+  "moderation": {
+    "actionsLabel": "Modération",
+    "reportComment": "Signaler le commentaire",
+    "reportUser": "Signaler l'utilisateur",
+    "blockUser": "Bloquer l'utilisateur",
+    "unblockUser": "Débloquer l'utilisateur",
+    "hideComment": "Masquer le commentaire",
+    "reason": "Motif",
+    "reasons": {
+      "HARASSMENT": "Harcèlement",
+      "HATE_OR_ABUSE": "Haine ou abus",
+      "SEXUAL_CONTENT": "Contenu sexuel",
+      "VIOLENCE_OR_THREAT": "Violence ou menace",
+      "SPAM_OR_SCAM": "Spam ou arnaque",
+      "PRIVATE_INFORMATION": "Information privée",
+      "OTHER": "Autre"
+    },
+    "detailsPlaceholder": "Ajoutez du contexte pour l'équipe support Wakeve",
+    "help": "Les signalements sont envoyés à l'équipe Wakeve pour revue. Les autres participants ne voient pas les détails du signalement.",
+    "reportSubmitted": "Signalement envoyé.",
+    "userBlocked": "Utilisateur bloqué.",
+    "hideSubmitted": "Commentaire signalé et décision de masquage enregistrée.",
+    "error": "Nous n'avons pas pu envoyer cette demande de modération. Réessayez.",
+    "status": {
+      "PENDING_REVIEW": "En attente de revue",
+      "REJECTED": "Rejeté",
+      "HIDDEN": "Masqué"
     }
   }
 }
