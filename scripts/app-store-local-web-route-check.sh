@@ -40,14 +40,22 @@ const expectedAasaPaths = ['/event/*', '/poll/*', '/meeting/*', '/invite/*']
 const expectedAppID = `${appleTeamId}.${iosBundleId}`
 let failures = 0
 
-function checkMicrofrontendRouting() {
-  const config = JSON.parse(readFileSync('apps/landing/microfrontends.json', 'utf8'))
-  const dashboard = config?.applications?.['wakeve-dashboard']
-  const paths = dashboard?.routing?.flatMap((entry) => entry.paths ?? []) ?? []
-  const ok = paths.includes('/app') && paths.includes('/app/:path*')
+function checkCloudflareRouting() {
+  const landing = JSON.parse(readFileSync('apps/landing/wrangler.jsonc', 'utf8'))
+  const dashboard = JSON.parse(readFileSync('apps/dashboard/wrangler.jsonc', 'utf8'))
+  const dashboardPatterns = dashboard?.routes?.flatMap((route) => [route.pattern]) ?? []
+  const landingPatterns = landing?.routes?.flatMap((route) => [route.pattern]) ?? []
+  const dashboardOk =
+    dashboardPatterns.includes('wakeve.app/app') && dashboardPatterns.includes('wakeve.app/app/*')
+  const landingOk = landingPatterns.includes('wakeve.app/*') && landing?.name === 'wakeve-web'
 
-  console.log(`${ok ? 'PASS' : 'FAIL'} microfrontends wakeve-dashboard routes=${paths.join(',')}`)
-  if (!ok) failures += 1
+  console.log(
+    `${dashboardOk ? 'PASS' : 'FAIL'} cloudflare wakeve-dashboard routes=${dashboardPatterns.join(',')}`
+  )
+  console.log(
+    `${landingOk ? 'PASS' : 'FAIL'} cloudflare wakeve-web routes=${landingPatterns.join(',')}`
+  )
+  if (!dashboardOk || !landingOk) failures += 1
 }
 
 async function checkPage(path, phrases) {
@@ -99,7 +107,7 @@ async function checkRedirect(path, expectedLocation) {
   if (!ok) failures += 1
 }
 
-checkMicrofrontendRouting()
+checkCloudflareRouting()
 
 for (const [path, phrases] of pages) {
   await checkPage(path, phrases)
