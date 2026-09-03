@@ -89,6 +89,17 @@ export interface SaveDepartureRequest { participantId?: string; location: Transp
 export interface GenerateTransportPlanRequest { optimizationType?: OptimizationType }
 export interface TransportNotNeededResponse { transportNotNeeded: boolean }
 
+// ============================================================
+// Meals
+// ============================================================
+export type MealType = 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK' | 'APERITIF'
+export type MealStatus = 'PLANNED' | 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
+export type DietaryRestriction = 'VEGETARIAN' | 'VEGAN' | 'GLUTEN_FREE' | 'LACTOSE_INTOLERANT' | 'NUT_ALLERGY' | 'SHELLFISH_ALLERGY' | 'KOSHER' | 'HALAL' | 'DIABETIC' | 'OTHER'
+export interface Meal { id: string; eventId: string; type: MealType; name: string; date: string; time: string; location?: string | null; responsibleParticipantIds: string[]; estimatedCost: number; actualCost?: number | null; servings: number; status: MealStatus; notes?: string | null; createdAt: string; updatedAt: string }
+export interface CreateMealRequest { eventId: string; type: MealType; name: string; date: string; time: string; location?: string; responsibleParticipantIds: string[]; estimatedCost: number; actualCost?: number | null; servings: number; status?: MealStatus; notes?: string }
+export interface DailyMealSchedule { date: string; meals: Meal[] }
+export interface MealPlanningSummary { totalMeals: number; totalEstimatedCost: number; totalActualCost: number; mealsCompleted: number; mealsRemaining: number; mealsByType: Partial<Record<MealType, number>>; mealsByStatus: Partial<Record<MealStatus, number>> }
+
 export interface ErrorResponse { error: string; message: string; statusCode: number }
 
 
