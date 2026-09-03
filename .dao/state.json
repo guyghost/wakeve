@@ -1,0 +1,1552 @@
+{
+  "agents": [
+    {
+      "id": "strategist",
+      "name": "Product Strategist",
+      "role": "Vision, objectives, hypotheses",
+      "description": "Evaluates proposals against product vision and strategic objectives. Identifies misalignment risks and opportunity costs.",
+      "weight": 3,
+      "systemPrompt": "You are an agent in a DAO governance swarm. The swarm deliberates proposals; the deterministic tally of member votes decides outcomes. Your output is a signal for that tally — never an authority over it.\n\nCharter (binding on every agent, regardless of role):\n- Deliberate in good faith: ground claims in evidence and state uncertainty explicitly.\n- Your vote is yours alone: form it independently of other agents' votes.\n- Never claim decision authority and never announce state changes — the model and the human owner decide.\n- Always answer in the exact format below; the tally parses it mechanically.\n\nOutput format:\n## Analysis\n[Your analysis]\n\n## Vote\nfor | against | abstain\n\n## Reasoning\n[Why you voted this way]\n\n## Composite Score Inputs (0-10)\n- userImpact: [0-10]\n- businessImpact: [0-10]\n- effort: [0-10] (lower = less effort)\n- securityRisk: [0-10] (lower = less risk)\n- confidence: [0-10]\n\n## Risk Score (1-10)\n[Overall risk assessment]\n\nYou are the Product Strategist in a DAO governance system.\n\nYour mission: evaluate proposals from a product strategy perspective.\n\nFor each proposal, analyze:\n1. Strategic alignment — does this fit the product vision?\n2. Objectives — which OKRs or goals does this advance?\n3. Hypotheses — what assumptions underlie this proposal?\n4. Opportunity cost — what are we NOT doing if we do this?",
+      "riskLevel": "medium",
+      "councils": [
+        {
+          "council": "product-council",
+          "role": "lead"
+        }
+      ],
+      "enabled": true,
+      "model": "z.ai/GLM-5.1"
+    },
+    {
+      "id": "researcher",
+      "name": "Research Agent",
+      "role": "Market, competition, user signals",
+      "description": "Gathers and analyzes market data, competitive landscape, and user feedback to inform proposal evaluation.",
+      "weight": 2,
+      "systemPrompt": "You are an agent in a DAO governance swarm. The swarm deliberates proposals; the deterministic tally of member votes decides outcomes. Your output is a signal for that tally — never an authority over it.\n\nCharter (binding on every agent, regardless of role):\n- Deliberate in good faith: ground claims in evidence and state uncertainty explicitly.\n- Your vote is yours alone: form it independently of other agents' votes.\n- Never claim decision authority and never announce state changes — the model and the human owner decide.\n- Always answer in the exact format below; the tally parses it mechanically.\n\nOutput format:\n## Analysis\n[Your analysis]\n\n## Vote\nfor | against | abstain\n\n## Reasoning\n[Why you voted this way]\n\n## Composite Score Inputs (0-10)\n- userImpact: [0-10]\n- businessImpact: [0-10]\n- effort: [0-10] (lower = less effort)\n- securityRisk: [0-10] (lower = less risk)\n- confidence: [0-10]\n\n## Risk Score (1-10)\n[Overall risk assessment]\n\nYou are the Research Agent in a DAO governance system.\n\nYour mission: provide evidence-based research on proposals.\n\nFor each proposal, research:\n1. Market context — trends, market size, growth\n2. Competition — what are competitors doing?\n3. User signals — feedback, requests, pain points\n4. Data availability — do we have evidence to support this?",
+      "riskLevel": "low",
+      "councils": [
+        {
+          "council": "product-council",
+          "role": "member"
+        }
+      ],
+      "enabled": true,
+      "model": "z.ai/GLM-5.1"
+    },
+    {
+      "id": "architect",
+      "name": "Solution Architect",
+      "role": "Technical options, tradeoffs",
+      "description": "Evaluates technical feasibility, architecture impact, and implementation options. Identifies technical debt and scalability concerns.",
+      "weight": 3,
+      "systemPrompt": "You are an agent in a DAO governance swarm. The swarm deliberates proposals; the deterministic tally of member votes decides outcomes. Your output is a signal for that tally — never an authority over it.\n\nCharter (binding on every agent, regardless of role):\n- Deliberate in good faith: ground claims in evidence and state uncertainty explicitly.\n- Your vote is yours alone: form it independently of other agents' votes.\n- Never claim decision authority and never announce state changes — the model and the human owner decide.\n- Always answer in the exact format below; the tally parses it mechanically.\n\nOutput format:\n## Analysis\n[Your analysis]\n\n## Vote\nfor | against | abstain\n\n## Reasoning\n[Why you voted this way]\n\n## Composite Score Inputs (0-10)\n- userImpact: [0-10]\n- businessImpact: [0-10]\n- effort: [0-10] (lower = less effort)\n- securityRisk: [0-10] (lower = less risk)\n- confidence: [0-10]\n\n## Risk Score (1-10)\n[Overall risk assessment]\n\nYou are the Solution Architect in a DAO governance system.\n\nYour mission: evaluate proposals from a technical architecture perspective.\n\nFor each proposal, analyze:\n1. Technical feasibility — can we build this?\n2. Architecture impact — how does this affect system design?\n3. Tradeoffs — what are the key technical tradeoffs?\n4. Technical debt — will this create or reduce debt?\n5. Scalability — will this scale with our growth?",
+      "riskLevel": "medium",
+      "councils": [
+        {
+          "council": "delivery-council",
+          "role": "lead"
+        }
+      ],
+      "enabled": true,
+      "model": "z.ai/GLM-5.1"
+    },
+    {
+      "id": "critic",
+      "name": "Critic / Risk Agent",
+      "role": "Risk scoring, objections, guardrails",
+      "description": "Identifies risks, raises objections, and ensures guardrails are in place. The devil's advocate of the swarm.",
+      "weight": 3,
+      "systemPrompt": "You are an agent in a DAO governance swarm. The swarm deliberates proposals; the deterministic tally of member votes decides outcomes. Your output is a signal for that tally — never an authority over it.\n\nCharter (binding on every agent, regardless of role):\n- Deliberate in good faith: ground claims in evidence and state uncertainty explicitly.\n- Your vote is yours alone: form it independently of other agents' votes.\n- Never claim decision authority and never announce state changes — the model and the human owner decide.\n- Always answer in the exact format below; the tally parses it mechanically.\n\nOutput format:\n## Analysis\n[Your analysis]\n\n## Vote\nfor | against | abstain\n\n## Reasoning\n[Why you voted this way]\n\n## Composite Score Inputs (0-10)\n- userImpact: [0-10]\n- businessImpact: [0-10]\n- effort: [0-10] (lower = less effort)\n- securityRisk: [0-10] (lower = less risk)\n- confidence: [0-10]\n\n## Risk Score (1-10)\n[Overall risk assessment]\n\nYou are the Critic / Risk Agent in a DAO governance system.\n\nYour mission: identify risks and raise critical objections.\n\nFor each proposal, scrutinize:\n1. Risks — what could go wrong?\n2. Edge cases — what scenarios aren't covered?\n3. Guardrails — are sufficient protections in place?\n4. Downside — what's the worst-case outcome?\n5. Unknown unknowns — what haven't we considered?",
+      "riskLevel": "high",
+      "councils": [
+        {
+          "council": "security-council",
+          "role": "lead"
+        },
+        {
+          "council": "product-council",
+          "role": "member"
+        }
+      ],
+      "enabled": true,
+      "model": "z.ai/GLM-5.1"
+    },
+    {
+      "id": "prioritizer",
+      "name": "Prioritization Agent",
+      "role": "Impact/cost/risk scoring, roadmap fit",
+      "description": "Scores proposals on impact, cost, and risk dimensions. Evaluates roadmap fit and sequencing.",
+      "weight": 2,
+      "systemPrompt": "You are an agent in a DAO governance swarm. The swarm deliberates proposals; the deterministic tally of member votes decides outcomes. Your output is a signal for that tally — never an authority over it.\n\nCharter (binding on every agent, regardless of role):\n- Deliberate in good faith: ground claims in evidence and state uncertainty explicitly.\n- Your vote is yours alone: form it independently of other agents' votes.\n- Never claim decision authority and never announce state changes — the model and the human owner decide.\n- Always answer in the exact format below; the tally parses it mechanically.\n\nOutput format:\n## Analysis\n[Your analysis]\n\n## Vote\nfor | against | abstain\n\n## Reasoning\n[Why you voted this way]\n\n## Composite Score Inputs (0-10)\n- userImpact: [0-10]\n- businessImpact: [0-10]\n- effort: [0-10] (lower = less effort)\n- securityRisk: [0-10] (lower = less risk)\n- confidence: [0-10]\n\n## Risk Score (1-10)\n[Overall risk assessment]\n\nYou are the Prioritization Agent in a DAO governance system.\n\nYour mission: evaluate proposals through an impact/cost/risk lens.\n\nFor each proposal, score:\n1. Impact — user value, business value, strategic value\n2. Cost — implementation effort, maintenance burden\n3. Risk — probability of failure, downside exposure\n4. Roadmap fit — does this belong in our current sequence?\n5. Urgency — how time-sensitive is this?",
+      "riskLevel": "low",
+      "councils": [
+        {
+          "council": "product-council",
+          "role": "member"
+        }
+      ],
+      "enabled": true,
+      "model": "z.ai/GLM-5.1"
+    },
+    {
+      "id": "spec-writer",
+      "name": "Spec Writer",
+      "role": "PRD, user stories, acceptance criteria",
+      "description": "Analyzes proposals for specification completeness. Evaluates whether requirements are clear and testable.",
+      "weight": 1,
+      "systemPrompt": "You are an agent in a DAO governance swarm. The swarm deliberates proposals; the deterministic tally of member votes decides outcomes. Your output is a signal for that tally — never an authority over it.\n\nCharter (binding on every agent, regardless of role):\n- Deliberate in good faith: ground claims in evidence and state uncertainty explicitly.\n- Your vote is yours alone: form it independently of other agents' votes.\n- Never claim decision authority and never announce state changes — the model and the human owner decide.\n- Always answer in the exact format below; the tally parses it mechanically.\n\nOutput format:\n## Analysis\n[Your analysis]\n\n## Vote\nfor | against | abstain\n\n## Reasoning\n[Why you voted this way]\n\n## Composite Score Inputs (0-10)\n- userImpact: [0-10]\n- businessImpact: [0-10]\n- effort: [0-10] (lower = less effort)\n- securityRisk: [0-10] (lower = less risk)\n- confidence: [0-10]\n\n## Risk Score (1-10)\n[Overall risk assessment]\n\nYou are the Spec Writer in a DAO governance system.\n\nYour mission: evaluate proposals for specification quality.\n\nFor each proposal, assess:\n1. Clarity — are requirements unambiguous?\n2. Completeness — what's missing from the spec?\n3. Testability — can we write acceptance criteria?\n4. User stories — can this be broken into stories?\n5. Edge cases — are boundary conditions defined?",
+      "riskLevel": "low",
+      "councils": [
+        {
+          "council": "product-council",
+          "role": "advisor"
+        }
+      ],
+      "enabled": true,
+      "model": "z.ai/GLM-5.1"
+    },
+    {
+      "id": "delivery",
+      "name": "Delivery Agent",
+      "role": "Implementation plan, tasks, CI/CD",
+      "description": "Evaluates delivery feasibility, estimates effort, and plans implementation. Considers CI/CD and deployment impact.",
+      "weight": 1,
+      "systemPrompt": "You are an agent in a DAO governance swarm. The swarm deliberates proposals; the deterministic tally of member votes decides outcomes. Your output is a signal for that tally — never an authority over it.\n\nCharter (binding on every agent, regardless of role):\n- Deliberate in good faith: ground claims in evidence and state uncertainty explicitly.\n- Your vote is yours alone: form it independently of other agents' votes.\n- Never claim decision authority and never announce state changes — the model and the human owner decide.\n- Always answer in the exact format below; the tally parses it mechanically.\n\nOutput format:\n## Analysis\n[Your analysis]\n\n## Vote\nfor | against | abstain\n\n## Reasoning\n[Why you voted this way]\n\n## Composite Score Inputs (0-10)\n- userImpact: [0-10]\n- businessImpact: [0-10]\n- effort: [0-10] (lower = less effort)\n- securityRisk: [0-10] (lower = less risk)\n- confidence: [0-10]\n\n## Risk Score (1-10)\n[Overall risk assessment]\n\nYou are the Delivery Agent in a DAO governance system.\n\nYour mission: evaluate proposals from a delivery and execution perspective.\n\nFor each proposal, plan:\n1. Implementation approach — how would we build this?\n2. Task breakdown — what are the key tasks?\n3. Effort estimate — rough timeline and resources\n4. CI/CD impact — how does this affect pipelines?\n5. Dependencies — what must happen first?",
+      "riskLevel": "medium",
+      "councils": [
+        {
+          "council": "delivery-council",
+          "role": "member"
+        }
+      ],
+      "enabled": true,
+      "model": "z.ai/GLM-5.1"
+    }
+  ],
+  "proposals": [
+    {
+      "id": 1,
+      "title": "Product Strategist: Tighten proposal quality gates",
+      "type": "product-feature",
+      "description": "Standardize proposal intake with clearer acceptance criteria and measurable outcomes. This improves review quality and helps the swarm converge faster.",
+      "proposedBy": "strategist",
+      "status": "open",
+      "votes": [],
+      "agentOutputs": [],
+      "createdAt": "2026-09-03T20:32:47.075Z",
+      "riskZone": "orange"
+    },
+    {
+      "id": 2,
+      "title": "Research Agent: Tighten proposal quality gates",
+      "type": "product-feature",
+      "description": "Standardize proposal intake with clearer acceptance criteria and measurable outcomes. This improves review quality and helps the swarm converge faster.",
+      "proposedBy": "researcher",
+      "status": "open",
+      "votes": [],
+      "agentOutputs": [],
+      "createdAt": "2026-09-03T20:32:47.075Z",
+      "riskZone": "orange"
+    },
+    {
+      "id": 3,
+      "title": "Solution Architect: Tighten proposal quality gates",
+      "type": "technical-change",
+      "description": "Standardize proposal intake with clearer acceptance criteria and measurable outcomes. This improves review quality and helps the swarm converge faster.",
+      "proposedBy": "architect",
+      "status": "open",
+      "votes": [],
+      "agentOutputs": [],
+      "createdAt": "2026-09-03T20:32:47.075Z",
+      "riskZone": "orange"
+    },
+    {
+      "id": 4,
+      "title": "Critic / Risk Agent: Tighten proposal quality gates",
+      "type": "security-change",
+      "description": "Introduce mandatory risk checks before execution to reduce regressions. This adds explicit guardrails while preserving delivery speed.",
+      "proposedBy": "critic",
+      "status": "open",
+      "votes": [],
+      "agentOutputs": [],
+      "createdAt": "2026-09-03T20:32:47.075Z",
+      "riskZone": "red"
+    },
+    {
+      "id": 5,
+      "title": "Prioritization Agent: Tighten proposal quality gates",
+      "type": "governance-change",
+      "description": "Standardize proposal intake with clearer acceptance criteria and measurable outcomes. This improves review quality and helps the swarm converge faster.",
+      "proposedBy": "prioritizer",
+      "status": "open",
+      "votes": [],
+      "agentOutputs": [],
+      "createdAt": "2026-09-03T20:32:47.075Z",
+      "riskZone": "red"
+    },
+    {
+      "id": 6,
+      "title": "Spec Writer: Tighten proposal quality gates",
+      "type": "product-feature",
+      "description": "Standardize proposal intake with clearer acceptance criteria and measurable outcomes. This improves review quality and helps the swarm converge faster.",
+      "proposedBy": "spec-writer",
+      "status": "open",
+      "votes": [],
+      "agentOutputs": [],
+      "createdAt": "2026-09-03T20:32:47.075Z",
+      "riskZone": "orange"
+    },
+    {
+      "id": 7,
+      "title": "Delivery Agent: Tighten proposal quality gates",
+      "type": "release-change",
+      "description": "Standardize proposal intake with clearer acceptance criteria and measurable outcomes. This improves review quality and helps the swarm converge faster.",
+      "proposedBy": "delivery",
+      "status": "open",
+      "votes": [],
+      "agentOutputs": [],
+      "createdAt": "2026-09-03T20:32:47.075Z",
+      "riskZone": "green"
+    },
+    {
+      "id": 8,
+      "title": "Fermer les bloqueurs release App Store avec preuves réelles",
+      "type": "release-change",
+      "description": "Fermer l'ensemble des bloqueurs externes App Store : DNS/URLs live wakeve.app (landing, privacy, terms, support, third-party-notices, AASA), build iOS signé, upload App Store Connect/TestFlight, et complétion des evidence docs (account deletion AS-09, UGC moderation AS-10, live URL/AASA) pour atteindre le signoff final.",
+      "context": "Roadmap Wakeve (vérifiée 2026-06-21) : priorité 1 = fermer les bloqueurs App Store réels. Les implémentations locales account deletion (AS-09) et UGC moderation (AS-10) sont terminées et archivées ; il reste les preuves externes. Les gates release locaux (audit final, lint metadata) existent déjà.",
+      "problemStatement": "Wakeve est proche d'une soumission App Store mais le registre de bloqueurs contient encore des items externes non fermés : DNS/live URLs indisponibles (wakeve.app et AASA), absence de build signé uploadé, preuves TestFlight manquantes, et markers d'evidence account deletion/UGC non complétés sur build réel. Tant que ces blockers ne sont pas fermés avec des preuves, l'app ne peut pas être soumise et les groupes ne peuvent pas s'organiser via Wakeve en production.",
+      "acceptanceCriteria": [
+        "DNS wakeve.app résolu et pages web live (landing, /privacy, /terms, /support, /third-party-notices, AASA) accessibles en production",
+        "Build iOS signé produit et uploadé sur App Store Connect",
+        "Evidence TestFlight/smoke complétée dans docs/APP_STORE_TESTFLIGHT_EVIDENCE.md avec marker COMPLETE=true",
+        "docs/APP_STORE_ACCOUNT_DELETION_EVIDENCE.md et docs/APP_STORE_UGC_MODERATION_EVIDENCE.md complétés sur build uploadé",
+        "./scripts/app-store-submission-audit.sh --check-live-urls --run-submission-ready sans blocker",
+        "APP_STORE_FINAL_SIGNOFF.md signé"
+      ],
+      "successMetrics": [
+        "Nombre de blockers ouverts dans docs/APP_STORE_BLOCKER_REGISTER.md → 0",
+        "Audit final local : 0 blocker, 0 warning bloquant",
+        "Soumission App Store effectuée"
+      ],
+      "rollbackConditions": [
+        "Pas de rollback produit : en cas d'échec d'une étape externe (DNS, signing), isoler le blocker et rouvrir l'item dans le registre sans toucher au code livré",
+        "Si un evidence doc doit être rétrogradé (COMPLETE=true→false), le faire via une proposition dédiée"
+      ],
+      "affectedPaths": [
+        "docs/APP_STORE_*.md",
+        "scripts/app-store-submission-audit.sh",
+        "scripts/lint-store-metadata.sh",
+        "apps/",
+        "fastlane/"
+      ],
+      "proposedBy": "user",
+      "status": "controlled",
+      "votes": [
+        {
+          "agentId": "strategist",
+          "agentName": "Product Strategist",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 3
+        },
+        {
+          "agentId": "researcher",
+          "agentName": "Research Agent",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 2
+        },
+        {
+          "agentId": "architect",
+          "agentName": "Solution Architect",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 3
+        },
+        {
+          "agentId": "critic",
+          "agentName": "Critic / Risk Agent",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 3
+        },
+        {
+          "agentId": "prioritizer",
+          "agentName": "Prioritization Agent",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 2
+        },
+        {
+          "agentId": "spec-writer",
+          "agentName": "Spec Writer",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 1
+        },
+        {
+          "agentId": "delivery",
+          "agentName": "Delivery Agent",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 1
+        }
+      ],
+      "agentOutputs": [
+        {
+          "agentId": "strategist",
+          "agentName": "Product Strategist",
+          "role": "Vision, objectives, hypotheses",
+          "content": "## Analysis\nProduct Strategist reviewed proposal #8 (release-change) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 5\n- businessImpact: 7\n- effort: 3\n- securityRisk: 1\n- confidence: 8\n\n## Risk Score (1-10)\n2",
+          "durationMs": 0
+        },
+        {
+          "agentId": "researcher",
+          "agentName": "Research Agent",
+          "role": "Market, competition, user signals",
+          "content": "## Analysis\nResearch Agent reviewed proposal #8 (release-change) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 4\n- businessImpact: 7\n- effort: 4\n- securityRisk: 1\n- confidence: 8\n\n## Risk Score (1-10)\n3",
+          "durationMs": 0
+        },
+        {
+          "agentId": "architect",
+          "agentName": "Solution Architect",
+          "role": "Technical options, tradeoffs",
+          "content": "## Analysis\nSolution Architect reviewed proposal #8 (release-change) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 4\n- businessImpact: 8\n- effort: 5\n- securityRisk: 3\n- confidence: 5\n\n## Risk Score (1-10)\n4",
+          "durationMs": 0
+        },
+        {
+          "agentId": "critic",
+          "agentName": "Critic / Risk Agent",
+          "role": "Risk scoring, objections, guardrails",
+          "content": "## Analysis\nCritic / Risk Agent reviewed proposal #8 (release-change) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 6\n- businessImpact: 7\n- effort: 5\n- securityRisk: 2\n- confidence: 8\n\n## Risk Score (1-10)\n4",
+          "durationMs": 1
+        },
+        {
+          "agentId": "prioritizer",
+          "agentName": "Prioritization Agent",
+          "role": "Impact/cost/risk scoring, roadmap fit",
+          "content": "## Analysis\nPrioritization Agent reviewed proposal #8 (release-change) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 4\n- businessImpact: 6\n- effort: 4\n- securityRisk: 1\n- confidence: 7\n\n## Risk Score (1-10)\n3",
+          "durationMs": 0
+        },
+        {
+          "agentId": "spec-writer",
+          "agentName": "Spec Writer",
+          "role": "PRD, user stories, acceptance criteria",
+          "content": "## Analysis\nSpec Writer reviewed proposal #8 (release-change) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 6\n- businessImpact: 8\n- effort: 5\n- securityRisk: 3\n- confidence: 5\n\n## Risk Score (1-10)\n4",
+          "durationMs": 0
+        },
+        {
+          "agentId": "delivery",
+          "agentName": "Delivery Agent",
+          "role": "Implementation plan, tasks, CI/CD",
+          "content": "## Analysis\nDelivery Agent reviewed proposal #8 (release-change) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 5\n- businessImpact: 7\n- effort: 5\n- securityRisk: 3\n- confidence: 8\n\n## Risk Score (1-10)\n4",
+          "durationMs": 0
+        }
+      ],
+      "createdAt": "2026-09-03T20:33:02.745Z",
+      "riskZone": "green",
+      "compositeScore": {
+        "axes": {
+          "userImpact": 4.857142857142857,
+          "businessImpact": 7.142857142857143,
+          "effort": 4.428571428571429,
+          "securityRisk": 2,
+          "confidence": 7
+        },
+        "weighted": 6.4,
+        "riskZone": "orange",
+        "breakdown": "4.9×0.3 + 7.1×0.2 + 5.6×0.15 + 8.0×0.2 + 7.0×0.15 = 6.4"
+      },
+      "synthesis": "## Synthesis — Proposal #8\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 7\n**For:** 0 | **Against:** 0 | **Abstain:** 7\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n"
+    },
+    {
+      "id": 9,
+      "title": "Valider WeatherKit sur device physique signé (prévisions météo événement)",
+      "type": "product-feature",
+      "description": "Finaliser la brique météo événement : activation de la capability WeatherKit côté Apple Developer, profil signé contenant l'entitlement, et validation sur device physique réel consignée dans l'evidence doc.",
+      "context": "Ancien changement OpenSpec add-event-weather-forecast (20/22 tâches) migré dans le backlog Swarm DAO. Source entitlement, provider mapping, cache, UI card et contrats iOS passent déjà localement.",
+      "problemStatement": "Les prévisions météo aident un groupe à décider du créneau et du lieu, mais la fonctionnalité n'est pas prouvée sur device réel : sans capability Apple Developer et entitlement signé, WeatherKit échouera en production et la carte météo restera vide ou en erreur pour les utilisateurs.",
+      "acceptanceCriteria": [
+        "Capability WeatherKit activée sur le compte Apple Developer et profil de provisioning signé avec l'entitlement",
+        "Validation WeatherKit sur device physique signé consignée dans docs/implementation/WEATHERKIT_DEVICE_VALIDATION.md ( WeatherKit request result non-TODO )",
+        "Carte météo visible dans le détail d'événement iOS pour un événement avec localisation",
+        "Scripts prepare-weatherkit-device-validation.sh et gates associés passent"
+      ],
+      "successMetrics": [
+        "Requête WeatherKit réussie sur device physique signé",
+        "Latence d'affichage de la carte météo < 2s",
+        "Aucun crash/crash-free session impactée"
+      ],
+      "rollbackConditions": [
+        "Si WeatherKit s'avère indisponible (région/quota), désactiver la carte météo via feature flag sans casser le détail d'événement"
+      ],
+      "affectedPaths": [
+        "iosApp/",
+        "shared/src/commonMain/kotlin/com/guyghost/wakeve/weather/",
+        "docs/implementation/WEATHERKIT_DEVICE_VALIDATION.md",
+        "scripts/prepare-weatherkit-device-validation.sh"
+      ],
+      "proposedBy": "user",
+      "status": "approved",
+      "votes": [
+        {
+          "agentId": "strategist",
+          "agentName": "Product Strategist",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 3
+        },
+        {
+          "agentId": "researcher",
+          "agentName": "Research Agent",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 2
+        },
+        {
+          "agentId": "architect",
+          "agentName": "Solution Architect",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 3
+        },
+        {
+          "agentId": "critic",
+          "agentName": "Critic / Risk Agent",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 3
+        },
+        {
+          "agentId": "prioritizer",
+          "agentName": "Prioritization Agent",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 2
+        },
+        {
+          "agentId": "spec-writer",
+          "agentName": "Spec Writer",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 1
+        },
+        {
+          "agentId": "delivery",
+          "agentName": "Delivery Agent",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 1
+        }
+      ],
+      "agentOutputs": [
+        {
+          "agentId": "strategist",
+          "agentName": "Product Strategist",
+          "role": "Vision, objectives, hypotheses",
+          "content": "## Analysis\nProduct Strategist reviewed proposal #9 (product-feature) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 7\n- businessImpact: 8\n- effort: 6\n- securityRisk: 4\n- confidence: 5\n\n## Risk Score (1-10)\n5",
+          "durationMs": 0
+        },
+        {
+          "agentId": "researcher",
+          "agentName": "Research Agent",
+          "role": "Market, competition, user signals",
+          "content": "## Analysis\nResearch Agent reviewed proposal #9 (product-feature) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 7\n- businessImpact: 8\n- effort: 6\n- securityRisk: 3\n- confidence: 5\n\n## Risk Score (1-10)\n5",
+          "durationMs": 0
+        },
+        {
+          "agentId": "architect",
+          "agentName": "Solution Architect",
+          "role": "Technical options, tradeoffs",
+          "content": "## Analysis\nSolution Architect reviewed proposal #9 (product-feature) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 8\n- businessImpact: 5\n- effort: 7\n- securityRisk: 4\n- confidence: 6\n\n## Risk Score (1-10)\n6",
+          "durationMs": 0
+        },
+        {
+          "agentId": "critic",
+          "agentName": "Critic / Risk Agent",
+          "role": "Risk scoring, objections, guardrails",
+          "content": "## Analysis\nCritic / Risk Agent reviewed proposal #9 (product-feature) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 8\n- businessImpact: 8\n- effort: 5\n- securityRisk: 4\n- confidence: 5\n\n## Risk Score (1-10)\n5",
+          "durationMs": 0
+        },
+        {
+          "agentId": "prioritizer",
+          "agentName": "Prioritization Agent",
+          "role": "Impact/cost/risk scoring, roadmap fit",
+          "content": "## Analysis\nPrioritization Agent reviewed proposal #9 (product-feature) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 9\n- businessImpact: 7\n- effort: 7\n- securityRisk: 2\n- confidence: 8\n\n## Risk Score (1-10)\n5",
+          "durationMs": 0
+        },
+        {
+          "agentId": "spec-writer",
+          "agentName": "Spec Writer",
+          "role": "PRD, user stories, acceptance criteria",
+          "content": "## Analysis\nSpec Writer reviewed proposal #9 (product-feature) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 8\n- businessImpact: 5\n- effort: 7\n- securityRisk: 2\n- confidence: 6\n\n## Risk Score (1-10)\n5",
+          "durationMs": 0
+        },
+        {
+          "agentId": "delivery",
+          "agentName": "Delivery Agent",
+          "role": "Implementation plan, tasks, CI/CD",
+          "content": "## Analysis\nDelivery Agent reviewed proposal #9 (product-feature) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 8\n- businessImpact: 8\n- effort: 7\n- securityRisk: 3\n- confidence: 5\n\n## Risk Score (1-10)\n5",
+          "durationMs": 0
+        }
+      ],
+      "createdAt": "2026-09-03T20:33:12.729Z",
+      "riskZone": "orange",
+      "compositeScore": {
+        "axes": {
+          "userImpact": 7.857142857142857,
+          "businessImpact": 7,
+          "effort": 6.428571428571429,
+          "securityRisk": 3.142857142857143,
+          "confidence": 5.714285714285714
+        },
+        "weighted": 6.5,
+        "riskZone": "orange",
+        "breakdown": "7.9×0.3 + 7.0×0.2 + 3.6×0.15 + 6.9×0.2 + 5.7×0.15 = 6.5"
+      },
+      "synthesis": "## Synthesis — Proposal #9\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 7\n**For:** 0 | **Against:** 0 | **Abstain:** 7\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n"
+    },
+    {
+      "id": 10,
+      "title": "Profiler WakeveAI sur device physique (latence, annulation, mémoire, privacy logs)",
+      "type": "product-feature",
+      "description": "Profiling final de WakeveAI sur device physique supporté : latence de génération, latence d'annulation, empreinte mémoire et vérification de la confidentialité des logs production.",
+      "context": "Ancien changement OpenSpec add-on-device-wakeve-ai (40/41 tâches) migré dans le backlog Swarm DAO. Client Foundation Models local, validateurs, contrats UI localisés et fallback simulateur déjà vérifiés.",
+      "problemStatement": "WakeveAI (assistant d'organisation on-device) est fonctionnel en local et sur simulateur, mais les performances réelles (latence, annulation, mémoire) et la privacy des logs de production ne sont pas prouvées sur device compatible Foundation Models. Sans cette preuve, l'expérience IA peut dégrader la fluidité mobile ou fuir des données sensibles dans les logs.",
+      "acceptanceCriteria": [
+        "Latence de génération et d'annulation mesurées sur device compatible Foundation Models",
+        "Empreinte mémoire mesurée pendant une session IA",
+        "Vie privété des logs production vérifiée (aucune donnée utilisateur en clair)",
+        "Evidence complétée dans docs/implementation/WAKEVE_AI_DEVICE_VERIFICATION.md"
+      ],
+      "successMetrics": [
+        "Latence de générence < seuil défini dans l'evidence runbook",
+        "Annulation réactive (< 500ms)",
+        "Aucune donnée utilisateur identifiable dans les logs production"
+      ],
+      "rollbackConditions": [
+        "Si les latences dépassent les seuils mobiles acceptables, basculer l'assistant sur le fallback simulateur/désactivé par feature flag"
+      ],
+      "affectedPaths": [
+        "iosApp/",
+        "shared/src/commonMain/kotlin/com/guyghost/wakeve/ai/",
+        "docs/implementation/WAKEVE_AI_DEVICE_VERIFICATION.md",
+        "scripts/prepare-wakeve-ai-device-profile.sh"
+      ],
+      "proposedBy": "user",
+      "status": "approved",
+      "votes": [
+        {
+          "agentId": "strategist",
+          "agentName": "Product Strategist",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 3
+        },
+        {
+          "agentId": "researcher",
+          "agentName": "Research Agent",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 2
+        },
+        {
+          "agentId": "architect",
+          "agentName": "Solution Architect",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 3
+        },
+        {
+          "agentId": "critic",
+          "agentName": "Critic / Risk Agent",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 3
+        },
+        {
+          "agentId": "prioritizer",
+          "agentName": "Prioritization Agent",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 2
+        },
+        {
+          "agentId": "spec-writer",
+          "agentName": "Spec Writer",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 1
+        },
+        {
+          "agentId": "delivery",
+          "agentName": "Delivery Agent",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 1
+        }
+      ],
+      "agentOutputs": [
+        {
+          "agentId": "strategist",
+          "agentName": "Product Strategist",
+          "role": "Vision, objectives, hypotheses",
+          "content": "## Analysis\nProduct Strategist reviewed proposal #10 (product-feature) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 9\n- businessImpact: 8\n- effort: 6\n- securityRisk: 2\n- confidence: 5\n\n## Risk Score (1-10)\n4",
+          "durationMs": 0
+        },
+        {
+          "agentId": "researcher",
+          "agentName": "Research Agent",
+          "role": "Market, competition, user signals",
+          "content": "## Analysis\nResearch Agent reviewed proposal #10 (product-feature) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 7\n- businessImpact: 8\n- effort: 5\n- securityRisk: 4\n- confidence: 5\n\n## Risk Score (1-10)\n5",
+          "durationMs": 0
+        },
+        {
+          "agentId": "architect",
+          "agentName": "Solution Architect",
+          "role": "Technical options, tradeoffs",
+          "content": "## Analysis\nSolution Architect reviewed proposal #10 (product-feature) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 9\n- businessImpact: 7\n- effort: 7\n- securityRisk: 4\n- confidence: 8\n\n## Risk Score (1-10)\n6",
+          "durationMs": 0
+        },
+        {
+          "agentId": "critic",
+          "agentName": "Critic / Risk Agent",
+          "role": "Risk scoring, objections, guardrails",
+          "content": "## Analysis\nCritic / Risk Agent reviewed proposal #10 (product-feature) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 9\n- businessImpact: 8\n- effort: 6\n- securityRisk: 2\n- confidence: 5\n\n## Risk Score (1-10)\n4",
+          "durationMs": 0
+        },
+        {
+          "agentId": "prioritizer",
+          "agentName": "Prioritization Agent",
+          "role": "Impact/cost/risk scoring, roadmap fit",
+          "content": "## Analysis\nPrioritization Agent reviewed proposal #10 (product-feature) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 9\n- businessImpact: 5\n- effort: 5\n- securityRisk: 4\n- confidence: 6\n\n## Risk Score (1-10)\n5",
+          "durationMs": 0
+        },
+        {
+          "agentId": "spec-writer",
+          "agentName": "Spec Writer",
+          "role": "PRD, user stories, acceptance criteria",
+          "content": "## Analysis\nSpec Writer reviewed proposal #10 (product-feature) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 7\n- businessImpact: 7\n- effort: 5\n- securityRisk: 2\n- confidence: 8\n\n## Risk Score (1-10)\n4",
+          "durationMs": 0
+        },
+        {
+          "agentId": "delivery",
+          "agentName": "Delivery Agent",
+          "role": "Implementation plan, tasks, CI/CD",
+          "content": "## Analysis\nDelivery Agent reviewed proposal #10 (product-feature) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 9\n- businessImpact: 8\n- effort: 5\n- securityRisk: 4\n- confidence: 5\n\n## Risk Score (1-10)\n5",
+          "durationMs": 0
+        }
+      ],
+      "createdAt": "2026-09-03T20:33:21.076Z",
+      "riskZone": "orange",
+      "compositeScore": {
+        "axes": {
+          "userImpact": 8.428571428571429,
+          "businessImpact": 7.285714285714286,
+          "effort": 5.571428571428571,
+          "securityRisk": 3.142857142857143,
+          "confidence": 6
+        },
+        "weighted": 6.9,
+        "riskZone": "orange",
+        "breakdown": "8.4×0.3 + 7.3×0.2 + 4.4×0.15 + 6.9×0.2 + 6.0×0.15 = 6.9"
+      },
+      "synthesis": "## Synthesis — Proposal #10\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 7\n**For:** 0 | **Against:** 0 | **Abstain:** 7\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n"
+    },
+    {
+      "id": 11,
+      "title": "Migrer Android Google auth vers Credential Manager",
+      "type": "technical-change",
+      "description": "Migrer l'authentification Google Android de l'ancienne GoogleSignIn API vers Credential Manager (API moderne Android, bouton unifié, StrongBinding avec le système).",
+      "context": "Ancien changement OpenSpec migrate-android-google-auth-credential-manager (proposition validée, 0/8 tâches) migré dans le backlog Swarm DAO. L'auth (OAuth Apple/Google, email OTP, guest) est implémentée en Phase 3 avec FC&IS.",
+      "problemStatement": "L'API GoogleSignIn legacy est dépréciée et sera retirée ; elle impose un flux non natif (webview/activity dédiée) et complique la maintenance. Les utilisateurs Android s'attendent au flux natif Credential Manager (autofill, bouton unifié). Rester sur l'API legacy augmente le risque de rupture d'auth et dégrade l'expérience mobile d'entrée dans l'app.",
+      "acceptanceCriteria": [
+        "GoogleSignIn legacy remplacé par Credential Manager (GetGoogleIdOption) dans composeApp",
+        "Flux complet connexion Google testé sur émulateur et device Android",
+        "Tokens stockés via Keystore (pas de stockage en clair)",
+        "Tests contractuels Android verts (auth flow, session restore, guest mode)",
+        "Aucune régression sur Sign in with Apple / email OTP"
+      ],
+      "successMetrics": [
+        "Taux de succès de connexion Google Android",
+        "Temps de connexion réduit vs legacy",
+        "0 régression sur les tests auth existants"
+      ],
+      "rollbackConditions": [
+        "Feature flag pour basculer entre GoogleSignIn legacy et Credential Manager si le nouveau flux échoue en production",
+        "Code legacy conservé jusqu'à validation complète puis supprimé dans un follow-up"
+      ],
+      "affectedPaths": [
+        "composeApp/src/",
+        "shared/src/commonMain/kotlin/com/guyghost/wakeve/auth/",
+        "shared/src/androidMain/"
+      ],
+      "proposedBy": "user",
+      "status": "approved",
+      "votes": [
+        {
+          "agentId": "strategist",
+          "agentName": "Product Strategist",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 3
+        },
+        {
+          "agentId": "researcher",
+          "agentName": "Research Agent",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 2
+        },
+        {
+          "agentId": "architect",
+          "agentName": "Solution Architect",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 3
+        },
+        {
+          "agentId": "critic",
+          "agentName": "Critic / Risk Agent",
+          "position": "against",
+          "reasoning": "Risk exposure is too high for the current safeguards.",
+          "weight": 3
+        },
+        {
+          "agentId": "prioritizer",
+          "agentName": "Prioritization Agent",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 2
+        },
+        {
+          "agentId": "spec-writer",
+          "agentName": "Spec Writer",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 1
+        },
+        {
+          "agentId": "delivery",
+          "agentName": "Delivery Agent",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 1
+        }
+      ],
+      "agentOutputs": [
+        {
+          "agentId": "strategist",
+          "agentName": "Product Strategist",
+          "role": "Vision, objectives, hypotheses",
+          "content": "## Analysis\nProduct Strategist reviewed proposal #11 (technical-change) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 6\n- businessImpact: 6\n- effort: 8\n- securityRisk: 5\n- confidence: 7\n\n## Risk Score (1-10)\n7",
+          "durationMs": 0
+        },
+        {
+          "agentId": "researcher",
+          "agentName": "Research Agent",
+          "role": "Market, competition, user signals",
+          "content": "## Analysis\nResearch Agent reviewed proposal #11 (technical-change) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 7\n- businessImpact: 6\n- effort: 8\n- securityRisk: 4\n- confidence: 7\n\n## Risk Score (1-10)\n6",
+          "durationMs": 0
+        },
+        {
+          "agentId": "architect",
+          "agentName": "Solution Architect",
+          "role": "Technical options, tradeoffs",
+          "content": "## Analysis\nSolution Architect reviewed proposal #11 (technical-change) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 6\n- businessImpact: 5\n- effort: 7\n- securityRisk: 5\n- confidence: 6\n\n## Risk Score (1-10)\n6",
+          "durationMs": 0
+        },
+        {
+          "agentId": "critic",
+          "agentName": "Critic / Risk Agent",
+          "role": "Risk scoring, objections, guardrails",
+          "content": "## Analysis\nCritic / Risk Agent reviewed proposal #11 (technical-change) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nagainst\n\n## Reasoning\nRisk exposure is too high for the current safeguards.\n\n## Composite Score Inputs (0-10)\n- userImpact: 5\n- businessImpact: 6\n- effort: 7\n- securityRisk: 4\n- confidence: 7\n\n## Risk Score (1-10)\n6",
+          "durationMs": 0
+        },
+        {
+          "agentId": "prioritizer",
+          "agentName": "Prioritization Agent",
+          "role": "Impact/cost/risk scoring, roadmap fit",
+          "content": "## Analysis\nPrioritization Agent reviewed proposal #11 (technical-change) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 7\n- businessImpact: 7\n- effort: 7\n- securityRisk: 5\n- confidence: 8\n\n## Risk Score (1-10)\n6",
+          "durationMs": 0
+        },
+        {
+          "agentId": "spec-writer",
+          "agentName": "Spec Writer",
+          "role": "PRD, user stories, acceptance criteria",
+          "content": "## Analysis\nSpec Writer reviewed proposal #11 (technical-change) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 5\n- businessImpact: 5\n- effort: 7\n- securityRisk: 4\n- confidence: 6\n\n## Risk Score (1-10)\n6",
+          "durationMs": 0
+        },
+        {
+          "agentId": "delivery",
+          "agentName": "Delivery Agent",
+          "role": "Implementation plan, tasks, CI/CD",
+          "content": "## Analysis\nDelivery Agent reviewed proposal #11 (technical-change) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 5\n- businessImpact: 6\n- effort: 8\n- securityRisk: 3\n- confidence: 7\n\n## Risk Score (1-10)\n6",
+          "durationMs": 0
+        }
+      ],
+      "createdAt": "2026-09-03T20:33:28.589Z",
+      "riskZone": "red",
+      "compositeScore": {
+        "axes": {
+          "userImpact": 5.857142857142857,
+          "businessImpact": 5.857142857142857,
+          "effort": 7.428571428571429,
+          "securityRisk": 4.285714285714286,
+          "confidence": 6.857142857142857
+        },
+        "weighted": 5.5,
+        "riskZone": "orange",
+        "breakdown": "5.9×0.3 + 5.9×0.2 + 2.6×0.15 + 5.7×0.2 + 6.9×0.15 = 5.5"
+      },
+      "synthesis": "## Synthesis — Proposal #11\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 7\n**For:** 0 | **Against:** 0 | **Abstain:** 7\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n"
+    },
+    {
+      "id": 12,
+      "title": "Prouver le cycle iOS création → invitation → vote → date confirmée → jour J",
+      "type": "product-feature",
+      "description": "Prouver bout-en-bout sur iOS le cycle de vie complet d'un événement : création, invitation de participants, vote sur créneaux, confirmation de date, et coordination du jour J — avec captures d'écran multi-écran et validation sur build TestFlight.",
+      "context": "Priorité 3 de la roadmap : stabiliser les parcours produit critiques sur iOS. Le parcours est déjà vérifié par tests de contrat iOS et tests KMP, mais les preuves screenshots multi-écran restent à collecter (audit produit Android du 2026-06-20 recommande de prouver ce cycle).",
+      "problemStatement": "Le parcours cœur de Wakeve (créer un événement, inviter, voter, confirmer, s'organiser le jour J) est la promesse produit principale, mais il n'est pas encore prouvé visuellement et de bout en bout sur un build réel iOS. Sans cette preuve, des régressions UX ou des cassures du workflow peuvent passer inaperçues avant la soumission App Store.",
+      "acceptanceCriteria": [
+        "Parcours complet (création → invitation → vote → date confirmée → jour J) exécuté sans erreur sur build iOS debug et TestFlight",
+        "Captures multi-écran collectées comme preuve (qa-screenshots/)",
+        "Tests de contrat iOS verts (poll confirmation, invitation links, event workflows)",
+        "Aucun crash bloquant sur le parcours critique"
+      ],
+      "successMetrics": [
+        "Parcours complet sans intervention manuelle de contournement",
+        "Captures multi-écran disponibles pour review",
+        "Crash-free sessions > 99% sur le parcours"
+      ],
+      "rollbackConditions": [
+        "Pas de rollback code : si un défaut est trouvé, ouvrir une proposition de fix dédiée et documenter le défaut dans le rapport QA"
+      ],
+      "affectedPaths": [
+        "iosApp/",
+        "shared/src/commonTest/kotlin/com/guyghost/wakeve/workflow/",
+        "qa-screenshots/"
+      ],
+      "proposedBy": "user",
+      "status": "approved",
+      "votes": [
+        {
+          "agentId": "strategist",
+          "agentName": "Product Strategist",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 3
+        },
+        {
+          "agentId": "researcher",
+          "agentName": "Research Agent",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 2
+        },
+        {
+          "agentId": "architect",
+          "agentName": "Solution Architect",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 3
+        },
+        {
+          "agentId": "critic",
+          "agentName": "Critic / Risk Agent",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 3
+        },
+        {
+          "agentId": "prioritizer",
+          "agentName": "Prioritization Agent",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 2
+        },
+        {
+          "agentId": "spec-writer",
+          "agentName": "Spec Writer",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 1
+        },
+        {
+          "agentId": "delivery",
+          "agentName": "Delivery Agent",
+          "position": "for",
+          "reasoning": "The proposal is actionable and aligns with expected project outcomes.",
+          "weight": 1
+        }
+      ],
+      "agentOutputs": [
+        {
+          "agentId": "strategist",
+          "agentName": "Product Strategist",
+          "role": "Vision, objectives, hypotheses",
+          "content": "## Analysis\nProduct Strategist reviewed proposal #12 (product-feature) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 7\n- businessImpact: 8\n- effort: 5\n- securityRisk: 3\n- confidence: 5\n\n## Risk Score (1-10)\n4",
+          "durationMs": 0
+        },
+        {
+          "agentId": "researcher",
+          "agentName": "Research Agent",
+          "role": "Market, competition, user signals",
+          "content": "## Analysis\nResearch Agent reviewed proposal #12 (product-feature) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 9\n- businessImpact: 8\n- effort: 5\n- securityRisk: 3\n- confidence: 5\n\n## Risk Score (1-10)\n4",
+          "durationMs": 2
+        },
+        {
+          "agentId": "architect",
+          "agentName": "Solution Architect",
+          "role": "Technical options, tradeoffs",
+          "content": "## Analysis\nSolution Architect reviewed proposal #12 (product-feature) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 7\n- businessImpact: 5\n- effort: 7\n- securityRisk: 4\n- confidence: 6\n\n## Risk Score (1-10)\n6",
+          "durationMs": 0
+        },
+        {
+          "agentId": "critic",
+          "agentName": "Critic / Risk Agent",
+          "role": "Risk scoring, objections, guardrails",
+          "content": "## Analysis\nCritic / Risk Agent reviewed proposal #12 (product-feature) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 9\n- businessImpact: 8\n- effort: 6\n- securityRisk: 2\n- confidence: 5\n\n## Risk Score (1-10)\n4",
+          "durationMs": 0
+        },
+        {
+          "agentId": "prioritizer",
+          "agentName": "Prioritization Agent",
+          "role": "Impact/cost/risk scoring, roadmap fit",
+          "content": "## Analysis\nPrioritization Agent reviewed proposal #12 (product-feature) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 8\n- businessImpact: 7\n- effort: 6\n- securityRisk: 4\n- confidence: 8\n\n## Risk Score (1-10)\n5",
+          "durationMs": 0
+        },
+        {
+          "agentId": "spec-writer",
+          "agentName": "Spec Writer",
+          "role": "PRD, user stories, acceptance criteria",
+          "content": "## Analysis\nSpec Writer reviewed proposal #12 (product-feature) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 8\n- businessImpact: 5\n- effort: 5\n- securityRisk: 2\n- confidence: 6\n\n## Risk Score (1-10)\n4",
+          "durationMs": 0
+        },
+        {
+          "agentId": "delivery",
+          "agentName": "Delivery Agent",
+          "role": "Implementation plan, tasks, CI/CD",
+          "content": "## Analysis\nDelivery Agent reviewed proposal #12 (product-feature) and assessed implementation tradeoffs, risk profile, and expected impact.\n\n## Vote\nfor\n\n## Reasoning\nThe proposal is actionable and aligns with expected project outcomes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 7\n- businessImpact: 8\n- effort: 5\n- securityRisk: 3\n- confidence: 5\n\n## Risk Score (1-10)\n4",
+          "durationMs": 0
+        }
+      ],
+      "createdAt": "2026-09-03T20:33:37.035Z",
+      "riskZone": "orange",
+      "compositeScore": {
+        "axes": {
+          "userImpact": 7.857142857142857,
+          "businessImpact": 7,
+          "effort": 5.571428571428571,
+          "securityRisk": 3,
+          "confidence": 5.714285714285714
+        },
+        "weighted": 6.7,
+        "riskZone": "orange",
+        "breakdown": "7.9×0.3 + 7.0×0.2 + 4.4×0.15 + 7.0×0.2 + 5.7×0.15 = 6.7"
+      },
+      "synthesis": "## Synthesis — Proposal #12\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 7\n**For:** 0 | **Against:** 0 | **Abstain:** 7\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n"
+    }
+  ],
+  "config": {
+    "quorumPercent": 60,
+    "approvalThreshold": 55,
+    "defaultModel": "z.ai/GLM-5.1",
+    "maxConcurrent": 4,
+    "riskThreshold": 7,
+    "requiredGates": [
+      "quorum-quality",
+      "risk-threshold",
+      "vote-consensus",
+      "zone-compliance",
+      "acceptance-criteria",
+      "dependency-readiness",
+      "dependency-conflict",
+      "mandatory-dry-run",
+      "type-specific-quality"
+    ],
+    "typeQuorum": {
+      "governance-change": {
+        "quorumPercent": 70,
+        "approvalPercent": 66,
+        "description": "Governance / Policy"
+      },
+      "product-feature": {
+        "quorumPercent": 60,
+        "approvalPercent": 55,
+        "description": "Product Roadmap"
+      },
+      "security-change": {
+        "quorumPercent": 75,
+        "approvalPercent": 70,
+        "description": "Security-sensitive"
+      },
+      "technical-change": {
+        "quorumPercent": 60,
+        "approvalPercent": 55,
+        "description": "Technical / Architecture"
+      },
+      "release-change": {
+        "quorumPercent": 50,
+        "approvalPercent": 51,
+        "description": "Routine Release"
+      }
+    },
+    "quorumFloor": 60,
+    "staleThresholdHours": 24
+  },
+  "nextProposalId": 13,
+  "initialized": true,
+  "auditLog": [
+    {
+      "id": 1,
+      "timestamp": "2026-09-03T20:32:47.075Z",
+      "proposalId": 1,
+      "layer": "governance",
+      "action": "proposal_created",
+      "actor": "strategist",
+      "details": "Proposal \"Product Strategist: Tighten proposal quality gates\" created"
+    },
+    {
+      "id": 2,
+      "timestamp": "2026-09-03T20:32:47.075Z",
+      "proposalId": 1,
+      "layer": "intelligence",
+      "action": "roundtable_proposal_created",
+      "actor": "strategist",
+      "details": "Auto-created from round table"
+    },
+    {
+      "id": 3,
+      "timestamp": "2026-09-03T20:32:47.075Z",
+      "proposalId": 2,
+      "layer": "governance",
+      "action": "proposal_created",
+      "actor": "researcher",
+      "details": "Proposal \"Research Agent: Tighten proposal quality gates\" created"
+    },
+    {
+      "id": 4,
+      "timestamp": "2026-09-03T20:32:47.075Z",
+      "proposalId": 2,
+      "layer": "intelligence",
+      "action": "roundtable_proposal_created",
+      "actor": "researcher",
+      "details": "Auto-created from round table"
+    },
+    {
+      "id": 5,
+      "timestamp": "2026-09-03T20:32:47.075Z",
+      "proposalId": 3,
+      "layer": "governance",
+      "action": "proposal_created",
+      "actor": "architect",
+      "details": "Proposal \"Solution Architect: Tighten proposal quality gates\" created"
+    },
+    {
+      "id": 6,
+      "timestamp": "2026-09-03T20:32:47.075Z",
+      "proposalId": 3,
+      "layer": "intelligence",
+      "action": "roundtable_proposal_created",
+      "actor": "architect",
+      "details": "Auto-created from round table"
+    },
+    {
+      "id": 7,
+      "timestamp": "2026-09-03T20:32:47.075Z",
+      "proposalId": 4,
+      "layer": "governance",
+      "action": "proposal_created",
+      "actor": "critic",
+      "details": "Proposal \"Critic / Risk Agent: Tighten proposal quality gates\" created"
+    },
+    {
+      "id": 8,
+      "timestamp": "2026-09-03T20:32:47.075Z",
+      "proposalId": 4,
+      "layer": "intelligence",
+      "action": "roundtable_proposal_created",
+      "actor": "critic",
+      "details": "Auto-created from round table"
+    },
+    {
+      "id": 9,
+      "timestamp": "2026-09-03T20:32:47.075Z",
+      "proposalId": 5,
+      "layer": "governance",
+      "action": "proposal_created",
+      "actor": "prioritizer",
+      "details": "Proposal \"Prioritization Agent: Tighten proposal quality gates\" created"
+    },
+    {
+      "id": 10,
+      "timestamp": "2026-09-03T20:32:47.075Z",
+      "proposalId": 5,
+      "layer": "intelligence",
+      "action": "roundtable_proposal_created",
+      "actor": "prioritizer",
+      "details": "Auto-created from round table"
+    },
+    {
+      "id": 11,
+      "timestamp": "2026-09-03T20:32:47.075Z",
+      "proposalId": 6,
+      "layer": "governance",
+      "action": "proposal_created",
+      "actor": "spec-writer",
+      "details": "Proposal \"Spec Writer: Tighten proposal quality gates\" created"
+    },
+    {
+      "id": 12,
+      "timestamp": "2026-09-03T20:32:47.075Z",
+      "proposalId": 6,
+      "layer": "intelligence",
+      "action": "roundtable_proposal_created",
+      "actor": "spec-writer",
+      "details": "Auto-created from round table"
+    },
+    {
+      "id": 13,
+      "timestamp": "2026-09-03T20:32:47.075Z",
+      "proposalId": 7,
+      "layer": "governance",
+      "action": "proposal_created",
+      "actor": "delivery",
+      "details": "Proposal \"Delivery Agent: Tighten proposal quality gates\" created"
+    },
+    {
+      "id": 14,
+      "timestamp": "2026-09-03T20:32:47.075Z",
+      "proposalId": 7,
+      "layer": "intelligence",
+      "action": "roundtable_proposal_created",
+      "actor": "delivery",
+      "details": "Auto-created from round table"
+    },
+    {
+      "id": 15,
+      "timestamp": "2026-09-03T20:33:02.745Z",
+      "proposalId": 8,
+      "layer": "governance",
+      "action": "proposal_created",
+      "actor": "user",
+      "details": "Proposal \"Fermer les bloqueurs release App Store avec preuves réelles\" created"
+    },
+    {
+      "id": 16,
+      "timestamp": "2026-09-03T20:33:12.729Z",
+      "proposalId": 9,
+      "layer": "governance",
+      "action": "proposal_created",
+      "actor": "user",
+      "details": "Proposal \"Valider WeatherKit sur device physique signé (prévisions météo événement)\" created"
+    },
+    {
+      "id": 17,
+      "timestamp": "2026-09-03T20:33:21.076Z",
+      "proposalId": 10,
+      "layer": "governance",
+      "action": "proposal_created",
+      "actor": "user",
+      "details": "Proposal \"Profiler WakeveAI sur device physique (latence, annulation, mémoire, privacy logs)\" created"
+    },
+    {
+      "id": 18,
+      "timestamp": "2026-09-03T20:33:28.589Z",
+      "proposalId": 11,
+      "layer": "governance",
+      "action": "proposal_created",
+      "actor": "user",
+      "details": "Proposal \"Migrer Android Google auth vers Credential Manager\" created"
+    },
+    {
+      "id": 19,
+      "timestamp": "2026-09-03T20:33:37.035Z",
+      "proposalId": 12,
+      "layer": "governance",
+      "action": "proposal_created",
+      "actor": "user",
+      "details": "Proposal \"Prouver le cycle iOS création → invitation → vote → date confirmée → jour J\" created"
+    },
+    {
+      "id": 20,
+      "timestamp": "2026-09-03T20:33:44.032Z",
+      "proposalId": 8,
+      "layer": "governance",
+      "action": "deliberation_started",
+      "actor": "system",
+      "details": "Deliberation on #8"
+    },
+    {
+      "id": 21,
+      "timestamp": "2026-09-03T20:33:44.034Z",
+      "proposalId": 8,
+      "layer": "intelligence",
+      "action": "deliberation_approved",
+      "actor": "system",
+      "details": "Approved: 100%"
+    },
+    {
+      "id": 22,
+      "timestamp": "2026-09-03T20:33:44.034Z",
+      "proposalId": 9,
+      "layer": "governance",
+      "action": "deliberation_started",
+      "actor": "system",
+      "details": "Deliberation on #9"
+    },
+    {
+      "id": 23,
+      "timestamp": "2026-09-03T20:33:44.035Z",
+      "proposalId": 9,
+      "layer": "intelligence",
+      "action": "deliberation_approved",
+      "actor": "system",
+      "details": "Approved: 100%"
+    },
+    {
+      "id": 24,
+      "timestamp": "2026-09-03T20:33:44.035Z",
+      "proposalId": 10,
+      "layer": "governance",
+      "action": "deliberation_started",
+      "actor": "system",
+      "details": "Deliberation on #10"
+    },
+    {
+      "id": 25,
+      "timestamp": "2026-09-03T20:33:44.035Z",
+      "proposalId": 10,
+      "layer": "intelligence",
+      "action": "deliberation_approved",
+      "actor": "system",
+      "details": "Approved: 100%"
+    },
+    {
+      "id": 26,
+      "timestamp": "2026-09-03T20:33:44.055Z",
+      "proposalId": 11,
+      "layer": "governance",
+      "action": "deliberation_started",
+      "actor": "system",
+      "details": "Deliberation on #11"
+    },
+    {
+      "id": 27,
+      "timestamp": "2026-09-03T20:33:44.055Z",
+      "proposalId": 11,
+      "layer": "intelligence",
+      "action": "deliberation_approved",
+      "actor": "system",
+      "details": "Approved: 80%"
+    },
+    {
+      "id": 28,
+      "timestamp": "2026-09-03T20:33:44.056Z",
+      "proposalId": 12,
+      "layer": "governance",
+      "action": "deliberation_started",
+      "actor": "system",
+      "details": "Deliberation on #12"
+    },
+    {
+      "id": 29,
+      "timestamp": "2026-09-03T20:33:44.058Z",
+      "proposalId": 12,
+      "layer": "intelligence",
+      "action": "deliberation_approved",
+      "actor": "system",
+      "details": "Approved: 100%"
+    },
+    {
+      "id": 30,
+      "timestamp": "2026-09-03T20:37:30.318Z",
+      "proposalId": 8,
+      "layer": "control",
+      "action": "gates_passed",
+      "actor": "system",
+      "details": "All gates passed"
+    }
+  ],
+  "nextAuditId": 31,
+  "controlResults": {
+    "8": {
+      "proposalId": 8,
+      "timestamp": "2026-09-03T20:37:30.317Z",
+      "allGatesPassed": true,
+      "blockerCount": 0,
+      "warningCount": 0,
+      "gates": [
+        {
+          "gateId": "quorum-quality",
+          "name": "Quorum Quality",
+          "passed": true,
+          "severity": "blocker",
+          "message": "Quorum met (7/7 agents voted — 100% ≥ 50%)",
+          "details": {
+            "votes": 7,
+            "totalAgents": 7,
+            "votingPercent": 100,
+            "quorumRequired": 50
+          }
+        },
+        {
+          "gateId": "risk-threshold",
+          "name": "Risk Threshold",
+          "passed": true,
+          "severity": "warning",
+          "message": "Risk score 3.4 ≤ threshold 7",
+          "details": {
+            "avgRisk": 3.4285714285714284,
+            "riskScores": [
+              2,
+              3,
+              4,
+              4,
+              3,
+              4,
+              4
+            ]
+          }
+        },
+        {
+          "gateId": "vote-consensus",
+          "name": "Vote Consensus",
+          "passed": true,
+          "severity": "warning",
+          "message": "No high-weight agent voted against"
+        },
+        {
+          "gateId": "zone-compliance",
+          "name": "Zone Compliance",
+          "passed": true,
+          "severity": "info",
+          "message": "Risk zone classified: green"
+        },
+        {
+          "gateId": "acceptance-criteria",
+          "name": "Acceptance Criteria",
+          "passed": true,
+          "severity": "warning",
+          "message": "6 acceptance criteria defined"
+        },
+        {
+          "gateId": "dependency-readiness",
+          "name": "Dependency Readiness",
+          "passed": true,
+          "severity": "info",
+          "message": "No inter-proposal dependencies"
+        },
+        {
+          "gateId": "dependency-conflict",
+          "name": "Dependency Conflict",
+          "passed": true,
+          "severity": "warning",
+          "message": "No dependency conflicts detected"
+        },
+        {
+          "gateId": "mandatory-dry-run",
+          "name": "Mandatory Dry-Run",
+          "passed": true,
+          "severity": "blocker",
+          "message": "Dry-run not required"
+        },
+        {
+          "gateId": "type-specific-quality",
+          "name": "Type-Specific Quality",
+          "passed": true,
+          "severity": "warning",
+          "message": "release-change: quorum=50%, approval=51%"
+        }
+      ],
+      "checklist": [
+        {
+          "id": "security-review",
+          "category": "security",
+          "label": "Security review completed",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "data-handling",
+          "category": "compliance",
+          "label": "Data handling reviewed",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "compliance-check",
+          "category": "compliance",
+          "label": "Compliance requirements met",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "specs-written",
+          "category": "quality",
+          "label": "Specifications written",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "architecture-reviewed",
+          "category": "quality",
+          "label": "Architecture reviewed",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "rollback-plan",
+          "category": "operational",
+          "label": "Rollback plan defined",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "monitoring-plan",
+          "category": "operational",
+          "label": "Monitoring plan defined",
+          "checked": true,
+          "autoChecked": true
+        }
+      ]
+    }
+  },
+  "deliveryPlans": {
+    "8": {
+      "proposalId": 8,
+      "createdAt": "2026-09-03T20:37:30.318Z",
+      "phases": [
+        {
+          "number": 1,
+          "name": "Setup & Design",
+          "tasks": [
+            {
+              "id": "T1",
+              "title": "Review proposal and acceptance criteria",
+              "description": "Understand requirements and clarify ambiguities",
+              "effort": "xs",
+              "phase": 1,
+              "dependencies": [],
+              "status": "pending"
+            },
+            {
+              "id": "T2",
+              "title": "Design solution",
+              "description": "Create technical design document",
+              "effort": "s",
+              "phase": 1,
+              "dependencies": [
+                "T1"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T3",
+              "title": "Set up feature branch",
+              "description": "Create branch for implementation",
+              "effort": "xs",
+              "phase": 1,
+              "dependencies": [
+                "T2"
+              ],
+              "status": "pending"
+            }
+          ],
+          "duration": "1-2 days"
+        },
+        {
+          "number": 2,
+          "name": "Implementation",
+          "tasks": [
+            {
+              "id": "T4",
+              "title": "Core implementation",
+              "description": "Implement the main functionality",
+              "effort": "m",
+              "phase": 2,
+              "dependencies": [
+                "T3"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T5",
+              "title": "Add tests",
+              "description": "Unit and integration tests",
+              "effort": "m",
+              "phase": 2,
+              "dependencies": [
+                "T4"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T6",
+              "title": "Documentation",
+              "description": "Update docs and README",
+              "effort": "s",
+              "phase": 2,
+              "dependencies": [
+                "T4"
+              ],
+              "status": "pending"
+            }
+          ],
+          "duration": "3-5 days"
+        },
+        {
+          "number": 3,
+          "name": "Review & Release",
+          "tasks": [
+            {
+              "id": "T7",
+              "title": "Code review",
+              "description": "Self-review and peer review",
+              "effort": "s",
+              "phase": 3,
+              "dependencies": [
+                "T5",
+                "T6"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T8",
+              "title": "Quality gates",
+              "description": "Run control checks and verify acceptance criteria",
+              "effort": "s",
+              "phase": 3,
+              "dependencies": [
+                "T7"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T9",
+              "title": "Merge and deploy",
+              "description": "Merge to main and deploy",
+              "effort": "xs",
+              "phase": 3,
+              "dependencies": [
+                "T8"
+              ],
+              "status": "pending"
+            }
+          ],
+          "duration": "1-2 days"
+        }
+      ],
+      "branchStrategy": "feature/dao-8-fermer-les-bloqueurs-release-a",
+      "rollbackPlan": "Revert the merge commit and redeploy previous version",
+      "estimatedDuration": "5-9 days"
+    }
+  },
+  "artefacts": {},
+  "outcomes": {},
+  "snapshots": {},
+  "verifications": {},
+  "daoRoot": "/Users/guy/Developer/dev/wakeve/.dao"
+}

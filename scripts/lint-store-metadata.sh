@@ -1586,13 +1586,13 @@ validate_app_store_readiness_report() {
     local required_status_phrases=(
         "Wakeve is not ready for App Store submission yet."
         "A signed archive/upload has not been produced"
-        "## Latest 2026-06-21 Refresh"
+        "## Latest 2026-09-03 Refresh"
         'api.wakeve.app` now resolves publicly and the live health URL is reachable'
-        '`wakeve.app` itself still has no public DNS answer'
+        'dashboard `/app` shell routes return 404 pending the Vercel Microfrontends mount'
         "Result: Xcode 27.0 and iOS SDK 27.0."
         "Result: 3111 checks passed, 0 errors, 1 warning"
-        "Result: 3112 checks passed, 17 errors, 1 warning"
-        "Current quick baseline on 2026-06-21 with \`APP_REVIEW_PHONE_NUMBER='+33123456789'\`: exits non-zero with 21 blockers and 1 warning"
+        "Result: 3119 checks passed, 7 errors, 1 warning"
+        "Current quick baseline on 2026-09-03 with \`APP_REVIEW_PHONE_NUMBER='+33123456789'\`: exits non-zero with 21 blockers and 1 warning"
         'https://api.wakeve.app/health` is now publicly reachable'
         "live URL/AASA evidence"
         "final signoff record"
@@ -3240,7 +3240,7 @@ validate_app_store_blocker_register() {
 	        "rejected items must be edited and resubmitted or removed"
 	        "Developer Rejected and the review process starts over"
 	        "submissions may not be reviewed in the order submitted"
-	        "Current result on 2026-06-21: 21 blockers, 1 warning"
+	        "Current result on 2026-09-03: 21 blockers, 1 warning"
 	        'The warning is expected for this quick baseline because `--skip-preflight` intentionally omits the local Fastlane preflight'
 	        "APP_REVIEW_PHONE_NUMBER='+33123456789' ./scripts/app-store-submission-audit.sh --skip-preflight"
 	        'the documented placeholder `+15551234567` is now rejected by the final audit'
@@ -3250,8 +3250,8 @@ validate_app_store_blocker_register() {
 	        "local Fastlane App Store preflight passes"
 	        "Live deployment baseline"
 	        "APP_REVIEW_PHONE_NUMBER='+33123456789' APPLE_TEAM_ID='A1B2C3D4E5' ./scripts/lint-store-metadata.sh --ios-only --check-live-urls"
-	        "Current result on 2026-06-21 local time: 17 live URL/AASA errors and 1 final-signoff warning remain expected"
-	        'api.wakeve.app/health` is reachable, but `wakeve.app` DNS/live web/AASA routes remain unreachable'
+	        "Current result on 2026-09-03 local time: 7 live URL/AASA errors and 1 final-signoff warning remain expected"
+	        'both AASA endpoints (HTTP 503 until the production `APPLE_TEAM_ID`/`TEAM_ID` environment value is deployed)'
 	        "docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T22-48-00Z.md"
 	        "/third-party-notices"
 	        "https://wakeve.app/third-party-notices"
@@ -5614,6 +5614,9 @@ validate_app_store_live_url_aasa_evidence() {
         "scripts/app-store-local-web-route-check.sh"
         "A1B2C3D4E5.com.guyghost.wakeve"
         "Result on 2026-06-21 local time, capture timestamp 2026-06-20T22:48:00Z: \`FAIL. 16 required live URL/AASA checks failed or could not be validated.\`"
+        "Result on 2026-09-03 local time, capture timestamp 2026-09-03T20-38-08Z: \`FAIL. 17 required live URL/AASA checks failed or could not be validated.\`"
+        "docs/app-store-live-url-aasa/live-url-aasa-2026-09-03T20-38-08Z.md"
+        "the Vercel Microfrontends \`wakeve-dashboard\` mount is not deployed"
         "docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T22-48-00Z.md"
         "dig +short wakeve.app"
         "dig +short api.wakeve.app"

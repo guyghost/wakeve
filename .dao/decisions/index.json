@@ -1,0 +1,42 @@
+[
+  {
+    "id": 8,
+    "title": "Fermer les bloqueurs release App Store avec preuves réelles",
+    "type": "release-change",
+    "status": "controlled",
+    "riskZone": "green",
+    "createdAt": "2026-09-03T20:33:02.745Z"
+  },
+  {
+    "id": 9,
+    "title": "Valider WeatherKit sur device physique signé (prévisions météo événement)",
+    "type": "product-feature",
+    "status": "approved",
+    "riskZone": "orange",
+    "createdAt": "2026-09-03T20:33:12.729Z"
+  },
+  {
+    "id": 10,
+    "title": "Profiler WakeveAI sur device physique (latence, annulation, mémoire, privacy logs)",
+    "type": "product-feature",
+    "status": "approved",
+    "riskZone": "orange",
+    "createdAt": "2026-09-03T20:33:21.076Z"
+  },
+  {
+    "id": 11,
+    "title": "Migrer Android Google auth vers Credential Manager",
+    "type": "technical-change",
+    "status": "approved",
+    "riskZone": "red",
+    "createdAt": "2026-09-03T20:33:28.589Z"
+  },
+  {
+    "id": 12,
+    "title": "Prouver le cycle iOS création → invitation → vote → date confirmée → jour J",
+    "type": "product-feature",
+    "status": "approved",
+    "riskZone": "orange",
+    "createdAt": "2026-09-03T20:33:37.035Z"
+  }
+]
