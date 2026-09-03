@@ -78,7 +78,8 @@
     "tabs": {
       "info": "Info",
       "poll": "Poll",
-      "comments": "Comments"
+      "comments": "Comments",
+      "budget": "Budget"
     },
     "info": {
       "status": "Status",
@@ -122,6 +123,58 @@
     "errors": {
       "vote": "Error while voting, please try again.",
       "comment": "Error while sending the comment."
+    }
+  },
+  "budget": {
+    "title": "Budget",
+    "items": "Budget items",
+    "itemCount": "{count} item",
+    "itemCountPlural": "{count} items",
+    "total": "Event total",
+    "totalEstimated": "Planned budget",
+    "add": "Add item",
+    "addTitle": "New budget item",
+    "name": "Name",
+    "namePlaceholder": "e.g. Paris–Lyon train",
+    "description": "Description",
+    "descriptionPlaceholder": "Optional details…",
+    "category": "Category",
+    "amount": "Estimated amount (€)",
+    "amountPlaceholder": "0.00",
+    "submit": "Add",
+    "payer": "Payer",
+    "unpaid": "Unpaid",
+    "paid": "Paid",
+    "deleteItem": "Delete this item",
+    "deleteTitle": "Delete item",
+    "deleteMessage": "Delete “{name}”? This action cannot be undone.",
+    "empty": "No budget items yet",
+    "emptyDesc": "Add planned expenses to track the event budget.",
+    "settlements": "Balances",
+    "settlementsEmpty": "All balances are settled.",
+    "settlementStatus": {
+      "PENDING": "Pending",
+      "CONFIRMED": "Confirmed",
+      "SETTLED": "Settled"
+    },
+    "owes": "{from} owes {amount} to {to}",
+    "readOnly": "Only the organizer can edit the budget.",
+    "loading": "Loading budget…",
+    "errors": {
+      "load": "Failed to load the budget",
+      "permission": "You do not have access to this event's budget",
+      "auth": "Your session has expired, please sign in again",
+      "offline": "You are offline, check your connection",
+      "addItem": "Failed to add the budget item.",
+      "deleteItem": "Failed to delete the budget item."
+    },
+    "categories": {
+      "TRANSPORT": "Transport",
+      "ACCOMMODATION": "Accommodation",
+      "MEALS": "Meals",
+      "ACTIVITIES": "Activities",
+      "EQUIPMENT": "Equipment",
+      "OTHER": "Other"
     }
   },
   "create": {
