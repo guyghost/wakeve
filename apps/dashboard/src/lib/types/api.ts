@@ -58,6 +58,21 @@ export interface TimeSlotAnalytics { slotId: string; label: string; yesCount: nu
 export interface TimelineEntry { date: string; count: number }
 export interface RawEventDetailedAnalyticsResponse { eventId?: string; title?: string; status?: string; voteTimeline?: RawTimelineEntry[]; participantTimeline?: RawTimelineEntry[]; popularTimeSlots?: RawTimeSlotAnalytics[]; pollCompletionRate?: number; totalParticipants?: number; votedParticipants?: number; totalVotes?: number; responseRate?: number; commentsBySection?: Record<string, number> }
 export interface EventDetailedAnalyticsResponse { eventId: string; title: string; status: EventStatus; totalParticipants: number; votedParticipants: number; pendingParticipants: number; totalVotes: number; responseRate: number; responseRatePct: number; voteTimeline: TimelineEntry[]; participantTimeline: TimelineEntry[]; popularTimeSlots: TimeSlotAnalytics[]; commentsBySection: Record<string, number> }
+// ============================================================
+// Scenarios
+// ============================================================
+export type ScenarioStatus = 'DRAFT' | 'PROPOSED' | 'SELECTED' | 'REJECTED'
+export type ScenarioGenerationType = 'MANUAL' | 'MATRIX'
+export type ScenarioVoteType = 'PREFER' | 'NEUTRAL' | 'AGAINST'
+export interface ScenarioResponse { id: string; eventId: string; name: string; dateOrPeriod: string; location: string; duration: number; estimatedParticipants: number; estimatedBudgetPerPerson: number; description: string; status: ScenarioStatus; createdAt: string; updatedAt: string; sourceTimeSlotId?: string | null; sourcePotentialLocationId?: string | null; generationType: ScenarioGenerationType }
+export interface CreateScenarioRequest { eventId: string; name: string; dateOrPeriod: string; location: string; duration: number; estimatedParticipants: number; estimatedBudgetPerPerson: number; description: string; sourceTimeSlotId?: string; sourcePotentialLocationId?: string; generationType?: ScenarioGenerationType }
+export interface ScenarioVoteRequest { participantId: string; vote: ScenarioVoteType }
+export interface ScenarioVoteResponse { id: string; scenarioId: string; participantId: string; vote: ScenarioVoteType; createdAt: string }
+export interface ScenarioVotingResult { scenarioId: string; preferCount: number; neutralCount: number; againstCount: number; totalVotes: number; score: number; preferPercentage: number; neutralPercentage: number; againstPercentage: number }
+export interface ScenarioWithVotesResponse { scenario: ScenarioResponse; votes: ScenarioVoteResponse[]; result: ScenarioVotingResult }
+export interface ScenariosListResponse { scenarios: ScenarioResponse[] }
+export interface ScenariosWithVotesResponse { scenarios: ScenarioWithVotesResponse[] }
+
 export interface ErrorResponse { error: string; message: string; statusCode: number }
 
 
