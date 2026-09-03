@@ -45,7 +45,7 @@ This file records the App Store review evidence for AS-14: public legal/support 
 | Apple Team ID | Unset; real Team ID still required before closure |
 | Bundle ID | `com.guyghost.wakeve` |
 | DNS provider | Cloudflare for both `wakeve.app` and `api.wakeve.app` (live as of 2026-09-03) |
-| Web hosting provider | Vercel for `wakeve.app`; legal pages live, `/app` dashboard microfrontend mount pending |
+| Web hosting provider | Cloudflare Workers (`wakeve-web` + `wakeve-dashboard`); migration prepared in-repo, deploy pending |
 | Backend provider | Cloudflare Workers Containers via `infra/cloudflare/backend`; `api.wakeve.app` deployed on 2026-06-14 |
 | Rollout owner | TBD; unresolved external ownership blocker before App Review signoff |
 | Rollback owner | TBD; unresolved external ownership blocker before App Review signoff |
@@ -64,11 +64,11 @@ This file records the App Store review evidence for AS-14: public legal/support 
 | AASA app ID | Both AASA responses contain `<APPLE_TEAM_ID>.com.guyghost.wakeve`. | Pending |
 | AASA Universal Link paths | Both AASA responses contain `/event/*`, `/poll/*`, `/meeting/*`, and `/invite/*`. | Pending |
 | `https://api.wakeve.app/health` | Public HTTPS response showing production backend health is OK. | Passed on 2026-06-14 with GET: `200 OK`, body `OK`. On 2026-06-21 local time DNS resolves and Cloudflare responds; HEAD returns `405`, GET returns `200 OK`; the App Store audit reports API health reachable. |
-| `https://wakeve.app/app` | Public dashboard shell route resolves through the dashboard microfrontend. | Pending |
-| `https://wakeve.app/app/login` | Public dashboard login route resolves through the dashboard microfrontend. | Pending |
-| `https://wakeve.app/app/dashboard` | Public dashboard home route resolves through the dashboard microfrontend. | Pending |
-| `https://wakeve.app/app/create` | Public create-event dashboard route resolves through the dashboard microfrontend. | Pending |
-| `https://wakeve.app/app/events` | Public event-list dashboard route resolves through the dashboard microfrontend. | Pending |
+| `https://wakeve.app/app` | Public dashboard shell route resolves through the `wakeve-dashboard` Cloudflare Worker. | Pending |
+| `https://wakeve.app/app/login` | Public dashboard login route resolves through the `wakeve-dashboard` Cloudflare Worker. | Pending |
+| `https://wakeve.app/app/dashboard` | Public dashboard home route resolves through the `wakeve-dashboard` Cloudflare Worker. | Pending |
+| `https://wakeve.app/app/create` | Public create-event dashboard route resolves through the `wakeve-dashboard` Cloudflare Worker. | Pending |
+| `https://wakeve.app/app/events` | Public event-list dashboard route resolves through the `wakeve-dashboard` Cloudflare Worker. | Pending |
 | Landing redirects | `/dashboard`, `/login`, `/create`, `/events`, and nested `/events/*` redirect to `/app/*`. | Pending |
 | TLS and redirects | No TLS error, mixed-content downgrade, or redirect loop for any review URL. | Pending |
 | Cache and rollback | AASA/legal/support cache behavior, deployment owner, and rollback path are documented. | Pending |
@@ -91,7 +91,7 @@ Generated capture report:
 - `https://wakeve.app/privacy`, `/support`, `/terms`, and `/third-party-notices` returned HTTP 200 with reviewable HTML.
 - Legacy landing redirects `/dashboard`, `/login`, `/create`, and `/events` validate toward `/app/*`.
 - `https://api.wakeve.app/health` returned HTTP `405` for HEAD and HTTP `200 OK` for GET.
-- The five dashboard shell routes `/app`, `/app/login`, `/app/dashboard`, `/app/create`, and `/app/events` returned HTTP 404 because the Vercel Microfrontends `wakeve-dashboard` mount is not deployed.
+- The five dashboard shell routes `/app`, `/app/login`, `/app/dashboard`, `/app/create`, and `/app/events` returned HTTP 404 because the Cloudflare `wakeve-dashboard` worker routes are not deployed.
 - Both AASA endpoints returned HTTP 503 with `A real APPLE_TEAM_ID or TEAM_ID is required to serve apple-app-site-association`; Apple Team ID was unset, so AASA app ID validation cannot pass.
 - Latest full lint live check: `APP_REVIEW_PHONE_NUMBER='+33123456789' APPLE_TEAM_ID='A1B2C3D4E5' ./scripts/lint-store-metadata.sh --ios-only --check-live-urls` resulted in 3119 checks passed, 7 errors, 1 warning; the remaining live blockers are the five dashboard `/app` routes and both AASA endpoints.
 
@@ -150,7 +150,7 @@ This section is local evidence only. It does not close AS-14 because App Store r
 
 - Public legal pages render reviewable HTML: passed locally for `/privacy`, `/support`, `/terms`, and `/third-party-notices`; each route has `+page.ts` with `export const ssr = true`.
 - Local AASA endpoints: passed locally for `/.well-known/apple-app-site-association` and `/apple-app-site-association` with `application/json`, `A1B2C3D4E5.com.guyghost.wakeve`, `/event/*`, `/poll/*`, `/meeting/*`, and `/invite/*`.
-- Local dashboard routing: `scripts/app-store-local-web-route-check.sh` verified `microfrontends.json`, `wakeve-dashboard`, `/app`, `/app/:path*`, and redirects from `/dashboard`, `/login`, `/create`, `/events`, and `/events/demo-event` to `/app/*`.
+- Local dashboard routing: `scripts/app-store-local-web-route-check.sh` verified `apps/dashboard/wrangler.jsonc` routes `wakeve.app/app`(+`/*`) to `wakeve-dashboard` plus the legacy redirects to `/app/*`.
 - Production adapter build: passed locally on 2026-05-28 with `npx --yes pnpm@10 check` and `npx --yes pnpm@10 build`.
 
 ## Evidence Commands
@@ -175,15 +175,15 @@ APPLE_TEAM_ID=A1B2C3D4E5 pnpm --dir apps/landing exec vite dev --host 127.0.0.1
 BASE_URL=http://127.0.0.1:3000 APPLE_TEAM_ID=A1B2C3D4E5 ./scripts/app-store-local-web-route-check.sh
 ```
 
-`scripts/app-store-local-web-route-check.sh` validated that the four public legal pages return status 200 with the expected App Store review phrases in initial HTML, that landing redirects point to `/app/*`, that `microfrontends.json` assigns `/app` and `/app/:path*` to `wakeve-dashboard`, and that both AASA endpoints return JSON with the expected test Team ID, Bundle ID, and Universal Link paths.
+`scripts/app-store-local-web-route-check.sh` validated that the four public legal pages return status 200 with the expected App Store review phrases in initial HTML, that landing redirects point to `/app/*`, that `apps/dashboard/wrangler.jsonc` assigns `wakeve.app/app` and `wakeve.app/app/*` to `wakeve-dashboard`, and that both AASA endpoints return JSON with the expected test Team ID, Bundle ID, and Universal Link paths.
 
 ## Production Deployment Fix Checklist
 
 Before retrying the live App Store gate:
 
 - Deploy the web app serving `/privacy`, `/support`, `/terms`, `/third-party-notices`, `/app`, `/app/login`, `/app/dashboard`, `/app/create`, `/app/events`, `/.well-known/apple-app-site-association`, and `/apple-app-site-association` on `https://wakeve.app`.
-- Keep the Vercel project root set to `apps/landing/`; the SvelteKit production build now uses `@sveltejs/adapter-vercel` and should be built with the checked-in `pnpm-lock.yaml`.
-- Keep Vercel Microfrontends routing `wakeve-dashboard` for `/app` and `/app/:path*`, and keep landing redirects from `/dashboard`, `/login`, `/create`, and `/events` to their `/app/*` equivalents.
+- Deploy both web Workers with `./scripts/deploy-cloudflare-web.sh`; both SvelteKit builds use `@sveltejs/adapter-cloudflare` and the checked-in `pnpm-lock.yaml`.
+- Keep Cloudflare Workers routing `wakeve-dashboard` for `wakeve.app/app` and `wakeve.app/app/*`, and keep landing redirects from `/dashboard`, `/login`, `/create`, and `/events` to their `/app/*` equivalents.
 - Configure production `APPLE_TEAM_ID` or `TEAM_ID` to the real 10-character Apple Developer Team ID so AASA app IDs are not placeholders.
 - Confirm the AASA responses use `application/json`, no redirects, valid TLS, app ID `<APPLE_TEAM_ID>.com.guyghost.wakeve`, and paths `/event/*`, `/poll/*`, `/meeting/*`, plus `/invite/*`.
 - Deploy the backend health endpoint at `https://api.wakeve.app/health` returning an App Review-safe `200 OK` response that proves the production backend is available.
