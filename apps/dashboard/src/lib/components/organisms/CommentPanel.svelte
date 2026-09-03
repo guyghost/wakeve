@@ -1,10 +1,13 @@
 <script lang="ts">
+  import { page } from '$app/stores'
   import type { Comment, CommentSection } from '$lib/types/api'
   import CommentItem from '$lib/components/molecules/CommentItem.svelte'
+  import ModerationActions from '$lib/components/organisms/ModerationActions.svelte'
   import Textarea from '$lib/components/atoms/Textarea.svelte'
   import Select from '$lib/components/atoms/Select.svelte'
   import Button from '$lib/components/atoms/Button.svelte'
   import ErrorBanner from '$lib/components/ui/ErrorBanner.svelte'
+  import { hasModerationRole } from '$lib/api/moderation.api'
 
   interface Props {
     comments: Comment[]
@@ -15,6 +18,13 @@
   }
 
   const { comments, currentUserId, onaddcomment, commenterror, iscommenting }: Props = $props()
+
+  // CommentPanel is only used on the event detail route; the event id
+  // scopes the moderation actions (reports / blocks) to this event.
+  const eventId = $derived($page.params.id ?? '')
+  // Backend moderation decisions require the MODERATOR or ADMIN role
+  // (see ModerationRoutes.canModerate) — hide those actions otherwise.
+  const canModerate = hasModerationRole()
 
   let content = $state('')
   let section = $state<CommentSection>('GENERAL')
@@ -107,12 +117,20 @@
     <ul class="flex flex-col gap-5 divide-y divide-gray-100" role="list">
       {#each sortedComments as comment (comment.id)}
         <li class="pt-4 first:pt-0">
-          <CommentItem
-            {comment}
-            ondelete={comment.authorId === currentUserId
-              ? () => {/* parent handles via DELETE_COMMENT event */}
-              : undefined}
-          />
+          <div class="flex flex-col">
+            <CommentItem
+              {comment}
+              ondelete={comment.authorId === currentUserId
+                ? () => {/* parent handles via DELETE_COMMENT event */}
+                : undefined}
+            />
+            <ModerationActions
+              {comment}
+              eventid={eventId}
+              currentuserid={currentUserId}
+              canmoderate={canModerate}
+            />
+          </div>
         </li>
       {/each}
     </ul>
