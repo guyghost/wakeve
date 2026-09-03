@@ -5,7 +5,7 @@ import { get as getPoll, vote as castVote } from '$lib/api/poll.api'
 import { list as listComments, create as createComment, deleteComment } from '$lib/api/comments.api'
 import { actorError, actorOutput } from './actor-event'
 
-export type DetailTab = 'info' | 'poll' | 'comments' | 'budget' | 'meetings' | 'scenarios' | 'transport'
+export type DetailTab = 'info' | 'poll' | 'comments' | 'budget' | 'meetings' | 'scenarios' | 'transport' | 'meals'
 
 interface EventDetailContext {
   eventId: string

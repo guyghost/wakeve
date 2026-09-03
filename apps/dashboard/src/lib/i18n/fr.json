@@ -81,7 +81,8 @@
       "comments": "Commentaires",
       "budget": "Budget",
       "scenarios": "Scénarios",
-      "transport": "Transport"
+      "transport": "Transport",
+      "meals": "Repas"
     },
     "info": {
       "status": "Statut",
@@ -222,6 +223,73 @@
         "delete": "Impossible de supprimer le plan.",
         "notNeeded": "Impossible de mettre à jour le statut transport."
       }
+    },
+    "meals": {
+      "error": "Impossible de charger les repas.",
+      "summary": {
+        "title": "Synthèse repas",
+        "totalMeals": "Repas planifiés",
+        "completed": "Terminés",
+        "remaining": "Restants",
+        "estimatedCost": "Coût total estimé"
+      },
+      "schedule": {
+        "title": "Planning des repas",
+        "emptyTitle": "Aucun repas planifié",
+        "emptyDesc": "Ajoutez un repas pour organiser les papilles du groupe.",
+        "delete": "Supprimer",
+        "servings": "{n} portion(s)",
+        "at": "à"
+      },
+      "form": {
+        "add": "Ajouter un repas",
+        "cancel": "Annuler",
+        "type": "Type",
+        "name": "Nom du repas",
+        "namePlaceholder": "Ex : Barbecue du samedi soir",
+        "date": "Date",
+        "time": "Heure",
+        "servings": "Portions",
+        "cost": "Coût estimé (€)",
+        "location": "Lieu (optionnel)",
+        "notes": "Notes / menu (optionnel)",
+        "submit": "Ajouter",
+        "adding": "Ajout…"
+      },
+      "types": {
+        "BREAKFAST": "Petit-déjeuner",
+        "LUNCH": "Déjeuner",
+        "DINNER": "Dîner",
+        "SNACK": "Collation",
+        "APERITIF": "Apéritif"
+      },
+      "statuses": {
+        "PLANNED": "Planifié",
+        "ASSIGNED": "Assigné",
+        "IN_PROGRESS": "En cours",
+        "COMPLETED": "Terminé",
+        "CANCELLED": "Annulé"
+      },
+      "restrictions": {
+        "title": "Restrictions alimentaires",
+        "empty": "Aucune restriction déclarée.",
+        "types": {
+          "VEGETARIAN": "Végétarien",
+          "VEGAN": "Végan",
+          "GLUTEN_FREE": "Sans gluten",
+          "LACTOSE_INTOLERANT": "Sans lactose",
+          "NUT_ALLERGY": "Fruits à coque",
+          "SHELLFISH_ALLERGY": "Crustacés",
+          "KOSHER": "Casher",
+          "HALAL": "Halal",
+          "DIABETIC": "Diabétique",
+          "OTHER": "Autre"
+        }
+      },
+      "errors": {
+        "create": "Impossible d'ajouter le repas.",
+        "delete": "Impossible de supprimer le repas."
+      }
     }
   },
   "budget": {
@@ -278,12 +346,7 @@
   },
   "create": {
     "title": "Créer un événement",
-    "steps": [
-      "Informations",
-      "Créneaux",
-      "Lieu",
-      "Participants"
-    ],
+    "steps": ["Informations", "Créneaux", "Lieu", "Participants"],
     "fields": {
       "title": "Titre de l'événement *",
       "titlePlaceholder": "Ex: Soirée d'anniversaire de Marie",
