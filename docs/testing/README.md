@@ -18,6 +18,7 @@ Ce dossier contient toute la documentation relative aux tests : guides, rapports
 - [Quick Reference](quick-reference.md) - Référence rapide des commandes
 - [Correction Guide](guides/correction-guide.md) - Guide de correction des tests
 - [Offline Critical Scenarios](offline-critical-scenarios.md) - Matrice des scenarios offline critiques, sync, conflits et decision CRDT
+- [iOS Critical Cycle Evidence](IOS_CRITICAL_CYCLE_EVIDENCE.md) - Preuves locales du cycle création → invitation → vote → confirmation → jour J (proposition Swarm DAO #12)
 
 ### Tests par Fonctionnalité
 

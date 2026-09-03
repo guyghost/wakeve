@@ -35,7 +35,7 @@
     "id": 12,
     "title": "Prouver le cycle iOS création → invitation → vote → date confirmée → jour J",
     "type": "product-feature",
-    "status": "approved",
+    "status": "controlled",
     "riskZone": "orange",
     "createdAt": "2026-09-03T20:33:37.035Z"
   }
