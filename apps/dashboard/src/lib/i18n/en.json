@@ -79,7 +79,8 @@
       "info": "Info",
       "poll": "Poll",
       "comments": "Comments",
-      "budget": "Budget"
+      "budget": "Budget",
+      "scenarios": "Scenarios"
     },
     "info": {
       "status": "Status",
@@ -123,6 +124,50 @@
     "errors": {
       "vote": "Error while voting, please try again.",
       "comment": "Error while sending the comment."
+    },
+    "scenarios": {
+      "lockedTitle": "Scenarios locked",
+      "lockedDesc": "Scenarios (destination + lodging) unlock once the event date is confirmed or being compared.",
+      "emptyTitle": "No scenarios yet",
+      "emptyDesc": "Create a first destination and lodging scenario to compare with the group.",
+      "error": "Failed to load scenarios.",
+      "create": "New scenario",
+      "cancel": "Cancel",
+      "form": {
+        "name": "Scenario name",
+        "namePlaceholder": "E.g. Weekend in Annecy",
+        "dateOrPeriod": "Date or period",
+        "dateOrPeriodPlaceholder": "E.g. July 12–14",
+        "location": "Destination",
+        "locationPlaceholder": "E.g. Annecy, France",
+        "duration": "Duration (days)",
+        "participants": "Estimated participants",
+        "budget": "Budget per person (€)",
+        "description": "Description",
+        "descriptionPlaceholder": "Planned lodging, activities…",
+        "submit": "Create scenario",
+        "creating": "Creating…"
+      },
+      "durationDays": "days",
+      "budgetPerPerson": "/ person",
+      "votes": "votes",
+      "vote": {
+        "prefer": "Prefer",
+        "neutral": "Neutral",
+        "against": "Against",
+        "yourVote": "Your vote",
+        "error": "Error while voting, please try again."
+      },
+      "selectFinal": "Select as final scenario",
+      "selectingFinal": "Selecting…",
+      "selected": "Final scenario",
+      "deleteError": "Error during selection, please try again.",
+      "statuses": {
+        "DRAFT": "Draft",
+        "PROPOSED": "Proposed",
+        "SELECTED": "Selected",
+        "REJECTED": "Rejected"
+      }
     }
   },
   "budget": {
@@ -179,7 +224,12 @@
   },
   "create": {
     "title": "Create an event",
-    "steps": ["Information", "Slots", "Location", "Participants"],
+    "steps": [
+      "Information",
+      "Slots",
+      "Location",
+      "Participants"
+    ],
     "fields": {
       "title": "Event title *",
       "titlePlaceholder": "E.g. Marie's birthday party",

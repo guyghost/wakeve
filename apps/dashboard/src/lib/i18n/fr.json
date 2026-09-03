@@ -79,7 +79,8 @@
       "info": "Infos",
       "poll": "Sondage",
       "comments": "Commentaires",
-      "budget": "Budget"
+      "budget": "Budget",
+      "scenarios": "Scénarios"
     },
     "info": {
       "status": "Statut",
@@ -123,6 +124,50 @@
     "errors": {
       "vote": "Erreur lors du vote, réessayez.",
       "comment": "Erreur lors de l'envoi du commentaire."
+    },
+    "scenarios": {
+      "lockedTitle": "Scénarios verrouillés",
+      "lockedDesc": "Les scénarios (destination + hébergement) se débloquent quand la date de l'événement est confirmée ou en cours de comparaison.",
+      "emptyTitle": "Aucun scénario",
+      "emptyDesc": "Créez un premier scénario de destination et d'hébergement à comparer avec le groupe.",
+      "error": "Impossible de charger les scénarios.",
+      "create": "Nouveau scénario",
+      "cancel": "Annuler",
+      "form": {
+        "name": "Nom du scénario",
+        "namePlaceholder": "Ex : Week-end à Annecy",
+        "dateOrPeriod": "Date ou période",
+        "dateOrPeriodPlaceholder": "Ex : 12–14 juillet",
+        "location": "Destination",
+        "locationPlaceholder": "Ex : Annecy, France",
+        "duration": "Durée (jours)",
+        "participants": "Participants estimés",
+        "budget": "Budget par personne (€)",
+        "description": "Description",
+        "descriptionPlaceholder": "Hébergement envisagé, activités prévues…",
+        "submit": "Créer le scénario",
+        "creating": "Création…"
+      },
+      "durationDays": "jours",
+      "budgetPerPerson": "/ pers.",
+      "votes": "votes",
+      "vote": {
+        "prefer": "Préféré",
+        "neutral": "Neutre",
+        "against": "Contre",
+        "yourVote": "Votre vote",
+        "error": "Erreur lors du vote, réessayez."
+      },
+      "selectFinal": "Sélectionner comme scénario final",
+      "selectingFinal": "Sélection…",
+      "selected": "Scénario final",
+      "deleteError": "Erreur lors de la sélection, réessayez.",
+      "statuses": {
+        "DRAFT": "Brouillon",
+        "PROPOSED": "Proposé",
+        "SELECTED": "Sélectionné",
+        "REJECTED": "Rejeté"
+      }
     }
   },
   "budget": {
@@ -179,7 +224,12 @@
   },
   "create": {
     "title": "Créer un événement",
-    "steps": ["Informations", "Créneaux", "Lieu", "Participants"],
+    "steps": [
+      "Informations",
+      "Créneaux",
+      "Lieu",
+      "Participants"
+    ],
     "fields": {
       "title": "Titre de l'événement *",
       "titlePlaceholder": "Ex: Soirée d'anniversaire de Marie",
