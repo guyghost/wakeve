@@ -1588,10 +1588,10 @@ validate_app_store_readiness_report() {
         "A signed archive/upload has not been produced"
         "## Latest 2026-09-03 Refresh"
         'api.wakeve.app` now resolves publicly and the live health URL is reachable'
-        'dashboard `/app` shell routes return 404 pending the Cloudflare `wakeve-dashboard` worker deployment'
+        'the Cloudflare web Workers are deployed with the dashboard `/app` shell routes live'
         "Result: Xcode 27.0 and iOS SDK 27.0."
         "Result: 3111 checks passed, 0 errors, 1 warning"
-        "Result: 3119 checks passed, 7 errors, 1 warning"
+        "Result: 3127 checks passed, 2 errors, 1 warning"
         "Current quick baseline on 2026-09-03 with \`APP_REVIEW_PHONE_NUMBER='+33123456789'\`: exits non-zero with 21 blockers and 1 warning"
         'https://api.wakeve.app/health` is now publicly reachable'
         "live URL/AASA evidence"
@@ -3250,8 +3250,8 @@ validate_app_store_blocker_register() {
 	        "local Fastlane App Store preflight passes"
 	        "Live deployment baseline"
 	        "APP_REVIEW_PHONE_NUMBER='+33123456789' APPLE_TEAM_ID='A1B2C3D4E5' ./scripts/lint-store-metadata.sh --ios-only --check-live-urls"
-	        "Current result on 2026-09-03 local time: 7 live URL/AASA errors and 1 final-signoff warning remain expected"
-	        'both AASA endpoints (HTTP 503 until the production `APPLE_TEAM_ID`/`TEAM_ID` environment value is deployed)'
+	        "Current result on 2026-09-03 local time (after the Cloudflare web deploy): 2 live URL/AASA errors and 1 final-signoff warning remain expected"
+	        'both AASA endpoints (HTTP 503 until the production `APPLE_TEAM_ID`/`TEAM_ID` environment value is deployed on the `wakeve-web` worker)'
 	        "docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T22-48-00Z.md"
 	        "/third-party-notices"
 	        "https://wakeve.app/third-party-notices"
@@ -5616,7 +5616,7 @@ validate_app_store_live_url_aasa_evidence() {
         "Result on 2026-06-21 local time, capture timestamp 2026-06-20T22:48:00Z: \`FAIL. 16 required live URL/AASA checks failed or could not be validated.\`"
         "Result on 2026-09-03 local time, capture timestamp 2026-09-03T20-38-08Z: \`FAIL. 17 required live URL/AASA checks failed or could not be validated.\`"
         "docs/app-store-live-url-aasa/live-url-aasa-2026-09-03T20-38-08Z.md"
-        "the Cloudflare \`wakeve-dashboard\` worker routes are not deployed"
+        "the 2026-09-03T21-29-30Z capture records them live after deployment"
         "docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T22-48-00Z.md"
         "dig +short wakeve.app"
         "dig +short api.wakeve.app"

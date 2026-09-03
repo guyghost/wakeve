@@ -1,7 +1,7 @@
 # Cloudflare Web Migration Runbook - Wakeve
 
 Date: 2026-09-03
-Status: migration prepared in-repo; production deploy pending (owner)
+Status: DEPLOYED 2026-09-03 (wakeve-web + wakeve-dashboard live); remaining: production APPLE_TEAM_ID for AASA
 
 ## Contexte
 

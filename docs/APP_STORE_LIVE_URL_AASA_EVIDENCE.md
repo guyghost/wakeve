@@ -34,7 +34,7 @@ Last checked: 2026-06-01.
 
 ## Scope
 
-This file records the App Store review evidence for AS-14: public legal/support URLs, third-party notices, Apple App Site Association endpoints, and backend health. It complements `docs/APP_STORE_OBSERVABILITY_EVIDENCE.md`, which covers ongoing monitoring after the TestFlight review build is uploaded.
+App Store review evidence for AS-14: public legal/support URLs, third-party notices, AASA endpoints, and backend health. Complements `docs/APP_STORE_OBSERVABILITY_EVIDENCE.md` (post-upload monitoring).
 
 ## Build And Deployment Under Review
 
@@ -45,7 +45,7 @@ This file records the App Store review evidence for AS-14: public legal/support 
 | Apple Team ID | Unset; real Team ID still required before closure |
 | Bundle ID | `com.guyghost.wakeve` |
 | DNS provider | Cloudflare for both `wakeve.app` and `api.wakeve.app` (live as of 2026-09-03) |
-| Web hosting provider | Cloudflare Workers (`wakeve-web` + `wakeve-dashboard`); migration prepared in-repo, deploy pending |
+| Web hosting provider | Cloudflare Workers (`wakeve-web` + `wakeve-dashboard`); deployed 2026-09-03 via `./scripts/deploy-cloudflare-web.sh` |
 | Backend provider | Cloudflare Workers Containers via `infra/cloudflare/backend`; `api.wakeve.app` deployed on 2026-06-14 |
 | Rollout owner | TBD; unresolved external ownership blocker before App Review signoff |
 | Rollback owner | TBD; unresolved external ownership blocker before App Review signoff |
@@ -64,18 +64,32 @@ This file records the App Store review evidence for AS-14: public legal/support 
 | AASA app ID | Both AASA responses contain `<APPLE_TEAM_ID>.com.guyghost.wakeve`. | Pending |
 | AASA Universal Link paths | Both AASA responses contain `/event/*`, `/poll/*`, `/meeting/*`, and `/invite/*`. | Pending |
 | `https://api.wakeve.app/health` | Public HTTPS response showing production backend health is OK. | Passed on 2026-06-14 with GET: `200 OK`, body `OK`. On 2026-06-21 local time DNS resolves and Cloudflare responds; HEAD returns `405`, GET returns `200 OK`; the App Store audit reports API health reachable. |
-| `https://wakeve.app/app` | Public dashboard shell route resolves through the `wakeve-dashboard` Cloudflare Worker. | Pending |
-| `https://wakeve.app/app/login` | Public dashboard login route resolves through the `wakeve-dashboard` Cloudflare Worker. | Pending |
-| `https://wakeve.app/app/dashboard` | Public dashboard home route resolves through the `wakeve-dashboard` Cloudflare Worker. | Pending |
-| `https://wakeve.app/app/create` | Public create-event dashboard route resolves through the `wakeve-dashboard` Cloudflare Worker. | Pending |
-| `https://wakeve.app/app/events` | Public event-list dashboard route resolves through the `wakeve-dashboard` Cloudflare Worker. | Pending |
-| Landing redirects | `/dashboard`, `/login`, `/create`, `/events`, and nested `/events/*` redirect to `/app/*`. | Pending |
-| TLS and redirects | No TLS error, mixed-content downgrade, or redirect loop for any review URL. | Pending |
+| `https://wakeve.app/app` | Public dashboard shell route resolves through the `wakeve-dashboard` Cloudflare Worker. | Live (200) |
+| `https://wakeve.app/app/login` | Public dashboard login route resolves through the `wakeve-dashboard` Cloudflare Worker. | Live (200) |
+| `https://wakeve.app/app/dashboard` | Public dashboard home route resolves through the `wakeve-dashboard` Cloudflare Worker. | Live (200) |
+| `https://wakeve.app/app/create` | Public create-event dashboard route resolves through the `wakeve-dashboard` Cloudflare Worker. | Live (200) |
+| `https://wakeve.app/app/events` | Public event-list dashboard route resolves through the `wakeve-dashboard` Cloudflare Worker. | Live (200) |
+| Landing redirects | `/dashboard`, `/login`, `/create`, `/events`, and nested `/events/*` redirect to `/app/*`. | Live (308) |
+| TLS and redirects | No TLS error, mixed-content downgrade, or redirect loop for any review URL. | Live |
 | Cache and rollback | AASA/legal/support cache behavior, deployment owner, and rollback path are documented. | Pending |
 
 ## Current Live Check Snapshot
 
 Latest capture command:
+
+```bash
+./scripts/capture-app-store-live-url-aasa.sh --allow-failures --timeout 8
+```
+
+Result on 2026-09-03 local time (post Cloudflare web deploy), capture timestamp 2026-09-03T21-29-30Z: `FAIL. 2 required live URL/AASA checks failed or could not be validated.`
+
+- `docs/app-store-live-url-aasa/live-url-aasa-2026-09-03T21-29-30Z.md`
+- Cloudflare web Workers deployed via `./scripts/deploy-cloudflare-web.sh` (`wakeve-web` on `wakeve.app/*`, `wakeve-dashboard` on `wakeve.app/app*`).
+- `/app` 308 to `/app/events`; `/app/login`, `/app/dashboard`, `/app/create`, `/app/events` 200; legal pages 200; legacy redirects validate.
+- Both AASA endpoints still 503 (`A real APPLE_TEAM_ID or TEAM_ID is required to serve apple-app-site-association`); the production `APPLE_TEAM_ID` var is not set yet.
+- Latest full lint live check: 3127 passed, 2 errors, 1 warning; only both AASA endpoints remain.
+
+Previous capture on 2026-09-03 local time (pre Cloudflare web deploy), capture timestamp 2026-09-03T20-38-08Z:
 
 ```bash
 ./scripts/capture-app-store-live-url-aasa.sh --allow-failures --timeout 8
@@ -91,7 +105,7 @@ Generated capture report:
 - `https://wakeve.app/privacy`, `/support`, `/terms`, and `/third-party-notices` returned HTTP 200 with reviewable HTML.
 - Legacy landing redirects `/dashboard`, `/login`, `/create`, and `/events` validate toward `/app/*`.
 - `https://api.wakeve.app/health` returned HTTP `405` for HEAD and HTTP `200 OK` for GET.
-- The five dashboard shell routes `/app`, `/app/login`, `/app/dashboard`, `/app/create`, and `/app/events` returned HTTP 404 because the Cloudflare `wakeve-dashboard` worker routes are not deployed.
+- The five dashboard shell routes returned HTTP 404 pre-deploy because the Cloudflare `wakeve-dashboard` worker routes were not deployed; the 2026-09-03T21-29-30Z capture records them live after deployment.
 - Both AASA endpoints returned HTTP 503 with `A real APPLE_TEAM_ID or TEAM_ID is required to serve apple-app-site-association`; Apple Team ID was unset, so AASA app ID validation cannot pass.
 - Latest full lint live check: `APP_REVIEW_PHONE_NUMBER='+33123456789' APPLE_TEAM_ID='A1B2C3D4E5' ./scripts/lint-store-metadata.sh --ios-only --check-live-urls` resulted in 3119 checks passed, 7 errors, 1 warning; the remaining live blockers are the five dashboard `/app` routes and both AASA endpoints.
 
@@ -127,31 +141,31 @@ Generated capture reports:
 
 Direct DNS snapshot on 2026-06-13: `wakeve.app` returned no DNS answer with `Could not resolve host: wakeve.app`; `api.wakeve.app` failed with `Could not resolve host: api.wakeve.app` before the backend deployment.
 
-Observed live blockers (2026-06-13 baseline): `https://wakeve.app/privacy` and `/support` (per `en-US`/`fr-FR` metadata URL checks), `/terms`, `/third-party-notices`, both AASA paths, all five `/app` dashboard routes, and the `/dashboard`, `/login`, `/create`, `/events` legacy redirects were unreachable; `https://api.wakeve.app/health` was unreachable on 2026-06-13 and backend deployment evidence below supersedes this for the API domain only.
+Observed live blockers (2026-06-13 baseline): legal pages (per `en-US`/`fr-FR` checks), `/third-party-notices`, both AASA paths, all five `/app` dashboard routes, and the legacy redirects were unreachable; `https://api.wakeve.app/health` was unreachable until the backend deployment below.
 
 The repository has deployable local web routes and AASA route code. In the 2026-06-13/06-21 baselines the production API domain was deployed but public production domains currently do not resolve in DNS for the `wakeve.app` web/AASA scope; the 2026-09-03 baseline above records that DNS/HTTPS and the legal pages are now live, leaving only the dashboard mount and AASA Team ID.
 
 ## Cloudflare Backend Live Evidence
 
-Backend deployment completed on 2026-06-14 after enabling the Workers Paid plan: Cloudflare Worker `wakeve-backend`, container application `wakeve-backend-wakevebackendcontainer` (ID `a033545d-cdd9-49a2-b1db-95f8138b8ae8`, custom domain ID `26d5d437d3f1aafdad95894877fce0c38d050396`, certificate ID `d1c51636-7c80-4b80-9e1f-0e2f944bdb5d`), custom domain `api.wakeve.app` resolving to `104.21.48.204`/`172.67.156.46`.
+Backend deployed 2026-06-14 (Workers Paid plan): Worker `wakeve-backend`, container `wakeve-backend-wakevebackendcontainer` (app ID `a033545d-cdd9-49a2-b1db-95f8138b8ae8`, domain ID `26d5d437d3f1aafdad95894877fce0c38d050396`, cert ID `d1c51636-7c80-4b80-9e1f-0e2f944bdb5d`), custom domain `api.wakeve.app` → `104.21.48.204`/`172.67.156.46`.
 Passing backend smoke: `./scripts/smoke-cloudflare-backend.sh` → `health_status=200`, `api_status=401`, `metrics_status=403`; container `active, 1 live instance`.
 
 ## Cloudflare Backend Deployment Plan
 
-The approved `add-cloudflare-container-backend` change adds a deployable backend path for `api.wakeve.app`: root `Dockerfile` (Ktor `:server` fat jar on `8080`), `infra/cloudflare/backend/wrangler.jsonc` (Worker, Cloudflare Container, Durable Object, `api.wakeve.app` route), `infra/cloudflare/backend/src/index.ts` (named backend container instance), `scripts/deploy-cloudflare-backend.sh` (tests + typecheck + `wrangler deploy`), and `scripts/smoke-cloudflare-backend.sh` (DNS, `/health`, API rejection, `/metrics` protection).
+The approved `add-cloudflare-container-backend` change ships: root `Dockerfile` (Ktor fat jar on `8080`), `infra/cloudflare/backend/wrangler.jsonc` (Worker + Container + Durable Object + `api.wakeve.app` route), `infra/cloudflare/backend/src/index.ts`, and the `deploy-cloudflare-backend.sh` / `smoke-cloudflare-backend.sh` scripts.
 
-This deployed backend does not close AS-14 by itself. `APP_STORE_LIVE_URL_AASA_EVIDENCE_COMPLETE=false` remains required until `wakeve.app`, AASA, dashboard routes, redirects, and the full live URL audit pass public checks with the real Apple Team ID.
+The deployed backend does not close AS-14 by itself; `APP_STORE_LIVE_URL_AASA_EVIDENCE_COMPLETE=false` remains required until the full live URL audit passes with the real Apple Team ID.
 
-Persistence note: the current backend uses container-local SQLite (`wakev_server.db`). Cloudflare Container disk is ephemeral when the instance sleeps, so this deployment is App Review/smoke-ready but not durable production data storage until an external datastore or approved persistence design is implemented.
+Persistence note: the backend uses container-local SQLite (`wakev_server.db`); Cloudflare Container disk is ephemeral, so this is App Review/smoke-ready but not durable storage until an external datastore is implemented.
 
 ## Local Pre-Deployment Route Evidence
 
-This section is local evidence only. It does not close AS-14 because App Store review requires public production endpoints.
+Local evidence only (does not close AS-14):
 
-- Public legal pages render reviewable HTML: passed locally for `/privacy`, `/support`, `/terms`, and `/third-party-notices`; each route has `+page.ts` with `export const ssr = true`.
-- Local AASA endpoints: passed locally for `/.well-known/apple-app-site-association` and `/apple-app-site-association` with `application/json`, `A1B2C3D4E5.com.guyghost.wakeve`, `/event/*`, `/poll/*`, `/meeting/*`, and `/invite/*`.
+- Public legal pages render reviewable HTML: `export const ssr = true` on `/privacy`, `/support`, `/terms`, `/third-party-notices`.
+- Local AASA endpoints serve `application/json` with `A1B2C3D4E5.com.guyghost.wakeve` and `/event/*`, `/poll/*`, `/meeting/*`, `/invite/*`.
 - Local dashboard routing: `scripts/app-store-local-web-route-check.sh` verified `apps/dashboard/wrangler.jsonc` routes `wakeve.app/app`(+`/*`) to `wakeve-dashboard` plus the legacy redirects to `/app/*`.
-- Production adapter build: passed locally on 2026-05-28 with `npx --yes pnpm@10 check` and `npx --yes pnpm@10 build`.
+- Production adapter build passes (`pnpm check` + `pnpm build`).
 
 ## Evidence Commands
 
@@ -162,20 +176,19 @@ Run with the real production Apple Team ID before final signoff:
 APP_REVIEW_PHONE_NUMBER='+33123456789' APPLE_TEAM_ID=<APPLE_TEAM_ID> ./scripts/lint-store-metadata.sh --ios-only --check-live-urls
 curl -I --max-time 10 https://wakeve.app/privacy https://wakeve.app/support https://wakeve.app/terms https://wakeve.app/third-party-notices
 curl -I --max-time 10 https://wakeve.app/app https://wakeve.app/app/login https://wakeve.app/app/dashboard https://wakeve.app/app/create https://wakeve.app/app/events
-curl -I --max-time 10 https://wakeve.app/dashboard https://wakeve.app/login https://wakeve.app/create https://wakeve.app/events
 curl -i --max-time 10 https://wakeve.app/.well-known/apple-app-site-association https://wakeve.app/apple-app-site-association https://api.wakeve.app/health
 ```
 
-Attach or paste the generated `docs/app-store-live-url-aasa/live-url-aasa-*.md` report, deployment IDs, DNS check output, cache headers, and reviewer/date before changing the marker.
+Attach the generated `docs/app-store-live-url-aasa/live-url-aasa-*.md` report, deployment IDs, DNS output, cache headers, and reviewer/date before changing the marker.
 
-Local pre-deployment validation command used before live deployment:
+Local pre-deployment validation command:
 
 ```bash
 APPLE_TEAM_ID=A1B2C3D4E5 pnpm --dir apps/landing exec vite dev --host 127.0.0.1
 BASE_URL=http://127.0.0.1:3000 APPLE_TEAM_ID=A1B2C3D4E5 ./scripts/app-store-local-web-route-check.sh
 ```
 
-`scripts/app-store-local-web-route-check.sh` validated that the four public legal pages return status 200 with the expected App Store review phrases in initial HTML, that landing redirects point to `/app/*`, that `apps/dashboard/wrangler.jsonc` assigns `wakeve.app/app` and `wakeve.app/app/*` to `wakeve-dashboard`, and that both AASA endpoints return JSON with the expected test Team ID, Bundle ID, and Universal Link paths.
+`scripts/app-store-local-web-route-check.sh` validated the legal pages (200 + review phrases), the `/app/*` redirects, the `apps/dashboard/wrangler.jsonc` route assignment to `wakeve-dashboard`, and both AASA endpoints (JSON with test Team ID, Bundle ID, Universal Link paths).
 
 ## Production Deployment Fix Checklist
 
