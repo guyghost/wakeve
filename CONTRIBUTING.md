@@ -19,28 +19,24 @@ wakeve/
 │   └── src/commonMain/       # Shared Compose UI
 ├── server/                   # Ktor REST backend
 │   └── src/main/kotlin/      # Server API endpoints
-├── iosApp/                   # Native iOS SwiftUI app and Xcode project
-└── openspec/                 # Specification documents
-    ├── changes/              # Change proposals
-    └── specs/                # Capability specifications
+└── .dao/                     # Swarm DAO backlog governance state
 ```
 
 ## Development Workflow
 
-### OpenSpec Process
-Wakeve follows the OpenSpec process for structured feature development:
+### Swarm DAO Process
+Wakeve follows the Swarm DAO governance process for structured feature development:
 
 1. **Create GitHub Issue** with change ID (e.g., `add-event-organization`)
 2. **Create Feature Branch** with naming: `codex/<change-id>` for Codex work
-3. **Create Proposal**: `openspec/changes/<change-id>/proposal.md`
-4. **Create Spec Delta**: `openspec/changes/<change-id>/specs/<capability>/spec.md`
-5. **Get Approval** on PR before implementation
-6. **Implement** with tests and documentation
-7. **Merge** to main after code review
+3. **Create Proposal**: `dao_propose` with problem statement, acceptance criteria, success metrics, and rollback conditions
+4. **Deliberate & Check**: `dao_deliberate` then `dao_check` for quality gates
+5. **Plan & Execute**: `dao_plan` then `dao_execute` (preview with `dao_dry_run`)
+6. **Ship**: `dao_ship` after implementation with tests and documentation
+7. **Rate**: `dao_rate` the outcome (1-5 stars)
 
 ### Key Files
-- `openspec/AGENTS.md` - AI assistant instructions and conventions
-- `openspec/PROCESS.md` - Simplified workflow documentation
+- `AGENTS.md` - Swarm DAO workflow, AI agents and conventions
 - `ROADMAP.md` - Current release-hardening roadmap
 - `QUICK_START.md` - Current setup and validation guide
 
@@ -144,7 +140,7 @@ com.guyghost.wakeve/
 - Add comments for complex logic
 - Document public APIs with KDoc
 - Keep README up-to-date
-- Update OpenSpec documents for major changes
+- Update the Swarm DAO proposal for major changes
 
 ### Naming Conventions
 - Use descriptive names (avoid abbreviations)
@@ -265,7 +261,6 @@ test(sync): add offline sync scenario tests
 **Database migration errors**
 - Verify `.sq` file syntax
 - Check table constraints and foreign keys
-- Review migration files in `openspec/changes/`
 
 **Ktor server won't start**
 - Check port 8080 is available

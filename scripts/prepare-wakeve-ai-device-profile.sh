@@ -85,7 +85,7 @@ Generated: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 Status: \`$status\`
 
-This report supports OpenSpec task \`add-on-device-wakeve-ai\` / \`6.6\`.
+This report supports the on-device WakeveAI backlog item.
 It is not completion evidence until a real supported iOS device is profiled with Foundation Models available.
 
 ## Detected Devices
@@ -114,7 +114,7 @@ Instruments, unlock the device, trust this Mac, and enable Developer Mode in
 | TEAM_ID / APPLE_TEAM_ID environment value | \`${TEAM_ID_VALUE:-missing}\` |
 | Valid code signing identities | \`$valid_signing_identity_count\` |
 | Matching provisioning profiles | \`$(if [ -n "$matching_profiles" ]; then printf '%s' "present"; else printf '%s' "missing"; fi)\` |
-| Generated report can close OpenSpec task | \`no - preparation evidence only\` |
+| Generated report can close backlog task | \`no - preparation evidence only\` |
 
 ## Toolchain Readiness
 
@@ -145,7 +145,7 @@ Generated reports from this helper are never sufficient on their own. They only
 become closure evidence after the table below is filled from a supported
 physical device with Foundation Models available and reviewed.
 
-Record all fields below before checking off OpenSpec task \`6.6\`:
+Record all fields below before closing the backlog item:
 
 | Field | Value |
 | --- | --- |

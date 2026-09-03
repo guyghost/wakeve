@@ -66,7 +66,7 @@ import java.sql.ResultSet
 import java.util.Base64
 
 /**
- * RED contracts for OpenSpec 6.1.  They exercise the HTTP surface and reopen the
+ * RED contracts for notification registration v2 task 6.1.  They exercise the HTTP surface and reopen the
  * production registration store on the exact configured database file; a legacy
  * SQLDelight token row must never be mistaken for an authenticated v2 association.
  */

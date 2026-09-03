@@ -19,7 +19,6 @@ on:
       - 'composeApp/screenshots/**'
       - 'apps/landing/**'
       - 'docs/APP_STORE_*.md'
-      - 'openspec/**'
       - '.env.appstore.example'
       - '.github/workflows/store-readiness.yml'
   workflow_dispatch:
@@ -158,26 +157,6 @@ jobs:
           bash -n scripts/app-store-local-web-route-check.sh
           bash -n scripts/app-store-license-inventory.sh
           bash -n scripts/app-store-third-party-notices.sh
-
-      - name: Install OpenSpec CLI
-        run: npm install --global @fission-ai/openspec@0.16.0
-
-      - name: Validate App Store OpenSpec proposals
-        run: |
-          openspec validate add-in-app-account-deletion --strict
-          openspec validate add-ugc-moderation-controls --strict
-
-          if ! grep -Fq "openspec/changes/add-in-app-account-deletion/" docs/APP_STORE_BLOCKER_REGISTER.md; then
-            echo "❌ Blocker register does not reference add-in-app-account-deletion"
-            exit 1
-          fi
-
-          if ! grep -Fq "openspec/changes/add-ugc-moderation-controls/" docs/APP_STORE_BLOCKER_REGISTER.md; then
-            echo "❌ Blocker register does not reference add-ugc-moderation-controls"
-            exit 1
-          fi
-
-          echo "✅ App Store OpenSpec proposals are valid and linked from blocker register"
 
       - name: Run local App Store preflight
         run: bundle exec fastlane ios preflight

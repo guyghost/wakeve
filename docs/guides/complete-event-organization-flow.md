@@ -1,6 +1,6 @@
 # Workflow complet d'organisation d'événement
 
-Ce guide décrit le parcours produit cible couvert par l'OpenSpec `complete-event-organization-flow`: organiser un événement Wakeve de sa création à sa finalisation, avec accès sécurisé, UX Android/iOS cohérente et fonctionnement offline-first.
+Ce guide décrit le parcours produit cible `complete-event-organization-flow`: organiser un événement Wakeve de sa création à sa finalisation, avec accès sécurisé, UX Android/iOS cohérente et fonctionnement offline-first.
 
 [<- Retour](../README.md)
 
@@ -203,7 +203,7 @@ Les ancres de tests ou constantes techniques peuvent rester en source si elles n
 
 ## Commandes de vérification de référence
 
-Les résultats historiques et le détail RED/GREEN sont consignés dans `openspec/changes/complete-event-organization-flow/tasks.md`. Ne pas déduire un résultat actuel de cette liste sans relancer les commandes nécessaires.
+Ne pas déduire un résultat actuel des validations listées sans relancer les commandes nécessaires.
 
 Commandes shared principales:
 
@@ -239,11 +239,10 @@ xcodebuild test -project iosApp/iosApp.xcodeproj -scheme WakeveApp -destination 
 xcodebuild test -project iosApp/iosApp.xcodeproj -scheme WakeveApp -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' -only-testing:WakeveTests/OrganizationPhase7ContractTests CODE_SIGNING_ALLOWED=NO
 ```
 
-Validation OpenSpec et hygiène diff:
+Hygiène diff:
 
 ```bash
 git diff --check
-openspec validate complete-event-organization-flow --strict
 ```
 
 ## Points d'attention pour les développeurs
@@ -263,4 +262,3 @@ openspec validate complete-event-organization-flow --strict
 - [Calendar Integration](../integrations/calendar/implementation.md)
 - [Meeting Service Architecture](../architecture/meeting-service.md)
 - [Testing Overview](../testing/README.md)
-- [OpenSpec change tasks](../../openspec/changes/complete-event-organization-flow/tasks.md)

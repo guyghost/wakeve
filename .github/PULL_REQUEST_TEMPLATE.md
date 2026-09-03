@@ -24,20 +24,15 @@ Relates to #<issue-number>
 - **Spec Deltas**: [Wiki - Specs](https://github.com/<org>/<repo>/wiki/changes/<id>/specs)
 - **Task Tracking**: #<issue-number>
 
-## Affected Specifications
-<!-- List the specifications that will be modified -->
-- `openspec/specs/<spec-name>.md` - Brief description of changes
-
 ## Validation
 ```bash
 # Validation results
-openspec validate <id> --strict
+./gradlew :shared:jvmTest
 ```
 
 - [ ] All validations pass
-- [ ] Scenarios included for each requirement
+- [ ] Tests included for new behavior
 - [ ] Design documented in wiki
-- [ ] Specs documented in wiki
 - [ ] No breaking changes (or documented if unavoidable)
 
 ## Review Checklist

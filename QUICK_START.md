@@ -1,14 +1,14 @@
 # Wakeve Quick Start
 
-This guide gets a developer from a fresh checkout to the current local validation baseline. For roadmap status, use [ROADMAP.md](./ROADMAP.md). For specification workflow, use [openspec/AGENTS.md](./openspec/AGENTS.md).
+This guide gets a developer from a fresh checkout to the current local validation baseline. For roadmap status, use [ROADMAP.md](./ROADMAP.md). For backlog governance, use the Swarm DAO workflow in [AGENTS.md](./AGENTS.md).
 
 ## Current Status
 
 Wakeve is in active release hardening, not the old Phase 2/Phase 3 plan.
 
-Current active OpenSpec changes:
+Current backlog priorities (governed via Swarm DAO):
 
-| Change | Status | Remaining blocker |
+| Item | Status | Remaining blocker |
 |---|---:|---|
 | `add-event-weather-forecast` | 20/22 tasks | WeatherKit Apple Developer capability, signed entitlement, and physical-device WeatherKit validation. |
 | `add-on-device-wakeve-ai` | 40/41 tasks | Supported physical-device profiling for Foundation Models latency, cancellation, memory, and production-log privacy. |
@@ -58,7 +58,6 @@ If the full build is too broad for the task at hand, run the focused gates below
 ## Core Validation
 
 ```bash
-openspec validate --all --strict
 ./gradlew :shared:jvmTest
 ./gradlew :composeApp:assembleDebug
 ```
@@ -168,22 +167,15 @@ wakeve/
 ├── server/       Ktor backend
 ├── apps/         Web/public surfaces
 ├── docs/         Product, release, architecture, and evidence documentation
-├── openspec/     Specifications, active changes, and archived changes
+├── .dao/         Swarm DAO backlog governance state
 └── scripts/      Release gates, audits, profiling helpers, evidence capture
 ```
 
-## OpenSpec Workflow
+## Swarm DAO Workflow
 
-Before implementing a meaningful feature or architectural/security/performance change:
+Before implementing a meaningful feature or architectural/security/performance change, create a proposal via `dao_propose` and run it through deliberation, quality checks, planning, execution, and shipping (`dao_deliberate`, `dao_check`, `dao_plan`, `dao_execute`, `dao_ship`).
 
-```bash
-openspec list
-openspec list --specs
-openspec show <change-id>
-openspec validate <change-id> --strict
-```
-
-Use a new OpenSpec proposal for new capabilities, breaking changes, architecture shifts, security changes, and behavior-changing performance work. Bug fixes, docs updates, tests for existing behavior, and minor configuration cleanup can usually be done directly.
+Bug fixes, docs updates, tests for existing behavior, and minor configuration cleanup can usually be done directly.
 
 ## Commit Format
 
@@ -222,7 +214,6 @@ Run a focused shared test:
 Check active roadmap work:
 
 ```bash
-openspec list
 sed -n '1,120p' ROADMAP.md
 ```
 

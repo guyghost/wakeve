@@ -2,22 +2,15 @@
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Status](https://img.shields.io/badge/status-Roadmap%20Active-blue.svg)
-![OpenSpec](https://img.shields.io/badge/openspec-26%2F26%20passing-brightgreen.svg)
 ![Platforms](https://img.shields.io/badge/platforms-Android%20|%20iOS%20|%20JVM-blue.svg)
 
-Wakeve is a collaborative event planning application for groups that need one place to decide when to meet, who is coming, what the plan is, and what still needs organizing. It combines Kotlin Multiplatform shared logic, Android Compose, native SwiftUI iOS, a Ktor backend, offline-first persistence, and OpenSpec-driven release tracking.
+Wakeve is a collaborative event planning application for groups that need one place to decide when to meet, who is coming, what the plan is, and what still needs organizing. It combines Kotlin Multiplatform shared logic, Android Compose, native SwiftUI iOS, a Ktor backend, offline-first persistence, and Swarm DAO backlog governance.
 
 ## 🎯 Features
 
 ### Current Roadmap State
 
-The project is beyond the original Phase 2/Phase 3 README plan. Current source-of-truth tracking lives in [ROADMAP.md](./ROADMAP.md), [openspec/specs/](./openspec/specs/), and the active OpenSpec changes.
-
-Active changes:
-
-| Change | Status | Remaining blocker |
-|---|---:|---|
-| `add-event-weather-forecast` | 20/22 tasks | WeatherKit Apple Developer capability, signed entitlement, and physical-device WeatherKit validation. |
+The project is beyond the original Phase 2/Phase 3 README plan. Current source-of-truth tracking lives in [ROADMAP.md](./ROADMAP.md) and the Swarm DAO backlog (`.dao/`).
 | `add-on-device-wakeve-ai` | 40/41 tasks | Supported physical-device profiling for Foundation Models latency, cancellation, memory, and production-log privacy. |
 
 Recent archived roadmap work includes Android AI workflows, Android adaptive UI, contact participant selection, scenario matrix voting, web microfrontends, account deletion, UGC moderation, iOS brand identity, and create-event slot previews.
@@ -57,7 +50,7 @@ Recent archived roadmap work includes Android AI workflows, Android adaptive UI,
 - App Store blocker register and final signoff workflow
 - Local privacy, accessibility, media, license, export, live URL, and Store metadata evidence docs
 - Account deletion and UGC moderation implementations archived after local validation
-- Critical release gate scripts for OpenSpec, iOS metadata, web, and selected regression tests
+- Critical release gate scripts for iOS metadata, web, and selected regression tests
 
 ## 🚀 Quick Start
 
@@ -69,7 +62,6 @@ cd wakeve
 # Build and test
 ./gradlew build
 ./gradlew :shared:jvmTest
-openspec validate --all --strict
 
 # Start server
 ./gradlew server:run   # http://localhost:8080
@@ -95,7 +87,6 @@ wakeve/
 ├── composeApp/          # Android app with Jetpack Compose
 ├── server/              # Ktor REST backend server
 ├── iosApp/              # Native iOS app and Xcode project
-├── openspec/            # Specification documents
 └── docs/                # Documentation
 ```
 
@@ -154,7 +145,7 @@ See [docs/architecture/meeting-service.md](./docs/architecture/meeting-service.m
 - **UI**: Jetpack Compose (Android), SwiftUI (iOS)
 - **Database**: SQLDelight with type-safe queries
 - **Backend**: Ktor 3.3.1 REST server
-- **Testing**: Kotlin test, XCTest, OpenSpec validation, release gate scripts
+- **Testing**: Kotlin test, XCTest, release gate scripts
 - **Serialization**: kotlinx-serialization for JSON
 
 ## 📊 Project Statistics
@@ -162,8 +153,7 @@ See [docs/architecture/meeting-service.md](./docs/architecture/meeting-service.m
 | Metric | Value |
 |--------|-------|
 | Roadmap Status | Active release hardening |
-| Active OpenSpec Changes | 2 |
-| Validated Specs/Changes | 26/26 with `openspec validate --all --strict` |
+| Backlog Governance | Swarm DAO (`.dao/`) |
 | Shared Test Files | 92 common test files |
 | Android Test Files | 85 Compose test files |
 | iOS Test Files | 28 XCTest files |
@@ -175,7 +165,7 @@ See [docs/architecture/meeting-service.md](./docs/architecture/meeting-service.m
 ### Getting Started
 - **[QUICK_START.md](./QUICK_START.md)** - 5-minute setup guide
 - **[CONTRIBUTING.md](./CONTRIBUTING.md)** - Development guidelines
-- **[AGENTS.md](./AGENTS.md)** - OpenSpec workflow and AI agents
+- **[AGENTS.md](./AGENTS.md)** - Swarm DAO workflow and AI agents
 
 ### Complete Documentation
 For comprehensive documentation, visit **[docs/](./docs/)**:
@@ -186,10 +176,6 @@ For comprehensive documentation, visit **[docs/](./docs/)**:
 - [Migration Guides](./docs/migration/README.md) - Design system migrations
 - [Refactoring Docs](./docs/refactoring/README.md) - Major refactorings
 - [Implementation Status](./docs/implementation/prd-status.md) - PRD feature tracking
-
-### OpenSpec
-- **[openspec/specs/](./openspec/specs/)** - Detailed specifications
-- **[openspec/AGENTS.md](./openspec/AGENTS.md)** - Specification-driven development workflow
 
 ## 🔧 Development
 
@@ -331,7 +317,7 @@ curl -X POST "$WAKEVE_API_BASE/api/events" \
 
 ### Creating a Feature
 1. Create feature branch: `codex/<feature-name>` for Codex work
-2. Follow OpenSpec process (see [CONTRIBUTING.md](./CONTRIBUTING.md))
+2. Follow the Swarm DAO proposal process for significant changes (see [CONTRIBUTING.md](./CONTRIBUTING.md))
 3. Write tests for all new code
 4. Submit PR with issue reference
 
@@ -375,14 +361,14 @@ See [QUICK_START.md](./QUICK_START.md) for more solutions.
 
 ## 📋 Workflow
 
-Wakeve follows the **OpenSpec** specification-driven development process:
+Wakeve follows the **Swarm DAO** governance process for the backlog:
 
 ```
-1. Create Issue → 2. Create Proposal → 3. Create Spec → 
-4. Get Approval → 5. Implement with Tests → 6. Merge & Deploy
+1. dao_propose → 2. dao_deliberate → 3. dao_check →
+4. dao_plan → 5. dao_execute → 6. dao_ship → 7. dao_rate
 ```
 
-See [openspec/PROCESS.md](./openspec/PROCESS.md) for detailed workflow.
+See [AGENTS.md](./AGENTS.md) for the detailed workflow.
 
 ## 🤝 Contributing
 
@@ -420,4 +406,4 @@ Wakeve's mission is to make collaborative scheduling effortless. By combining in
 
 **Ready to contribute?** Start with [QUICK_START.md](./QUICK_START.md) and [CONTRIBUTING.md](./CONTRIBUTING.md)!
 
-**Questions?** Check [openspec/](./openspec/) for detailed specifications and documentation.
+**Questions?** Check [docs/](./docs/) for detailed documentation.

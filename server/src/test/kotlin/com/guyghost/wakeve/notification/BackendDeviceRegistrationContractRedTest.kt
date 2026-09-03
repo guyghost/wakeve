@@ -17,7 +17,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * Compile-RED contract for OpenSpec task 3.1.
+ * Compile-RED contract for device registration task 3.1.
  *
  * The production backend owns two durable concepts: a stable installation and immutable
  * registration history. Raw tokens cross only the registration command and the provider-only

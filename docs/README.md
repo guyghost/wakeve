@@ -45,7 +45,7 @@ Bienvenue dans la documentation technique du projet Wakeve, une application mobi
 - [Test Reports](testing/reports/index.md) - Rapports de tests
 
 ### Implémentation & Roadmap
-- [Roadmap actuelle](../ROADMAP.md) - Priorites release et suite des changements OpenSpec
+- [Roadmap actuelle](../ROADMAP.md) - Priorites release et suite du backlog Swarm DAO
 - [PRD Status](implementation/prd-status.md) - Statut des fonctionnalités du PRD
 - [Feature Integration](implementation/feature-integration.md) - Intégration des nouvelles fonctionnalités
 - [Draft Event Wizard](implementation/draft-event-wizard-guide.md) - Documentation UX du wizard de création
@@ -70,8 +70,8 @@ wakeve/
 │  └─ archive/             # Documents historiques
 ├─ composeApp/             # Implémentation Android Jetpack Compose
 ├─ iosApp/                 # Implémentation iOS SwiftUI et projet Xcode
-├─ openspec/               # Spécifications OpenSpec
-├─ AGENTS.md               # Workflow OpenSpec et agents IA
+├─ .dao/                   # Backlog Swarm DAO (gouvernance)
+├─ AGENTS.md               # Workflow Swarm DAO et agents IA
 ├─ QUICK_START.md          # Guide de démarrage rapide
 ├─ CONTRIBUTING.md         # Guidelines de contribution
 └─ README.md               # Vue d'ensemble du projet
@@ -80,10 +80,6 @@ wakeve/
 ## Documentation iOS
 
 La documentation spécifique à iOS (Liquid Glass design system, guides SwiftUI, tests iOS) se trouve dans le dossier `iosApp/`. Consultez [guides/ios/README.md](guides/ios/README.md) pour l'index complet.
-
-## OpenSpec
-
-Ce projet utilise OpenSpec pour gérer les changements de manière structurée. Consultez [openspec/AGENTS.md](../openspec/AGENTS.md) pour comprendre le workflow de développement piloté par spécifications.
 
 ## Conventions
 
@@ -94,7 +90,7 @@ Ce projet utilise OpenSpec pour gérer les changements de manière structurée. 
 
 ## Besoin d'aide ?
 
-- Consulter [AGENTS.md](../AGENTS.md) pour comprendre le workflow OpenSpec
+- Consulter [AGENTS.md](../AGENTS.md) pour comprendre le workflow Swarm DAO
 - Consulter [CONTRIBUTING.md](../CONTRIBUTING.md) pour les guidelines de contribution
 - Lire [QUICK_START.md](../QUICK_START.md) pour démarrer rapidement
 

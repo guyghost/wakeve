@@ -8,8 +8,6 @@ Ce guide décrit la migration interne de l’écran Event Detail iOS vers l’op
 
 - [Modèle de présentation](../../../models/ios-event-detail-invitation-canvas.md) : matrice état × accès, entrées et invariants.
 - [Revue du modèle](../../../models/ios-event-detail-invitation-canvas.review.md) : cas nominaux, erreurs, permissions, offline, états terminaux et accessibilité.
-- [Proposition OpenSpec](../../../openspec/changes/update-ios-event-detail-invitation-canvas/proposal.md) : périmètre produit et impacts.
-- [Direction graphique approuvée](../../../openspec/changes/update-ios-event-detail-invitation-canvas/assets/option-1-invitation-canvas.png) : référence visuelle, jamais donnée de production.
 
 La vue ne devient pas une nouvelle machine à états. `EventStatus`, les permissions du repository et les modèles métier existants restent autoritatifs. Aucun libellé, contenu généré ou résultat de LLM ne peut déterminer un état, un droit, un acteur responsable ou une destination.
 

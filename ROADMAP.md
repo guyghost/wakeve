@@ -7,24 +7,21 @@ Version: 2.1
 
 Sources consultees:
 
-- `openspec list`
-- `openspec list --specs`
-- `openspec/changes/*/tasks.md`
+- Backlog Swarm DAO (`.dao/`)
 - `docs/APP_STORE_BLOCKER_REGISTER.md`
 - `docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T22-48-00Z.md`
 - `docs/product/android-product-ux-audit-2026-06-20.md`
 - XcodeBuildMCP iOS Simulator focused WeatherKit/WakeveAI artifacts du 2026-06-20
-- `openspec validate --all --strict`
 
-Changements OpenSpec actifs:
+Backlog actif (gouverne via Swarm DAO):
 
 | Changement | Etat | Impact roadmap |
 |---|---:|---|
 | `add-event-weather-forecast` | 20/22 taches | P1 produit iOS, WeatherKit/MapKit/cache/UI verifies localement; reste Apple Developer capability, profil signe et validation WeatherKit sur device physique. |
 | `add-on-device-wakeve-ai` | 40/41 taches | P1 produit iOS, client Foundation Models local finalise et fallback simulateur verifie; reste profiling device reel. |
-| `migrate-android-google-auth-credential-manager` | 0/8 taches | Proposition OpenSpec validee pour migrer Android Google auth vers Credential Manager; implementation en attente d'approbation. |
+| `migrate-android-google-auth-credential-manager` | 0/8 taches | Proposition validee pour migrer Android Google auth vers Credential Manager; implementation en attente d'approbation. |
 
-Changements OpenSpec archives le 2026-06-20:
+Travaux archives le 2026-06-20 (ex-changements OpenSpec):
 
 | Changement | Impact roadmap |
 |---|---|
@@ -39,12 +36,12 @@ Changements OpenSpec archives le 2026-06-20:
 
 ## Position
 
-Wakeve n'est plus dans l'etat de la roadmap initiale du 2026-02-10. Le projet a evolue vers un produit iOS-first proche d'une soumission App Store, avec une base KMP plus large, une surface web publique, des preuves de readiness, des workflows avancés d'organisation et plusieurs changements OpenSpec actifs.
+Wakeve n'est plus dans l'etat de la roadmap initiale du 2026-02-10. Le projet a evolue vers un produit iOS-first proche d'une soumission App Store, avec une base KMP plus large, une surface web publique, des preuves de readiness, des workflows avancés d'organisation et plusieurs chantiers de backlog actifs.
 
 La roadmap ne doit donc plus partir de "atteindre 60 % de couverture" ou "demarrer Advanced Push" comme si le produit etait encore en sortie de phase Ralph. Les priorites actuelles sont:
 
 1. fermer les bloqueurs App Store reels;
-2. finir les changements OpenSpec deja engages;
+2. finir les chantiers deja engages;
 3. stabiliser les parcours produit critiques sur iOS;
 4. garder Android/KMP et le web alignes sans rouvrir de grands chantiers non necessaires a la release.
 
@@ -58,7 +55,7 @@ La roadmap ne doit donc plus partir de "atteindre 60 % de couverture" ou "demarr
 | "Advanced Push" est le prochain chantier P0 | Depriorise | Les notifications restent importantes, mais elles ne ferment pas les bloqueurs App Store actuels. |
 | "Documentation API complete" est encore a creer | Partiellement obsolete | `docs/API/openapi.yaml`, `docs/API.md` et les docs App Store existent deja. Le besoin est la consolidation et la verification, pas une creation from scratch. |
 | "Production Ready" se resume aux tests/perf/security | Incomplet | La readiness depend maintenant de DNS/live URLs, build signe, TestFlight, account deletion, UGC moderation, privacy evidence et App Store Connect. |
-| "Ralph next session" guide encore le travail | Obsolete | La roadmap doit suivre OpenSpec et les blockers de release, pas une session historique. |
+| "Ralph next session" guide encore le travail | Obsolete | La roadmap doit suivre le backlog Swarm DAO et les blockers de release, pas une session historique. |
 
 ### Travaux recents a prendre en compte
 
@@ -79,7 +76,7 @@ La definition globale du P0 est stricte: le projet n'est pret que lorsque `./scr
 
 #### 0.1 Account deletion end-to-end
 
-Source OpenSpec archivee: `openspec/changes/archive/2026-06-20-add-in-app-account-deletion/`
+Chantier archive: `add-in-app-account-deletion` (2026-06-20)
 Blocker App Store: AS-09
 
 - [x] Backend: route authentifiee `DELETE /api/user/delete` exposee.
@@ -97,14 +94,13 @@ Blocker App Store: AS-09
 
 Definition of done:
 
-- Le changement archive est couvert par `openspec validate --all --strict`.
 - Les tests backend et iOS pertinents passent.
 - `docs/APP_STORE_ACCOUNT_DELETION_EVIDENCE.md`, `docs/APP_STORE_READINESS.md` et `docs/APP_STORE_LAUNCH_CHECKLIST.md` pointent vers des preuves reelles.
 - Pour la soumission App Store, `APP_STORE_ACCOUNT_DELETION_EVIDENCE_COMPLETE=true` reste interdit tant que le meme flux n'est pas verifie sur la build uploaded/TestFlight.
 
 #### 0.2 UGC moderation controls
 
-Source OpenSpec archivee: `openspec/changes/archive/2026-06-20-add-ugc-moderation-controls/`
+Chantier archive: `add-ugc-moderation-controls` (2026-06-20)
 Blocker App Store: AS-10
 
 - [x] Tests first: rejet des contenus hard-policy comments/chat/event text avant persistence ou broadcast.
@@ -122,11 +118,10 @@ Blocker App Store: AS-10
 - [x] iOS: support/help path visible pour contact abuse et verification reviewer.
 - [x] App Store gates: l'audit final doit echouer si filtering, reporting, blocking, support contact, audit moderator ou evidence iOS manquent.
 - [x] Docs: preuves App Review et support/moderation process.
-- [x] Validation locale finale: OpenSpec strict, lint metadata, tests serveur, preflight iOS/web Fastlane et audit final local executes.
+- [x] Validation locale finale: lint metadata, tests serveur, preflight iOS/web Fastlane et audit final local executes.
 
 Definition of done:
 
-- Le changement archive est couvert par `openspec validate --all --strict`.
 - Les tests serveur couvrent rejet, quarantine, report, block et autorisations moderator/admin.
 - `bundle exec fastlane ios preflight` passe avec build Release unsigned, lint iOS, audit/check/build web et routes locales.
 - `APP_REVIEW_PHONE_NUMBER='+33123456789' ./scripts/app-store-submission-audit.sh` execute la preflight locale et retourne `NOT READY` uniquement a cause des signoffs/env vars/live URLs/build signee externes manquants.
@@ -223,7 +218,7 @@ Objectif: reduire le risque de rejet et de regression sur les parcours visibles 
 
 #### 1.1 Finaliser WakeveAI on-device
 
-Source OpenSpec: `openspec/changes/add-on-device-wakeve-ai/`
+Chantier: `add-on-device-wakeve-ai`
 
 - [x] Finaliser `WakeveAIClient` avec typed generation, streaming, tools, cancellation, timeout et logging safe.
 - [x] Verifier le fallback sur simulateur ou device incompatible.
@@ -317,7 +312,7 @@ Objectif: consolider sans bloquer artificiellement la premiere soumission.
 Preuves du 2026-06-13:
 
 - Nouveau gate local: `./scripts/test-critical-release-gates.sh`.
-- Le gate valide OpenSpec strict pour account deletion, UGC moderation et WakeveAI, puis exécute les regressions App Store UGC, les tests serveur account deletion/auth/UGC, et les tests JVM partages guest auth, moderation, notification scheduler, draft workflow, scenario matrix, contacts, polling confirmation et sync conflict.
+- Le gate exécute les regressions App Store UGC, les tests serveur account deletion/auth/UGC, et les tests JVM partages guest auth, moderation, notification scheduler, draft workflow, scenario matrix, contacts, polling confirmation et sync conflict.
 - `./scripts/test-critical-release-gates.sh` passe.
 - Le gate iOS contractuel lourd reste optionnel via `RUN_IOS_CONTRACTS=1 ./scripts/test-critical-release-gates.sh`, pour ne pas rendre le gate local dépendant d'un simulateur Xcode disponible à chaque exécution.
 - JaCoCo est integre au module `shared` via `jacocoJvmTestReport`, `jacocoCoverageVerification` et `testWithCoverage`; Kover n'est pas ajoute parce qu'un seul outil suffit pour le besoin actuel.
@@ -388,7 +383,7 @@ Preuves du 2026-06-20:
 Preuves du 2026-06-13:
 
 - `docs/deep-linking.md` fixe le perimetre review: rich notifications reportees apres fermeture P0 App Store, deep links prioritaires limites a event, invite, poll et legal/support.
-- Le meme document inventorie les categories/actions existantes (`event_invite`, `poll_reminder`, `meeting_starting`, `scenario_vote`, `general`) et interdit l'ajout de nouveaux contrats notification/deep link sans proposition OpenSpec.
+- Le meme document inventorie les categories/actions existantes (`event_invite`, `poll_reminder`, `meeting_starting`, `scenario_vote`, `general`) et interdit l'ajout de nouveaux contrats notification/deep link sans proposition Swarm DAO.
 - Les liens meeting restent supportes par les parseurs existants, mais ne sont pas promus comme surface App Review critique pour la premiere soumission.
 
 Preuves du 2026-06-20:
@@ -430,15 +425,12 @@ Preuves du 2026-06-13:
 
 ### Sortie P0
 
-- `openspec validate --all --strict` passe.
 - Les blockers AS-01 a AS-22 du registre App Store sont fermes ou explicitement exclus par decision documentee.
 - `./scripts/app-store-submission-audit.sh --check-live-urls --run-submission-ready` passe.
 - Une build App Store Connect/TestFlight signee est uploadée, installee sur device reel, smoke testee et selectionnable pour review.
 
 ### Sortie P1
 
-- `openspec validate add-on-device-wakeve-ai --strict` passe.
-- `openspec validate add-event-weather-forecast --strict` passe.
 - Les validations WeatherKit device et entitlement signe sont documentees.
 - Les validations device WakeveAI sont documentees.
 - Les parcours onboarding/login/guest, creation event, contacts, poll, scenario matrix, organisation et event detail ont des preuves iOS release.
@@ -448,16 +440,11 @@ Preuves du 2026-06-13:
 
 - Les gates de tests critiques remplacent les objectifs de couverture generiques.
 - Les mesures performance et observabilite sont documentees sur iOS et Android.
-- Les notifications/deep links et la sync avancee ne changent pas de contrat sans proposition OpenSpec.
+- Les notifications/deep links et la sync avancee ne changent pas de contrat sans proposition Swarm DAO.
 
 ## Commandes utiles
 
 ```bash
-openspec list
-openspec list --specs
-openspec validate --all --strict
-openspec validate add-event-weather-forecast --strict
-openspec validate add-on-device-wakeve-ai --strict
 ./scripts/test-critical-release-gates.sh
 ./gradlew :shared:testWithCoverage :shared:jacocoCoverageVerification
 APP_REVIEW_PHONE_NUMBER='+33123456789' ./scripts/app-store-submission-audit.sh --skip-preflight
@@ -468,14 +455,14 @@ bundle exec fastlane ios preflight
 
 ## References
 
-- `openspec/changes/archive/2026-06-20-add-in-app-account-deletion/`
-- `openspec/changes/archive/2026-06-20-add-ugc-moderation-controls/`
-- `openspec/changes/add-event-weather-forecast/`
-- `openspec/changes/add-on-device-wakeve-ai/`
-- `openspec/changes/archive/2026-06-20-add-web-microfrontends-landing/`
-- `openspec/changes/archive/2026-06-20-add-contact-participant-selection/`
-- `openspec/changes/archive/2026-06-20-add-scenario-matrix-voting/`
-- `openspec/changes/archive/2026-06-20-update-create-event-wizard-slots-preview/`
+- `add-in-app-account-deletion` (archive 2026-06-20)
+- `add-ugc-moderation-controls` (archive 2026-06-20)
+- `add-event-weather-forecast`
+- `add-on-device-wakeve-ai`
+- `add-web-microfrontends-landing` (archive 2026-06-20)
+- `add-contact-participant-selection` (archive 2026-06-20)
+- `add-scenario-matrix-voting` (archive 2026-06-20)
+- `update-create-event-wizard-slots-preview` (archive 2026-06-20)
 - `docs/APP_STORE_READINESS.md`
 - `docs/APP_STORE_LAUNCH_CHECKLIST.md`
 - `docs/APP_STORE_BLOCKER_REGISTER.md`

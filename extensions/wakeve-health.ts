@@ -1,9 +1,9 @@
 /**
  * Wakeve Health Dashboard Extension
- * Project health: accessibility audit, OpenSpec tracking, tasks, git status.
+ * Project health: accessibility audit, tasks, git status.
  */
 
-import { readFileSync, existsSync, readdirSync } from "fs";
+import { readFileSync, existsSync } from "fs";
 import { execSync } from "child_process";
 
 // Exact audit_report.json schema
@@ -53,14 +53,8 @@ function readJson<T>(path: string): T | null {
   catch { return null; }
 }
 
-function countDirs(dir: string): number {
-  if (!existsSync(dir)) return 0;
-  try { return readdirSync(dir, { withFileTypes: true }).filter(d => d.isDirectory()).length; }
-  catch { return 0; }
-}
-
 export const name = "wakeve-health";
-export const description = "Dashboard santé du projet Wakeve — accessibilité, OpenSpec, git, tâches";
+export const description = "Dashboard santé du projet Wakeve — accessibilité, git, tâches";
 
 export const tools = [
   {
@@ -71,7 +65,7 @@ export const tools = [
       properties: {
         section: {
           type: "string",
-          enum: ["all", "accessibility", "openspec", "tasks", "git"],
+          enum: ["all", "accessibility", "tasks", "git"],
           description: "Section à afficher (défaut: all)",
         },
       },
@@ -103,22 +97,6 @@ export const tools = [
           }
         } else {
           lines.push("⚠️ `audit_report.json` non trouvé — lance un audit WCAG.");
-        }
-        lines.push("");
-      }
-
-      // OPENSPEC
-      if (section === "all" || section === "openspec") {
-        lines.push("## 📋 OpenSpec");
-        const active = countDirs("openspec/changes");
-        const archived = countDirs("openspec/archive");
-        lines.push(`🔄 ${active} actifs · 📦 ${archived} archivés`);
-        if (active > 0 && existsSync("openspec/changes")) {
-          const dirs = readdirSync("openspec/changes", { withFileTypes: true }).filter(d => d.isDirectory());
-          for (const d of dirs) {
-            const hasTasks = existsSync(`openspec/changes/${d.name}/tasks.md`);
-            lines.push(`- ${hasTasks ? "🔨" : "📝"} \`${d.name}\``);
-          }
         }
         lines.push("");
       }
@@ -165,7 +143,6 @@ export const tools = [
         const checks: [string, boolean][] = [
           ["♿ Audit présent", existsSync("audit_report.json")],
           ["♿ 0 issues critiques", criticalIssues === 0],
-          ["📋 Pas d'OpenSpec bloquants", countDirs("openspec/changes") === 0],
           ["📝 Tasks trackées", existsSync("tasks.md")],
           ["🔀 Git propre", safeExec("git status --porcelain").trim() === ""],
         ];

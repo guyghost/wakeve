@@ -1,35 +1,16 @@
-<!-- OPENSPEC:START -->
-# OpenSpec Instructions
-
-Ces instructions sont destinées aux assistants IA travaillant sur ce projet.
-
-Ouvrez systématiquement `@/openspec/AGENTS.md` lorsque la demande:
-- Mentionne une planification ou des propositions (termes tels que proposition, spécification, changement, plan)
-- Introduit de nouvelles fonctionnalités, des changements importants, des modifications d'architecture ou des travaux majeurs sur les performances/la sécurité
-- Semble ambiguë et nécessite la spécification officielle avant de coder
-
-Utilisez `@/openspec/AGENTS.md` pour apprendre:
-- Comment créer et appliquer des propositions de changement
-- Le format et les conventions de la spécification
-- La structure et les directives du projet
-
-Conservez ce bloc géré afin que la commande «openspec update» puisse actualiser les instructions.
-
-<!-- OPENSPEC:END -->
-
 # AGENTS.md - Guide pour les Développeurs et Agents IA
 
-Ce document définit les agents (humains et logiciels) pour l'application mobile de planification d'événements "Wakeve" en Kotlin Multiplatform. Il décrit leurs responsabilités, interfaces et handoffs, ainsi que le workflow de développement piloté par spécifications.
+Ce document définit les agents (humains et logiciels) pour l'application mobile de planification d'événements "Wakeve" en Kotlin Multiplatform. Il décrit leurs responsabilités, interfaces et handoffs, ainsi que le workflow de gouvernance du backlog via Swarm DAO.
 
 ---
 
-## 🤖 Workflow OpenSpec - Développement Piloté par Spécifications
+## 🤖 Workflow Swarm DAO - Gouvernance du Backlog
 
-Ce projet utilise **OpenSpec** pour gérer les changements de manière structurée et traçable. Tous les agents IA et développeurs doivent suivre ce workflow pour les nouvelles fonctionnalités significatives.
+Ce projet utilise **Swarm DAO** (architecture 4 couches: Governance → Intelligence → Control → Delivery) pour planifier et gouverner le backlog. Tous les agents IA et développeurs suivent ce workflow pour les changements significatifs.
 
-### Quand utiliser OpenSpec ?
+### Quand créer une proposition Swarm DAO ?
 
-**✅ Créer une proposition OpenSpec pour :**
+**✅ Créer une proposition pour :**
 - Nouvelles fonctionnalités ou capacités
 - Changements architecturaux
 - Modifications breaking changes
@@ -37,7 +18,7 @@ Ce projet utilise **OpenSpec** pour gérer les changements de manière structur�
 - Modifications de sécurité
 - Ajout d'agents logiciels (Suggestions, Transport, etc.)
 
-**❌ Pas besoin d'OpenSpec pour :**
+**❌ Pas besoin de proposition pour :**
 - Corrections de bugs (restaurer le comportement prévu)
 - Typos, formatage, commentaires
 - Mises à jour de dépendances (non-breaking)
@@ -46,7 +27,7 @@ Ce projet utilise **OpenSpec** pour gérer les changements de manière structur�
 
 ### Gate Product Excellence
 
-Pour toute proposition OpenSpec significative et visible par l'utilisateur, consulter `openspec/specs/product-excellence/spec.md` lorsqu'elle existe. La proposition doit expliquer en quoi le changement:
+Pour toute proposition significative et visible par l'utilisateur, la proposition doit expliquer en quoi le changement:
 - aide directement un groupe privé à préparer, décider, coordonner ou finaliser un événement;
 - réduit la charge mentale ou les allers-retours hors de Wakeve;
 - rend clair ce qui est confirmé, en attente, qui doit agir et la prochaine action utile;
@@ -55,115 +36,17 @@ Pour toute proposition OpenSpec significative et visible par l'utilisateur, cons
 
 Une fonctionnalité qui ne satisfait pas ce gate doit être rejetée, différée ou rescopée avant implémentation.
 
-### Cycle de Vie OpenSpec
+### Cycle de Vie d'une Proposition
 
-#### 1. **Proposition** (`/openspec-proposal`)
+1. **Proposition** — `dao_propose` avec titre, type (`product-feature`, `security-change`, `technical-change`, `release-change`, `governance-change`), description, problème, critères d'acceptation, métriques de succès et conditions de rollback
+2. **Délibération** — `dao_deliberate` fait délibérer le swarm d'agents sur la proposition
+3. **Contrôle qualité** — `dao_check` exécute les gates qualité
+4. **Plan de livraison** — `dao_plan` génère le plan d'exécution
+5. **Exécution** — `dao_execute` applique les changements (aperçu possible via `dao_dry_run`)
+6. **Livraison** — `dao_ship` finalise la proposition (rollback possible via `dao_rollback`)
+7. **Retour d'expérience** — `dao_rate` note le résultat (1-5 étoiles)
 
-Quand l'utilisateur demande une nouvelle fonctionnalité :
-
-1. **Explorer le contexte existant**
-   ```bash
-   openspec spec list --long    # Liste des spécifications existantes
-   openspec list                 # Changements actifs
-   ```
-
-2. **Créer la structure**
-   ```
-   openspec/changes/<change-id>/
-   ├── proposal.md              # Pourquoi, quoi, impact
-   ├── tasks.md                 # Checklist d'implémentation
-   ├── design.md                # Décisions techniques (optionnel)
-   └── specs/
-       └── <capability>/
-           └── spec.md          # Delta des spécifications
-   ```
-
-3. **Choisir un change-id unique**
-   - Format : kebab-case, verbe-led
-   - Exemples : `add-user-authentication`, `add-transport-optimization`, `update-poll-logic`
-
-4. **Rédiger les deltas de spécifications**
-   ```markdown
-   ## ADDED Requirements
-   ### Requirement: Nouvelle Fonctionnalité
-   Le système DOIT fournir...
-   
-   #### Scenario: Cas de succès
-   - **WHEN** l'utilisateur effectue une action
-   - **THEN** résultat attendu
-   
-   ## MODIFIED Requirements
-   ### Requirement: Fonctionnalité Existante
-   [Texte complet du requirement modifié]
-   
-   ## REMOVED Requirements
-   ### Requirement: Ancienne Fonctionnalité
-   **Reason**: [Pourquoi la suppression]
-   **Migration**: [Comment gérer]
-   ```
-
-5. **Valider la proposition**
-   ```bash
-   openspec validate <change-id> --strict
-   ```
-
-6. **Attendre l'approbation** avant de démarrer l'implémentation
-
-#### 2. **Implémentation** (`/openspec-apply`)
-
-Une fois les specs validées :
-
-1. **Lire la proposition**
-   - `proposal.md` : Comprendre le contexte et les objectifs
-   - `design.md` : Décisions techniques (si présent)
-   - `tasks.md` : Liste des tâches à accomplir
-
-2. **Implémenter séquentiellement**
-   - Déléguer chaque tâche à l'agent approprié (voir section Agents IA)
-   - Marquer `[x]` dans `tasks.md` au fur et à mesure
-
-3. **S'assurer de la complétude**
-   - Tests créés et passants
-   - Documentation mise à jour
-   - Tests offline/online validés
-
-#### 3. **Archivage** (`/openspec-archive`)
-
-Quand toutes les tâches sont terminées :
-
-1. **Vérifier que tout est complet**
-   - Tous les tests passent (36/36 tests minimum)
-   - Toutes les tâches sont cochées `[x]`
-
-2. **Archiver le changement**
-   ```bash
-   openspec archive <change-id> --yes
-   ```
-
-3. **Résultat**
-   - Les specs delta sont mergées dans `openspec/specs/`
-   - Le changement est déplacé vers `openspec/archive/YYYY-MM-DD-<change-id>/`
-
-### Commandes OpenSpec Rapides
-
-```bash
-# Lister les changements actifs
-openspec list
-
-# Lister les spécifications existantes
-openspec list --specs
-openspec spec list --long
-
-# Afficher un changement ou une spec
-openspec show <change-id>
-openspec show <spec-id> --type spec
-
-# Valider un changement
-openspec validate <change-id> --strict
-
-# Archiver un changement (après déploiement)
-openspec archive <change-id> --yes
-```
+Commande `/dao` pour vérifier l'état du setup. `dao_dashboard` affiche le suivi des résultats, `dao_audit` la piste d'audit.
 
 ---
 
@@ -175,7 +58,7 @@ Ce projet utilise plusieurs agents IA spécialisés. L'**orchestrator** (agent p
 
 | Agent | Rôle | Invocation | Peut écrire du code |
 |-------|------|------------|---------------------|
-| **orchestrator** | Agent principal, coordination OpenSpec | (par défaut) | ❌ Délègue uniquement |
+| **orchestrator** | Agent principal, coordination Swarm DAO | (par défaut) | ❌ Délègue uniquement |
 | **@codegen** | Génération de code Kotlin/Swift/TypeScript | `@codegen` | ✅ Oui |
 | **@tests** | Création et exécution de tests (Kotlin test) | `@tests` | ✅ Oui |
 | **@review** | Revue de code, design et accessibilité | `@review` | ❌ Read-only |
@@ -216,7 +99,7 @@ Ce projet utilise plusieurs agents IA spécialisés. L'**orchestrator** (agent p
 2. **Test-Driven Development** - Déléguer à `@tests` AVANT l'implémentation
 3. **Design System obligatoire** - Utiliser `@designer` pour valider conformité Material/Liquid Glass
 4. **Demander une review** - Utiliser `@review` avant de considérer une tâche terminée
-5. **Mettre à jour tasks.md** - L'orchestrator met à jour la progression dans OpenSpec
+5. **Gouvernance Swarm DAO** - L'orchestrator met à jour la progression des propositions Swarm DAO
 6. **Offline-first** - Toujours tester les scénarios offline avec `@tests`
 
 ### Exemple de Workflow Complet
@@ -225,10 +108,10 @@ Ce projet utilise plusieurs agents IA spécialisés. L'**orchestrator** (agent p
 Utilisateur: "Ajoute l'agent Transport pour optimiser les voyages multi-participants"
 
 Orchestrateur:
-1. Crée une proposition OpenSpec: "add-transport-agent"
-   - proposal.md: Contexte, objectifs, impact
-   - tasks.md: Checklist d'implémentation
-   - specs/transport-management/spec.md: Delta des spécifications
+1. Crée une proposition Swarm DAO: "add-transport-agent"
+   - problemStatement: Contexte, objectifs, impact
+   - acceptanceCriteria: Critères de recette
+   - affectedPaths: Fichiers impactés
 
 2. Délègue à @tests: "Crée les tests pour TransportService et TransportProvider"
    - shared/src/commonTest/kotlin/services/TransportServiceTest.kt
@@ -253,7 +136,7 @@ Orchestrateur:
 
 8. Met à jour tasks.md avec [x]
 
-9. Archive le changement avec `openspec archive add-transport-agent --yes`
+9. Clôture la proposition Swarm DAO avec `dao_ship` puis note le résultat via `dao_rate`
 ```
 
 ---
@@ -672,7 +555,6 @@ Pour une intégration complète, consulter:
 - [DRAFT Wizard Usage Guide](./docs/guides/DRAFT_WIZARD_USAGE.md) - Guide d'utilisation du wizard Android/iOS
 - [State Machine Integration Guide](./docs/guides/STATE_MACHINE_INTEGRATION_GUIDE.md) - Guide d'intégration MVI + FSM
 - [Migration Guide: EventCreationScreen → DraftEventWizard](./docs/migration/EVENTCREATIONSCREEN_TO_DRAFTEVENTWIZARD.md) - Guide de migration
-- [Workflow Coordination Specification](./openspec/specs/workflow-coordination/spec.md) - Spécification complète du workflow DRAFT
 
 #### Workflow Complet: DRAFT → FINALIZED
 
@@ -779,13 +661,6 @@ shared/src/commonTest/kotlin/com/guyghost/wakeve/
 └── workflow/
     └── WorkflowIntegrationTest.kt             # 6 tests d'intégration
 ```
-
-#### Documentation Complète
-
-Pour plus de détails, consulter:
-- **[WORKFLOW_DIAGRAMS.md](openspec/changes/verify-statemachine-workflow/WORKFLOW_DIAGRAMS.md)**: Diagrammes séquence et état
-- **[TROUBLESHOOTING.md](openspec/changes/verify-statemachine-workflow/TROUBLESHOOTING.md)**: Guide de résolution de problèmes
-- **[INDEX.md](openspec/changes/verify-statemachine-workflow/INDEX.md)**: Navigation dans la documentation du changement
 
 #### Exemple d'Implémentation
 
@@ -989,7 +864,7 @@ Adds 7 new tests for offline functionality:
 
 All tests passing (36/36).
 
-Related to openspec/changes/add-offline-sync
+Related to the Swarm DAO proposal add-offline-sync
 ```
 
 ---
@@ -1056,7 +931,7 @@ Avant de merger dans `main`, vérifier :
 - [ ] La documentation est à jour (si nécessaire)
 - [ ] Aucun secret ou donnée sensible n'est commité
 - [ ] L'accessibilité est validée (pour les composants UI)
-- [ ] tasks.md est mis à jour (si OpenSpec)
+- [ ] La proposition Swarm DAO associée est mise à jour (si changement gouverné)
 
 ---
 
@@ -1170,22 +1045,6 @@ open iosApp/iosApp.xcodeproj
 ./gradlew clean build
 ```
 
-### OpenSpec
-
-```bash
-# Lister les changements actifs
-openspec list
-
-# Lister les specs
-openspec spec list --long
-
-# Valider un changement
-openspec validate <change-id> --strict
-
-# Archiver un changement
-openspec archive <change-id> --yes
-```
-
 ---
 
 ## 📖 Ressources et Documentation
@@ -1194,7 +1053,6 @@ openspec archive <change-id> --yes
 
 - **QUICK_START.md** - Guide de démarrage rapide (5 minutes)
 - **CONTRIBUTING.md** - Guidelines de développement
-- **openspec/AGENTS.md** - Détails du workflow OpenSpec (référence complète)
 - **.opencode/context.md** - Contexte complet du projet
 - **.opencode/design-system.md** - Design system unifié
 
@@ -1276,4 +1134,4 @@ openspec archive <change-id> --yes
 
 **Note importante pour les agents IA :** Ce document doit être suivi rigoureusement pour tous les commits et modifications de code. Toute contribution doit respecter ces conventions. L'orchestrator ne code JAMAIS directement - il délègue aux agents spécialisés.
 
-**Pour les détails complets du workflow OpenSpec, consultez `openspec/AGENTS.md`.**
+**Pour la gouvernance du backlog et des propositions, utilisez le workflow Swarm DAO décrit ci-dessus.**

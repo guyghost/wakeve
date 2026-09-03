@@ -454,7 +454,6 @@ deinit {
 
 ## Resources
 
-- **Proposal**: `openspec/changes/implement-kmp-state-machine/`
 - **Architecture**: `docs/ARCHITECTURE.md` (to be updated)
 - **Skill Guide**: `/Users/guy/.config/opencode/skill/kmp`
 - **Kotlin Docs**: https://kotlinlang.org/docs/multiplatform.html

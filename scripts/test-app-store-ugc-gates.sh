@@ -56,10 +56,6 @@ assert_fails_with \
     env APP_REVIEW_PHONE_NUMBER="+33123456789" APP_STORE_UGC_MODERATION_CONFIRMED=true "$AUDIT_SCRIPT" --skip-preflight
 assert_contains \
     "$TEST_OUTPUT" \
-    "PASS: UGC moderation OpenSpec tasks have no unchecked items" \
-    "audit recognizes completed UGC OpenSpec tasks"
-assert_contains \
-    "$TEST_OUTPUT" \
     "App Store UGC moderation evidence is not complete" \
     "incomplete UGC evidence record remains a blocker"
 assert_contains \
