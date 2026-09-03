@@ -80,7 +80,8 @@
       "poll": "Sondage",
       "comments": "Commentaires",
       "budget": "Budget",
-      "scenarios": "Scénarios"
+      "scenarios": "Scénarios",
+      "transport": "Transport"
     },
     "info": {
       "status": "Statut",
@@ -167,6 +168,59 @@
         "PROPOSED": "Proposé",
         "SELECTED": "Sélectionné",
         "REJECTED": "Rejeté"
+      }
+    },
+    "transport": {
+      "lockedTitle": "Transport verrouillé",
+      "lockedDesc": "La logistique transport se débloque une fois la date de l'événement confirmée.",
+      "noDestinationTitle": "Destination manquante",
+      "noDestinationDesc": "Sélectionnez d'abord un scénario final dans l'onglet Scénarios pour définir la destination du transport.",
+      "error": "Impossible de charger le transport.",
+      "readiness": {
+        "title": "Préparation transport",
+        "destination": "Destination",
+        "missing": "Départs manquants",
+        "allDepartures": "Tous les départs sont renseignés.",
+        "notNeeded": "Transport marqué comme non nécessaire.",
+        "ready": "Prêt pour la génération d'un plan"
+      },
+      "departure": {
+        "title": "Mon point de départ",
+        "name": "Ville de départ",
+        "namePlaceholder": "Ex : Lyon",
+        "address": "Adresse (optionnel)",
+        "addressPlaceholder": "Ex : Gare Part-Dieu",
+        "save": "Enregistrer mon départ",
+        "saving": "Enregistrement…",
+        "saved": "Votre départ a bien été enregistré.",
+        "error": "Impossible d'enregistrer le départ."
+      },
+      "plans": {
+        "title": "Plans de transport",
+        "count": "{n} plan(s) par participant",
+        "empty": "Aucun plan de transport pour le moment.",
+        "generate": "Générer un plan",
+        "generating": "Génération…",
+        "optimization": "Optimisation",
+        "groupCost": "Coût total groupe",
+        "routes": "Trajets par participant",
+        "select": "Sélectionner ce plan",
+        "selected": "Plan sélectionné",
+        "delete": "Supprimer",
+        "optimizations": {
+          "COST_MINIMIZE": "Coût minimal",
+          "TIME_MINIMIZE": "Temps minimal",
+          "BALANCED": "Équilibré"
+        }
+      },
+      "markNotNeeded": "Transport non nécessaire",
+      "markingNotNeeded": "Mise à jour…",
+      "segment": "segment(s)",
+      "errors": {
+        "generate": "Impossible de générer le plan.",
+        "select": "Impossible de sélectionner le plan.",
+        "delete": "Impossible de supprimer le plan.",
+        "notNeeded": "Impossible de mettre à jour le statut transport."
       }
     }
   },

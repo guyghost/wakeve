@@ -80,7 +80,8 @@
       "poll": "Poll",
       "comments": "Comments",
       "budget": "Budget",
-      "scenarios": "Scenarios"
+      "scenarios": "Scenarios",
+      "transport": "Transport"
     },
     "info": {
       "status": "Status",
@@ -167,6 +168,59 @@
         "PROPOSED": "Proposed",
         "SELECTED": "Selected",
         "REJECTED": "Rejected"
+      }
+    },
+    "transport": {
+      "lockedTitle": "Transport locked",
+      "lockedDesc": "Transport logistics unlock once the event date is confirmed.",
+      "noDestinationTitle": "Missing destination",
+      "noDestinationDesc": "Select a final scenario in the Scenarios tab first to define the transport destination.",
+      "error": "Failed to load transport.",
+      "readiness": {
+        "title": "Transport readiness",
+        "destination": "Destination",
+        "missing": "Missing departures",
+        "allDepartures": "All departures are set.",
+        "notNeeded": "Transport marked as not needed.",
+        "ready": "Ready to generate a plan"
+      },
+      "departure": {
+        "title": "My departure point",
+        "name": "Departure city",
+        "namePlaceholder": "E.g. Lyon",
+        "address": "Address (optional)",
+        "addressPlaceholder": "E.g. Part-Dieu station",
+        "save": "Save my departure",
+        "saving": "Saving…",
+        "saved": "Your departure has been saved.",
+        "error": "Failed to save the departure."
+      },
+      "plans": {
+        "title": "Transport plans",
+        "count": "{n} plan(s) per participant",
+        "empty": "No transport plan yet.",
+        "generate": "Generate a plan",
+        "generating": "Generating…",
+        "optimization": "Optimization",
+        "groupCost": "Total group cost",
+        "routes": "Routes per participant",
+        "select": "Select this plan",
+        "selected": "Selected plan",
+        "delete": "Delete",
+        "optimizations": {
+          "COST_MINIMIZE": "Minimize cost",
+          "TIME_MINIMIZE": "Minimize time",
+          "BALANCED": "Balanced"
+        }
+      },
+      "markNotNeeded": "Transport not needed",
+      "markingNotNeeded": "Updating…",
+      "segment": "segment(s)",
+      "errors": {
+        "generate": "Failed to generate the plan.",
+        "select": "Failed to select the plan.",
+        "delete": "Failed to delete the plan.",
+        "notNeeded": "Failed to update the transport status."
       }
     }
   },

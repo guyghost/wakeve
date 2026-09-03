@@ -73,6 +73,22 @@ export interface ScenarioWithVotesResponse { scenario: ScenarioResponse; votes: 
 export interface ScenariosListResponse { scenarios: ScenarioResponse[] }
 export interface ScenariosWithVotesResponse { scenarios: ScenarioWithVotesResponse[] }
 
+// ============================================================
+// Transport
+// ============================================================
+export type OptimizationType = 'COST_MINIMIZE' | 'TIME_MINIMIZE' | 'BALANCED'
+export interface TransportLocation { name: string; address?: string | null; latitude?: number | null; longitude?: number | null; iataCode?: string | null }
+export interface TransportOption { id: string; mode: string; provider: string; departure: TransportLocation; arrival: TransportLocation; departureTime: string; arrivalTime: string; durationMinutes: number; cost: number; currency: string; stops?: TransportLocation[]; bookingUrl?: string | null }
+export interface TransportRoute { id: string; segments: TransportOption[]; totalDurationMinutes: number; totalCost: number; currency: string; score: number }
+export interface TransportPlan { id: string; eventId: string; participantRoutes: Record<string, TransportRoute>; groupArrivals: string[]; totalGroupCost: number; optimizationType: OptimizationType; createdAt: string }
+export interface TransportPlansResponse { plans: TransportPlan[] }
+export interface TransportReadiness { eventId: string; destination: TransportLocation; isComplete: boolean; canGeneratePlan: boolean; transportNotNeeded: boolean; canFinalizeWithoutPlan: boolean; missingDepartureParticipantIds: string[]; missingDepartureParticipantNames: string[] }
+export interface SelectedTransportPlanSummary { eventId: string; planId: string; totalCost: number; optimizationType: OptimizationType; selectedAt: string; readiness: TransportReadiness }
+export interface DepartureLocationRecord { eventId: string; participantId: string; location: TransportLocation; updatedByUserId: string; updatedAt: string }
+export interface SaveDepartureRequest { participantId?: string; location: TransportLocation }
+export interface GenerateTransportPlanRequest { optimizationType?: OptimizationType }
+export interface TransportNotNeededResponse { transportNotNeeded: boolean }
+
 export interface ErrorResponse { error: string; message: string; statusCode: number }
 
 
