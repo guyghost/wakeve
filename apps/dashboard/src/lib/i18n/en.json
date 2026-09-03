@@ -8,7 +8,7 @@
     "settings": "Settings",
     "logout": "Log out",
     "notifications": "Notifications",
-    "inbox": "Messages"
+    "inbox": "Inbox"
   },
   "auth": {
     "title": "Welcome to Wakeve",
@@ -463,6 +463,33 @@
     "dangerZone": "Danger zone",
     "deleteAccount": "Delete my account",
     "deleteConfirm": "This action is irreversible. Are you sure?"
+  },
+  "inbox": {
+    "title": "Inbox",
+    "filterUnread": "Unread",
+    "unread": "Unread",
+    "unreadBadge": "{n} unread",
+    "markAllRead": "Mark all as read",
+    "markRead": "Mark as read",
+    "delete": "Delete",
+    "loading": "Loading notifications...",
+    "error": "Failed to load notifications",
+    "actionError": "The action failed. Please try again.",
+    "empty": "No notifications",
+    "emptyDesc": "Activity on your events will show up here.",
+    "emptyUnread": "No unread notifications",
+    "emptyUnreadDesc": "You're all caught up!",
+    "types": {
+      "DEADLINE_REMINDER": "Deadline reminder",
+      "EVENT_UPDATE": "Event update",
+      "VOTE_CLOSE_REMINDER": "Vote closing soon",
+      "EVENT_CONFIRMED": "Date confirmed",
+      "PARTICIPANT_JOINED": "New participant",
+      "VOTE_SUBMITTED": "Vote submitted",
+      "COMMENT_POSTED": "New comment",
+      "COMMENT_REPLY": "Comment reply",
+      "MENTION": "Mention"
+    }
   },
   "common": {
     "loading": "Loading...",

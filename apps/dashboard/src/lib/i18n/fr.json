@@ -8,7 +8,7 @@
     "settings": "Paramètres",
     "logout": "Déconnexion",
     "notifications": "Notifications",
-    "inbox": "Messages"
+    "inbox": "Boîte de réception"
   },
   "auth": {
     "title": "Bienvenue sur Wakeve",
@@ -463,6 +463,33 @@
     "dangerZone": "Zone dangereuse",
     "deleteAccount": "Supprimer mon compte",
     "deleteConfirm": "Cette action est irréversible. Confirmez-vous ?"
+  },
+  "inbox": {
+    "title": "Boîte de réception",
+    "filterUnread": "Non lues",
+    "unread": "Non lue",
+    "unreadBadge": "{n} non lues",
+    "markAllRead": "Tout marquer comme lu",
+    "markRead": "Marquer comme lu",
+    "delete": "Supprimer",
+    "loading": "Chargement des notifications...",
+    "error": "Impossible de charger les notifications",
+    "actionError": "L'action a échoué. Veuillez réessayer.",
+    "empty": "Aucune notification",
+    "emptyDesc": "Vous serez informé·e ici des activités sur vos événements.",
+    "emptyUnread": "Aucune notification non lue",
+    "emptyUnreadDesc": "Vous êtes à jour !",
+    "types": {
+      "DEADLINE_REMINDER": "Rappel d'échéance",
+      "EVENT_UPDATE": "Mise à jour événement",
+      "VOTE_CLOSE_REMINDER": "Fin de vote imminente",
+      "EVENT_CONFIRMED": "Date confirmée",
+      "PARTICIPANT_JOINED": "Nouveau participant",
+      "VOTE_SUBMITTED": "Vote soumis",
+      "COMMENT_POSTED": "Nouveau commentaire",
+      "COMMENT_REPLY": "Réponse à un commentaire",
+      "MENTION": "Mention"
+    }
   },
   "common": {
     "loading": "Chargement...",
