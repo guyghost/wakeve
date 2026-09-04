@@ -36,9 +36,9 @@ export interface CreateEventRequest { title: string; description?: string; type:
 export interface UpdateEventStatusRequest { status: EventStatus }
 export interface PollResponse { eventId: string; slots: TimeSlotResponse[]; votes: Record<string, Record<string, string>>; participantCount: number }
 export interface AddVoteRequest { participantId: string; votes: Record<string, VoteValue> }
-export interface AddParticipantRequest { email?: string; displayName: string }
+export interface AddParticipantRequest { eventId: string; participantId: string }
 export interface ParticipantDTO { id: string; displayName: string; email?: string; joinedAt: string }
-export interface ParticipantsResponse { participants: ParticipantDTO[]; total: number }
+export interface ParticipantsResponse { participants: string[] }
 export type CommentSection = 'GENERAL' | 'LOGISTICS' | 'BUDGET' | 'ACCOMMODATION' | 'TRANSPORT' | 'MEAL' | 'ACTIVITY' | 'EQUIPMENT' | 'OTHER'
 export interface Comment { id: string; authorId: string; authorName: string; content: string; section: CommentSection; isPinned: boolean; createdAt: string; updatedAt: string }
 export interface CreateCommentRequest { content: string; section: CommentSection }
@@ -249,3 +249,24 @@ export interface NotificationPreferences {
   vibrationEnabled: boolean
   updatedAt: string
 }
+
+// ── Participant RSVP (ParticipantRoutes.kt) ──
+export type RsvpAttendance = 'CONFIRMED' | 'DECLINED' | 'TENTATIVE'
+export type RsvpState = 'ACCEPTED' | 'DECLINED' | 'PENDING'
+export type DateValidationState = 'VALIDATED_RETAINED_DATE' | 'NOT_VALIDATED'
+export interface ParticipantRsvpRequest { slotId: string; attendance: RsvpAttendance }
+export interface ParticipantRsvpResponse { eventId: string; userId: string; slotId: string; attendance: RsvpAttendance; hasValidatedDate: boolean; rsvpState: RsvpState; dateValidationState: DateValidationState }
+
+// ── Invitations (InvitationRoutes.kt) ──
+export interface CreateInvitationRequest { expiresAt?: string; maxUses?: number }
+export interface InvitationResponse { id: string; code: string; eventId: string; createdBy: string; expiresAt?: string | null; maxUses?: number | null; currentUses: number; createdAt: string; inviteUrl: string; deepLinkUrl: string }
+export interface InvitationResolveResponse { code: string; eventId: string; eventTitle: string; eventDescription: string; eventStatus: string; organizerId: string; participantCount: number; isValid: boolean; expiresAt?: string | null }
+export interface InvitationAcceptResponse { success: boolean; eventId: string; message: string }
+
+// ── Direct invite delivery (DirectInviteDeliveryRoutes.kt) ──
+export interface DirectInviteCapability { state: string; eventId: string; actorId: string; accessRevision: number; sealingPublicKey?: string | null; keyVersion?: number | null }
+export interface DirectInviteEnvelope { recipientKey: string; ciphertext: string; keyVersion: number; expiresAt: string }
+export interface DirectInviteBatchRequest { accessRevision: number; batchId: string; operationId: string; envelopes: DirectInviteEnvelope[] }
+export type DirectInviteOutcomeStatus = 'SERVER_ACCEPTED' | 'INVALID' | 'FAILED' | 'CANCELLED'
+export interface DirectInviteOutcome { recipientKey: string; status: DirectInviteOutcomeStatus; invitationId?: string | null; reasonCode?: string | null }
+export interface DirectInviteBatchResponse { batchId: string; operationId: string; status: string; outcomes: DirectInviteOutcome[] }

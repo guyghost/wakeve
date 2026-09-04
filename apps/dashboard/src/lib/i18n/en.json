@@ -82,7 +82,8 @@
       "budget": "Budget",
       "scenarios": "Scenarios",
       "transport": "Transport",
-      "meals": "Meals"
+      "meals": "Meals",
+      "participants": "Participants"
     },
     "info": {
       "status": "Status",
@@ -346,7 +347,12 @@
   },
   "create": {
     "title": "Create an event",
-    "steps": ["Information", "Slots", "Location", "Participants"],
+    "steps": [
+      "Information",
+      "Slots",
+      "Location",
+      "Participants"
+    ],
     "fields": {
       "title": "Event title *",
       "titlePlaceholder": "E.g. Marie's birthday party",
@@ -575,5 +581,37 @@
     "MORNING": "Morning",
     "AFTERNOON": "Afternoon",
     "EVENING": "Evening"
+  },
+  "participants": {
+    "title": "Participants",
+    "addTitle": "Add a participant",
+    "addLabel": "User ID",
+    "addPlaceholder": "user_…",
+    "addSubmit": "Add",
+    "addHelp": "Participants are added by user ID. To invite by email, use the Invitations tab.",
+    "listTitle": "Guests",
+    "empty": "No participants yet.",
+    "you": "You",
+    "organizer": "Organizer",
+    "rsvpTitle": "Retained date response",
+    "rsvpSlot": "Retained slot",
+    "rsvpAttendance": "Attendance",
+    "rsvpApply": "Save",
+    "rsvpLocked": "Responses will be possible once the date is confirmed.",
+    "attendance": {
+      "CONFIRMED": "Confirmed",
+      "DECLINED": "Declined",
+      "TENTATIVE": "Maybe"
+    },
+    "rsvpState": {
+      "ACCEPTED": "Date validated",
+      "DECLINED": "Declined",
+      "PENDING": "Pending"
+    },
+    "errors": {
+      "load": "Failed to load participants.",
+      "add": "Failed to add the participant.",
+      "rsvp": "Failed to save the response."
+    }
   }
 }
