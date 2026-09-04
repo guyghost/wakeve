@@ -8,7 +8,7 @@
     "settings": "Paramètres",
     "logout": "Déconnexion",
     "notifications": "Notifications",
-    "inbox": "Messages"
+    "inbox": "Boîte de réception"
   },
   "auth": {
     "title": "Bienvenue sur Wakeve",
@@ -458,11 +458,60 @@
   "settings": {
     "title": "Paramètres",
     "language": "Langue et région",
-    "notifications": "Notifications",
+    "notifications": {
+      "title": "Notifications",
+      "subtitle": "Choisissez les types de notifications que vous souhaitez recevoir.",
+      "loading": "Chargement des préférences...",
+      "errors": {
+        "load": "Impossible de charger les préférences de notification.",
+        "save": "Échec de l'enregistrement. Modifications annulées."
+      },
+      "types": {
+        "EVENT_INVITE": "Invitation événement",
+        "VOTE_REMINDER": "Rappel de vote",
+        "VOTE_CLOSE_REMINDER": "Fin de vote imminente",
+        "DEADLINE_REMINDER": "Rappel d'échéance",
+        "DATE_CONFIRMED": "Date confirmée",
+        "NEW_SCENARIO": "Nouvelle option",
+        "SCENARIO_SELECTED": "Option retenue",
+        "NEW_COMMENT": "Nouveau commentaire",
+        "MENTION": "Mention",
+        "MEETING_REMINDER": "Rappel réunion",
+        "PAYMENT_DUE": "Paiement dû",
+        "EVENT_UPDATE": "Mise à jour événement"
+      }
+    },
     "account": "Compte",
     "dangerZone": "Zone dangereuse",
     "deleteAccount": "Supprimer mon compte",
     "deleteConfirm": "Cette action est irréversible. Confirmez-vous ?"
+  },
+  "inbox": {
+    "title": "Boîte de réception",
+    "filterUnread": "Non lues",
+    "unread": "Non lue",
+    "unreadBadge": "{n} non lues",
+    "markAllRead": "Tout marquer comme lu",
+    "markRead": "Marquer comme lu",
+    "delete": "Supprimer",
+    "loading": "Chargement des notifications...",
+    "error": "Impossible de charger les notifications",
+    "actionError": "L'action a échoué. Veuillez réessayer.",
+    "empty": "Aucune notification",
+    "emptyDesc": "Vous serez informé·e ici des activités sur vos événements.",
+    "emptyUnread": "Aucune notification non lue",
+    "emptyUnreadDesc": "Vous êtes à jour !",
+    "types": {
+      "DEADLINE_REMINDER": "Rappel d'échéance",
+      "EVENT_UPDATE": "Mise à jour événement",
+      "VOTE_CLOSE_REMINDER": "Fin de vote imminente",
+      "EVENT_CONFIRMED": "Date confirmée",
+      "PARTICIPANT_JOINED": "Nouveau participant",
+      "VOTE_SUBMITTED": "Vote soumis",
+      "COMMENT_POSTED": "Nouveau commentaire",
+      "COMMENT_REPLY": "Réponse à un commentaire",
+      "MENTION": "Mention"
+    }
   },
   "common": {
     "loading": "Chargement...",

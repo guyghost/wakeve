@@ -180,3 +180,72 @@ export interface ZoomCancelResponse { success: boolean; message: string }
 export interface CreateGoogleMeetRequest { eventId?: string; title: string; description?: string; scheduledFor: string; duration: number; timezone?: string }
 export interface CreateGoogleMeetResponse { meetingUrl: string; meetingCode: string }
 
+// ============================================================
+// Notifications
+// ============================================================
+/** Notification type as returned by GET /api/notifications (server enum NotificationType). */
+export type NotificationType =
+  | 'DEADLINE_REMINDER'
+  | 'EVENT_UPDATE'
+  | 'VOTE_CLOSE_REMINDER'
+  | 'EVENT_CONFIRMED'
+  | 'PARTICIPANT_JOINED'
+  | 'VOTE_SUBMITTED'
+  | 'COMMENT_POSTED'
+  | 'COMMENT_REPLY'
+  | 'MENTION'
+
+/**
+ * A notification item (server NotificationMessage).
+ * `readAt` is null while the notification is unread.
+ */
+export interface Notification {
+  id: string
+  userId: string
+  type: NotificationType
+  title: string
+  body: string
+  data: Record<string, string>
+  sentAt: string | null
+  readAt: string | null
+}
+
+/**
+ * Preference type as accepted by GET/PUT /api/notifications/preferences
+ * (server enum NotificationType from the notification package).
+ */
+export type NotificationPreferenceType =
+  | 'EVENT_INVITE'
+  | 'VOTE_REMINDER'
+  | 'DATE_CONFIRMED'
+  | 'NEW_SCENARIO'
+  | 'SCENARIO_SELECTED'
+  | 'NEW_COMMENT'
+  | 'MENTION'
+  | 'MEETING_REMINDER'
+  | 'PAYMENT_DUE'
+  | 'EVENT_UPDATE'
+  | 'VOTE_CLOSE_REMINDER'
+  | 'DEADLINE_REMINDER'
+
+/** Quiet time bound (server QuietTime). */
+export interface QuietTime {
+  hour: number
+  minute: number
+}
+
+/**
+ * Notification preferences (server NotificationPreferences).
+ * Also used as the PUT /api/notifications/preferences body: the server
+ * replaces the stored preferences with the payload, so every field
+ * (including userId and updatedAt) must be sent.
+ */
+export interface NotificationPreferences {
+  userId: string
+  enabledTypes: NotificationPreferenceType[]
+  quietHoursStart: QuietTime | null
+  quietHoursEnd: QuietTime | null
+  soundEnabled: boolean
+  vibrationEnabled: boolean
+  updatedAt: string
+}
