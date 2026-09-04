@@ -38,5 +38,71 @@
     "status": "controlled",
     "riskZone": "orange",
     "createdAt": "2026-09-03T20:33:37.035Z"
+  },
+  {
+    "id": 13,
+    "title": "Dashboard web : gestion du budget (parité iOS)",
+    "type": "product-feature",
+    "status": "controlled",
+    "riskZone": "orange",
+    "createdAt": "2026-09-03T21:40:10.164Z"
+  },
+  {
+    "id": 14,
+    "title": "Dashboard web : réunions virtuelles Zoom/Meet (parité iOS)",
+    "type": "product-feature",
+    "status": "controlled",
+    "riskZone": "orange",
+    "createdAt": "2026-09-03T21:40:22.894Z"
+  },
+  {
+    "id": 15,
+    "title": "Dashboard web : organisation de l'événement — scénarios, transport, repas (parité iOS)",
+    "type": "product-feature",
+    "status": "controlled",
+    "riskZone": "orange",
+    "createdAt": "2026-09-03T21:40:40.729Z"
+  },
+  {
+    "id": 16,
+    "title": "Dashboard web : inbox des notifications + préférences persistées (parité iOS)",
+    "type": "product-feature",
+    "status": "controlled",
+    "riskZone": "orange",
+    "createdAt": "2026-09-03T21:40:57.034Z"
+  },
+  {
+    "id": 17,
+    "title": "Dashboard web : invitations et gestion des participants (parité iOS)",
+    "type": "product-feature",
+    "status": "controlled",
+    "riskZone": "orange",
+    "createdAt": "2026-09-03T21:41:17.281Z"
+  },
+  {
+    "id": 18,
+    "title": "Dashboard web : explore complet (leaderboard, badges) + modération UGC (parité iOS)",
+    "type": "product-feature",
+    "status": "controlled",
+    "riskZone": "orange",
+    "createdAt": "2026-09-03T21:41:31.833Z"
+  },
+  {
+    "id": 19,
+    "title": "Gouvernance : livraison parallèle des workstreams dashboard via worktrees herdr + agents pi",
+    "type": "governance-change",
+    "status": "failed",
+    "riskZone": "red",
+    "createdAt": "2026-09-03T21:41:48.577Z",
+    "resolvedAt": "2026-09-03T21:42:15.043Z"
+  },
+  {
+    "id": 20,
+    "title": "Gouvernance : livraison parallèle des workstreams dashboard via worktrees herdr + agents pi (garde-fous renforcés)",
+    "type": "governance-change",
+    "status": "failed",
+    "riskZone": "red",
+    "createdAt": "2026-09-03T21:42:58.015Z",
+    "resolvedAt": "2026-09-03T21:43:03.168Z"
   }
 ]

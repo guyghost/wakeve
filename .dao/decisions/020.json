@@ -1,0 +1,9 @@
+{
+  "id": 20,
+  "title": "Gouvernance : livraison parallèle des workstreams dashboard via worktrees herdr + agents pi (garde-fous renforcés)",
+  "type": "governance-change",
+  "status": "failed",
+  "riskZone": "red",
+  "createdAt": "2026-09-03T21:42:58.015Z",
+  "resolvedAt": "2026-09-03T21:43:03.168Z"
+}
