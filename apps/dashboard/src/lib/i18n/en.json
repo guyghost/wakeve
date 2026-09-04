@@ -8,7 +8,7 @@
     "settings": "Settings",
     "logout": "Log out",
     "notifications": "Notifications",
-    "inbox": "Inbox"
+    "inbox": "Messages"
   },
   "auth": {
     "title": "Welcome to Wakeve",
@@ -464,29 +464,7 @@
   "settings": {
     "title": "Settings",
     "language": "Language & region",
-    "notifications": {
-      "title": "Notifications",
-      "subtitle": "Choose which notification types you want to receive.",
-      "loading": "Loading preferences...",
-      "errors": {
-        "load": "Failed to load notification preferences.",
-        "save": "Failed to save. Your changes were reverted."
-      },
-      "types": {
-        "EVENT_INVITE": "Event invitation",
-        "VOTE_REMINDER": "Vote reminder",
-        "VOTE_CLOSE_REMINDER": "Vote closing soon",
-        "DEADLINE_REMINDER": "Deadline reminder",
-        "DATE_CONFIRMED": "Date confirmed",
-        "NEW_SCENARIO": "New option",
-        "SCENARIO_SELECTED": "Selected option",
-        "NEW_COMMENT": "New comment",
-        "MENTION": "Mention",
-        "MEETING_REMINDER": "Meeting reminder",
-        "PAYMENT_DUE": "Payment due",
-        "EVENT_UPDATE": "Event update"
-      }
-    },
+    "notifications": "Notifications",
     "account": "Account",
     "dangerZone": "Danger zone",
     "deleteAccount": "Delete my account",
@@ -612,6 +590,58 @@
       "load": "Failed to load participants.",
       "add": "Failed to add the participant.",
       "rsvp": "Failed to save the response."
+    }
+  },
+  "leaderboard": {
+    "title": "Community leaderboard",
+    "subtitle": "The most active Wakeve community members",
+    "rank": "Rank {rank}",
+    "you": "you",
+    "points": "points",
+    "pointsShort": "pts",
+    "badges": "badges",
+    "yourStats": "Your stats",
+    "yourRank": "Your rank: {rank}",
+    "level": "Level {level}",
+    "nextLevel": "{points} points to reach the next level",
+    "yourBadges": "Your badges",
+    "noBadges": "No badges unlocked yet. Take part in events to earn some!",
+    "empty": "No ranked members yet",
+    "error": "Failed to load the leaderboard"
+  },
+  "badgeRarity": {
+    "COMMON": "Common",
+    "RARE": "Rare",
+    "EPIC": "Epic",
+    "LEGENDARY": "Legendary"
+  },
+  "moderation": {
+    "actionsLabel": "Moderation",
+    "reportComment": "Report comment",
+    "reportUser": "Report user",
+    "blockUser": "Block user",
+    "unblockUser": "Unblock user",
+    "hideComment": "Hide comment",
+    "reason": "Reason",
+    "reasons": {
+      "HARASSMENT": "Harassment",
+      "HATE_OR_ABUSE": "Hate or abuse",
+      "SEXUAL_CONTENT": "Sexual content",
+      "VIOLENCE_OR_THREAT": "Violence or threat",
+      "SPAM_OR_SCAM": "Spam or scam",
+      "PRIVATE_INFORMATION": "Private information",
+      "OTHER": "Other"
+    },
+    "detailsPlaceholder": "Add context for the Wakeve support team",
+    "help": "Reports are sent to the Wakeve team for review. Other participants cannot see the report details.",
+    "reportSubmitted": "Report sent.",
+    "userBlocked": "User blocked.",
+    "hideSubmitted": "Comment reported and hide decision recorded.",
+    "error": "We could not send this moderation request. Please try again.",
+    "status": {
+      "PENDING_REVIEW": "Pending review",
+      "REJECTED": "Rejected",
+      "HIDDEN": "Hidden"
     }
   }
 }
