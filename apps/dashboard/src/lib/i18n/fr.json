@@ -82,7 +82,8 @@
       "budget": "Budget",
       "scenarios": "Scénarios",
       "transport": "Transport",
-      "meals": "Repas"
+      "meals": "Repas",
+      "participants": "Participants"
     },
     "info": {
       "status": "Statut",
@@ -346,7 +347,12 @@
   },
   "create": {
     "title": "Créer un événement",
-    "steps": ["Informations", "Créneaux", "Lieu", "Participants"],
+    "steps": [
+      "Informations",
+      "Créneaux",
+      "Lieu",
+      "Participants"
+    ],
     "fields": {
       "title": "Titre de l'événement *",
       "titlePlaceholder": "Ex: Soirée d'anniversaire de Marie",
@@ -575,5 +581,37 @@
     "MORNING": "Matin",
     "AFTERNOON": "Après-midi",
     "EVENING": "Soirée"
+  },
+  "participants": {
+    "title": "Participants",
+    "addTitle": "Ajouter un participant",
+    "addLabel": "Identifiant utilisateur",
+    "addPlaceholder": "user_…",
+    "addSubmit": "Ajouter",
+    "addHelp": "L'ajout se fait par identifiant utilisateur. Pour inviter par email, utilisez l'onglet Invitations.",
+    "listTitle": "Invités",
+    "empty": "Aucun participant pour le moment.",
+    "you": "Vous",
+    "organizer": "Organisatrice / Organisateur",
+    "rsvpTitle": "Réponse à la date retenue",
+    "rsvpSlot": "Créneau retenu",
+    "rsvpAttendance": "Présence",
+    "rsvpApply": "Enregistrer",
+    "rsvpLocked": "Les réponses seront possibles après la confirmation de la date.",
+    "attendance": {
+      "CONFIRMED": "Confirmé",
+      "DECLINED": "Décliné",
+      "TENTATIVE": "Peut-être"
+    },
+    "rsvpState": {
+      "ACCEPTED": "Date validée",
+      "DECLINED": "Décliné",
+      "PENDING": "En attente"
+    },
+    "errors": {
+      "load": "Impossible de charger les participants.",
+      "add": "Impossible d'ajouter le participant.",
+      "rsvp": "Impossible d'enregistrer la réponse."
+    }
   }
 }
