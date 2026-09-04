@@ -1,0 +1,9 @@
+{
+  "id": 21,
+  "title": "Migrer Android Google auth vers Credential Manager (retry #11, garde-fous renforcés)",
+  "type": "technical-change",
+  "status": "executed",
+  "riskZone": "red",
+  "createdAt": "2026-09-04T12:45:05.565Z",
+  "resolvedAt": "2026-09-04T13:05:40.506Z"
+}

@@ -2,7 +2,8 @@
   "id": 11,
   "title": "Migrer Android Google auth vers Credential Manager",
   "type": "technical-change",
-  "status": "approved",
+  "status": "failed",
   "riskZone": "red",
-  "createdAt": "2026-09-03T20:33:28.589Z"
+  "createdAt": "2026-09-03T20:33:28.589Z",
+  "resolvedAt": "2026-09-04T12:43:33.584Z"
 }

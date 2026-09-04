@@ -1,0 +1,9 @@
+{
+  "id": 4,
+  "title": "Critic / Risk Agent: Tighten proposal quality gates",
+  "type": "security-change",
+  "status": "failed",
+  "riskZone": "red",
+  "createdAt": "2026-09-03T20:32:47.075Z",
+  "resolvedAt": "2026-09-04T12:47:56.323Z"
+}
