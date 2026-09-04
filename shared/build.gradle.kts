@@ -107,6 +107,11 @@ kotlin {
                 // Google Play Services
                 implementation(libs.google.services.auth)
                 implementation(libs.google.services.base)
+
+                // Credential Manager (DAO #21)
+                implementation(libs.androidx.credentials)
+                implementation(libs.androidx.credentials.play.services)
+                implementation(libs.googleid)
                 
                 // Security
                 implementation(libs.androidx.security.crypto)

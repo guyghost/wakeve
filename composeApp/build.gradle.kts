@@ -120,6 +120,8 @@ kotlin {
                 // OAuth & Auth
                 implementation(libs.google.auth)
                 implementation(libs.androidx.credentials)
+                implementation(libs.androidx.credentials.play.services)
+                implementation(libs.googleid)
                 
                 // Security & WorkManager
                 implementation(libs.androidx.security.crypto)
@@ -291,6 +293,13 @@ buildConfig {
         "String",
         "GOOGLE_WEB_CLIENT_ID",
         "\"${localProperties["google.web.client.id"] as? String ?: "YOUR_GOOGLE_WEB_CLIENT_ID"}\""
+    )
+
+    // Google auth flow selection (DAO #21): Credential Manager (true) or legacy GoogleSignIn (false)
+    buildConfigField(
+        "Boolean",
+        "GOOGLE_AUTH_USE_CREDENTIAL_MANAGER",
+        "${localProperties["google.auth.credential.manager"] as? String != "false"}"
     )
     
     // Apple OAuth Client ID
