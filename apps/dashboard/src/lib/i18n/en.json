@@ -8,7 +8,7 @@
     "settings": "Settings",
     "logout": "Log out",
     "notifications": "Notifications",
-    "inbox": "Messages"
+    "inbox": "Inbox"
   },
   "auth": {
     "title": "Welcome to Wakeve",
@@ -458,11 +458,60 @@
   "settings": {
     "title": "Settings",
     "language": "Language & region",
-    "notifications": "Notifications",
+    "notifications": {
+      "title": "Notifications",
+      "subtitle": "Choose which notification types you want to receive.",
+      "loading": "Loading preferences...",
+      "errors": {
+        "load": "Failed to load notification preferences.",
+        "save": "Failed to save. Your changes were reverted."
+      },
+      "types": {
+        "EVENT_INVITE": "Event invitation",
+        "VOTE_REMINDER": "Vote reminder",
+        "VOTE_CLOSE_REMINDER": "Vote closing soon",
+        "DEADLINE_REMINDER": "Deadline reminder",
+        "DATE_CONFIRMED": "Date confirmed",
+        "NEW_SCENARIO": "New option",
+        "SCENARIO_SELECTED": "Selected option",
+        "NEW_COMMENT": "New comment",
+        "MENTION": "Mention",
+        "MEETING_REMINDER": "Meeting reminder",
+        "PAYMENT_DUE": "Payment due",
+        "EVENT_UPDATE": "Event update"
+      }
+    },
     "account": "Account",
     "dangerZone": "Danger zone",
     "deleteAccount": "Delete my account",
     "deleteConfirm": "This action is irreversible. Are you sure?"
+  },
+  "inbox": {
+    "title": "Inbox",
+    "filterUnread": "Unread",
+    "unread": "Unread",
+    "unreadBadge": "{n} unread",
+    "markAllRead": "Mark all as read",
+    "markRead": "Mark as read",
+    "delete": "Delete",
+    "loading": "Loading notifications...",
+    "error": "Failed to load notifications",
+    "actionError": "The action failed. Please try again.",
+    "empty": "No notifications",
+    "emptyDesc": "Activity on your events will show up here.",
+    "emptyUnread": "No unread notifications",
+    "emptyUnreadDesc": "You're all caught up!",
+    "types": {
+      "DEADLINE_REMINDER": "Deadline reminder",
+      "EVENT_UPDATE": "Event update",
+      "VOTE_CLOSE_REMINDER": "Vote closing soon",
+      "EVENT_CONFIRMED": "Date confirmed",
+      "PARTICIPANT_JOINED": "New participant",
+      "VOTE_SUBMITTED": "Vote submitted",
+      "COMMENT_POSTED": "New comment",
+      "COMMENT_REPLY": "Comment reply",
+      "MENTION": "Mention"
+    }
   },
   "common": {
     "loading": "Loading...",

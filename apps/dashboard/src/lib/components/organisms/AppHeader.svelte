@@ -3,6 +3,8 @@
   import type { UserDTO } from '$lib/types/api'
   import Avatar from '$lib/components/atoms/Avatar.svelte'
   import Button from '$lib/components/atoms/Button.svelte'
+  import { t } from '$lib/i18n'
+  import { unreadCount, refreshUnreadCount } from '$lib/machines/unread-count.store'
 
   interface Props {
     user: UserDTO | null
@@ -13,12 +15,20 @@
 
   let mobileMenuOpen = $state(false)
   const currentPath = $derived($page.url.pathname)
+  const unread = $derived($unreadCount)
+  const unreadBadge = $derived(unread > 99 ? '99+' : unread > 0 ? String(unread) : '')
 
   const navLinks = [
     { href: '/app/events', label: 'Événements' },
     { href: '/app/explore', label: 'Explorer' },
     { href: '/app/dashboard', label: 'Tableau de bord' }
   ]
+
+  // Refresh the unread badge on mount and on every navigation.
+  $effect(() => {
+    void $page.url.pathname
+    void refreshUnreadCount()
+  })
 
   function isActive(href: string): boolean {
     if (href === '/app/events') return currentPath === '/app/events' || currentPath.startsWith('/app/events/')
@@ -71,6 +81,31 @@
             {link.label}
           </a>
         {/each}
+
+        <!-- Inbox + unread badge -->
+        <a
+          href="/app/inbox"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-btn text-sm transition-default
+            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-wakeve-500
+            {isActive('/app/inbox')
+              ? 'text-wakeve-600 font-semibold bg-wakeve-50'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}"
+            aria-current={isActive('/app/inbox') ? 'page' : undefined}
+            aria-label={unread > 0
+              ? `${t('nav.inbox')} (${t('inbox.unreadBadge', { n: unread })})`
+              : undefined}
+        >
+          {t('nav.inbox')}
+          {#if unreadBadge}
+            <span
+              class="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-wakeve-600
+                px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-none text-white"
+              aria-hidden="true"
+            >
+              {unreadBadge}
+            </span>
+          {/if}
+        </a>
       </nav>
 
       <!-- Right side: create + user -->
@@ -160,6 +195,28 @@
           {link.label}
         </a>
       {/each}
+
+      <!-- Inbox + unread badge -->
+      <a
+        href="/app/inbox"
+        onclick={() => { mobileMenuOpen = false }}
+        class="flex items-center justify-between gap-2 rounded-btn px-3 py-2 text-sm transition-default
+          {isActive('/app/inbox')
+            ? 'text-wakeve-600 font-semibold bg-wakeve-50'
+            : 'text-gray-700 hover:bg-gray-100'}"
+        aria-current={isActive('/app/inbox') ? 'page' : undefined}
+      >
+        <span>{t('nav.inbox')}</span>
+        {#if unreadBadge}
+          <span
+            class="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-wakeve-600
+              px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-none text-white"
+            aria-hidden="true"
+          >
+            {unreadBadge}
+          </span>
+        {/if}
+      </a>
 
       <hr class="my-2 border-border" />
 
