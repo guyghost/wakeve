@@ -314,6 +314,45 @@
     "no": "Non",
     "maybe": "Peut-être"
   },
+  "meetings": {
+    "loading": "Chargement des réunions...",
+    "error": "Impossible de charger les réunions",
+    "count": "{count} réunion·s",
+    "emptyTitle": "Aucune réunion",
+    "emptyDesc": "Créez une réunion Zoom ou un lien Google Meet pour coordonner l'organisation de l'événement.",
+    "platformLabel": "Plateforme",
+    "startsAtLabel": "Début",
+    "durationLabel": "Durée",
+    "copy": "Copier le lien",
+    "copied": "Lien copié !",
+    "cancel": "Annuler la réunion",
+    "cancelConfirmTitle": "Annuler cette réunion ?",
+    "cancelConfirmDesc": "La réunion Zoom « {title} » sera annulée. Cette action est définitive.",
+    "cancelConfirm": "Oui, annuler",
+    "status": {
+      "SCHEDULED": "Programmée",
+      "STARTED": "En cours",
+      "ENDED": "Terminée",
+      "CANCELLED": "Annulée"
+    },
+    "platform": {
+      "ZOOM": "Zoom",
+      "GOOGLE_MEET": "Google Meet",
+      "FACETIME": "FaceTime"
+    },
+    "create": {
+      "title": "Créer une réunion",
+      "name": "Titre de la réunion",
+      "date": "Date",
+      "time": "Heure",
+      "duration": "Durée",
+      "defaultTitle": "Réunion",
+      "submitZoom": "Créer sur Zoom",
+      "submitMeet": "Créer un lien Google Meet",
+      "lockedTitle": "Création en attente",
+      "locked": "La création de réunions sera disponible lorsque l'événement passera en phase d'organisation. Vous pouvez déjà consulter les réunions existantes."
+    }
+  },
   "timeOfDay": {
     "SPECIFIC": "Horaire précis",
     "ALL_DAY": "Toute la journée",

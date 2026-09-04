@@ -60,6 +60,7 @@ export interface RawEventDetailedAnalyticsResponse { eventId?: string; title?: s
 export interface EventDetailedAnalyticsResponse { eventId: string; title: string; status: EventStatus; totalParticipants: number; votedParticipants: number; pendingParticipants: number; totalVotes: number; responseRate: number; responseRatePct: number; voteTimeline: TimelineEntry[]; participantTimeline: TimelineEntry[]; popularTimeSlots: TimeSlotAnalytics[]; commentsBySection: Record<string, number> }
 export interface ErrorResponse { error: string; message: string; statusCode: number }
 
+
 // ============================================================
 // Budget
 // ============================================================
@@ -120,3 +121,20 @@ export interface SettlementRecord {
   updatedAt: string
 }
 export interface BudgetSettlementsResponse { settlements: SettlementRecord[]; count: number }
+
+
+// ============================================================
+// Meetings (virtual meetings — Zoom / Google Meet)
+// ============================================================
+export type MeetingPlatform = 'ZOOM' | 'GOOGLE_MEET' | 'FACETIME'
+export type MeetingStatus = 'SCHEDULED' | 'STARTED' | 'ENDED' | 'CANCELLED'
+/** Mirror of the SQLDelight `meeting` row returned by GET /api/events/{eventId}/meetings */
+export interface MeetingDTO { id: string; eventId: string; organizerId: string; title: string; description?: string; startTime: string; duration: string; platform: MeetingPlatform; meetingLink: string; provider: string; displayLabel: string; targetUrl: string; creatorId: string; verificationState: string; hostMeetingId: string; password: string; invitedParticipants: string; status: MeetingStatus; createdAt: string }
+export interface MeetingsListResponse { meetings: MeetingDTO[]; count: number }
+export interface CreateZoomMeetingRequest { eventId?: string; title: string; description?: string; scheduledFor: string; duration: number; timezone?: string; participantLimit?: number; requirePassword?: boolean; waitingRoom?: boolean }
+export interface CreateZoomMeetingResponse { meetingId: string; joinUrl: string; password: string; hostUrl: string; hostKey: string; dialInNumber: string; dialInPassword: string }
+export interface ZoomMeetingStatusResponse { meetingId: string; status: string; startTime: string; duration: number; participantCount: number }
+export interface ZoomCancelResponse { success: boolean; message: string }
+export interface CreateGoogleMeetRequest { eventId?: string; title: string; description?: string; scheduledFor: string; duration: number; timezone?: string }
+export interface CreateGoogleMeetResponse { meetingUrl: string; meetingCode: string }
+

@@ -11,6 +11,7 @@
   import PollPanel from '$lib/components/organisms/PollPanel.svelte'
   import CommentPanel from '$lib/components/organisms/CommentPanel.svelte'
   import BudgetPanel from '$lib/components/organisms/BudgetPanel.svelte'
+  import MeetingsPanel from '$lib/components/organisms/MeetingsPanel.svelte'
   import ErrorBanner from '$lib/components/ui/ErrorBanner.svelte'
   import SkeletonBlock from '$lib/components/ui/SkeletonBlock.svelte'
   import { EVENT_TYPE_ICONS, EVENT_TYPE_LABELS } from '$lib/utils/event-type'
@@ -35,7 +36,8 @@
     { key: 'info', label: 'Infos' },
     { key: 'poll', label: 'Sondage' },
     { key: 'comments', label: 'Commentaires' },
-    { key: 'budget', label: 'Budget' }
+    { key: 'budget', label: 'Budget' },
+    { key: 'meetings', label: 'Réunions' }
   ]
 
   function switchTab(tab: DetailTab) {
@@ -233,6 +235,15 @@
         <BudgetPanel
           eventId={event.id}
           canManage={event.organizerId === currentUserId && event.status === 'ORGANIZING'}
+        />
+
+      <!-- Meetings tab -->
+      {:else if ctx.activeTab === 'meetings'}
+        <MeetingsPanel
+          eventId={event.id}
+          eventStatus={event.status}
+          isOrganizer={event.organizerId === currentUserId}
+          eventTitle={event.title}
         />
       {/if}
     </div>

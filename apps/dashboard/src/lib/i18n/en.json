@@ -314,6 +314,45 @@
     "no": "No",
     "maybe": "Maybe"
   },
+  "meetings": {
+    "loading": "Loading meetings...",
+    "error": "Unable to load meetings",
+    "count": "{count} meeting(s)",
+    "emptyTitle": "No meetings yet",
+    "emptyDesc": "Create a Zoom meeting or a Google Meet link to coordinate the organization of this event.",
+    "platformLabel": "Platform",
+    "startsAtLabel": "Starts",
+    "durationLabel": "Duration",
+    "copy": "Copy link",
+    "copied": "Link copied!",
+    "cancel": "Cancel meeting",
+    "cancelConfirmTitle": "Cancel this meeting?",
+    "cancelConfirmDesc": "The Zoom meeting \"{title}\" will be cancelled. This action is permanent.",
+    "cancelConfirm": "Yes, cancel it",
+    "status": {
+      "SCHEDULED": "Scheduled",
+      "STARTED": "In progress",
+      "ENDED": "Ended",
+      "CANCELLED": "Cancelled"
+    },
+    "platform": {
+      "ZOOM": "Zoom",
+      "GOOGLE_MEET": "Google Meet",
+      "FACETIME": "FaceTime"
+    },
+    "create": {
+      "title": "Create a meeting",
+      "name": "Meeting title",
+      "date": "Date",
+      "time": "Time",
+      "duration": "Duration",
+      "defaultTitle": "Meeting",
+      "submitZoom": "Create on Zoom",
+      "submitMeet": "Create Google Meet link",
+      "lockedTitle": "Creation pending",
+      "locked": "Meeting creation will become available once the event enters the organizing phase. You can already review existing meetings."
+    }
+  },
   "timeOfDay": {
     "SPECIFIC": "Specific time",
     "ALL_DAY": "All day",
