@@ -67,7 +67,9 @@ const loadBudgetActor = fromPromise(async ({
     }),
     budgetApi.summary(input.eventId).catch(() => null),
     budgetApi.settlements(input.eventId).catch(() => ({ settlements: [] as SettlementRecord[] })),
-    listParticipants(input.eventId).catch(() => ({ participants: [] as ParticipantDTO[] }))
+    listParticipants(input.eventId)
+      .then((r) => ({ participants: r.participants.map((id) => ({ id, displayName: id }) as ParticipantDTO) }))
+      .catch(() => ({ participants: [] as ParticipantDTO[] }))
   ])
   return {
     items,

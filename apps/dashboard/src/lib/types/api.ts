@@ -36,9 +36,9 @@ export interface CreateEventRequest { title: string; description?: string; type:
 export interface UpdateEventStatusRequest { status: EventStatus }
 export interface PollResponse { eventId: string; slots: TimeSlotResponse[]; votes: Record<string, Record<string, string>>; participantCount: number }
 export interface AddVoteRequest { participantId: string; votes: Record<string, VoteValue> }
-export interface AddParticipantRequest { email?: string; displayName: string }
+export interface AddParticipantRequest { eventId: string; participantId: string }
 export interface ParticipantDTO { id: string; displayName: string; email?: string; joinedAt: string }
-export interface ParticipantsResponse { participants: ParticipantDTO[]; total: number }
+export interface ParticipantsResponse { participants: string[] }
 export type CommentSection = 'GENERAL' | 'LOGISTICS' | 'BUDGET' | 'ACCOMMODATION' | 'TRANSPORT' | 'MEAL' | 'ACTIVITY' | 'EQUIPMENT' | 'OTHER'
 export interface Comment { id: string; authorId: string; authorName: string; content: string; section: CommentSection; isPinned: boolean; createdAt: string; updatedAt: string }
 export interface CreateCommentRequest { content: string; section: CommentSection }
@@ -249,6 +249,13 @@ export interface NotificationPreferences {
   vibrationEnabled: boolean
   updatedAt: string
 }
+
+// ── Participant RSVP (ParticipantRoutes.kt) ──
+export type RsvpAttendance = 'CONFIRMED' | 'DECLINED' | 'TENTATIVE'
+export type RsvpState = 'ACCEPTED' | 'DECLINED' | 'PENDING'
+export type DateValidationState = 'VALIDATED_RETAINED_DATE' | 'NOT_VALIDATED'
+export interface ParticipantRsvpRequest { slotId: string; attendance: RsvpAttendance }
+export interface ParticipantRsvpResponse { eventId: string; userId: string; slotId: string; attendance: RsvpAttendance; hasValidatedDate: boolean; rsvpState: RsvpState; dateValidationState: DateValidationState }
 
 // ── Invitations (InvitationRoutes.kt) ──
 export interface CreateInvitationRequest { expiresAt?: string; maxUses?: number }

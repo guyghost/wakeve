@@ -8,7 +8,7 @@
     "settings": "Settings",
     "logout": "Log out",
     "notifications": "Notifications",
-    "inbox": "Messages"
+    "inbox": "Inbox"
   },
   "auth": {
     "title": "Welcome to Wakeve",
@@ -71,11 +71,6 @@
       "OUTDOOR_ADVENTURE": "Outdoor adventure",
       "CULTURAL_EVENT": "Cultural event",
       "OTHER": "Other"
-    },
-    "archives": {
-      "filter": "Archives (past events)",
-      "emptyTitle": "No archived events",
-      "emptyDesc": "Finalized events or events whose date has passed will appear here."
     }
   },
   "eventDetail": {
@@ -88,7 +83,7 @@
       "scenarios": "Scenarios",
       "transport": "Transport",
       "meals": "Meals",
-      "invitations": "Invitations"
+      "participants": "Participants"
     },
     "info": {
       "status": "Status",
@@ -469,7 +464,29 @@
   "settings": {
     "title": "Settings",
     "language": "Language & region",
-    "notifications": "Notifications",
+    "notifications": {
+      "title": "Notifications",
+      "subtitle": "Choose which notification types you want to receive.",
+      "loading": "Loading preferences...",
+      "errors": {
+        "load": "Failed to load notification preferences.",
+        "save": "Failed to save. Your changes were reverted."
+      },
+      "types": {
+        "EVENT_INVITE": "Event invitation",
+        "VOTE_REMINDER": "Vote reminder",
+        "VOTE_CLOSE_REMINDER": "Vote closing soon",
+        "DEADLINE_REMINDER": "Deadline reminder",
+        "DATE_CONFIRMED": "Date confirmed",
+        "NEW_SCENARIO": "New option",
+        "SCENARIO_SELECTED": "Selected option",
+        "NEW_COMMENT": "New comment",
+        "MENTION": "Mention",
+        "MEETING_REMINDER": "Meeting reminder",
+        "PAYMENT_DUE": "Payment due",
+        "EVENT_UPDATE": "Event update"
+      }
+    },
     "account": "Account",
     "dangerZone": "Danger zone",
     "deleteAccount": "Delete my account",
@@ -565,46 +582,36 @@
     "AFTERNOON": "Afternoon",
     "EVENING": "Evening"
   },
-  "invitations": {
-    "codeTitle": "Invitation code",
-    "codeIntro": "Generate a shareable link: anyone using it joins the event.",
-    "generate": "Generate a code",
-    "regenerate": "Generate a new code",
-    "code": "Code",
-    "link": "Invitation link",
-    "copy": "Copy",
-    "copied": "Copied!",
-    "uses": "Uses: {current}",
-    "unlimitedUses": "Unlimited uses",
-    "directTitle": "Direct email delivery",
-    "directIntro": "Send a personalized invitation to each email address.",
-    "directUnavailable": "Direct delivery is not available for this event. It is reserved for the organizer on a draft event while the delivery service is configured. Share the invitation code above in the meantime.",
-    "directCheck": "Check availability",
-    "checking": "Checking…",
-    "directReady": "Direct delivery is available.",
-    "emailsLabel": "Email addresses",
-    "emailsPlaceholder": "alice@example.com, bob@example.com",
-    "send": "Send invitations",
-    "batchSent": "Invitation batch sent.",
-    "outcome": {
-      "SERVER_ACCEPTED": "Sent",
-      "INVALID": "Invalid",
-      "FAILED": "Failed",
-      "CANCELLED": "Cancelled"
+  "participants": {
+    "title": "Participants",
+    "addTitle": "Add a participant",
+    "addLabel": "User ID",
+    "addPlaceholder": "user_…",
+    "addSubmit": "Add",
+    "addHelp": "Participants are added by user ID. To invite by email, use the Invitations tab.",
+    "listTitle": "Guests",
+    "empty": "No participants yet.",
+    "you": "You",
+    "organizer": "Organizer",
+    "rsvpTitle": "Retained date response",
+    "rsvpSlot": "Retained slot",
+    "rsvpAttendance": "Attendance",
+    "rsvpApply": "Save",
+    "rsvpLocked": "Responses will be possible once the date is confirmed.",
+    "attendance": {
+      "CONFIRMED": "Confirmed",
+      "DECLINED": "Declined",
+      "TENTATIVE": "Maybe"
     },
-    "audienceTitle": "Audience",
-    "audienceInvited": "Invited",
-    "audienceJoined": "Joined the event",
-    "audiencePending": "Awaiting response",
-    "audienceHint": "Listed participants have joined the event; \"awaiting\" is estimated from the expected participant count. The global RSVP state is not exposed by the API yet.",
+    "rsvpState": {
+      "ACCEPTED": "Date validated",
+      "DECLINED": "Declined",
+      "PENDING": "Pending"
+    },
     "errors": {
-      "generate": "Failed to generate the invitation code.",
-      "copy": "Copy is not supported in this browser.",
-      "capability": "Failed to check direct delivery availability.",
-      "batch": "Failed to send the invitations.",
-      "batchStale": "The event changed in the meantime: check availability again and retry.",
-      "invalidEmails": "Invalid email addresses: {emails}"
-    },
-    "audienceDateValidated": "Retained date confirmed: {date}"
+      "load": "Failed to load participants.",
+      "add": "Failed to add the participant.",
+      "rsvp": "Failed to save the response."
+    }
   }
 }
