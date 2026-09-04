@@ -79,7 +79,10 @@
       "info": "Info",
       "poll": "Poll",
       "comments": "Comments",
-      "budget": "Budget"
+      "budget": "Budget",
+      "scenarios": "Scenarios",
+      "transport": "Transport",
+      "meals": "Meals"
     },
     "info": {
       "status": "Status",
@@ -123,6 +126,170 @@
     "errors": {
       "vote": "Error while voting, please try again.",
       "comment": "Error while sending the comment."
+    },
+    "scenarios": {
+      "lockedTitle": "Scenarios locked",
+      "lockedDesc": "Scenarios (destination + lodging) unlock once the event date is confirmed or being compared.",
+      "emptyTitle": "No scenarios yet",
+      "emptyDesc": "Create a first destination and lodging scenario to compare with the group.",
+      "error": "Failed to load scenarios.",
+      "create": "New scenario",
+      "cancel": "Cancel",
+      "form": {
+        "name": "Scenario name",
+        "namePlaceholder": "E.g. Weekend in Annecy",
+        "dateOrPeriod": "Date or period",
+        "dateOrPeriodPlaceholder": "E.g. July 12–14",
+        "location": "Destination",
+        "locationPlaceholder": "E.g. Annecy, France",
+        "duration": "Duration (days)",
+        "participants": "Estimated participants",
+        "budget": "Budget per person (€)",
+        "description": "Description",
+        "descriptionPlaceholder": "Planned lodging, activities…",
+        "submit": "Create scenario",
+        "creating": "Creating…"
+      },
+      "durationDays": "days",
+      "budgetPerPerson": "/ person",
+      "votes": "votes",
+      "vote": {
+        "prefer": "Prefer",
+        "neutral": "Neutral",
+        "against": "Against",
+        "yourVote": "Your vote",
+        "error": "Error while voting, please try again."
+      },
+      "selectFinal": "Select as final scenario",
+      "selectingFinal": "Selecting…",
+      "selected": "Final scenario",
+      "deleteError": "Error during selection, please try again.",
+      "statuses": {
+        "DRAFT": "Draft",
+        "PROPOSED": "Proposed",
+        "SELECTED": "Selected",
+        "REJECTED": "Rejected"
+      }
+    },
+    "transport": {
+      "lockedTitle": "Transport locked",
+      "lockedDesc": "Transport logistics unlock once the event date is confirmed.",
+      "noDestinationTitle": "Missing destination",
+      "noDestinationDesc": "Select a final scenario in the Scenarios tab first to define the transport destination.",
+      "error": "Failed to load transport.",
+      "readiness": {
+        "title": "Transport readiness",
+        "destination": "Destination",
+        "missing": "Missing departures",
+        "allDepartures": "All departures are set.",
+        "notNeeded": "Transport marked as not needed.",
+        "ready": "Ready to generate a plan"
+      },
+      "departure": {
+        "title": "My departure point",
+        "name": "Departure city",
+        "namePlaceholder": "E.g. Lyon",
+        "address": "Address (optional)",
+        "addressPlaceholder": "E.g. Part-Dieu station",
+        "save": "Save my departure",
+        "saving": "Saving…",
+        "saved": "Your departure has been saved.",
+        "error": "Failed to save the departure."
+      },
+      "plans": {
+        "title": "Transport plans",
+        "count": "{n} plan(s) per participant",
+        "empty": "No transport plan yet.",
+        "generate": "Generate a plan",
+        "generating": "Generating…",
+        "optimization": "Optimization",
+        "groupCost": "Total group cost",
+        "routes": "Routes per participant",
+        "select": "Select this plan",
+        "selected": "Selected plan",
+        "delete": "Delete",
+        "optimizations": {
+          "COST_MINIMIZE": "Minimize cost",
+          "TIME_MINIMIZE": "Minimize time",
+          "BALANCED": "Balanced"
+        }
+      },
+      "markNotNeeded": "Transport not needed",
+      "markingNotNeeded": "Updating…",
+      "segment": "segment(s)",
+      "errors": {
+        "generate": "Failed to generate the plan.",
+        "select": "Failed to select the plan.",
+        "delete": "Failed to delete the plan.",
+        "notNeeded": "Failed to update the transport status."
+      }
+    },
+    "meals": {
+      "error": "Failed to load meals.",
+      "summary": {
+        "title": "Meal summary",
+        "totalMeals": "Planned meals",
+        "completed": "Completed",
+        "remaining": "Remaining",
+        "estimatedCost": "Total estimated cost"
+      },
+      "schedule": {
+        "title": "Meal schedule",
+        "emptyTitle": "No meals planned",
+        "emptyDesc": "Add a meal to keep the group well fed.",
+        "delete": "Delete",
+        "servings": "{n} serving(s)",
+        "at": "at"
+      },
+      "form": {
+        "add": "Add a meal",
+        "cancel": "Cancel",
+        "type": "Type",
+        "name": "Meal name",
+        "namePlaceholder": "E.g. Saturday barbecue",
+        "date": "Date",
+        "time": "Time",
+        "servings": "Servings",
+        "cost": "Estimated cost (€)",
+        "location": "Location (optional)",
+        "notes": "Notes / menu (optional)",
+        "submit": "Add",
+        "adding": "Adding…"
+      },
+      "types": {
+        "BREAKFAST": "Breakfast",
+        "LUNCH": "Lunch",
+        "DINNER": "Dinner",
+        "SNACK": "Snack",
+        "APERITIF": "Aperitif"
+      },
+      "statuses": {
+        "PLANNED": "Planned",
+        "ASSIGNED": "Assigned",
+        "IN_PROGRESS": "In progress",
+        "COMPLETED": "Completed",
+        "CANCELLED": "Cancelled"
+      },
+      "restrictions": {
+        "title": "Dietary restrictions",
+        "empty": "No restriction declared.",
+        "types": {
+          "VEGETARIAN": "Vegetarian",
+          "VEGAN": "Vegan",
+          "GLUTEN_FREE": "Gluten free",
+          "LACTOSE_INTOLERANT": "Lactose intolerant",
+          "NUT_ALLERGY": "Nut allergy",
+          "SHELLFISH_ALLERGY": "Shellfish allergy",
+          "KOSHER": "Kosher",
+          "HALAL": "Halal",
+          "DIABETIC": "Diabetic",
+          "OTHER": "Other"
+        }
+      },
+      "errors": {
+        "create": "Failed to add the meal.",
+        "delete": "Failed to delete the meal."
+      }
     }
   },
   "budget": {

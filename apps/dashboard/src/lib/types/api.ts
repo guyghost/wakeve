@@ -58,6 +58,48 @@ export interface TimeSlotAnalytics { slotId: string; label: string; yesCount: nu
 export interface TimelineEntry { date: string; count: number }
 export interface RawEventDetailedAnalyticsResponse { eventId?: string; title?: string; status?: string; voteTimeline?: RawTimelineEntry[]; participantTimeline?: RawTimelineEntry[]; popularTimeSlots?: RawTimeSlotAnalytics[]; pollCompletionRate?: number; totalParticipants?: number; votedParticipants?: number; totalVotes?: number; responseRate?: number; commentsBySection?: Record<string, number> }
 export interface EventDetailedAnalyticsResponse { eventId: string; title: string; status: EventStatus; totalParticipants: number; votedParticipants: number; pendingParticipants: number; totalVotes: number; responseRate: number; responseRatePct: number; voteTimeline: TimelineEntry[]; participantTimeline: TimelineEntry[]; popularTimeSlots: TimeSlotAnalytics[]; commentsBySection: Record<string, number> }
+// ============================================================
+// Scenarios
+// ============================================================
+export type ScenarioStatus = 'DRAFT' | 'PROPOSED' | 'SELECTED' | 'REJECTED'
+export type ScenarioGenerationType = 'MANUAL' | 'MATRIX'
+export type ScenarioVoteType = 'PREFER' | 'NEUTRAL' | 'AGAINST'
+export interface ScenarioResponse { id: string; eventId: string; name: string; dateOrPeriod: string; location: string; duration: number; estimatedParticipants: number; estimatedBudgetPerPerson: number; description: string; status: ScenarioStatus; createdAt: string; updatedAt: string; sourceTimeSlotId?: string | null; sourcePotentialLocationId?: string | null; generationType: ScenarioGenerationType }
+export interface CreateScenarioRequest { eventId: string; name: string; dateOrPeriod: string; location: string; duration: number; estimatedParticipants: number; estimatedBudgetPerPerson: number; description: string; sourceTimeSlotId?: string; sourcePotentialLocationId?: string; generationType?: ScenarioGenerationType }
+export interface ScenarioVoteRequest { participantId: string; vote: ScenarioVoteType }
+export interface ScenarioVoteResponse { id: string; scenarioId: string; participantId: string; vote: ScenarioVoteType; createdAt: string }
+export interface ScenarioVotingResult { scenarioId: string; preferCount: number; neutralCount: number; againstCount: number; totalVotes: number; score: number; preferPercentage: number; neutralPercentage: number; againstPercentage: number }
+export interface ScenarioWithVotesResponse { scenario: ScenarioResponse; votes: ScenarioVoteResponse[]; result: ScenarioVotingResult }
+export interface ScenariosListResponse { scenarios: ScenarioResponse[] }
+export interface ScenariosWithVotesResponse { scenarios: ScenarioWithVotesResponse[] }
+
+// ============================================================
+// Transport
+// ============================================================
+export type OptimizationType = 'COST_MINIMIZE' | 'TIME_MINIMIZE' | 'BALANCED'
+export interface TransportLocation { name: string; address?: string | null; latitude?: number | null; longitude?: number | null; iataCode?: string | null }
+export interface TransportOption { id: string; mode: string; provider: string; departure: TransportLocation; arrival: TransportLocation; departureTime: string; arrivalTime: string; durationMinutes: number; cost: number; currency: string; stops?: TransportLocation[]; bookingUrl?: string | null }
+export interface TransportRoute { id: string; segments: TransportOption[]; totalDurationMinutes: number; totalCost: number; currency: string; score: number }
+export interface TransportPlan { id: string; eventId: string; participantRoutes: Record<string, TransportRoute>; groupArrivals: string[]; totalGroupCost: number; optimizationType: OptimizationType; createdAt: string }
+export interface TransportPlansResponse { plans: TransportPlan[] }
+export interface TransportReadiness { eventId: string; destination: TransportLocation; isComplete: boolean; canGeneratePlan: boolean; transportNotNeeded: boolean; canFinalizeWithoutPlan: boolean; missingDepartureParticipantIds: string[]; missingDepartureParticipantNames: string[] }
+export interface SelectedTransportPlanSummary { eventId: string; planId: string; totalCost: number; optimizationType: OptimizationType; selectedAt: string; readiness: TransportReadiness }
+export interface DepartureLocationRecord { eventId: string; participantId: string; location: TransportLocation; updatedByUserId: string; updatedAt: string }
+export interface SaveDepartureRequest { participantId?: string; location: TransportLocation }
+export interface GenerateTransportPlanRequest { optimizationType?: OptimizationType }
+export interface TransportNotNeededResponse { transportNotNeeded: boolean }
+
+// ============================================================
+// Meals
+// ============================================================
+export type MealType = 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK' | 'APERITIF'
+export type MealStatus = 'PLANNED' | 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
+export type DietaryRestriction = 'VEGETARIAN' | 'VEGAN' | 'GLUTEN_FREE' | 'LACTOSE_INTOLERANT' | 'NUT_ALLERGY' | 'SHELLFISH_ALLERGY' | 'KOSHER' | 'HALAL' | 'DIABETIC' | 'OTHER'
+export interface Meal { id: string; eventId: string; type: MealType; name: string; date: string; time: string; location?: string | null; responsibleParticipantIds: string[]; estimatedCost: number; actualCost?: number | null; servings: number; status: MealStatus; notes?: string | null; createdAt: string; updatedAt: string }
+export interface CreateMealRequest { eventId: string; type: MealType; name: string; date: string; time: string; location?: string; responsibleParticipantIds: string[]; estimatedCost: number; actualCost?: number | null; servings: number; status?: MealStatus; notes?: string }
+export interface DailyMealSchedule { date: string; meals: Meal[] }
+export interface MealPlanningSummary { totalMeals: number; totalEstimatedCost: number; totalActualCost: number; mealsCompleted: number; mealsRemaining: number; mealsByType: Partial<Record<MealType, number>>; mealsByStatus: Partial<Record<MealStatus, number>> }
+
 export interface ErrorResponse { error: string; message: string; statusCode: number }
 
 
