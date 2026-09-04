@@ -2,7 +2,9 @@
   import { createActor } from 'xstate'
   import { onDestroy } from 'svelte'
   import { eventListMachine, deriveFilteredEvents } from '$lib/machines/eventList.machine'
+  import type { EventResponse } from '$lib/types/api'
   import EventList from '$lib/components/organisms/EventList.svelte'
+  import { t } from '$lib/i18n'
 
   const actor = createActor(eventListMachine)
   let snapshot = $state(actor.getSnapshot())
@@ -14,9 +16,20 @@
     actor.stop()
   })
 
-  const filteredEvents = $derived(
-    deriveFilteredEvents(snapshot.context.events, snapshot.context.searchQuery)
-  )
+  // Archives filter: past events = FINALIZED/ARCHIVED status or finalDate in
+  // the past. Off by default so the standard list keeps its original behavior.
+  let archivedOnly = $state(false)
+
+  function isPastEvent(event: EventResponse): boolean {
+    if (event.status === 'FINALIZED' || event.status === 'ARCHIVED') return true
+    if (event.finalDate) return new Date(event.finalDate).getTime() < Date.now()
+    return false
+  }
+
+  const filteredEvents = $derived.by(() => {
+    const base = deriveFilteredEvents(snapshot.context.events, snapshot.context.searchQuery)
+    return archivedOnly ? base.filter(isPastEvent) : base
+  })
 </script>
 
 <div class="flex flex-col gap-6">
@@ -32,14 +45,35 @@
     </a>
   </div>
 
-  <EventList
-    events={filteredEvents}
-    loading={snapshot.value === 'loading'}
-    error={snapshot.context.error}
-    searchQuery={snapshot.context.searchQuery}
-    statusFilter={snapshot.context.statusFilter}
-    onsearch={(q) => actor.send({ type: 'SEARCH', query: q })}
-    onfilter={(s) => actor.send({ type: 'FILTER', status: s })}
-    onreload={() => actor.send({ type: 'RELOAD' })}
-  />
+  <!-- Archives / past events filter -->
+  <label
+    class="flex w-fit cursor-pointer items-center gap-2 text-sm text-gray-600"
+  >
+    <input
+      type="checkbox"
+      bind:checked={archivedOnly}
+      class="h-4 w-4 rounded border-gray-300 accent-wakeve-600"
+    />
+    {t('events.archives.filter')}
+  </label>
+
+  {#if archivedOnly && !snapshot.context.error && snapshot.value !== 'loading' && filteredEvents.length === 0}
+    <!-- Dedicated empty state for the archives filter -->
+    <div class="flex flex-col items-center justify-center py-20 text-center gap-2">
+      <span class="text-6xl" aria-hidden="true">🗂️</span>
+      <p class="text-lg font-semibold text-gray-800">{t('events.archives.emptyTitle')}</p>
+      <p class="text-sm text-gray-500 max-w-xs text-balance">{t('events.archives.emptyDesc')}</p>
+    </div>
+  {:else}
+    <EventList
+      events={filteredEvents}
+      loading={snapshot.value === 'loading'}
+      error={snapshot.context.error}
+      searchQuery={snapshot.context.searchQuery}
+      statusFilter={snapshot.context.statusFilter}
+      onsearch={(q) => actor.send({ type: 'SEARCH', query: q })}
+      onfilter={(s) => actor.send({ type: 'FILTER', status: s })}
+      onreload={() => actor.send({ type: 'RELOAD' })}
+    />
+  {/if}
 </div>
