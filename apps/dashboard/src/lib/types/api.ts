@@ -59,3 +59,64 @@ export interface TimelineEntry { date: string; count: number }
 export interface RawEventDetailedAnalyticsResponse { eventId?: string; title?: string; status?: string; voteTimeline?: RawTimelineEntry[]; participantTimeline?: RawTimelineEntry[]; popularTimeSlots?: RawTimeSlotAnalytics[]; pollCompletionRate?: number; totalParticipants?: number; votedParticipants?: number; totalVotes?: number; responseRate?: number; commentsBySection?: Record<string, number> }
 export interface EventDetailedAnalyticsResponse { eventId: string; title: string; status: EventStatus; totalParticipants: number; votedParticipants: number; pendingParticipants: number; totalVotes: number; responseRate: number; responseRatePct: number; voteTimeline: TimelineEntry[]; participantTimeline: TimelineEntry[]; popularTimeSlots: TimeSlotAnalytics[]; commentsBySection: Record<string, number> }
 export interface ErrorResponse { error: string; message: string; statusCode: number }
+
+// ============================================================
+// Budget
+// ============================================================
+export type BudgetCategory = 'TRANSPORT' | 'ACCOMMODATION' | 'MEALS' | 'ACTIVITIES' | 'EQUIPMENT' | 'OTHER'
+export interface Budget {
+  id: string
+  eventId: string
+  totalEstimated: number
+  totalActual: number
+  transportEstimated: number
+  transportActual: number
+  accommodationEstimated: number
+  accommodationActual: number
+  mealsEstimated: number
+  mealsActual: number
+  activitiesEstimated: number
+  activitiesActual: number
+  equipmentEstimated: number
+  equipmentActual: number
+  otherEstimated: number
+  otherActual: number
+  createdAt: string
+  updatedAt: string
+}
+export interface BudgetItem {
+  id: string
+  budgetId: string
+  category: BudgetCategory
+  name: string
+  description: string
+  estimatedCost: number
+  actualCost: number
+  isPaid: boolean
+  paidBy: string | null
+  sharedBy: string[]
+  notes: string
+  createdAt: string
+  updatedAt: string
+}
+export interface BudgetItemsResponse { items: BudgetItem[]; count: number }
+export interface CreateBudgetItemRequest {
+  name: string
+  description?: string
+  category: BudgetCategory
+  estimatedCost: number
+  sharedBy?: string[]
+}
+export interface BudgetSummaryResponse { budget: Budget; summary: string; itemCount: number }
+export interface SettlementRecord {
+  settlementId: string
+  eventId: string
+  budgetId: string
+  fromParticipantId: string
+  toParticipantId: string
+  amount: number
+  status: string
+  createdAt: string
+  updatedAt: string
+}
+export interface BudgetSettlementsResponse { settlements: SettlementRecord[]; count: number }
