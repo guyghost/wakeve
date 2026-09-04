@@ -15,6 +15,7 @@
   import ScenariosPanel from '$lib/components/organisms/ScenariosPanel.svelte'
   import TransportPanel from '$lib/components/organisms/TransportPanel.svelte'
   import MealsPanel from '$lib/components/organisms/MealsPanel.svelte'
+  import InvitationsPanel from '$lib/components/organisms/InvitationsPanel.svelte'
   import ErrorBanner from '$lib/components/ui/ErrorBanner.svelte'
   import SkeletonBlock from '$lib/components/ui/SkeletonBlock.svelte'
   import { EVENT_TYPE_ICONS, EVENT_TYPE_LABELS } from '$lib/utils/event-type'
@@ -43,7 +44,8 @@
     { key: 'meetings', label: 'Réunions' },
     { key: 'scenarios', label: 'Scénarios' },
     { key: 'transport', label: 'Transport' },
-    { key: 'meals', label: 'Repas' }
+    { key: 'meals', label: 'Repas' },
+    { key: 'invitations', label: 'Invitations' }
   ]
 
   function switchTab(tab: DetailTab) {
@@ -273,6 +275,10 @@
       <!-- Meals tab -->
       {:else if ctx.activeTab === 'meals'}
         <MealsPanel eventId={event.id} isOrganizer={event.organizerId === currentUserId} />
+
+      <!-- Invitations tab -->
+      {:else if ctx.activeTab === 'invitations'}
+        <InvitationsPanel {event} {currentUserId} />
       {/if}
     </div>
 
