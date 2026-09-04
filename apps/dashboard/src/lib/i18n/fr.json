@@ -79,7 +79,10 @@
       "info": "Infos",
       "poll": "Sondage",
       "comments": "Commentaires",
-      "budget": "Budget"
+      "budget": "Budget",
+      "scenarios": "Scénarios",
+      "transport": "Transport",
+      "meals": "Repas"
     },
     "info": {
       "status": "Statut",
@@ -123,6 +126,170 @@
     "errors": {
       "vote": "Erreur lors du vote, réessayez.",
       "comment": "Erreur lors de l'envoi du commentaire."
+    },
+    "scenarios": {
+      "lockedTitle": "Scénarios verrouillés",
+      "lockedDesc": "Les scénarios (destination + hébergement) se débloquent quand la date de l'événement est confirmée ou en cours de comparaison.",
+      "emptyTitle": "Aucun scénario",
+      "emptyDesc": "Créez un premier scénario de destination et d'hébergement à comparer avec le groupe.",
+      "error": "Impossible de charger les scénarios.",
+      "create": "Nouveau scénario",
+      "cancel": "Annuler",
+      "form": {
+        "name": "Nom du scénario",
+        "namePlaceholder": "Ex : Week-end à Annecy",
+        "dateOrPeriod": "Date ou période",
+        "dateOrPeriodPlaceholder": "Ex : 12–14 juillet",
+        "location": "Destination",
+        "locationPlaceholder": "Ex : Annecy, France",
+        "duration": "Durée (jours)",
+        "participants": "Participants estimés",
+        "budget": "Budget par personne (€)",
+        "description": "Description",
+        "descriptionPlaceholder": "Hébergement envisagé, activités prévues…",
+        "submit": "Créer le scénario",
+        "creating": "Création…"
+      },
+      "durationDays": "jours",
+      "budgetPerPerson": "/ pers.",
+      "votes": "votes",
+      "vote": {
+        "prefer": "Préféré",
+        "neutral": "Neutre",
+        "against": "Contre",
+        "yourVote": "Votre vote",
+        "error": "Erreur lors du vote, réessayez."
+      },
+      "selectFinal": "Sélectionner comme scénario final",
+      "selectingFinal": "Sélection…",
+      "selected": "Scénario final",
+      "deleteError": "Erreur lors de la sélection, réessayez.",
+      "statuses": {
+        "DRAFT": "Brouillon",
+        "PROPOSED": "Proposé",
+        "SELECTED": "Sélectionné",
+        "REJECTED": "Rejeté"
+      }
+    },
+    "transport": {
+      "lockedTitle": "Transport verrouillé",
+      "lockedDesc": "La logistique transport se débloque une fois la date de l'événement confirmée.",
+      "noDestinationTitle": "Destination manquante",
+      "noDestinationDesc": "Sélectionnez d'abord un scénario final dans l'onglet Scénarios pour définir la destination du transport.",
+      "error": "Impossible de charger le transport.",
+      "readiness": {
+        "title": "Préparation transport",
+        "destination": "Destination",
+        "missing": "Départs manquants",
+        "allDepartures": "Tous les départs sont renseignés.",
+        "notNeeded": "Transport marqué comme non nécessaire.",
+        "ready": "Prêt pour la génération d'un plan"
+      },
+      "departure": {
+        "title": "Mon point de départ",
+        "name": "Ville de départ",
+        "namePlaceholder": "Ex : Lyon",
+        "address": "Adresse (optionnel)",
+        "addressPlaceholder": "Ex : Gare Part-Dieu",
+        "save": "Enregistrer mon départ",
+        "saving": "Enregistrement…",
+        "saved": "Votre départ a bien été enregistré.",
+        "error": "Impossible d'enregistrer le départ."
+      },
+      "plans": {
+        "title": "Plans de transport",
+        "count": "{n} plan(s) par participant",
+        "empty": "Aucun plan de transport pour le moment.",
+        "generate": "Générer un plan",
+        "generating": "Génération…",
+        "optimization": "Optimisation",
+        "groupCost": "Coût total groupe",
+        "routes": "Trajets par participant",
+        "select": "Sélectionner ce plan",
+        "selected": "Plan sélectionné",
+        "delete": "Supprimer",
+        "optimizations": {
+          "COST_MINIMIZE": "Coût minimal",
+          "TIME_MINIMIZE": "Temps minimal",
+          "BALANCED": "Équilibré"
+        }
+      },
+      "markNotNeeded": "Transport non nécessaire",
+      "markingNotNeeded": "Mise à jour…",
+      "segment": "segment(s)",
+      "errors": {
+        "generate": "Impossible de générer le plan.",
+        "select": "Impossible de sélectionner le plan.",
+        "delete": "Impossible de supprimer le plan.",
+        "notNeeded": "Impossible de mettre à jour le statut transport."
+      }
+    },
+    "meals": {
+      "error": "Impossible de charger les repas.",
+      "summary": {
+        "title": "Synthèse repas",
+        "totalMeals": "Repas planifiés",
+        "completed": "Terminés",
+        "remaining": "Restants",
+        "estimatedCost": "Coût total estimé"
+      },
+      "schedule": {
+        "title": "Planning des repas",
+        "emptyTitle": "Aucun repas planifié",
+        "emptyDesc": "Ajoutez un repas pour organiser les papilles du groupe.",
+        "delete": "Supprimer",
+        "servings": "{n} portion(s)",
+        "at": "à"
+      },
+      "form": {
+        "add": "Ajouter un repas",
+        "cancel": "Annuler",
+        "type": "Type",
+        "name": "Nom du repas",
+        "namePlaceholder": "Ex : Barbecue du samedi soir",
+        "date": "Date",
+        "time": "Heure",
+        "servings": "Portions",
+        "cost": "Coût estimé (€)",
+        "location": "Lieu (optionnel)",
+        "notes": "Notes / menu (optionnel)",
+        "submit": "Ajouter",
+        "adding": "Ajout…"
+      },
+      "types": {
+        "BREAKFAST": "Petit-déjeuner",
+        "LUNCH": "Déjeuner",
+        "DINNER": "Dîner",
+        "SNACK": "Collation",
+        "APERITIF": "Apéritif"
+      },
+      "statuses": {
+        "PLANNED": "Planifié",
+        "ASSIGNED": "Assigné",
+        "IN_PROGRESS": "En cours",
+        "COMPLETED": "Terminé",
+        "CANCELLED": "Annulé"
+      },
+      "restrictions": {
+        "title": "Restrictions alimentaires",
+        "empty": "Aucune restriction déclarée.",
+        "types": {
+          "VEGETARIAN": "Végétarien",
+          "VEGAN": "Végan",
+          "GLUTEN_FREE": "Sans gluten",
+          "LACTOSE_INTOLERANT": "Sans lactose",
+          "NUT_ALLERGY": "Fruits à coque",
+          "SHELLFISH_ALLERGY": "Crustacés",
+          "KOSHER": "Casher",
+          "HALAL": "Halal",
+          "DIABETIC": "Diabétique",
+          "OTHER": "Autre"
+        }
+      },
+      "errors": {
+        "create": "Impossible d'ajouter le repas.",
+        "delete": "Impossible de supprimer le repas."
+      }
     }
   },
   "budget": {

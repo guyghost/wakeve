@@ -12,6 +12,9 @@
   import CommentPanel from '$lib/components/organisms/CommentPanel.svelte'
   import BudgetPanel from '$lib/components/organisms/BudgetPanel.svelte'
   import MeetingsPanel from '$lib/components/organisms/MeetingsPanel.svelte'
+  import ScenariosPanel from '$lib/components/organisms/ScenariosPanel.svelte'
+  import TransportPanel from '$lib/components/organisms/TransportPanel.svelte'
+  import MealsPanel from '$lib/components/organisms/MealsPanel.svelte'
   import ErrorBanner from '$lib/components/ui/ErrorBanner.svelte'
   import SkeletonBlock from '$lib/components/ui/SkeletonBlock.svelte'
   import { EVENT_TYPE_ICONS, EVENT_TYPE_LABELS } from '$lib/utils/event-type'
@@ -37,7 +40,10 @@
     { key: 'poll', label: 'Sondage' },
     { key: 'comments', label: 'Commentaires' },
     { key: 'budget', label: 'Budget' },
-    { key: 'meetings', label: 'Réunions' }
+    { key: 'meetings', label: 'Réunions' },
+    { key: 'scenarios', label: 'Scénarios' },
+    { key: 'transport', label: 'Transport' },
+    { key: 'meals', label: 'Repas' }
   ]
 
   function switchTab(tab: DetailTab) {
@@ -245,6 +251,28 @@
           isOrganizer={event.organizerId === currentUserId}
           eventTitle={event.title}
         />
+
+      <!-- Scenarios tab -->
+      {:else if ctx.activeTab === 'scenarios'}
+        <ScenariosPanel
+          eventId={event.id}
+          eventStatus={event.status}
+          {currentUserId}
+          isOrganizer={event.organizerId === currentUserId}
+        />
+
+      <!-- Transport tab -->
+      {:else if ctx.activeTab === 'transport'}
+        <TransportPanel
+          eventId={event.id}
+          eventStatus={event.status}
+          {currentUserId}
+          isOrganizer={event.organizerId === currentUserId}
+        />
+
+      <!-- Meals tab -->
+      {:else if ctx.activeTab === 'meals'}
+        <MealsPanel eventId={event.id} isOrganizer={event.organizerId === currentUserId} />
       {/if}
     </div>
 
