@@ -8,7 +8,7 @@
     "settings": "Paramètres",
     "logout": "Déconnexion",
     "notifications": "Notifications",
-    "inbox": "Messages"
+    "inbox": "Boîte de réception"
   },
   "auth": {
     "title": "Bienvenue sur Wakeve",
@@ -71,11 +71,6 @@
       "OUTDOOR_ADVENTURE": "Aventure outdoor",
       "CULTURAL_EVENT": "Événement culturel",
       "OTHER": "Autre"
-    },
-    "archives": {
-      "filter": "Archives (événements passés)",
-      "emptyTitle": "Aucun événement archivé",
-      "emptyDesc": "Les événements finalisés ou dont la date est passée apparaîtront ici."
     }
   },
   "eventDetail": {
@@ -88,7 +83,7 @@
       "scenarios": "Scénarios",
       "transport": "Transport",
       "meals": "Repas",
-      "invitations": "Invitations"
+      "participants": "Participants"
     },
     "info": {
       "status": "Statut",
@@ -469,7 +464,29 @@
   "settings": {
     "title": "Paramètres",
     "language": "Langue et région",
-    "notifications": "Notifications",
+    "notifications": {
+      "title": "Notifications",
+      "subtitle": "Choisissez les types de notifications que vous souhaitez recevoir.",
+      "loading": "Chargement des préférences...",
+      "errors": {
+        "load": "Impossible de charger les préférences de notification.",
+        "save": "Échec de l'enregistrement. Modifications annulées."
+      },
+      "types": {
+        "EVENT_INVITE": "Invitation événement",
+        "VOTE_REMINDER": "Rappel de vote",
+        "VOTE_CLOSE_REMINDER": "Fin de vote imminente",
+        "DEADLINE_REMINDER": "Rappel d'échéance",
+        "DATE_CONFIRMED": "Date confirmée",
+        "NEW_SCENARIO": "Nouvelle option",
+        "SCENARIO_SELECTED": "Option retenue",
+        "NEW_COMMENT": "Nouveau commentaire",
+        "MENTION": "Mention",
+        "MEETING_REMINDER": "Rappel réunion",
+        "PAYMENT_DUE": "Paiement dû",
+        "EVENT_UPDATE": "Mise à jour événement"
+      }
+    },
     "account": "Compte",
     "dangerZone": "Zone dangereuse",
     "deleteAccount": "Supprimer mon compte",
@@ -565,46 +582,36 @@
     "AFTERNOON": "Après-midi",
     "EVENING": "Soirée"
   },
-  "invitations": {
-    "codeTitle": "Code d'invitation",
-    "codeIntro": "Générez un lien à partager : toute personne qui l'utilise rejoint l'événement.",
-    "generate": "Générer un code",
-    "regenerate": "Générer un nouveau code",
-    "code": "Code",
-    "link": "Lien d'invitation",
-    "copy": "Copier",
-    "copied": "Copié !",
-    "uses": "Utilisations : {current}",
-    "unlimitedUses": "Utilisations illimitées",
-    "directTitle": "Envoi direct par email",
-    "directIntro": "Envoyez une invitation personnalisée à chaque adresse email.",
-    "directUnavailable": "L'envoi direct n'est pas disponible pour cet événement. Il est réservé à l'organisateur sur un événement en brouillon, lorsque le service d'envoi est configuré. Partagez le code d'invitation ci-dessus en attendant.",
-    "directCheck": "Vérifier la disponibilité",
-    "checking": "Vérification…",
-    "directReady": "Envoi direct disponible.",
-    "emailsLabel": "Adresses email",
-    "emailsPlaceholder": "alice@exemple.com, bob@exemple.com",
-    "send": "Envoyer les invitations",
-    "batchSent": "Lot d'invitations envoyé.",
-    "outcome": {
-      "SERVER_ACCEPTED": "Envoyée",
-      "INVALID": "Invalide",
-      "FAILED": "Échec",
-      "CANCELLED": "Annulée"
+  "participants": {
+    "title": "Participants",
+    "addTitle": "Ajouter un participant",
+    "addLabel": "Identifiant utilisateur",
+    "addPlaceholder": "user_…",
+    "addSubmit": "Ajouter",
+    "addHelp": "L'ajout se fait par identifiant utilisateur. Pour inviter par email, utilisez l'onglet Invitations.",
+    "listTitle": "Invités",
+    "empty": "Aucun participant pour le moment.",
+    "you": "Vous",
+    "organizer": "Organisatrice / Organisateur",
+    "rsvpTitle": "Réponse à la date retenue",
+    "rsvpSlot": "Créneau retenu",
+    "rsvpAttendance": "Présence",
+    "rsvpApply": "Enregistrer",
+    "rsvpLocked": "Les réponses seront possibles après la confirmation de la date.",
+    "attendance": {
+      "CONFIRMED": "Confirmé",
+      "DECLINED": "Décliné",
+      "TENTATIVE": "Peut-être"
     },
-    "audienceTitle": "Audience",
-    "audienceInvited": "Invité·es",
-    "audienceJoined": "Ont rejoint l'événement",
-    "audiencePending": "En attente de réponse",
-    "audienceHint": "Les participants listés ont rejoint l'événement ; « en attente » est estimé à partir du nombre de participants attendus. L'état de RSVP global n'est pas encore exposé par l'API.",
+    "rsvpState": {
+      "ACCEPTED": "Date validée",
+      "DECLINED": "Décliné",
+      "PENDING": "En attente"
+    },
     "errors": {
-      "generate": "Impossible de générer le code d'invitation.",
-      "copy": "Copie impossible dans ce navigateur.",
-      "capability": "Impossible de vérifier la disponibilité de l'envoi direct.",
-      "batch": "Impossible d'envoyer les invitations.",
-      "batchStale": "L'événement a changé entre-temps : vérifiez à nouveau la disponibilité puis réessayez.",
-      "invalidEmails": "Adresses email invalides : {emails}"
-    },
-    "audienceDateValidated": "Date retenue confirmée : {date}"
+      "load": "Impossible de charger les participants.",
+      "add": "Impossible d'ajouter le participant.",
+      "rsvp": "Impossible d'enregistrer la réponse."
+    }
   }
 }
