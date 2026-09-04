@@ -19,6 +19,7 @@ composeHotReload = "1.0.0-rc02"
 composeMultiplatform = "1.9.1"
 composeCompiler = "2.2.20"
 google-auth = "21.3.0"
+googleid = "1.1.1"
 junit = "4.13.2"
 kotlin = "2.2.20"
 kotlinx-coroutines = "1.9.0"
@@ -90,6 +91,8 @@ ktor-clientContentNegotiation = { module = "io.ktor:ktor-client-content-negotiat
 ktor-clientWebsocket = { module = "io.ktor:ktor-client-websockets", version.ref = "ktor" }
 google-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "google-auth" }
 androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "androidx-credentials" }
+androidx-credentials-play-services = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "androidx-credentials" }
+googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }
 androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "androidx-security" }
 androidx-workmanager = { module = "androidx.work:work-runtime-ktx", version.ref = "androidx-workmanager" }
 androidx-datastore = { module = "androidx.datastore:datastore", version.ref = "androidx-datastore" }

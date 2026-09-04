@@ -9,6 +9,8 @@ import com.guyghost.wakeve.auth.core.models.AuthResult
 import com.guyghost.wakeve.auth.core.models.TokenType
 import com.guyghost.wakeve.auth.core.models.User
 import com.guyghost.wakeve.auth.core.models.AuthToken
+import com.guyghost.wakeve.auth.shell.services.GoogleAuthResultFactory
+import com.guyghost.wakeve.auth.shell.services.GoogleCredentialErrorMapper
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
@@ -375,5 +377,41 @@ class GoogleSignInProviderTest {
         // ASSERT
         assertEquals("GOOGLE", AuthMethod.GOOGLE.name)
         assertNotNull(AuthMethod.GOOGLE)
+    }
+
+    // ==================== Credential Manager Mapping Tests (DAO #21) ====================
+
+    /**
+     * GoogleAuthResultFactory produces a Success result from a complete profile
+     * (pure shared logic used by the Credential Manager provider).
+     */
+    @Test
+    fun credentialManager_factory_creates_success_result_from_profile() {
+        val result = GoogleAuthResultFactory.createFromProfile(
+            id = "google-id-123",
+            email = "user@example.com",
+            displayName = "Alice",
+            idToken = "id-token-abc",
+            currentTimeMillis = System.currentTimeMillis()
+        )
+
+        val success = result as AuthResult.Success
+        assertEquals("google-id-123", success.user.id)
+        assertEquals("user@example.com", success.user.email)
+        assertEquals("id-token-abc", success.token.value)
+    }
+
+    /**
+     * User cancellation maps to OAuthCancelled through the shared mapper.
+     */
+    @Test
+    fun credentialManager_user_cancel_maps_to_OAuthCancelled() {
+        val result = GoogleCredentialErrorMapper.map(
+            type = GoogleCredentialErrorMapper.TYPE_USER_CANCELED,
+            message = null
+        )
+
+        val error = result as AuthResult.Error
+        assertTrue(error.error is AuthError.OAuthCancelled, "Expected OAuthCancelled but was ${error.error::class.simpleName}")
     }
 }

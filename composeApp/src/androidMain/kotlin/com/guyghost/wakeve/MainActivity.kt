@@ -25,6 +25,7 @@ import com.guyghost.wakeve.navigation.AuthCallbacks
 import com.guyghost.wakeve.navigation.LocalAuthCallbacks
 import com.guyghost.wakeve.security.AndroidSecureTokenStorage
 import com.guyghost.wakeve.auth.shell.services.AuthService
+import com.guyghost.wakeve.auth.shell.services.GoogleCredentialManagerProvider
 import com.guyghost.wakeve.auth.shell.services.GoogleSignInProvider
 import com.guyghost.wakeve.auth.shell.services.AppleSignInProvider
 import com.guyghost.wakeve.auth.shell.services.AppleSignInWebFlow
@@ -237,6 +238,15 @@ class MainActivity : ComponentActivity(), AuthCallbacks {
 
         lifecycleScope.launch {
             try {
+                // DAO #21: modern Credential Manager flow behind feature flag.
+                // One suspend call — no Activity Result launcher needed.
+                if (com.guyghost.wakeve.BuildConfig.GOOGLE_AUTH_USE_CREDENTIAL_MANAGER) {
+                    val authResult = GoogleCredentialManagerProvider()
+                        .signIn(this@MainActivity, com.guyghost.wakeve.BuildConfig.GOOGLE_WEB_CLIENT_ID)
+                    handleAuthResult(authResult)
+                    return@launch
+                }
+
                 val authService = createAuthService()
 
                 // Create Google Sign-In Client
