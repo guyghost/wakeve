@@ -270,3 +270,27 @@ export interface DirectInviteBatchRequest { accessRevision: number; batchId: str
 export type DirectInviteOutcomeStatus = 'SERVER_ACCEPTED' | 'INVALID' | 'FAILED' | 'CANCELLED'
 export interface DirectInviteOutcome { recipientKey: string; status: DirectInviteOutcomeStatus; invitationId?: string | null; reasonCode?: string | null }
 export interface DirectInviteBatchResponse { batchId: string; operationId: string; status: string; outcomes: DirectInviteOutcome[] }
+export type ModerationStatus = 'APPROVED' | 'PENDING_REVIEW' | 'REJECTED' | 'HIDDEN'
+export interface Comment { id: string; authorId: string; authorName: string; content: string; section: CommentSection; isPinned: boolean; createdAt: string; updatedAt: string; moderationStatus?: ModerationStatus }
+// Gamification
+export type LeaderboardType = 'ALL_TIME' | 'THIS_MONTH' | 'THIS_WEEK' | 'FRIENDS'
+export interface LeaderboardEntry { userId: string; username: string; totalPoints: number; badgesCount: number; rank: number; isCurrentUser: boolean; isFriend: boolean; legendaryCount?: number; epicCount?: number }
+export interface LeaderboardResponse { leaderboard: LeaderboardEntry[] }
+export type BadgeCategory = 'CREATION' | 'VOTING' | 'PARTICIPATION' | 'ENGAGEMENT' | 'SPECIAL'
+export type BadgeRarity = 'COMMON' | 'RARE' | 'EPIC' | 'LEGENDARY'
+export interface Badge { id: string; name: string; description: string; icon: string; requirement: number; pointsReward: number; category: BadgeCategory; rarity: BadgeRarity; unlockedAt?: string | null }
+export interface UserBadgesResponse { userId: string; badges: Badge[]; count: number }
+export interface UserPointsResponse { userId: string; totalPoints: number; eventCreationPoints: number; votingPoints: number; commentPoints: number; participationPoints: number; level: number; levelName: string; pointsForNextLevel: number; progressToNextLevel: number }
+// Moderation
+export type ReportTarget = 'COMMENT' | 'CHAT_MESSAGE' | 'EVENT' | 'USER'
+export type ReportReason = 'HARASSMENT' | 'HATE_OR_ABUSE' | 'SEXUAL_CONTENT' | 'VIOLENCE_OR_THREAT' | 'SPAM_OR_SCAM' | 'PRIVATE_INFORMATION' | 'OTHER'
+export type ReportReviewStatus = 'OPEN' | 'UNDER_REVIEW' | 'RESOLVED' | 'DISMISSED' | 'ESCALATED'
+export type ModerationDecisionAction = 'APPROVE' | 'REJECT' | 'HIDE' | 'RESTORE' | 'ESCALATE'
+export type ModerationAuditOutcome = 'ACCEPTED' | 'DENIED' | 'FAILED'
+export interface ContentReport { id: string; reporterId: string; targetType: ReportTarget; targetId: string; eventId?: string | null; reason: ReportReason; details?: string | null; status: ReportReviewStatus; createdAt: string; reviewedAt?: string | null; reviewerId?: string | null }
+export interface ModerationDecision { id: string; moderatorId: string; reportId?: string | null; targetType: ReportTarget; targetId: string; action: ModerationDecisionAction; reason: string; outcome: ModerationAuditOutcome; createdAt: string }
+export interface UserBlock { id: string; blockerUserId: string; blockedUserId: string; eventId?: string | null; reason?: ReportReason | null; createdAt: string; removedAt?: string | null }
+export interface UserBlocksResponse { blocks: UserBlock[] }
+export interface CreateContentReportRequest { targetType: ReportTarget; targetId: string; eventId?: string; reason: ReportReason; details?: string }
+export interface CreateUserBlockRequest { blockedUserId: string; eventId?: string; reason?: ReportReason }
+export interface CreateModerationDecisionRequest { targetType: ReportTarget; targetId: string; action: ModerationDecisionAction; reason: string }
