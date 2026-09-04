@@ -1,0 +1,9 @@
+{
+  "id": 19,
+  "title": "Gouvernance : livraison parallèle des workstreams dashboard via worktrees herdr + agents pi",
+  "type": "governance-change",
+  "status": "failed",
+  "riskZone": "red",
+  "createdAt": "2026-09-03T21:41:48.577Z",
+  "resolvedAt": "2026-09-03T21:42:15.043Z"
+}
