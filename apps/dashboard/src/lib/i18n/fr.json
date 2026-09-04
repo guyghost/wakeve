@@ -78,7 +78,8 @@
     "tabs": {
       "info": "Infos",
       "poll": "Sondage",
-      "comments": "Commentaires"
+      "comments": "Commentaires",
+      "budget": "Budget"
     },
     "info": {
       "status": "Statut",
@@ -122,6 +123,58 @@
     "errors": {
       "vote": "Erreur lors du vote, réessayez.",
       "comment": "Erreur lors de l'envoi du commentaire."
+    }
+  },
+  "budget": {
+    "title": "Budget",
+    "items": "Lignes de budget",
+    "itemCount": "{count} ligne",
+    "itemCountPlural": "{count} lignes",
+    "total": "Total de l'événement",
+    "totalEstimated": "Budget prévu",
+    "add": "Ajouter une ligne",
+    "addTitle": "Nouvelle ligne de budget",
+    "name": "Nom",
+    "namePlaceholder": "ex. Train Paris–Lyon",
+    "description": "Description",
+    "descriptionPlaceholder": "Détails facultatifs…",
+    "category": "Catégorie",
+    "amount": "Montant estimé (€)",
+    "amountPlaceholder": "0,00",
+    "submit": "Ajouter",
+    "payer": "Payeur",
+    "unpaid": "À payer",
+    "paid": "Payé",
+    "deleteItem": "Supprimer cette ligne",
+    "deleteTitle": "Supprimer la ligne",
+    "deleteMessage": "Supprimer « {name} » ? Cette action est irréversible.",
+    "empty": "Aucune ligne de budget",
+    "emptyDesc": "Ajoutez les dépenses prévues pour suivre le budget de l'événement.",
+    "settlements": "Soldes",
+    "settlementsEmpty": "Tous les soldes sont équilibrés.",
+    "settlementStatus": {
+      "PENDING": "En attente",
+      "CONFIRMED": "Confirmé",
+      "SETTLED": "Réglé"
+    },
+    "owes": "{from} doit {amount} à {to}",
+    "readOnly": "Seul l'organisateur peut modifier le budget.",
+    "loading": "Chargement du budget…",
+    "errors": {
+      "load": "Impossible de charger le budget",
+      "permission": "Vous n'avez pas accès au budget de cet événement",
+      "auth": "Votre session a expiré, reconnectez-vous",
+      "offline": "Vous êtes hors ligne, vérifiez votre connexion",
+      "addItem": "Erreur lors de l'ajout de la ligne.",
+      "deleteItem": "Erreur lors de la suppression de la ligne."
+    },
+    "categories": {
+      "TRANSPORT": "Transport",
+      "ACCOMMODATION": "Hébergement",
+      "MEALS": "Repas",
+      "ACTIVITIES": "Activités",
+      "EQUIPMENT": "Équipement",
+      "OTHER": "Autre"
     }
   },
   "create": {
