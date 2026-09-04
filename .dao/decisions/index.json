@@ -1,5 +1,68 @@
 [
   {
+    "id": 1,
+    "title": "Product Strategist: Tighten proposal quality gates",
+    "type": "product-feature",
+    "status": "executed",
+    "riskZone": "orange",
+    "createdAt": "2026-09-03T20:32:47.075Z",
+    "resolvedAt": "2026-09-04T12:47:26.324Z"
+  },
+  {
+    "id": 2,
+    "title": "Research Agent: Tighten proposal quality gates",
+    "type": "product-feature",
+    "status": "executed",
+    "riskZone": "orange",
+    "createdAt": "2026-09-03T20:32:47.075Z",
+    "resolvedAt": "2026-09-04T12:48:02.614Z"
+  },
+  {
+    "id": 3,
+    "title": "Solution Architect: Tighten proposal quality gates",
+    "type": "technical-change",
+    "status": "executed",
+    "riskZone": "orange",
+    "createdAt": "2026-09-03T20:32:47.075Z",
+    "resolvedAt": "2026-09-04T12:48:02.615Z"
+  },
+  {
+    "id": 4,
+    "title": "Critic / Risk Agent: Tighten proposal quality gates",
+    "type": "security-change",
+    "status": "failed",
+    "riskZone": "red",
+    "createdAt": "2026-09-03T20:32:47.075Z",
+    "resolvedAt": "2026-09-04T12:47:56.323Z"
+  },
+  {
+    "id": 5,
+    "title": "Prioritization Agent: Tighten proposal quality gates",
+    "type": "governance-change",
+    "status": "failed",
+    "riskZone": "red",
+    "createdAt": "2026-09-03T20:32:47.075Z",
+    "resolvedAt": "2026-09-04T12:45:15.365Z"
+  },
+  {
+    "id": 6,
+    "title": "Spec Writer: Tighten proposal quality gates",
+    "type": "product-feature",
+    "status": "executed",
+    "riskZone": "orange",
+    "createdAt": "2026-09-03T20:32:47.075Z",
+    "resolvedAt": "2026-09-04T12:48:02.615Z"
+  },
+  {
+    "id": 7,
+    "title": "Delivery Agent: Tighten proposal quality gates",
+    "type": "release-change",
+    "status": "executed",
+    "riskZone": "green",
+    "createdAt": "2026-09-03T20:32:47.075Z",
+    "resolvedAt": "2026-09-04T12:48:02.614Z"
+  },
+  {
     "id": 8,
     "title": "Fermer les bloqueurs release App Store avec preuves réelles",
     "type": "release-change",
@@ -27,9 +90,10 @@
     "id": 11,
     "title": "Migrer Android Google auth vers Credential Manager",
     "type": "technical-change",
-    "status": "approved",
+    "status": "failed",
     "riskZone": "red",
-    "createdAt": "2026-09-03T20:33:28.589Z"
+    "createdAt": "2026-09-03T20:33:28.589Z",
+    "resolvedAt": "2026-09-04T12:43:33.584Z"
   },
   {
     "id": 12,
@@ -110,5 +174,23 @@
     "riskZone": "red",
     "createdAt": "2026-09-03T21:42:58.015Z",
     "resolvedAt": "2026-09-03T21:43:03.168Z"
+  },
+  {
+    "id": 21,
+    "title": "Migrer Android Google auth vers Credential Manager (retry #11, garde-fous renforcés)",
+    "type": "technical-change",
+    "status": "executed",
+    "riskZone": "red",
+    "createdAt": "2026-09-04T12:45:05.565Z",
+    "resolvedAt": "2026-09-04T13:05:40.506Z"
+  },
+  {
+    "id": 22,
+    "title": "Gouvernance : intake structuré des propositions + fin des doublons roundtable (retry #5)",
+    "type": "governance-change",
+    "status": "executed",
+    "riskZone": "red",
+    "createdAt": "2026-09-04T12:46:17.557Z",
+    "resolvedAt": "2026-09-04T13:05:43.032Z"
   }
 ]
