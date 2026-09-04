@@ -2,7 +2,8 @@
   "id": 15,
   "title": "Dashboard web : organisation de l'événement — scénarios, transport, repas (parité iOS)",
   "type": "product-feature",
-  "status": "controlled",
+  "status": "executed",
   "riskZone": "orange",
-  "createdAt": "2026-09-03T21:40:40.729Z"
+  "createdAt": "2026-09-03T21:40:40.729Z",
+  "resolvedAt": "2026-09-04T06:16:38.654Z"
 }

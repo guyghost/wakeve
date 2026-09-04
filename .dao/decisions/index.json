@@ -43,49 +43,55 @@
     "id": 13,
     "title": "Dashboard web : gestion du budget (parité iOS)",
     "type": "product-feature",
-    "status": "controlled",
+    "status": "executed",
     "riskZone": "orange",
-    "createdAt": "2026-09-03T21:40:10.164Z"
+    "createdAt": "2026-09-03T21:40:10.164Z",
+    "resolvedAt": "2026-09-04T06:16:20.827Z"
   },
   {
     "id": 14,
     "title": "Dashboard web : réunions virtuelles Zoom/Meet (parité iOS)",
     "type": "product-feature",
-    "status": "controlled",
+    "status": "executed",
     "riskZone": "orange",
-    "createdAt": "2026-09-03T21:40:22.894Z"
+    "createdAt": "2026-09-03T21:40:22.894Z",
+    "resolvedAt": "2026-09-04T06:16:35.958Z"
   },
   {
     "id": 15,
     "title": "Dashboard web : organisation de l'événement — scénarios, transport, repas (parité iOS)",
     "type": "product-feature",
-    "status": "controlled",
+    "status": "executed",
     "riskZone": "orange",
-    "createdAt": "2026-09-03T21:40:40.729Z"
+    "createdAt": "2026-09-03T21:40:40.729Z",
+    "resolvedAt": "2026-09-04T06:16:38.654Z"
   },
   {
     "id": 16,
     "title": "Dashboard web : inbox des notifications + préférences persistées (parité iOS)",
     "type": "product-feature",
-    "status": "controlled",
+    "status": "executed",
     "riskZone": "orange",
-    "createdAt": "2026-09-03T21:40:57.034Z"
+    "createdAt": "2026-09-03T21:40:57.034Z",
+    "resolvedAt": "2026-09-04T06:16:44.105Z"
   },
   {
     "id": 17,
     "title": "Dashboard web : invitations et gestion des participants (parité iOS)",
     "type": "product-feature",
-    "status": "controlled",
+    "status": "executed",
     "riskZone": "orange",
-    "createdAt": "2026-09-03T21:41:17.281Z"
+    "createdAt": "2026-09-03T21:41:17.281Z",
+    "resolvedAt": "2026-09-04T06:16:46.717Z"
   },
   {
     "id": 18,
     "title": "Dashboard web : explore complet (leaderboard, badges) + modération UGC (parité iOS)",
     "type": "product-feature",
-    "status": "controlled",
+    "status": "executed",
     "riskZone": "orange",
-    "createdAt": "2026-09-03T21:41:31.833Z"
+    "createdAt": "2026-09-03T21:41:31.833Z",
+    "resolvedAt": "2026-09-04T06:16:48.901Z"
   },
   {
     "id": 19,

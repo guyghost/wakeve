@@ -982,7 +982,7 @@
         "apps/dashboard/src/routes/app/(protected)/events/[id]/+page.svelte"
       ],
       "proposedBy": "user",
-      "status": "controlled",
+      "status": "executed",
       "votes": [
         {
           "agentId": "strategist",
@@ -1099,7 +1099,9 @@
         "riskZone": "orange",
         "breakdown": "7.6×0.3 + 6.1×0.2 + 4.1×0.15 + 7.0×0.2 + 7.1×0.15 = 6.6"
       },
-      "synthesis": "## Synthesis — Proposal #13\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 7\n**For:** 0 | **Against:** 0 | **Abstain:** 7\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n"
+      "synthesis": "## Synthesis — Proposal #13\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 7\n**For:** 0 | **Against:** 0 | **Abstain:** 7\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n",
+      "resolvedAt": "2026-09-04T06:16:20.827Z",
+      "executionResult": "Executed with delivery plan: feature/dao-13-dashboard-web-gestion-du-budge"
     },
     {
       "id": 14,
@@ -1134,7 +1136,7 @@
         "apps/dashboard/src/routes/app/(protected)/events/[id]/+page.svelte"
       ],
       "proposedBy": "user",
-      "status": "controlled",
+      "status": "executed",
       "votes": [
         {
           "agentId": "strategist",
@@ -1251,7 +1253,9 @@
         "riskZone": "orange",
         "breakdown": "7.9×0.3 + 6.9×0.2 + 3.7×0.15 + 7.3×0.2 + 7.3×0.15 = 6.8"
       },
-      "synthesis": "## Synthesis — Proposal #14\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 7\n**For:** 0 | **Against:** 0 | **Abstain:** 7\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n"
+      "synthesis": "## Synthesis — Proposal #14\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 7\n**For:** 0 | **Against:** 0 | **Abstain:** 7\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n",
+      "resolvedAt": "2026-09-04T06:16:35.958Z",
+      "executionResult": "Executed with delivery plan: feature/dao-14-dashboard-web-r-unions-virtuel"
     },
     {
       "id": 15,
@@ -1291,7 +1295,7 @@
         "apps/dashboard/src/routes/app/(protected)/events/[id]/+page.svelte"
       ],
       "proposedBy": "user",
-      "status": "controlled",
+      "status": "executed",
       "votes": [
         {
           "agentId": "strategist",
@@ -1408,7 +1412,9 @@
         "riskZone": "orange",
         "breakdown": "7.6×0.3 + 5.7×0.2 + 4.4×0.15 + 6.6×0.2 + 6.1×0.15 = 6.3"
       },
-      "synthesis": "## Synthesis — Proposal #15\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 7\n**For:** 0 | **Against:** 0 | **Abstain:** 7\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n"
+      "synthesis": "## Synthesis — Proposal #15\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 7\n**For:** 0 | **Against:** 0 | **Abstain:** 7\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n",
+      "resolvedAt": "2026-09-04T06:16:38.654Z",
+      "executionResult": "Executed with delivery plan: feature/dao-15-dashboard-web-organisation-de-"
     },
     {
       "id": 16,
@@ -1447,7 +1453,7 @@
         "apps/dashboard/src/lib/i18n/en.json"
       ],
       "proposedBy": "user",
-      "status": "controlled",
+      "status": "executed",
       "votes": [
         {
           "agentId": "strategist",
@@ -1564,7 +1570,9 @@
         "riskZone": "orange",
         "breakdown": "8.6×0.3 + 7.0×0.2 + 4.3×0.15 + 6.7×0.2 + 5.7×0.15 = 6.8"
       },
-      "synthesis": "## Synthesis — Proposal #16\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 7\n**For:** 0 | **Against:** 0 | **Abstain:** 7\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n"
+      "synthesis": "## Synthesis — Proposal #16\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 7\n**For:** 0 | **Against:** 0 | **Abstain:** 7\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n",
+      "resolvedAt": "2026-09-04T06:16:44.105Z",
+      "executionResult": "Executed with delivery plan: feature/dao-16-dashboard-web-inbox-des-notifi"
     },
     {
       "id": 17,
@@ -1605,7 +1613,7 @@
         "apps/dashboard/src/lib/i18n/en.json"
       ],
       "proposedBy": "user",
-      "status": "controlled",
+      "status": "executed",
       "votes": [
         {
           "agentId": "strategist",
@@ -1722,7 +1730,9 @@
         "riskZone": "orange",
         "breakdown": "8.0×0.3 + 5.7×0.2 + 4.1×0.15 + 7.4×0.2 + 6.1×0.15 = 6.6"
       },
-      "synthesis": "## Synthesis — Proposal #17\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 7\n**For:** 0 | **Against:** 0 | **Abstain:** 7\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n"
+      "synthesis": "## Synthesis — Proposal #17\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 7\n**For:** 0 | **Against:** 0 | **Abstain:** 7\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n",
+      "resolvedAt": "2026-09-04T06:16:46.717Z",
+      "executionResult": "Executed with delivery plan: feature/dao-17-dashboard-web-invitations-et-g"
     },
     {
       "id": 18,
@@ -1761,7 +1771,7 @@
         "apps/dashboard/src/lib/i18n/en.json"
       ],
       "proposedBy": "user",
-      "status": "controlled",
+      "status": "executed",
       "votes": [
         {
           "agentId": "strategist",
@@ -1878,7 +1888,9 @@
         "riskZone": "green",
         "breakdown": "8.1×0.3 + 7.1×0.2 + 4.6×0.15 + 7.0×0.2 + 7.0×0.15 = 7.0"
       },
-      "synthesis": "## Synthesis — Proposal #18\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 7\n**For:** 0 | **Against:** 0 | **Abstain:** 7\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n"
+      "synthesis": "## Synthesis — Proposal #18\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 7\n**For:** 0 | **Against:** 0 | **Abstain:** 7\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n",
+      "resolvedAt": "2026-09-04T06:16:48.901Z",
+      "executionResult": "Executed with delivery plan: feature/dao-18-dashboard-web-explore-complet-"
     },
     {
       "id": 19,
@@ -2810,9 +2822,63 @@
       "action": "gates_failed",
       "actor": "system",
       "details": "1 blockers"
+    },
+    {
+      "id": 65,
+      "timestamp": "2026-09-04T06:16:20.828Z",
+      "proposalId": 13,
+      "layer": "delivery",
+      "action": "proposal-shipped",
+      "actor": "pi",
+      "details": "shipped via dao_ship"
+    },
+    {
+      "id": 66,
+      "timestamp": "2026-09-04T06:16:35.958Z",
+      "proposalId": 14,
+      "layer": "delivery",
+      "action": "proposal-shipped",
+      "actor": "pi",
+      "details": "shipped via dao_ship"
+    },
+    {
+      "id": 67,
+      "timestamp": "2026-09-04T06:16:38.655Z",
+      "proposalId": 15,
+      "layer": "delivery",
+      "action": "proposal-shipped",
+      "actor": "pi",
+      "details": "shipped via dao_ship"
+    },
+    {
+      "id": 68,
+      "timestamp": "2026-09-04T06:16:44.105Z",
+      "proposalId": 16,
+      "layer": "delivery",
+      "action": "proposal-shipped",
+      "actor": "pi",
+      "details": "shipped via dao_ship"
+    },
+    {
+      "id": 69,
+      "timestamp": "2026-09-04T06:16:46.718Z",
+      "proposalId": 17,
+      "layer": "delivery",
+      "action": "proposal-shipped",
+      "actor": "pi",
+      "details": "shipped via dao_ship"
+    },
+    {
+      "id": 70,
+      "timestamp": "2026-09-04T06:16:48.901Z",
+      "proposalId": 18,
+      "layer": "delivery",
+      "action": "proposal-shipped",
+      "actor": "pi",
+      "details": "shipped via dao_ship"
     }
   ],
-  "nextAuditId": 65,
+  "nextAuditId": 71,
   "controlResults": {
     "8": {
       "proposalId": 8,
@@ -5521,8 +5587,160 @@
     }
   },
   "artefacts": {},
-  "outcomes": {},
-  "snapshots": {},
+  "outcomes": {
+    "13": {
+      "proposalId": 13,
+      "ratings": [
+        {
+          "proposalId": 13,
+          "rater": "user",
+          "score": 5,
+          "comment": "Budget panel livré sur develop : onglet Budget avec items, ajout/suppression, summary et settlements. 4 commits, svelte-check 0 erreur, build OK. Merge sans conflit.",
+          "ratedAt": "2026-09-04T06:16:52.277Z"
+        }
+      ],
+      "metrics": [],
+      "overallScore": 5,
+      "status": "pending",
+      "createdAt": "2026-09-04T06:16:52.277Z",
+      "updatedAt": "2026-09-04T06:16:52.277Z"
+    },
+    "14": {
+      "proposalId": 14,
+      "ratings": [
+        {
+          "proposalId": 14,
+          "rater": "user",
+          "score": 4,
+          "comment": "Meetings panel livré : création Zoom/Google Meet, liste, copie de lien, annulation. Agent relancé après un rate limit 429, a finalisé proprement. Conflits de rebase résolus (onglets partagés). check/build verts.",
+          "ratedAt": "2026-09-04T06:16:58.492Z"
+        }
+      ],
+      "metrics": [],
+      "overallScore": 4,
+      "status": "pending",
+      "createdAt": "2026-09-04T06:16:58.492Z",
+      "updatedAt": "2026-09-04T06:16:58.492Z"
+    },
+    "15": {
+      "proposalId": 15,
+      "ratings": [
+        {
+          "proposalId": 15,
+          "rater": "user",
+          "score": 5,
+          "comment": "3 panneaux (scénarios avec votes et sélection finale, transport, repas) intégrés en onglets avec guards EventStatus. Conflits séquentiels de rebase résolus un par un. check/build verts sur develop.",
+          "ratedAt": "2026-09-04T06:17:05.419Z"
+        }
+      ],
+      "metrics": [],
+      "overallScore": 5,
+      "status": "pending",
+      "createdAt": "2026-09-04T06:17:05.419Z",
+      "updatedAt": "2026-09-04T06:17:05.419Z"
+    },
+    "16": {
+      "proposalId": 16,
+      "ratings": [
+        {
+          "proposalId": 16,
+          "rater": "user",
+          "score": 5,
+          "comment": "Inbox avec badge non-lus dans la nav + préférences notifications persistées (plus de state UI-only). 3 commits dont un fix i18n runes. check/build verts.",
+          "ratedAt": "2026-09-04T06:17:14.828Z"
+        }
+      ],
+      "metrics": [],
+      "overallScore": 5,
+      "status": "pending",
+      "createdAt": "2026-09-04T06:17:14.828Z",
+      "updatedAt": "2026-09-04T06:17:14.828Z"
+    },
+    "17": {
+      "proposalId": 17,
+      "ratings": [
+        {
+          "proposalId": 17,
+          "rater": "user",
+          "score": 4,
+          "comment": "Invitations (code, envoi direct email, audience), ParticipantsPanel avec RSVP et filtre archives. Agent bloqué par rate limit puis relancé avec succès. Types alignés sur le serveur (string[] + RSVP) et budget.machine adapté au merge — la correction a nécessité une intervention d'orchestration, d'où 4 étoiles.",
+          "ratedAt": "2026-09-04T06:17:21.476Z"
+        }
+      ],
+      "metrics": [],
+      "overallScore": 4,
+      "status": "pending",
+      "createdAt": "2026-09-04T06:17:21.476Z",
+      "updatedAt": "2026-09-04T06:17:21.476Z"
+    },
+    "18": {
+      "proposalId": 18,
+      "ratings": [
+        {
+          "proposalId": 18,
+          "rater": "user",
+          "score": 4,
+          "comment": "Leaderboard, badges et modération UGC intégrés à explore avec recherche conservée. Dedup des types nécessaire au rebase (anciennes définitions participants ré-appendues). check/build verts.",
+          "ratedAt": "2026-09-04T06:17:24.803Z"
+        }
+      ],
+      "metrics": [],
+      "overallScore": 4,
+      "status": "pending",
+      "createdAt": "2026-09-04T06:17:24.803Z",
+      "updatedAt": "2026-09-04T06:17:24.803Z"
+    }
+  },
+  "snapshots": {
+    "13": {
+      "proposalId": 13,
+      "timestamp": "2026-09-04T06:16:20.827Z",
+      "branch": "feature/dao-13-dashboard-web-gestion-du-budge",
+      "commitSha": "unknown",
+      "filesChanged": [],
+      "stateSnapshot": "{\"agents\":7,\"proposals\":20}"
+    },
+    "14": {
+      "proposalId": 14,
+      "timestamp": "2026-09-04T06:16:35.958Z",
+      "branch": "feature/dao-14-dashboard-web-r-unions-virtuel",
+      "commitSha": "unknown",
+      "filesChanged": [],
+      "stateSnapshot": "{\"agents\":7,\"proposals\":20}"
+    },
+    "15": {
+      "proposalId": 15,
+      "timestamp": "2026-09-04T06:16:38.654Z",
+      "branch": "feature/dao-15-dashboard-web-organisation-de-",
+      "commitSha": "unknown",
+      "filesChanged": [],
+      "stateSnapshot": "{\"agents\":7,\"proposals\":20}"
+    },
+    "16": {
+      "proposalId": 16,
+      "timestamp": "2026-09-04T06:16:44.105Z",
+      "branch": "feature/dao-16-dashboard-web-inbox-des-notifi",
+      "commitSha": "unknown",
+      "filesChanged": [],
+      "stateSnapshot": "{\"agents\":7,\"proposals\":20}"
+    },
+    "17": {
+      "proposalId": 17,
+      "timestamp": "2026-09-04T06:16:46.717Z",
+      "branch": "feature/dao-17-dashboard-web-invitations-et-g",
+      "commitSha": "unknown",
+      "filesChanged": [],
+      "stateSnapshot": "{\"agents\":7,\"proposals\":20}"
+    },
+    "18": {
+      "proposalId": 18,
+      "timestamp": "2026-09-04T06:16:48.901Z",
+      "branch": "feature/dao-18-dashboard-web-explore-complet-",
+      "commitSha": "unknown",
+      "filesChanged": [],
+      "stateSnapshot": "{\"agents\":7,\"proposals\":20}"
+    }
+  },
   "verifications": {},
   "daoRoot": "/Users/guy/Developer/dev/wakeve/.dao"
 }

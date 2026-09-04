@@ -2,7 +2,8 @@
   "id": 13,
   "title": "Dashboard web : gestion du budget (parité iOS)",
   "type": "product-feature",
-  "status": "controlled",
+  "status": "executed",
   "riskZone": "orange",
-  "createdAt": "2026-09-03T21:40:10.164Z"
+  "createdAt": "2026-09-03T21:40:10.164Z",
+  "resolvedAt": "2026-09-04T06:16:20.827Z"
 }

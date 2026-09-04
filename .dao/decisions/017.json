@@ -2,7 +2,8 @@
   "id": 17,
   "title": "Dashboard web : invitations et gestion des participants (parité iOS)",
   "type": "product-feature",
-  "status": "controlled",
+  "status": "executed",
   "riskZone": "orange",
-  "createdAt": "2026-09-03T21:41:17.281Z"
+  "createdAt": "2026-09-03T21:41:17.281Z",
+  "resolvedAt": "2026-09-04T06:16:46.717Z"
 }
