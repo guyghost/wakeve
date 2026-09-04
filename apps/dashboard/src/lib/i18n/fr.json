@@ -8,7 +8,7 @@
     "settings": "Paramètres",
     "logout": "Déconnexion",
     "notifications": "Notifications",
-    "inbox": "Boîte de réception"
+    "inbox": "Messages"
   },
   "auth": {
     "title": "Bienvenue sur Wakeve",
@@ -71,6 +71,11 @@
       "OUTDOOR_ADVENTURE": "Aventure outdoor",
       "CULTURAL_EVENT": "Événement culturel",
       "OTHER": "Autre"
+    },
+    "archives": {
+      "filter": "Archives (événements passés)",
+      "emptyTitle": "Aucun événement archivé",
+      "emptyDesc": "Les événements finalisés ou dont la date est passée apparaîtront ici."
     }
   },
   "eventDetail": {
@@ -82,7 +87,8 @@
       "budget": "Budget",
       "scenarios": "Scénarios",
       "transport": "Transport",
-      "meals": "Repas"
+      "meals": "Repas",
+      "invitations": "Invitations"
     },
     "info": {
       "status": "Statut",
@@ -346,7 +352,12 @@
   },
   "create": {
     "title": "Créer un événement",
-    "steps": ["Informations", "Créneaux", "Lieu", "Participants"],
+    "steps": [
+      "Informations",
+      "Créneaux",
+      "Lieu",
+      "Participants"
+    ],
     "fields": {
       "title": "Titre de l'événement *",
       "titlePlaceholder": "Ex: Soirée d'anniversaire de Marie",
@@ -458,29 +469,7 @@
   "settings": {
     "title": "Paramètres",
     "language": "Langue et région",
-    "notifications": {
-      "title": "Notifications",
-      "subtitle": "Choisissez les types de notifications que vous souhaitez recevoir.",
-      "loading": "Chargement des préférences...",
-      "errors": {
-        "load": "Impossible de charger les préférences de notification.",
-        "save": "Échec de l'enregistrement. Modifications annulées."
-      },
-      "types": {
-        "EVENT_INVITE": "Invitation événement",
-        "VOTE_REMINDER": "Rappel de vote",
-        "VOTE_CLOSE_REMINDER": "Fin de vote imminente",
-        "DEADLINE_REMINDER": "Rappel d'échéance",
-        "DATE_CONFIRMED": "Date confirmée",
-        "NEW_SCENARIO": "Nouvelle option",
-        "SCENARIO_SELECTED": "Option retenue",
-        "NEW_COMMENT": "Nouveau commentaire",
-        "MENTION": "Mention",
-        "MEETING_REMINDER": "Rappel réunion",
-        "PAYMENT_DUE": "Paiement dû",
-        "EVENT_UPDATE": "Mise à jour événement"
-      }
-    },
+    "notifications": "Notifications",
     "account": "Compte",
     "dangerZone": "Zone dangereuse",
     "deleteAccount": "Supprimer mon compte",
@@ -575,5 +564,47 @@
     "MORNING": "Matin",
     "AFTERNOON": "Après-midi",
     "EVENING": "Soirée"
+  },
+  "invitations": {
+    "codeTitle": "Code d'invitation",
+    "codeIntro": "Générez un lien à partager : toute personne qui l'utilise rejoint l'événement.",
+    "generate": "Générer un code",
+    "regenerate": "Générer un nouveau code",
+    "code": "Code",
+    "link": "Lien d'invitation",
+    "copy": "Copier",
+    "copied": "Copié !",
+    "uses": "Utilisations : {current}",
+    "unlimitedUses": "Utilisations illimitées",
+    "directTitle": "Envoi direct par email",
+    "directIntro": "Envoyez une invitation personnalisée à chaque adresse email.",
+    "directUnavailable": "L'envoi direct n'est pas disponible pour cet événement. Il est réservé à l'organisateur sur un événement en brouillon, lorsque le service d'envoi est configuré. Partagez le code d'invitation ci-dessus en attendant.",
+    "directCheck": "Vérifier la disponibilité",
+    "checking": "Vérification…",
+    "directReady": "Envoi direct disponible.",
+    "emailsLabel": "Adresses email",
+    "emailsPlaceholder": "alice@exemple.com, bob@exemple.com",
+    "send": "Envoyer les invitations",
+    "batchSent": "Lot d'invitations envoyé.",
+    "outcome": {
+      "SERVER_ACCEPTED": "Envoyée",
+      "INVALID": "Invalide",
+      "FAILED": "Échec",
+      "CANCELLED": "Annulée"
+    },
+    "audienceTitle": "Audience",
+    "audienceInvited": "Invité·es",
+    "audienceJoined": "Ont rejoint l'événement",
+    "audiencePending": "En attente de réponse",
+    "audienceHint": "Les participants listés ont rejoint l'événement ; « en attente » est estimé à partir du nombre de participants attendus. L'état de RSVP global n'est pas encore exposé par l'API.",
+    "errors": {
+      "generate": "Impossible de générer le code d'invitation.",
+      "copy": "Copie impossible dans ce navigateur.",
+      "capability": "Impossible de vérifier la disponibilité de l'envoi direct.",
+      "batch": "Impossible d'envoyer les invitations.",
+      "batchStale": "L'événement a changé entre-temps : vérifiez à nouveau la disponibilité puis réessayez.",
+      "invalidEmails": "Adresses email invalides : {emails}"
+    },
+    "audienceDateValidated": "Date retenue confirmée : {date}"
   }
 }

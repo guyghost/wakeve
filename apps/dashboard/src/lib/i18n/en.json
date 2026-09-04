@@ -8,7 +8,7 @@
     "settings": "Settings",
     "logout": "Log out",
     "notifications": "Notifications",
-    "inbox": "Inbox"
+    "inbox": "Messages"
   },
   "auth": {
     "title": "Welcome to Wakeve",
@@ -71,6 +71,11 @@
       "OUTDOOR_ADVENTURE": "Outdoor adventure",
       "CULTURAL_EVENT": "Cultural event",
       "OTHER": "Other"
+    },
+    "archives": {
+      "filter": "Archives (past events)",
+      "emptyTitle": "No archived events",
+      "emptyDesc": "Finalized events or events whose date has passed will appear here."
     }
   },
   "eventDetail": {
@@ -82,7 +87,8 @@
       "budget": "Budget",
       "scenarios": "Scenarios",
       "transport": "Transport",
-      "meals": "Meals"
+      "meals": "Meals",
+      "invitations": "Invitations"
     },
     "info": {
       "status": "Status",
@@ -346,7 +352,12 @@
   },
   "create": {
     "title": "Create an event",
-    "steps": ["Information", "Slots", "Location", "Participants"],
+    "steps": [
+      "Information",
+      "Slots",
+      "Location",
+      "Participants"
+    ],
     "fields": {
       "title": "Event title *",
       "titlePlaceholder": "E.g. Marie's birthday party",
@@ -458,29 +469,7 @@
   "settings": {
     "title": "Settings",
     "language": "Language & region",
-    "notifications": {
-      "title": "Notifications",
-      "subtitle": "Choose which notification types you want to receive.",
-      "loading": "Loading preferences...",
-      "errors": {
-        "load": "Failed to load notification preferences.",
-        "save": "Failed to save. Your changes were reverted."
-      },
-      "types": {
-        "EVENT_INVITE": "Event invitation",
-        "VOTE_REMINDER": "Vote reminder",
-        "VOTE_CLOSE_REMINDER": "Vote closing soon",
-        "DEADLINE_REMINDER": "Deadline reminder",
-        "DATE_CONFIRMED": "Date confirmed",
-        "NEW_SCENARIO": "New option",
-        "SCENARIO_SELECTED": "Selected option",
-        "NEW_COMMENT": "New comment",
-        "MENTION": "Mention",
-        "MEETING_REMINDER": "Meeting reminder",
-        "PAYMENT_DUE": "Payment due",
-        "EVENT_UPDATE": "Event update"
-      }
-    },
+    "notifications": "Notifications",
     "account": "Account",
     "dangerZone": "Danger zone",
     "deleteAccount": "Delete my account",
@@ -575,5 +564,47 @@
     "MORNING": "Morning",
     "AFTERNOON": "Afternoon",
     "EVENING": "Evening"
+  },
+  "invitations": {
+    "codeTitle": "Invitation code",
+    "codeIntro": "Generate a shareable link: anyone using it joins the event.",
+    "generate": "Generate a code",
+    "regenerate": "Generate a new code",
+    "code": "Code",
+    "link": "Invitation link",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "uses": "Uses: {current}",
+    "unlimitedUses": "Unlimited uses",
+    "directTitle": "Direct email delivery",
+    "directIntro": "Send a personalized invitation to each email address.",
+    "directUnavailable": "Direct delivery is not available for this event. It is reserved for the organizer on a draft event while the delivery service is configured. Share the invitation code above in the meantime.",
+    "directCheck": "Check availability",
+    "checking": "Checking…",
+    "directReady": "Direct delivery is available.",
+    "emailsLabel": "Email addresses",
+    "emailsPlaceholder": "alice@example.com, bob@example.com",
+    "send": "Send invitations",
+    "batchSent": "Invitation batch sent.",
+    "outcome": {
+      "SERVER_ACCEPTED": "Sent",
+      "INVALID": "Invalid",
+      "FAILED": "Failed",
+      "CANCELLED": "Cancelled"
+    },
+    "audienceTitle": "Audience",
+    "audienceInvited": "Invited",
+    "audienceJoined": "Joined the event",
+    "audiencePending": "Awaiting response",
+    "audienceHint": "Listed participants have joined the event; \"awaiting\" is estimated from the expected participant count. The global RSVP state is not exposed by the API yet.",
+    "errors": {
+      "generate": "Failed to generate the invitation code.",
+      "copy": "Copy is not supported in this browser.",
+      "capability": "Failed to check direct delivery availability.",
+      "batch": "Failed to send the invitations.",
+      "batchStale": "The event changed in the meantime: check availability again and retry.",
+      "invalidEmails": "Invalid email addresses: {emails}"
+    },
+    "audienceDateValidated": "Retained date confirmed: {date}"
   }
 }
