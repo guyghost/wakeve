@@ -342,12 +342,15 @@ struct AuthenticatedView: View {
             database: RepositoryProvider.shared.database,
             eventRepository: RepositoryProvider.shared.databaseRepository
         )
+        debugLog("[QALaunch] AuthenticatedView task firing userId=\(userId)")
         guard let route = await support.prepare(
             arguments: arguments,
             viewerId: userId
         ) else {
+            debugLog("[QALaunch] prepare returned nil")
             return
         }
+        debugLog("[QALaunch] resolved route \(route)")
 
         invitationQALibraryIsSeedReady = true
         invitationLandingEventId = nil
@@ -391,6 +394,33 @@ struct AuthenticatedView: View {
             routeInvitationExperience(
                 InvitationExperienceRouteRequestDeepLink(
                     target: .archiveDetail,
+                    intent: .read
+                ),
+                for: event
+            )
+        case .poll(let eventId):
+            guard let event = repository.getEvent(id: eventId) else { return }
+            routeInvitationExperience(
+                InvitationExperienceRouteRequestDeepLink(
+                    target: .poll,
+                    intent: .mutate
+                ),
+                for: event
+            )
+        case .pollResults(let eventId):
+            guard let event = repository.getEvent(id: eventId) else { return }
+            routeInvitationExperience(
+                InvitationExperienceRouteRequestDeepLink(
+                    target: .poll,
+                    intent: .read
+                ),
+                for: event
+            )
+        case .organization(let eventId):
+            guard let event = repository.getEvent(id: eventId) else { return }
+            routeInvitationExperience(
+                InvitationExperienceRouteRequestDeepLink(
+                    target: .organization,
                     intent: .read
                 ),
                 for: event

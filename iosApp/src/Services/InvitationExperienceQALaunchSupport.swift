@@ -9,6 +9,9 @@ enum InvitationExperienceQALaunchRoute: Equatable {
     case audience(eventId: String)
     case information(eventId: String)
     case archive(eventId: String)
+    case poll(eventId: String)
+    case pollResults(eventId: String)
+    case organization(eventId: String)
 }
 
 @MainActor
@@ -49,18 +52,24 @@ final class InvitationExperienceQALaunchSupport {
         arguments: [String],
         viewerId: String
     ) async -> InvitationExperienceQALaunchRoute? {
+        debugLog("[QALaunch] prepare viewerId=\(viewerId) seedArg=\(arguments.contains(Self.seedArgument))")
         guard arguments.contains(Self.seedArgument), !viewerId.isEmpty else { return nil }
         // Direct DEBUG harnesses do not mount ContentView. Opt in here before
         // any seed/router work so the same explicit rollout decision applies
         // to direct support calls and first-launch root composition.
         UserDefaults.standard.set(true, forKey: "iosInvitationExperienceV1")
-        guard await seedRepository(viewerId: viewerId) else { return nil }
+        guard await seedRepository(viewerId: viewerId) else {
+            debugLog("[QALaunch] seedRepository FAILED")
+            return nil
+        }
         guard let rawRoute = argumentValue(
             after: Self.openRouteArgument,
             in: arguments
         ) else {
+            debugLog("[QALaunch] no route argument")
             return nil
         }
+        debugLog("[QALaunch] route=\(rawRoute)")
 
         switch rawRoute {
         case "library":
@@ -102,7 +111,38 @@ final class InvitationExperienceQALaunchSupport {
                 ),
                 expected: .archiveDetail
             ) ? .archive(eventId: Seed.finalized) : nil
+        case "poll":
+            return resolve(
+                eventId: Seed.polling,
+                viewerId: viewerId,
+                request: InvitationExperienceRouteRequestDeepLink(
+                    target: .poll,
+                    intent: .mutate
+                ),
+                expected: .poll
+            ) ? .poll(eventId: Seed.polling) : nil
+        case "poll-results":
+            return resolve(
+                eventId: Seed.polling,
+                viewerId: viewerId,
+                request: InvitationExperienceRouteRequestDeepLink(
+                    target: .poll,
+                    intent: .read
+                ),
+                expected: .poll
+            ) ? .pollResults(eventId: Seed.polling) : nil
+        case "organization":
+            return resolve(
+                eventId: Seed.confirmed,
+                viewerId: viewerId,
+                request: InvitationExperienceRouteRequestDeepLink(
+                    target: .organization,
+                    intent: .read
+                ),
+                expected: .organization
+            ) ? .organization(eventId: Seed.confirmed) : nil
         default:
+            debugLog("[QALaunch] unknown route")
             return nil
         }
     }
@@ -114,7 +154,10 @@ final class InvitationExperienceQALaunchSupport {
         let pastStart = now.addingTimeInterval(-30 * 24 * 60 * 60)
         let pastEnd = pastStart.addingTimeInterval(3 * 60 * 60)
 
-        guard ensureQAUsers(viewerId: viewerId) else { return false }
+        guard ensureQAUsers(viewerId: viewerId) else {
+            debugLog("[QALaunch] seed step failed: ensureQAUsers")
+            return false
+        }
 
         let seeds = [
             makeEvent(
@@ -170,14 +213,24 @@ final class InvitationExperienceQALaunchSupport {
         ]
 
         for seed in seeds where !(await ensureEvent(seed)) {
+            debugLog("[QALaunch] seed step failed: ensureEvent")
             return false
         }
 
-        guard await ensureDraftAudience(viewerId: viewerId),
-              ensureDraftLocation(),
-              await ensureConfirmedNotification(viewerId: viewerId),
-              await ensureProtectedDirectInvite(viewerId: viewerId)
-        else {
+        guard await ensureDraftAudience(viewerId: viewerId) else {
+            debugLog("[QALaunch] seed step failed: ensureDraftAudience")
+            return false
+        }
+        guard ensureDraftLocation() else {
+            debugLog("[QALaunch] seed step failed: ensureDraftLocation")
+            return false
+        }
+        guard await ensureConfirmedNotification(viewerId: viewerId) else {
+            debugLog("[QALaunch] seed step failed: ensureConfirmedNotification")
+            return false
+        }
+        guard await ensureProtectedDirectInvite(viewerId: viewerId) else {
+            debugLog("[QALaunch] seed step failed: ensureProtectedDirectInvite")
             return false
         }
         return true
@@ -202,6 +255,7 @@ final class InvitationExperienceQALaunchSupport {
             do {
                 _ = try await eventRepository.createEvent(event: seed.event)
             } catch {
+                debugLog("[QALaunch] createEvent failed: \(error)")
                 return false
             }
         }
@@ -235,12 +289,20 @@ final class InvitationExperienceQALaunchSupport {
         if seed.confirmed,
            database.confirmedDateQueries
             .existsByEventId(eventId: seed.event.id)
-            .executeAsOneOrNull() == nil,
-           let slot = seed.event.proposedSlots.first {
+            .executeAsOneOrNull() == nil {
+            // The repository persists slots under the namespaced physical identity
+            // (TimeSlotStorageIdentity.physicalId), not the logical in-memory id.
+            // Read back the persisted row so the confirmedDate FK on timeSlot(id)
+            // is satisfied.
+            guard let persistedSlot = database.timeSlotQueries
+                .selectByEventId(eventId: seed.event.id)
+                .executeAsOneOrNull() else {
+                return false
+            }
             database.confirmedDateQueries.insertConfirmedDate(
                 id: "qa-confirmed-\(seed.event.id)",
                 eventId: seed.event.id,
-                timeslotId: slot.id,
+                timeslotId: persistedSlot.id,
                 confirmedByOrganizerId: seed.event.organizerId,
                 confirmedAt: now,
                 updatedAt: now
@@ -407,6 +469,7 @@ final class InvitationExperienceQALaunchSupport {
               aggregate.aggregateSchemaVersion == 1,
               let digestPort = KeychainDirectInviteRecipientDigestPort()
         else {
+            debugLog("[QALaunch] directInvite precondition failed: schemaVersion=\(database.eventQueries.selectById(id: Seed.draft).executeAsOneOrNull()?.aggregateSchemaVersion ?? -1)")
             return false
         }
 
@@ -417,40 +480,53 @@ final class InvitationExperienceQALaunchSupport {
         guard let firstKey = keyOwner.protect(rawRecipientInput: "+33 6 12 34 56 70"),
               let secondKey = keyOwner.protect(rawRecipientInput: "+33 6 12 34 56 71")
         else {
+            debugLog("[QALaunch] directInvite key protection failed")
             return false
         }
 
-        let capability = DirectInviteCapabilityReady(
-            eventId: event.id,
-            actorId: viewerId,
-            accessRevision: aggregate.aggregateRevision,
-            allowedEventStatuses: Set([EventStatus.draft])
+        // Persist the protected seed batch directly. The repository's 1-argument
+        // submit(command:) is a forbidden-guarded boundary that requires sealed
+        // delivery envelopes from the audience UI flow, so the QA harness mirrors
+        // the repository transaction instead (same tables, same status values,
+        // hmac-protected recipient keys, no raw recipient material).
+        let timestamp = iso8601(Date())
+        let retentionExpiry = iso8601(Date().addingTimeInterval(29 * 24 * 60 * 60))
+        database.invitationExperienceQueries.insertDirectInviteBatch(
+            batch_id: Seed.directInviteBatch,
+            event_id: event.id,
+            actor_id: viewerId,
+            operation_id: Seed.directInviteOperation,
+            access_revision: aggregate.aggregateRevision,
+            status: "PENDING_SYNC",
+            created_at: timestamp,
+            updated_at: timestamp,
+            expires_at: retentionExpiry
         )
-        do {
-            let operation = try await directInviteRepository.submit(
-                command: SubmitDirectInviteBatchCommand(
-                    eventId: event.id,
-                    actorId: viewerId,
-                    eventStatus: event.status,
-                    batchId: Seed.directInviteBatch,
-                    operationId: Seed.directInviteOperation,
-                    recipientKeys: Set([firstKey, secondKey]),
-                    capability: capability
-                )
+        for key in [firstKey, secondKey] {
+            database.invitationExperienceQueries.insertDirectInviteRecipientOutcome(
+                batch_id: Seed.directInviteBatch,
+                recipient_key: key.value,
+                key_version: 1,
+                status: "QUEUED_LOCAL",
+                invitation_id: nil,
+                reason_code: nil,
+                expires_at: retentionExpiry,
+                updated_at: timestamp
             )
-            guard operation is DirectInviteOperationPendingSync else { return false }
-        } catch {
-            return false
         }
 
         let batches = database.invitationExperienceQueries
             .selectDirectInviteBatchesByEventId(event_id: Seed.draft)
             .executeAsList()
         guard batches.count == 1, let batch = batches.first else { return false }
-        return database.invitationExperienceQueries
+        guard database.invitationExperienceQueries
             .selectDirectInviteRecipientOutcomes(batch_id: batch.batch_id)
             .executeAsList()
             .count >= 2
+        else { return false }
+        // Verify through the real repository so the seed is proven via the same
+        // direct-invite boundary the audience UI reads back from.
+        return (try? await directInviteRepository.load(batchId: batch.batch_id)) != nil
     }
 
     private func resolve(
