@@ -1,6 +1,5 @@
 package com.guyghost.wakeve.qa
 
-import android.content.Context
 import android.util.Log
 import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.invitationexperience.DirectInviteRecipientDigestPort
@@ -41,7 +40,6 @@ import kotlinx.coroutines.withContext
  * `App.kt` derrière le garde `FLAG_DEBUGGABLE` + extra `wakeve.dev.auth`.
  */
 class AndroidQaSeeder(
-    private val context: Context,
     private val database: WakeveDb,
     private val eventRepository: DatabaseEventRepository,
     private val directInviteRepository: DatabaseDirectInviteBatchRepository,
@@ -67,13 +65,14 @@ class AndroidQaSeeder(
         val focalY: Double
     )
 
-    suspend fun seed(requestedViewerId: String): Boolean = withContext(Dispatchers.IO) {
-        // Stabiliser le viewerId QA entre les sessions (le guest id régénère à
-        // chaque lancement ; user.email est UNIQUE) — DEBUG only.
-        val prefs = context.getSharedPreferences("wakeve-qa", Context.MODE_PRIVATE)
-        val viewerId = prefs.getString("qaViewerId", null) ?: requestedViewerId.also {
-            prefs.edit().putString("qaViewerId", it).apply()
-        }
+    suspend fun seed(viewerId: String): Boolean = try {
+        seedUnsafe(viewerId)
+    } catch (t: Throwable) {
+        Log.d(TAG, "seed crashed: $t")
+        false
+    }
+
+    private suspend fun seedUnsafe(viewerId: String): Boolean = withContext(Dispatchers.IO) {
         val now = Date()
         val futureStart = Date(now.time + 30L * 24 * 60 * 60 * 1000)
         val futureEnd = Date(futureStart.time + 3L * 60 * 60 * 1000)
@@ -174,8 +173,8 @@ class AndroidQaSeeder(
         if (database.userQueries.selectUserById(id = viewerId).executeAsOneOrNull() == null) {
             database.userQueries.insertUser(
                 id = viewerId,
-                provider_id = "qa-provider-organizer",
-                email = "organizer@qa.wakeve.invalid",
+                provider_id = "qa-provider-organizer-$viewerId",
+                email = "organizer-$viewerId@qa.wakeve.invalid",
                 name = "Léa Martin",
                 avatar_url = null,
                 provider = "qa",
@@ -207,14 +206,11 @@ class AndroidQaSeeder(
     private suspend fun ensureEvent(seed: QaSeedEvent): Boolean {
         val existing = eventRepository.getEvent(id = seed.event.id)
         if (existing != null) {
-            if (existing.organizerId != seed.event.organizerId ||
-                existing.status != seed.event.status ||
-                existing.proposedSlots.isEmpty()
-            ) {
+            // Event d'une session QA précédente : le viewer courant ne peut pas
+            // reprendre l'ownership (updateEvent = lock optimiste, deleteEvent
+            // refuse FINALIZED/PAST) — on valide la lecture et on continue.
+            if (existing.status != seed.event.status || existing.proposedSlots.isEmpty()) {
                 return false
-            }
-            if (existing.description != seed.event.description) {
-                eventRepository.updateEvent(event = seed.event)
             }
         } else {
             eventRepository.createEvent(event = seed.event)
@@ -277,22 +273,34 @@ class AndroidQaSeeder(
 
     private suspend fun ensureDraftAudience(viewerId: String): Boolean {
         val records = eventRepository.getParticipantRecords(eventId = Seed.DRAFT).orEmpty()
+        Log.d(TAG, "ensureDraftAudience: records=${records.map { it.userId + ":" + it.rsvp }}")
         if (records.none { it.userId == Seed.PENDING_PARTICIPANT }) {
-            eventRepository.addParticipant(
+            val result = eventRepository.addParticipant(
                 eventId = Seed.DRAFT,
                 participantId = Seed.PENDING_PARTICIPANT
             )
+            Log.d(TAG, "addParticipant(pending) -> $result")
         }
 
         val organizer = database.participantQueries
             .selectByEventIdAndUserId(eventId = Seed.DRAFT, userId = viewerId)
             .executeAsOneOrNull()
-            ?: return false
-        if (organizer.hasValidatedDate != 1L) {
+        if (organizer == null) {
+            val addResult = eventRepository.addParticipant(
+                eventId = Seed.DRAFT,
+                participantId = viewerId
+            )
+            Log.d(TAG, "addParticipant(organizer) -> $addResult")
+        }
+        val ensured = database.participantQueries
+            .selectByEventIdAndUserId(eventId = Seed.DRAFT, userId = viewerId)
+            .executeAsOneOrNull()
+            ?: return false.also { Log.d(TAG, "ensureDraftAudience: organizer record missing") }
+        if (ensured.hasValidatedDate != 1L) {
             database.participantQueries.updateValidation(
                 hasValidatedDate = 1L,
                 updatedAt = iso8601(Date()),
-                id = organizer.id
+                id = ensured.id
             )
         }
 
@@ -300,7 +308,7 @@ class AndroidQaSeeder(
             rsvpState = "ACCEPTED",
             dateValidationState = "VALIDATED_RETAINED_DATE",
             updatedAt = iso8601(Date()),
-            id = organizer.id
+            id = ensured.id
         )
         database.participantQueries
             .selectByEventIdAndUserId(eventId = Seed.DRAFT, userId = Seed.PENDING_PARTICIPANT)
@@ -320,13 +328,22 @@ class AndroidQaSeeder(
             updated.any { it.rsvp == "PENDING" }
     }
 
-    /** Le viewer doit être participant ACCEPTED de l'event POLLING pour soumettre son vote. */
+    /** Le viewer doit être participant ACCEPTED de l'event POLLING pour soumettre son vote.
+     *  addParticipant est interdit après DRAFT : écriture directe harnais (DEBUG). */
     private suspend fun ensurePollingAudience(viewerId: String): Boolean {
         val records = eventRepository.getParticipantRecords(eventId = Seed.POLLING).orEmpty()
         if (records.none { it.userId == viewerId }) {
-            eventRepository.addParticipant(
+            val now = iso8601(Date())
+            database.participantQueries.insertParticipantWithAxes(
+                id = "part_${Seed.POLLING}_$viewerId",
                 eventId = Seed.POLLING,
-                participantId = viewerId
+                userId = viewerId,
+                role = "PARTICIPANT",
+                hasValidatedDate = 0L,
+                rsvpState = "ACCEPTED",
+                dateValidationState = "VALIDATED_RETAINED_DATE",
+                joinedAt = now,
+                updatedAt = now
             )
         }
         val record = database.participantQueries
@@ -370,6 +387,20 @@ class AndroidQaSeeder(
             if (notificationRepository.get(eventId = Seed.CONFIRMED, userId = viewerId) != null) {
                 return true
             }
+            // La garde isMember du repository exige la présence du viewer sur
+            // l'événement confirmé (insert direct : addParticipant interdit
+            // après DRAFT).
+            database.participantQueries.insertParticipantWithAxes(
+                id = "part_${Seed.CONFIRMED}_$viewerId",
+                eventId = Seed.CONFIRMED,
+                userId = viewerId,
+                role = "PARTICIPANT",
+                hasValidatedDate = 1L,
+                rsvpState = "ACCEPTED",
+                dateValidationState = "VALIDATED_RETAINED_DATE",
+                joinedAt = iso8601(Date()),
+                updatedAt = iso8601(Date())
+            )
             notificationRepository.save(
                 operationKey = com.guyghost.wakeve.invitationexperience.OperationKey(
                     subject = com.guyghost.wakeve.invitationexperience.OperationSubject.EventNotification(
@@ -378,7 +409,7 @@ class AndroidQaSeeder(
                     ),
                     action = com.guyghost.wakeve.invitationexperience.InformationOperationAction.SAVE_EVENT_PREFERENCE,
                     target = com.guyghost.wakeve.invitationexperience.OperationTarget.User(viewerId),
-                    operationId = Seed.NOTIFICATION_OPERATION
+                    operationId = "${Seed.NOTIFICATION_OPERATION}-$viewerId"
                 ),
                 preference = com.guyghost.wakeve.invitationexperience.EventNotificationPreference.ALL_EVENT_UPDATES
             )

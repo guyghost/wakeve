@@ -140,7 +140,6 @@ fun App() {
 
                 if (qaRoute != null) {
                     val seeder = AndroidQaSeeder(
-                        context = context,
                         database = database,
                         eventRepository = DatabaseEventRepository(db = database, syncManager = null),
                         directInviteRepository = DatabaseDirectInviteBatchRepository(database),
