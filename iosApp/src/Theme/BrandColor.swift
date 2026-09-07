@@ -8,7 +8,7 @@ public enum BrandColor {
     public static let midnightBlue = Color(hex: "071421")
     public static let midnightBlueRaised = Color(hex: "101E2A")
     public static let graphite = Color(hex: "17191D")
-    public static let softIvory = Color(hex: "F7F3EC")
+    public static let softIvory = Color.wakeveWarmIvory
     public static let warmPeach = Color(hex: "F4A26D")
     public static let mutedLavender = Color(hex: "B8A8D9")
     public static let subtleAmber = Color(hex: "F3B45B")

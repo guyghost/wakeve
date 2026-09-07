@@ -30,8 +30,14 @@ extension Color {
     static let wakeveErrorDark = Color(hex: "B91C1C")
     
     // MARK: - Neutral Colors (Light Mode)
-    static let wakeveBackgroundLight = Color(hex: "FFFFFF")
-    static let wakeveSurfaceLight = Color(hex: "F8FAFC")
+    /// Fond ivoire chaud standard de l'app — proposition Swarm DAO #27.
+    /// Valeur mesurée au pixel sur l'écran Résultats
+    /// (qa-screenshots/cycle-2026-09-04/28-poll-results.png).
+    static let wakeveWarmIvory = Color(hex: "F6F1EA")
+    /// Équivalent dark mode du fond ivoire, aligné sur BrandColor.midnightBlue.
+    static let wakeveWarmIvoryDark = Color(hex: "071421")
+    static let wakeveBackgroundLight = Color.wakeveWarmIvory
+    static let wakeveSurfaceLight = Color.wakeveWarmIvory
     static let wakeveBorderLight = Color(hex: "E2E8F0")
     static let wakeveTextPrimaryLight = Color(hex: "0F172A")
     static let wakeveTextSecondaryLight = Color(hex: "475569")
