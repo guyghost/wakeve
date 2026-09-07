@@ -311,7 +311,8 @@ struct WakeveActionButton: View {
     private var background: Color {
         switch variant {
         case .primary:
-            return colorScheme == .dark ? Color.white.opacity(0.92) : WakeveTheme.ColorToken.permissionBlue
+            // Token bleu canonique #2563EB — DAO #26 (l'ancien bleu dérivé #3F8FF2 est retiré)
+            return colorScheme == .dark ? Color.white.opacity(0.92) : Color.wakevePrimary
         case .secondary:
             return Color.clear
         case .neutral:
@@ -328,7 +329,8 @@ struct WakeveActionButton: View {
         case .primary:
             return colorScheme == .dark ? WakeveTheme.ColorToken.appDark : .white
         case .secondary:
-            return WakeveTheme.ColorToken.permissionBlue
+            // Texte bleu aligné sur le token canonique (DAO #26, AC 5)
+            return Color.wakevePrimary
         case .neutral:
             return colorScheme == .dark ? .white : WakeveTheme.ColorToken.primaryText(for: colorScheme)
         case .eventNext:
@@ -341,7 +343,7 @@ struct WakeveActionButton: View {
     private var shadowColor: Color {
         switch variant {
         case .primary:
-            return WakeveTheme.ColorToken.permissionBlue.opacity(0.28)
+            return Color.wakevePrimary.opacity(0.28)
         case .eventNext:
             return WakeveTheme.ColorToken.eventLilacAction.opacity(0.32)
         case .destructive:
@@ -512,6 +514,70 @@ struct WakeveScreenHeader<Trailing: View>: View {
             .padding(.horizontal, 20)
         }
         .accessibilityElement(children: .contain)
+    }
+}
+
+// MARK: - Secondary Icon Button
+
+/// Action secondaire circulaire — Proposition Swarm DAO #26.
+/// Cercle teinté bleu primaire (≈ #D8E3FB sur blanc), icône bleu #2563EB.
+/// Usage : copier, partager, actions utilitaires des cartes.
+struct WakeveSecondaryIconButton: View {
+    let systemImage: String
+    let accessibilityLabel: String
+    let action: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 17, weight: .bold))
+                .foregroundColor(Color.wakevePrimary)
+                .frame(width: 46, height: 46)
+                .background(Color.wakevePrimary.opacity(colorScheme == .dark ? 0.22 : 0.12))
+                .clipShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .frame(minWidth: 44, minHeight: 44)
+        .contentShape(Circle())
+        .accessibilityLabel(accessibilityLabel)
+    }
+}
+
+// MARK: - Meta Chip
+
+/// Chip de métadonnées standard — Proposition Swarm DAO #26.
+
+/// Chip de métadonnées standard — Proposition Swarm DAO #26.
+/// Icône 16pt + texte caption sur fond subtil capsule (fuseau, invités, échéance…).
+struct WakeveMetaChip: View {
+    let systemImage: String
+    let label: String
+    let foregroundColor: Color
+    let backgroundColor: Color
+
+    init(
+        systemImage: String = "globe",
+        label: String,
+        foregroundColor: Color = .secondary,
+        backgroundColor: Color = Color(.tertiarySystemFill)
+    ) {
+        self.systemImage = systemImage
+        self.label = label
+        self.foregroundColor = foregroundColor
+        self.backgroundColor = backgroundColor
+    }
+
+    var body: some View {
+        Label(label, systemImage: systemImage)
+            .font(TypographyTokens.caption)
+            .foregroundColor(foregroundColor)
+            .lineLimit(1)
+            .minimumScaleFactor(0.78)
+            .padding(.horizontal, WakeveTheme.Spacing.sm)
+            .frame(height: 30)
+            .background(backgroundColor)
+            .clipShape(Capsule())
     }
 }
 

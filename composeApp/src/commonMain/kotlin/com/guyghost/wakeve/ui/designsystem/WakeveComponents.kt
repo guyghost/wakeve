@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -54,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import com.guyghost.wakeve.theme.WakevePrimary
 import com.guyghost.wakeve.theme.WakeveWarning
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -166,6 +168,94 @@ fun WakeveScreenHeader(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        }
+    }
+}
+
+/// CTA primaire pilule — Proposition Swarm DAO #26.
+/// Bleu canonique #2563EB, pilule pleine 56dp, label blanc, disabled délavé.
+@Composable
+fun WakevePrimaryPillButton(
+    title: String,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier.heightIn(min = 56.dp),
+        enabled = enabled,
+        shape = CircleShape,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = WakevePrimary,
+            contentColor = Color.White,
+            disabledContainerColor = WakevePrimary.copy(alpha = 0.42f),
+            disabledContentColor = Color.White
+        )
+    ) {
+        Text(text = title, style = MaterialTheme.typography.titleMedium)
+    }
+}
+
+/// Action secondaire circulaire — Proposition Swarm DAO #26.
+/// Cercle teinté bleu primaire, icône #2563EB (copier, partager, utilitaires).
+@Composable
+fun WakeveSecondaryIconButton(
+    systemImage: ImageVector,
+    contentDescription: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = CircleShape,
+        color = WakevePrimary.copy(alpha = 0.12f),
+        modifier = modifier.size(46.dp)
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = systemImage,
+                contentDescription = contentDescription,
+                tint = WakevePrimary,
+                modifier = Modifier.size(17.dp)
+            )
+        }
+    }
+}
+
+/// Chip de métadonnées standard — Proposition Swarm DAO #26.
+/// Icône 16dp + texte caption sur fond subtil capsule (fuseau, invités, échéance…).
+@Composable
+fun WakeveMetaChip(
+    label: String,
+    modifier: Modifier = Modifier,
+    systemImage: ImageVector? = null,
+    contentDescription: String? = null
+) {
+    Surface(
+        modifier = modifier,
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceContainerHighest
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = WakeveSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            systemImage?.let {
+                Icon(
+                    imageVector = it,
+                    contentDescription = contentDescription,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1
+            )
         }
     }
 }
