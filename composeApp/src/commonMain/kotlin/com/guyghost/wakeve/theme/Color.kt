@@ -28,8 +28,21 @@ val WakeveError = Color(0xFFDC2626)
 val WakeveErrorDark = Color(0xFFB91C1C)
 
 // Background Colors - Light
-val WakeveBackgroundLight = Color(0xFFFFFFFF)
-val WakeveSurfaceLight = Color(0xFFF8FAFC)
+/**
+ * Fond ivoire chaud standard de l'app — proposition Swarm DAO #27.
+ * Valeur mesurée au pixel sur l'écran Résultats
+ * (qa-screenshots/cycle-2026-09-04/28-poll-results.png, RGB 246,241,234).
+ */
+val WarmIvory = Color(0xFFF6F1EA)
+
+/**
+ * Équivalent dark mode du fond ivoire, aligné sur iOS BrandColor.midnightBlue (#071421)
+ * pour garantir un fond de page identique sur Android et iOS.
+ */
+val WarmIvoryDark = Color(0xFF071421)
+
+val WakeveBackgroundLight = WarmIvory
+val WakeveSurfaceLight = WarmIvory
 val WakeveBorderLight = Color(0xFFE2E8F0)
 val WakeveTextPrimaryLight = Color(0xFF0F172A)
 val WakeveTextSecondaryLight = Color(0xFF475569)
@@ -60,7 +73,7 @@ val HomeGradientGreen = Color(0xFF14B8A6)
 val HomeGradientOrange = Color(0xFFF97316)
 
 // Home Screen - Light Theme
-val HomeBackgroundLight = Color(0xFFF8FAFC)
+val HomeBackgroundLight = WarmIvory
 val HomeSurfaceLight = Color(0xFFFFFFFF)
 val HomeTextPrimaryLight = Color(0xFF0F172A)
 val HomeTextSecondaryLight = Color(0xFF64748B)
