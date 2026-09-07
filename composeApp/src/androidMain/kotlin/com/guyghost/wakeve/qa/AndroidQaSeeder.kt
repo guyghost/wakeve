@@ -149,6 +149,10 @@ class AndroidQaSeeder(
             Log.d(TAG, "seed step failed: ensureDraftAudience")
             return@withContext false
         }
+        if (!ensurePollingAudience(viewerId)) {
+            Log.d(TAG, "seed step failed: ensurePollingAudience")
+            return@withContext false
+        }
         if (!ensureDraftLocation()) {
             Log.d(TAG, "seed step failed: ensureDraftLocation")
             return@withContext false
@@ -314,6 +318,31 @@ class AndroidQaSeeder(
         return updated.size >= 2 &&
             updated.any { it.rsvp == "ACCEPTED" } &&
             updated.any { it.rsvp == "PENDING" }
+    }
+
+    /** Le viewer doit être participant ACCEPTED de l'event POLLING pour soumettre son vote. */
+    private suspend fun ensurePollingAudience(viewerId: String): Boolean {
+        val records = eventRepository.getParticipantRecords(eventId = Seed.POLLING).orEmpty()
+        if (records.none { it.userId == viewerId }) {
+            eventRepository.addParticipant(
+                eventId = Seed.POLLING,
+                participantId = viewerId
+            )
+        }
+        val record = database.participantQueries
+            .selectByEventIdAndUserId(eventId = Seed.POLLING, userId = viewerId)
+            .executeAsOneOrNull()
+            ?: return false
+        if (record.rsvpState != "ACCEPTED") {
+            database.participantQueries.updateAccessAxes(
+                rsvpState = "ACCEPTED",
+                dateValidationState = "VALIDATED_RETAINED_DATE",
+                updatedAt = iso8601(Date()),
+                id = record.id
+            )
+        }
+        return eventRepository.getParticipantRecords(eventId = Seed.POLLING)
+            .orEmpty().any { it.userId == viewerId && it.rsvp == "ACCEPTED" }
     }
 
     private fun ensureDraftLocation(): Boolean {
