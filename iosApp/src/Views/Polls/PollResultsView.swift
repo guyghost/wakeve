@@ -292,49 +292,44 @@ struct BestSlotCard: View {
     @ScaledMetric(relativeTo: .title2) private var starSize: CGFloat = 20
     
     var body: some View {
-        VStack(spacing: 16) {
-            HStack {
-                Image(systemName: "star.fill")
-                    .font(.title2)
-                    .foregroundColor(SemanticColor.warning(for: colorScheme))
-                    .frame(width: starSize, height: starSize)
-                
-                Text(String(localized: "poll.results.best_time"))
-                    .font(WakeveTheme.Typography.section)
-                    .foregroundColor(.primary)
-                
-                Spacer()
-            }
-            
-            VStack(spacing: 8) {
-                Text(formatDate(slot.start ?? "", timezone: slot.timezone))
-                    .font(WakeveTheme.Typography.title)
-                    .foregroundColor(.primary)
-                
-                HStack(spacing: 6) {
-                    Image(systemName: "clock")
-                        .font(.callout)
-                        .foregroundColor(.secondary)
+        WakeveHeroCard {
+            VStack(spacing: 16) {
+                HStack {
+                    Image(systemName: "star.fill")
+                        .font(.title2)
+                        .foregroundColor(SemanticColor.warning(for: colorScheme))
+                        .frame(width: starSize, height: starSize)
                     
-                    Text("\(formatTime(slot.start ?? "", timezone: slot.timezone)) - \(formatTime(slot.end ?? "", timezone: slot.timezone))")
-                        .font(WakeveTheme.Typography.body)
-                        .foregroundColor(.secondary)
+                    Text(String(localized: "poll.results.best_time"))
+                        .font(WakeveTheme.Typography.section)
+                        .foregroundColor(.primary)
+                    
+                    Spacer()
                 }
+                
+                VStack(spacing: 8) {
+                    Text(formatDate(slot.start ?? "", timezone: slot.timezone))
+                        .font(WakeveTheme.Typography.title)
+                        .foregroundColor(.primary)
+                    
+                    HStack(spacing: 6) {
+                        Image(systemName: "clock")
+                            .font(.callout)
+                            .foregroundColor(.secondary)
+                        
+                        Text("\(formatTime(slot.start ?? "", timezone: slot.timezone)) - \(formatTime(slot.end ?? "", timezone: slot.timezone))")
+                            .font(WakeveTheme.Typography.body)
+                            .foregroundColor(.secondary)
+                    }
 
-                PollTimeZoneBadge(
-                    label: formatTimeZoneLabel(slot.timezone, at: slot.start),
-                    foregroundColor: .secondary,
-                    backgroundColor: Color(.tertiarySystemFill)
-                )
+                    PollTimeZoneBadge(
+                        label: formatTimeZoneLabel(slot.timezone, at: slot.start),
+                        foregroundColor: .secondary,
+                        backgroundColor: Color(.tertiarySystemFill)
+                    )
+                }
             }
         }
-        .padding(20)
-        .frame(maxWidth: .infinity)
-        .glassCard(cornerRadius: 20)
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(SemanticColor.warning(for: colorScheme).opacity(0.3), lineWidth: 2)
-        )
     }
     
     private func formatDate(_ dateString: String, timezone: String) -> String {
@@ -394,61 +389,60 @@ struct ConfirmedDateCard: View {
     @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
-        VStack(spacing: 20) {
-            // Success Icon
-            ZStack {
-                Circle()
-                    .fill(SemanticColor.confirmation(for: colorScheme).opacity(0.15))
-                    .frame(width: confirmationIconSize, height: confirmationIconSize)
+        WakeveHeroCard {
+            VStack(spacing: 20) {
+                // Success Icon
+                ZStack {
+                    Circle()
+                        .fill(SemanticColor.confirmation(for: colorScheme).opacity(0.15))
+                        .frame(width: confirmationIconSize, height: confirmationIconSize)
+                    
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.largeTitle)
+                        .foregroundColor(SemanticColor.confirmation(for: colorScheme))
+                }
                 
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.largeTitle)
-                    .foregroundColor(SemanticColor.confirmation(for: colorScheme))
-            }
-            
-            // Title
-            VStack(spacing: 8) {
-                Text(String(localized: "poll.results.confirmed_title"))
-                    .font(WakeveTheme.Typography.title)
-                    .foregroundColor(.primary)
-                
-                Text(String(localized: "poll.results.confirmed_subtitle"))
-                    .font(WakeveTheme.Typography.callout)
-                    .foregroundColor(.secondary)
-            }
-            
-            // Confirmed Date
-            if let slot = finalSlot {
+                // Title
                 VStack(spacing: 8) {
-                    Text(formatDate(slot.start ?? "", timezone: slot.timezone))
-                        .font(WakeveTheme.Typography.section)
+                    Text(String(localized: "poll.results.confirmed_title"))
+                        .font(WakeveTheme.Typography.title)
                         .foregroundColor(.primary)
                     
-                    HStack(spacing: 6) {
-                        Image(systemName: "clock")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        
-                        Text("\(formatTime(slot.start ?? "", timezone: slot.timezone)) - \(formatTime(slot.end ?? "", timezone: slot.timezone))")
-                            .font(WakeveTheme.Typography.callout)
-                            .foregroundColor(.secondary)
-                    }
-
-                    PollTimeZoneBadge(
-                        label: formatTimeZoneLabel(slot.timezone, at: slot.start),
-                        foregroundColor: .secondary,
-                        backgroundColor: Color(.secondarySystemFill)
-                    )
+                    Text(String(localized: "poll.results.confirmed_subtitle"))
+                        .font(WakeveTheme.Typography.callout)
+                        .foregroundColor(.secondary)
                 }
-                .padding(16)
-                .frame(maxWidth: .infinity)
-                .background(Color(.tertiarySystemFill))
-                .continuousCornerRadius(12)
+                
+                // Confirmed Date
+                if let slot = finalSlot {
+                    VStack(spacing: 8) {
+                        Text(formatDate(slot.start ?? "", timezone: slot.timezone))
+                            .font(WakeveTheme.Typography.section)
+                            .foregroundColor(.primary)
+                        
+                        HStack(spacing: 6) {
+                            Image(systemName: "clock")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            Text("\(formatTime(slot.start ?? "", timezone: slot.timezone)) - \(formatTime(slot.end ?? "", timezone: slot.timezone))")
+                                .font(WakeveTheme.Typography.callout)
+                                .foregroundColor(.secondary)
+                        }
+
+                        PollTimeZoneBadge(
+                            label: formatTimeZoneLabel(slot.timezone, at: slot.start),
+                            foregroundColor: .secondary,
+                            backgroundColor: Color(.secondarySystemFill)
+                        )
+                    }
+                    .padding(16)
+                    .frame(maxWidth: .infinity)
+                    .background(Color(.tertiarySystemFill))
+                    .continuousCornerRadius(12)
+                }
             }
         }
-        .padding(24)
-        .frame(maxWidth: .infinity)
-        .glassCard(cornerRadius: 20)
     }
     
     private func formatDate(_ dateString: String, timezone: String) -> String {
