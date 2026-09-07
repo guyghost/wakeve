@@ -76,6 +76,7 @@ import com.guyghost.wakeve.models.ScenarioVoteType
 import com.guyghost.wakeve.models.ScenarioWithVotes
 import com.guyghost.wakeve.presentation.state.ScenarioManagementContract.Intent
 import com.guyghost.wakeve.presentation.state.ScenarioManagementContract.State
+import com.guyghost.wakeve.ui.designsystem.WakeveScreenHeader
 import kotlinx.coroutines.launch
 
 /**
@@ -156,24 +157,26 @@ fun ScenarioManagementScreen(
         modifier = modifier
             .fillMaxSize(),
         topBar = {
-            ScenarioManagementTopBar(
-                showComparisonMode = showComparisonMode,
-                comparisonCount = selectedForComparison.size,
-                onClearComparison = { showComparisonMode = false; selectedForComparison = setOf() },
-                onCompare = {
-                    if (selectedForComparison.size >= 2) {
-                        onDispatch(Intent.CompareScenarios(selectedForComparison.toList()))
-                        onNavigate("event/$eventId/scenarios/compare")
-                    } else {
-                        scope.launch {
-                            snackbarHostState.showSnackbar(
-                                scenarioCompareMinimumMessage(),
-                                duration = SnackbarDuration.Short
-                            )
+            if (showComparisonMode) {
+                ScenarioManagementTopBar(
+                    showComparisonMode = showComparisonMode,
+                    comparisonCount = selectedForComparison.size,
+                    onClearComparison = { showComparisonMode = false; selectedForComparison = setOf() },
+                    onCompare = {
+                        if (selectedForComparison.size >= 2) {
+                            onDispatch(Intent.CompareScenarios(selectedForComparison.toList()))
+                            onNavigate("event/$eventId/scenarios/compare")
+                        } else {
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    scenarioCompareMinimumMessage(),
+                                    duration = SnackbarDuration.Short
+                                )
+                            }
                         }
                     }
-                }
-            )
+                )
+            }
         },
         floatingActionButton = {
             if (canCreateScenario && !showComparisonMode) {
@@ -188,12 +191,23 @@ fun ScenarioManagementScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            when {
+            // En-tête standard (DAO #24) — le TopAppBar ne reste que pour le mode comparaison
+            if (!showComparisonMode) {
+                WakeveScreenHeader(
+                    title = scenarioScreenTitle(),
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+
+            Box(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                when {
                 state.isLoading && state.scenarios.isEmpty() -> {
                     // Loading state
                     Box(
@@ -303,6 +317,7 @@ fun ScenarioManagementScreen(
                     modifier = Modifier.align(Alignment.TopCenter)
                 )
             }
+        }
         }
     }
 

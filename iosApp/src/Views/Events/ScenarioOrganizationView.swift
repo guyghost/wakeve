@@ -43,11 +43,29 @@ struct ScenarioOrganizationView: View {
             pageBackground
                 .ignoresSafeArea()
 
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 0) {
-                    heroSection
+            VStack(spacing: 0) {
+                // En-tête standard (DAO #24) — remplace le héros dégradé bleu
+                WakeveScreenHeader(
+                    title: String(localized: "scenario.title"),
+                    subtitle: event.title,
+                    closeButtonSystemImage: "chevron.left",
+                    closeButtonAccessibilityLabel: String(localized: "common.back"),
+                    onClose: onBack
+                ) {
+                    WakeveCircleButton(
+                        systemImage: "arrow.clockwise",
+                        accessibilityLabel: String(localized: "scenario.refresh_accessibility"),
+                        variant: .light,
+                        size: 44
+                    ) {
+                        viewModel.initialize(eventId: event.id, participantId: participantId)
+                    }
+                }
 
+                ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 18) {
+                        phaseBadge
+
                         summarySection
 
                         if isLocked {
@@ -57,13 +75,10 @@ struct ScenarioOrganizationView: View {
                         }
                     }
                     .padding(.horizontal, WakeveTheme.Spacing.page)
-                    .padding(.top, -24)
+                    .padding(.top, 16)
                     .padding(.bottom, 104)
                 }
             }
-            .ignoresSafeArea(edges: .top)
-
-            topControls
         }
         .toolbar(.hidden, for: .tabBar)
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -104,77 +119,7 @@ struct ScenarioOrganizationView: View {
         }
     }
 
-    private var heroSection: some View {
-        ZStack(alignment: .bottomLeading) {
-            LinearGradient(
-                colors: heroColors,
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .overlay(alignment: .trailing) {
-                Image(systemName: "map.fill")
-                    .font(.system(size: 118, weight: .black))
-                    .foregroundColor(.white.opacity(0.18))
-                    .rotationEffect(.degrees(-10))
-                    .offset(x: 42, y: -6)
-            }
-            .overlay(alignment: .bottom) {
-                LinearGradient(
-                    colors: [.clear, pageBackground.opacity(colorScheme == .dark ? 0.94 : 0.98)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: 146)
-            }
-
-            VStack(alignment: .leading, spacing: 10) {
-                phaseBadge
-
-                Text(String(localized: "scenario.title"))
-                    .font(WakeveTheme.Typography.display)
-                    .foregroundColor(.white)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.74)
-
-                Text(event.title)
-                    .font(WakeveTheme.Typography.section)
-                    .foregroundColor(.white.opacity(0.74))
-                    .lineLimit(2)
-            }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 62)
-        }
-        .frame(height: 326)
-    }
-
-    private var topControls: some View {
-        HStack {
-            WakeveCircleButton(
-                systemImage: "chevron.left",
-                accessibilityLabel: String(localized: "common.back"),
-                variant: .glass,
-                size: 44,
-                action: onBack
-            )
-
-            Spacer()
-
-            Button {
-                viewModel.initialize(eventId: event.id, participantId: participantId)
-            } label: {
-                WakeveGlassControl {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 17, weight: .bold))
-                        .foregroundColor(.white)
-                        .frame(width: 44, height: 44)
-                }
-            }
-            .accessibilityLabel(String(localized: "scenario.refresh_accessibility"))
-        }
-        .padding(.horizontal, 16)
-        .padding(.top, WakeveTheme.Navigation.controlTopSpacing)
-    }
-
+    /// Badge de statut restylé en chip standard (DAO #24) : teinte accent sur fond ivoire.
     private var phaseBadge: some View {
         HStack(spacing: 6) {
             Image(systemName: isLocked ? "lock.fill" : "rectangle.3.group.fill")
@@ -182,10 +127,10 @@ struct ScenarioOrganizationView: View {
             Text(isLocked ? String(localized: "scenario.access_locked") : phaseText)
                 .font(WakeveTheme.Typography.callout)
         }
-        .foregroundColor(.white)
+        .foregroundColor(SemanticColor.accent(for: colorScheme))
         .padding(.horizontal, 12)
         .padding(.vertical, 7)
-        .background(Color.black.opacity(0.26))
+        .background(SemanticColor.accent(for: colorScheme).opacity(0.14))
         .clipShape(Capsule())
     }
 
@@ -810,14 +755,6 @@ struct ScenarioOrganizationView: View {
         missingScenarioBudgetCount == 1
             ? String(format: String(localized: "scenario.budget_decision.missing_budget_singular_format"), missingScenarioBudgetCount)
             : String(format: String(localized: "scenario.budget_decision.missing_budget_plural_format"), missingScenarioBudgetCount)
-    }
-
-    private var heroColors: [Color] {
-        [
-            Color(hex: "0F766E"),
-            Color(hex: "2563EB"),
-            pageBackground
-        ]
     }
 
     private var pageBackground: Color {
