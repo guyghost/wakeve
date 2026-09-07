@@ -9,7 +9,8 @@ final class BackgroundCoverageContractTests: XCTestCase {
         let screens: [(file: String, marker: String)] = [
             ("iosApp/src/Views/Invitations/EventLibraryView.swift", "EventLibraryView"),
             ("iosApp/src/Views/Invitations/EventInformationView.swift", "EventInformationView"),
-            ("iosApp/src/Views/Invitations/EventArchiveView.swift", "EventArchiveView")
+            ("iosApp/src/Views/Invitations/EventArchiveView.swift", "EventArchiveView"),
+            ("iosApp/src/Views/Invitations/EventCreationStudioView.swift", "EventCreationStudioView")
         ]
 
         for screen in screens {

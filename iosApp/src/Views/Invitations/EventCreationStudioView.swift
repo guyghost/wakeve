@@ -1025,6 +1025,7 @@ struct EventCreationStudioView: View {
                 }
                 .padding()
             }
+            .background(WakeveScreenBackground(style: .app)) // fond ivoire standard — DAO #27 (A3)
             .navigationTitle(String(localized: "invitation.studio.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

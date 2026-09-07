@@ -127,7 +127,7 @@ struct ScenarioOrganizationView: View {
             Text(isLocked ? String(localized: "scenario.access_locked") : phaseText)
                 .font(WakeveTheme.Typography.callout)
         }
-        .foregroundColor(SemanticColor.accent(for: colorScheme))
+        .foregroundColor(Color(hex: "1D4ED8")) // AA 4.94 sur accent 14% — revue a11y 2026-09-07 (A2)
         .padding(.horizontal, 12)
         .padding(.vertical, 7)
         .background(SemanticColor.accent(for: colorScheme).opacity(0.14))
