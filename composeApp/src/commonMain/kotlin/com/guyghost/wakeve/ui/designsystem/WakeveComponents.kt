@@ -9,12 +9,14 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
@@ -52,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import com.guyghost.wakeve.theme.WakeveWarning
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -178,7 +181,8 @@ fun WakeveCard(
         containerColor = if (selected) {
             MaterialTheme.colorScheme.secondaryContainer
         } else {
-            MaterialTheme.colorScheme.surfaceContainer
+            // Carte blanche standard sur fond ivoire (DAO #25)
+            Color.White
         },
         contentColor = if (selected) {
             MaterialTheme.colorScheme.onSecondaryContainer
@@ -190,6 +194,7 @@ fun WakeveCard(
     val elevation = CardDefaults.cardElevation(
         defaultElevation = if (selected) WakeveElevation.level3 else WakeveElevation.level1
     )
+    val border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
 
     if (onClick != null) {
         Card(
@@ -198,6 +203,7 @@ fun WakeveCard(
             shape = shape,
             colors = colors,
             elevation = elevation,
+            border = border,
             content = { Box(modifier = Modifier.padding(WakeveSpacing.md)) { content() } }
         )
     } else {
@@ -206,7 +212,37 @@ fun WakeveCard(
             shape = shape,
             colors = colors,
             elevation = elevation,
+            border = border,
             content = { Box(modifier = Modifier.padding(WakeveSpacing.md)) { content() } }
+        )
+    }
+}
+
+/// Carte héro « info clé confirmée » — Proposition Swarm DAO #25.
+/// Bordure dorée (modèle Meilleur créneau) : réservée à l'information confirmée
+/// d'un écran (meilleur créneau, date retenue, info finale, jour J).
+/// Ne pas multiplier : la dorure doit rester un signal univoque.
+@Composable
+fun WakeveHeroCard(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        ),
+        border = BorderStroke(2.dp, WakeveWarning.copy(alpha = 0.3f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = WakeveElevation.level1)
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(20.dp)
+                .fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            content = content
         )
     }
 }
