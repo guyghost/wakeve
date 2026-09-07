@@ -192,5 +192,50 @@
     "riskZone": "red",
     "createdAt": "2026-09-04T12:46:17.557Z",
     "resolvedAt": "2026-09-04T13:05:43.032Z"
+  },
+  {
+    "id": 23,
+    "title": "Design tokens : fond ivoire chaud #F6F1EA standardisé sur tous les écrans (réf. écran Résultats)",
+    "type": "technical-change",
+    "status": "failed",
+    "riskZone": "red",
+    "createdAt": "2026-09-07T07:41:54.716Z",
+    "resolvedAt": "2026-09-07T07:54:40.606Z"
+  },
+  {
+    "id": 24,
+    "title": "En-têtes d'écran unifiés : grand titre + sous-titre contexte événement (modèle écran Résultats)",
+    "type": "product-feature",
+    "status": "executed",
+    "riskZone": "orange",
+    "createdAt": "2026-09-07T07:42:14.493Z",
+    "resolvedAt": "2026-09-07T08:51:29.887Z"
+  },
+  {
+    "id": 25,
+    "title": "Cartes standardisées + carte héro « info confirmée » à bordure dorée (modèle Meilleur créneau)",
+    "type": "product-feature",
+    "status": "executed",
+    "riskZone": "orange",
+    "createdAt": "2026-09-07T07:42:34.655Z",
+    "resolvedAt": "2026-09-07T08:51:31.906Z"
+  },
+  {
+    "id": 26,
+    "title": "Boutons et chips unifiés : pilule bleue primaire, icône circulaire secondaire, chips méta",
+    "type": "product-feature",
+    "status": "executed",
+    "riskZone": "orange",
+    "createdAt": "2026-09-07T07:42:55.783Z",
+    "resolvedAt": "2026-09-07T08:51:35.808Z"
+  },
+  {
+    "id": 27,
+    "title": "Design tokens : fond ivoire chaud #F6F1EA standardisé sur tous les écrans (réf. écran Résultats)",
+    "type": "technical-change",
+    "status": "executed",
+    "riskZone": "red",
+    "createdAt": "2026-09-07T07:55:53.831Z",
+    "resolvedAt": "2026-09-07T08:51:26.055Z"
   }
 ]

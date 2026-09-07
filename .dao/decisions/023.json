@@ -1,0 +1,9 @@
+{
+  "id": 23,
+  "title": "Design tokens : fond ivoire chaud #F6F1EA standardisé sur tous les écrans (réf. écran Résultats)",
+  "type": "technical-change",
+  "status": "failed",
+  "riskZone": "red",
+  "createdAt": "2026-09-07T07:41:54.716Z",
+  "resolvedAt": "2026-09-07T07:54:40.606Z"
+}
