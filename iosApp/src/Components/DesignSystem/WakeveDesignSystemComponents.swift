@@ -515,6 +515,32 @@ struct WakeveScreenHeader<Trailing: View>: View {
     }
 }
 
+// MARK: - Hero Card
+
+/// Carte héro « info clé confirmée » — Proposition Swarm DAO #25.
+/// Bordure dorée standard (modèle Meilleur créneau) : réservée à l'information
+/// confirmée d'un écran (meilleur créneau, date retenue, info finale, jour J).
+/// Ne pas multiplier : la dorure doit rester un signal univoque.
+struct WakeveHeroCard<Content: View>: View {
+    private let content: Content
+    @Environment(\.colorScheme) private var colorScheme
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        content
+            .padding(20)
+            .frame(maxWidth: .infinity)
+            .glassCard(cornerRadius: 20)
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(SemanticColor.warning(for: colorScheme).opacity(0.3), lineWidth: 2)
+            )
+    }
+}
+
 // MARK: - Search Field
 
 struct WakeveSearchField: View {
