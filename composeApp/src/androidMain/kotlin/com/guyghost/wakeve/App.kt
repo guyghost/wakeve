@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
+import com.guyghost.wakeve.auth.shell.statemachine.AuthContract
 import com.guyghost.wakeve.auth.shell.statemachine.AuthStateMachine
 import com.guyghost.wakeve.deeplink.AndroidInvitationDeepLinkService
 import com.guyghost.wakeve.deeplink.AndroidNavigationDeepLinkHandler
@@ -108,6 +109,24 @@ fun App() {
     // Check onboarding status on first composition
     LaunchedEffect(Unit) {
         hasOnboarded = hasCompletedOnboarding(context)
+    }
+
+    // QA headless launch — équivalent Android de --wakeve-debug-authenticated (iOS).
+    // Usage : adb shell am start ... --ez wakeve.dev.auth true
+    // DEBUG uniquement : passe par le chemin guest officiel de la state machine
+    // (Intent.SkipToGuest) et marque l'onboarding complet pour atterrir sur Home.
+    LaunchedEffect(Unit) {
+        val isDebuggableBuild =
+            (context.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
+        if (isDebuggableBuild) {
+            val activity = context as? android.app.Activity
+            val requested = activity?.intent?.getBooleanExtra("wakeve.dev.auth", false) == true
+            if (requested) {
+                authStateMachine.handleIntent(AuthContract.Intent.SkipToGuest)
+                markOnboardingComplete(context)
+                hasOnboarded = true
+            }
+        }
     }
 
     // Handle deep links from DeepLinkStateManager

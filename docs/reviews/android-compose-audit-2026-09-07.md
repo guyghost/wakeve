@@ -95,6 +95,8 @@ leur consommation s'étendra avec l'implémentation des écrans manquants.
 | # | Sévérité | Action | Prérequis |
 |---|---|---|---|
 | F1 | ✅ Arbitré | **O3 retenu** — dynamic color conservé ; AC #27 rescopée iOS ; tokens WarmIvory maintenus comme base schéma fixe/fallback | — |
-| F2 | Information | Implémentation des écrans poll/résultats Android (DAO séparé) | Backlog produit |
-| F3 | Mineure | Migrer `EventWorkspaceScreen` vers `WakeveScreenHeader` | Flux événement testable |
-| — | Note | Ajouter un `--wakeve-debug-authenticated` équivalent Android pour des QA headless | Backlog QA tooling |
+| F2 | ✅ Corrigé (nuancé) | **Les écrans poll VOTE/RÉSULTATS existent** sur Android (`PollVotingScreen`, `PollResultsScreen`) — l'audit initial était trop pessimiste : ils n'étaient pas migrés vers les composants DAO. Migration faite (voir F2-bis) ; reste à capturer avec des données | Cycle QA avec seed |
+| F2-bis | ✅ Fait | `PollResultsScreen` : `WakeveScaffold` → `WakeveScreenHeader` (sous-titre `event.title`) ; `RecommendedSlotCard` → `WakeveHeroCard` (bordure dorée + étoile, redondance A1) ; composant `WakeveHeroCard` étendu avec `onClick` optionnel | — |
+| F3 | ✅ Fait | `EventDetailScreen` : `TopAppBar` → `WakeveScreenHeader` (grand titre, sous-titre `event.title`, actions partager/éditer/supprimer en trailing) | — |
+| — | ✅ Fait | Bypass auth dev Android : extra d'intent `wakeve.dev.auth` (DEBUG uniquement) → `Intent.SkipToGuest` + onboarding marqué ; usage : `adb shell am start -n com.guyghost.wakeve/.MainActivity --ez wakeve.dev.auth true` | — |
+| — | Note | Écrans d'invitation iOS (information, archive, studio) sans équivalent Android : DAO séparé si besoin produit | Backlog produit |

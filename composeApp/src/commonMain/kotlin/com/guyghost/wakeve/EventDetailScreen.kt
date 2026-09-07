@@ -58,6 +58,7 @@ import com.guyghost.wakeve.presentation.state.EventManagementContract
 import com.guyghost.wakeve.ui.components.HeroImageSection
 import com.guyghost.wakeve.ui.designsystem.WakeveCard
 import com.guyghost.wakeve.ui.designsystem.WakeveProgressIndicator
+import com.guyghost.wakeve.ui.designsystem.WakeveScreenHeader
 import com.guyghost.wakeve.ui.designsystem.WakeveSize
 import com.guyghost.wakeve.ui.designsystem.WakeveSpacing
 import com.guyghost.wakeve.ui.designsystem.WakeveStateMessage
@@ -258,44 +259,46 @@ fun EventDetailContent(
 ) {
     val event = state.event
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Détails de l'événement") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour")
-                    }
-                },
-                actions = {
-                    // Share / Invite button (always visible)
-                    IconButton(
-                        onClick = {
-                            val title = event?.title ?: ""
-                            onShareInvite?.invoke(state.eventId, title)
-                        }
-                    ) {
-                        Icon(Icons.Default.Share, contentDescription = "Partager l'invitation")
-                    }
-                    if (state.isOrganizer) {
-                        IconButton(onClick = { onNavigateTo("edit_event/${state.eventId}") }) {
-                            Icon(Icons.Default.Edit, contentDescription = "Éditer")
-                        }
-                    }
-                    if (state.canDelete) {
+        modifier = modifier
+    ) { paddingValues ->
+        Column(modifier = Modifier.fillMaxSize()) {
+            // En-tête standard (DAO #24) — grand titre + sous-titre contexte événement
+            WakeveScreenHeader(
+                title = "Détails de l'événement",
+                subtitle = event?.title,
+                onClose = onNavigateBack,
+                trailing = {
+                    Row {
+                        // Share / Invite button (always visible)
                         IconButton(
-                            onClick = onRequestDelete,
-                            modifier = Modifier.semantics {
-                                contentDescription = "Supprimer l'événement. Action irréversible."
-                                role = Role.Button
+                            onClick = {
+                                val title = event?.title ?: ""
+                                onShareInvite?.invoke(state.eventId, title)
                             }
                         ) {
-                            Icon(Icons.Default.Delete, contentDescription = null)
+                            Icon(Icons.Default.Share, contentDescription = "Partager l'invitation")
+                        }
+                        if (state.isOrganizer) {
+                            IconButton(onClick = { onNavigateTo("edit_event/${state.eventId}") }) {
+                                Icon(Icons.Default.Edit, contentDescription = "Éditer")
+                            }
+                        }
+                        if (state.canDelete) {
+                            IconButton(
+                                onClick = onRequestDelete,
+                                modifier = Modifier.semantics {
+                                    contentDescription = "Supprimer l'événement. Action irréversible."
+                                    role = Role.Button
+                                }
+                            ) {
+                                Icon(Icons.Default.Delete, contentDescription = null)
+                            }
                         }
                     }
                 }
             )
-        }
-    ) { paddingValues ->
+
+            Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
         if (event == null) {
             // Loading or not found state
             Box(
@@ -517,6 +520,8 @@ fun EventDetailContent(
                     }
                 }
             }
+        }
+        }
         }
     }
 }
