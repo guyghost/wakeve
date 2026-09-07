@@ -31,6 +31,16 @@ déterminisme visuel — l'app de production, elle, tourne avec `true`.
 
 ### Options d'arbitrage (décision design à prendre, non tranchée unilatéralement)
 
+> **✅ Arbitrage rendu (2026-09-07, design owner) : O3 — Statu quo.**
+> Material You dynamic color reste intégral sur Android. Conséquences assumées :
+> - L'AC #27 (« captures QA montrent un fond uniforme ») est **rescopée iOS uniquement** —
+>   Android suit la palette dynamique du système (promesse « Material You » du design system) ;
+> - Les tokens `WarmIvory`/`WarmIvoryDark` restent définis et testés côté Compose :
+>   ils servent de base au schéma fixe (API < S, tests, previews) et de fallback documenté ;
+> - `dynamicColor = false` reste l'état des tests instrumentés et previews (déterminisme visuel) ;
+> - Les comparaisons QA inter-plateformes de fond ne sont plus apples : les futurs cycles QA
+>   Android auditeront la cohérence interne Material You (rôles M3), pas la teinte exacte.
+
 | Option | Description | Pour | Contre |
 |---|---|---|---|
 | **O1 — Marque fixe** | `dynamicColor = false` par défaut | Fidèle à l'AC #27 (« captures QA montrent un fond uniforme »), rendu identique iOS/Android, captures QA déterministes | Perte du wallpaper theming Material You (pilier annoncé du design system Android) |
@@ -84,7 +94,7 @@ leur consommation s'étendra avec l'implémentation des écrans manquants.
 
 | # | Sévérité | Action | Prérequis |
 |---|---|---|---|
-| F1 | Bloquante pour AC #27 | Arbitrage O1/O2/O3 puis application (1 ligne pour O1) | Décision design |
+| F1 | ✅ Arbitré | **O3 retenu** — dynamic color conservé ; AC #27 rescopée iOS ; tokens WarmIvory maintenus comme base schéma fixe/fallback | — |
 | F2 | Information | Implémentation des écrans poll/résultats Android (DAO séparé) | Backlog produit |
 | F3 | Mineure | Migrer `EventWorkspaceScreen` vers `WakeveScreenHeader` | Flux événement testable |
 | — | Note | Ajouter un `--wakeve-debug-authenticated` équivalent Android pour des QA headless | Backlog QA tooling |
