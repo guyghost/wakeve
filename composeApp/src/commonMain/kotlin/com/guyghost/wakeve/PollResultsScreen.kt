@@ -1,5 +1,6 @@
 package com.guyghost.wakeve
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +19,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.QuestionMark
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -32,8 +34,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.guyghost.wakeve.ui.designsystem.WakeveButtonGroup
 import com.guyghost.wakeve.ui.designsystem.WakeveCard
+import com.guyghost.wakeve.ui.designsystem.WakeveHeroCard
 import com.guyghost.wakeve.ui.designsystem.WakeveProgressIndicator
-import com.guyghost.wakeve.ui.designsystem.WakeveScaffold
+import com.guyghost.wakeve.ui.designsystem.WakeveScreenHeader
 import com.guyghost.wakeve.ui.designsystem.WakeveSize
 import com.guyghost.wakeve.ui.designsystem.WakeveSpacing
 import com.guyghost.wakeve.ui.designsystem.WakeveStateMessage
@@ -82,23 +85,25 @@ fun PollResultsScreen(
         )
     }
 
-    WakeveScaffold(
-        title = "Résultats du sondage",
-        onNavigateBack = onBack,
-        modifier = modifier.testTag("poll_results_screen")
-    ) { paddingValues ->
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        // En-tête standard (DAO #24) — grand titre + sous-titre contexte événement
+        WakeveScreenHeader(
+            title = "Résultats du sondage",
+            subtitle = state.eventTitle,
+            onClose = onBack,
+            modifier = Modifier.padding(top = WakeveSpacing.sm)
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
                 .padding(WakeveSpacing.md),
             verticalArrangement = Arrangement.spacedBy(WakeveSpacing.md)
         ) {
-            Text(
-                text = state.eventTitle,
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onSurface
-            )
             Text(
                 text = if (state.isOrganizer) {
                     "Choisissez le créneau final à partir des votes."
@@ -232,24 +237,31 @@ private fun RecommendedSlotCard(
     onSelect: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    WakeveCard(
-        selected = true,
+    // Carte héro « info confirmée » (DAO #25) : le meilleur créneau du sondage
+    WakeveHeroCard(
         onClick = onSelect,
         modifier = modifier.fillMaxWidth()
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(WakeveSpacing.md)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(WakeveSpacing.sm)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Star,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.secondary
+            )
             Text(
                 text = "Créneau recommandé",
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSecondaryContainer
-            )
-            SlotTimeRange(slot = slot)
-            ScoreBreakdown(slot = slot)
-            Text(
-                text = "Score ${slot.totalScore}",
-                style = MaterialTheme.typography.bodyMedium
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
+        SlotTimeRange(slot = slot)
+        ScoreBreakdown(slot = slot)
+        Text(
+            text = "Score ${slot.totalScore}",
+            style = MaterialTheme.typography.bodyMedium
+        )
     }
 }
 

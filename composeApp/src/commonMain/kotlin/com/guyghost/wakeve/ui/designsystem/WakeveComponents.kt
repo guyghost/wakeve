@@ -315,24 +315,44 @@ fun WakeveCard(
 @Composable
 fun WakeveHeroCard(
     modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White,
-            contentColor = MaterialTheme.colorScheme.onSurface
-        ),
-        border = BorderStroke(2.dp, WakeveWarning.copy(alpha = 0.3f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = WakeveElevation.level1)
-    ) {
+    val colors = CardDefaults.cardColors(
+        containerColor = Color.White,
+        contentColor = MaterialTheme.colorScheme.onSurface
+    )
+    val shape = RoundedCornerShape(20.dp)
+    val border = BorderStroke(2.dp, WakeveWarning.copy(alpha = 0.3f))
+    val elevation = CardDefaults.cardElevation(defaultElevation = WakeveElevation.level1)
+    val heroContent: @Composable () -> Unit = {
         Column(
             modifier = Modifier
                 .padding(20.dp)
                 .fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             content = content
+        )
+    }
+
+    if (onClick != null) {
+        Card(
+            onClick = onClick,
+            modifier = modifier,
+            shape = shape,
+            colors = colors,
+            border = border,
+            elevation = elevation,
+            content = { heroContent() }
+        )
+    } else {
+        Card(
+            modifier = modifier,
+            shape = shape,
+            colors = colors,
+            border = border,
+            elevation = elevation,
+            content = { heroContent() }
         )
     }
 }
