@@ -3,6 +3,8 @@ package com.guyghost.wakeve
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import android.widget.Toast
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -27,6 +29,11 @@ import com.guyghost.wakeve.deeplink.pendingInviteProcessingInput
 import com.guyghost.wakeve.deeplink.pendingInviteProcessingResult
 import com.guyghost.wakeve.deeplink.redactDeepLinkForLog
 import com.guyghost.wakeve.navigation.Screen
+import com.guyghost.wakeve.qa.AndroidQaSeeder
+import com.guyghost.wakeve.database.WakeveDb
+import com.guyghost.wakeve.invitationexperience.DatabaseDirectInviteBatchRepository
+import com.guyghost.wakeve.invitationexperience.DatabaseEventNotificationPreferenceRepository
+import com.guyghost.wakeve.repository.DatabaseEventRepository
 import com.guyghost.wakeve.navigation.WakeveAdaptiveNavigationScaffold
 import com.guyghost.wakeve.navigation.WakeveNavHost
 import com.guyghost.wakeve.notification.NotificationPreferences
@@ -113,18 +120,42 @@ fun App() {
 
     // QA headless launch — équivalent Android de --wakeve-debug-authenticated (iOS).
     // Usage : adb shell am start ... --ez wakeve.dev.auth true
+    //         [--es wakeve.qa.route poll|poll-results|scenarios|detail]
     // DEBUG uniquement : passe par le chemin guest officiel de la state machine
-    // (Intent.SkipToGuest) et marque l'onboarding complet pour atterrir sur Home.
+    // (Intent.SkipToGuest), marque l'onboarding complet, seede le repository
+    // (AndroidQaSeeder, idempotent) puis expose la route QA à ouvrir.
+    var qaTargetRoute by remember { mutableStateOf<String?>(null) }
+    val database: WakeveDb = koinInject()
     LaunchedEffect(Unit) {
         val isDebuggableBuild =
             (context.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
         if (isDebuggableBuild) {
             val activity = context as? android.app.Activity
             val requested = activity?.intent?.getBooleanExtra("wakeve.dev.auth", false) == true
+            val qaRoute = activity?.intent?.getStringExtra("wakeve.qa.route")
             if (requested) {
                 authStateMachine.handleIntent(AuthContract.Intent.SkipToGuest)
                 markOnboardingComplete(context)
                 hasOnboarded = true
+
+                if (qaRoute != null) {
+                    val seeder = AndroidQaSeeder(
+                        context = context,
+                        database = database,
+                        eventRepository = DatabaseEventRepository(db = database, syncManager = null),
+                        directInviteRepository = DatabaseDirectInviteBatchRepository(database),
+                        notificationRepository = DatabaseEventNotificationPreferenceRepository(database)
+                    )
+                    // Attendre la session guest (SkipToGuest est asynchrone)
+                    val viewerId = withTimeoutOrNull(10_000) {
+                        authStateMachine.state
+                            .first { it.isGuest && it.currentUser != null }
+                            .currentUser?.id
+                    }
+                    val seeded = viewerId != null && seeder.seed(viewerId)
+                    Log.d("QALaunch", "seed=${if (seeded) "OK" else "FAILED"} route=$qaRoute")
+                    if (seeded) qaTargetRoute = qaRoute
+                }
             }
         }
     }
@@ -212,6 +243,24 @@ fun App() {
     // Derive userId from auth state
     val userId = remember(authState) {
         authState.currentUser?.id ?: ""
+    }
+
+    // Navigation déterministe vers la route QA une fois Home prête (DAO audit)
+    LaunchedEffect(startDestination, qaTargetRoute) {
+        if (qaTargetRoute != null && startDestination == Screen.Home.route) {
+            val targetRoute = when (qaTargetRoute) {
+                "poll" -> Screen.PollVoting.createRoute(AndroidQaSeeder.Seed.POLLING)
+                "poll-results" -> Screen.PollResults.createRoute(AndroidQaSeeder.Seed.POLLING)
+                "scenarios" -> Screen.ScenarioList.createRoute(AndroidQaSeeder.Seed.CONFIRMED)
+                "detail" -> Screen.EventDetail.createRoute(AndroidQaSeeder.Seed.CONFIRMED)
+                else -> null
+            }
+            if (targetRoute != null) {
+                Log.d("QALaunch", "navigating to $targetRoute")
+                navController.navigate(targetRoute)
+            }
+            qaTargetRoute = null
+        }
     }
 
     LaunchedEffect(userId, showProfileSheet) {
