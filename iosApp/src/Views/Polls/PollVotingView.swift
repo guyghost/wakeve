@@ -981,16 +981,14 @@ struct PollTimeZoneBadge: View {
     let foregroundColor: Color
     let backgroundColor: Color
 
+    /// Wrapper legacy — délègue à la chip standard du design system (DAO #26).
     var body: some View {
-        Label(label, systemImage: "globe")
-            .font(TypographyTokens.caption)
-            .foregroundColor(foregroundColor)
-            .lineLimit(1)
-            .minimumScaleFactor(0.78)
-            .padding(.horizontal, WakeveTheme.Spacing.sm)
-            .frame(height: 30)
-            .background(backgroundColor)
-            .clipShape(Capsule())
+        WakeveMetaChip(
+            systemImage: "globe",
+            label: label,
+            foregroundColor: foregroundColor,
+            backgroundColor: backgroundColor
+        )
     }
 }
 
