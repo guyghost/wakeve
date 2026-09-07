@@ -174,7 +174,10 @@ final class PremiumPollVotingContractTests: XCTestCase {
         XCTAssertTrue(votingContent.contains("formatTimeZoneLabel(activeSlot.timezone, at: activeSlot.start)"))
         XCTAssertTrue(votingContent.contains("formatter.timeZone = timeZone(for: timezone)"))
         XCTAssertTrue(votingContent.contains("poll.timezone.label_format"))
-        XCTAssertTrue(timezoneBadge.contains("Label(label, systemImage: \"globe\")"))
+        XCTAssertTrue(
+            timezoneBadge.contains("systemImage: \"globe\""),
+            "Le badge fuseau délègue à WakeveMetaChip en conservant son icône globe (DAO #26)."
+        )
 
         let resultsSource = try readProjectFile("iosApp/src/Views/Polls/PollResultsView.swift")
         let resultsContent = slice(resultsSource, from: "struct BestSlotCard", to: "// MARK: - Vote Count Badge")

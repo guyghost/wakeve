@@ -551,16 +551,12 @@ struct PollDecisionAnnouncementCard: View {
                 })
                 .accessibilityIdentifier("pollDecisionAnnouncementShareLink")
 
-                Button {
+                WakeveSecondaryIconButton(
+                    systemImage: showCopiedAnnouncementMessage ? "checkmark" : "doc.on.doc.fill",
+                    accessibilityLabel: showCopiedAnnouncementMessage ? String(localized: "poll.results.announcement.copied") : String(localized: "poll.results.announcement.copy_action")
+                ) {
                     copyAnnouncementMessage()
-                } label: {
-                    Label(String(localized: "poll.results.announcement.copy_action"), systemImage: showCopiedAnnouncementMessage ? "checkmark" : "doc.on.doc.fill")
-                        .font(WakeveTheme.Typography.bodySemibold)
-                        .labelStyle(.iconOnly)
-                        .frame(width: 46, height: 46)
                 }
-                .buttonStyle(.bordered)
-                .accessibilityLabel(showCopiedAnnouncementMessage ? String(localized: "poll.results.announcement.copied") : String(localized: "poll.results.announcement.copy_action"))
                 .accessibilityIdentifier("pollDecisionAnnouncementCopyButton")
             }
 
