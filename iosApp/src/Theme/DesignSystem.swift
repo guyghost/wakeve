@@ -37,7 +37,7 @@ public enum WakeveTheme {
         public static let graphite = Color(hex: "17191D")
         public static let midnight = Color(hex: "071421")
         public static let midnightElevated = Color(hex: "101E2A")
-        public static let softIvory = Color(hex: "F7F3EC")
+        public static let softIvory = Color.wakeveWarmIvory
         public static let mutedLavender = Color(hex: "B8A8D9")
         public static let paleBlue = Color(hex: "A9C7E8")
         public static let warmAmber = Color(hex: "F3B45B")
