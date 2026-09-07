@@ -184,35 +184,13 @@ struct PollResultsContentView: View {
             WakeveScreenBackground(style: .grouped)
 
             VStack(spacing: 0) {
-                // Header
-                VStack(spacing: 16) {
-                    HStack {
-                        WakeveCircleButton(
-                            systemImage: "xmark",
-                            accessibilityLabel: String(localized: "common.close"),
-                            variant: .light,
-                            size: 44,
-                            action: onBack
-                        )
-
-                        Spacer()
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, WakeveTheme.Navigation.controlTopSpacing)
-
-                    VStack(spacing: 8) {
-                        Text(String(localized: "poll.results.title"))
-                            .font(WakeveTheme.Typography.display)
-                            .foregroundColor(.primary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-
-                        Text(event.title)
-                            .font(WakeveTheme.Typography.title2)
-                            .foregroundColor(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .padding(.horizontal, 20)
-                }
+                // Header — composant partagé (DAO #24)
+                WakeveScreenHeader(
+                    title: String(localized: "poll.results.title"),
+                    subtitle: event.title,
+                    closeButtonAccessibilityLabel: String(localized: "common.close"),
+                    onClose: onBack
+                )
 
                 ScrollView {
                     VStack(spacing: 16) {

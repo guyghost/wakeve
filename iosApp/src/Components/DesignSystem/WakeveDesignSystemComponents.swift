@@ -443,6 +443,78 @@ struct WakeveCircleButton: View {
     }
 }
 
+// MARK: - Screen Header
+
+/// En-tête d'écran standard — Proposition Swarm DAO #24.
+/// Pattern (modèle écran Résultats) : bouton circulaire 44pt en haut à gauche,
+/// grand titre display aligné à gauche, sous-titre secondaire portant le contexte
+/// (nom de l'événement). Accessoire optionnel en haut à droite (ex. refresh).
+struct WakeveScreenHeader<Trailing: View>: View {
+    private let title: String
+    private let subtitle: String?
+    private let closeButtonSystemImage: String
+    private let closeButtonAccessibilityLabel: String
+    private let showsTopControls: Bool
+    private let onClose: (() -> Void)?
+    private let trailing: Trailing
+
+    init(
+        title: String,
+        subtitle: String? = nil,
+        closeButtonSystemImage: String = "xmark",
+        closeButtonAccessibilityLabel: String,
+        showsTopControls: Bool = true,
+        onClose: (() -> Void)? = nil,
+        @ViewBuilder trailing: () -> Trailing = { EmptyView() }
+    ) {
+        self.title = title
+        self.subtitle = subtitle
+        self.closeButtonSystemImage = closeButtonSystemImage
+        self.closeButtonAccessibilityLabel = closeButtonAccessibilityLabel
+        self.showsTopControls = showsTopControls
+        self.onClose = onClose
+        self.trailing = trailing()
+    }
+
+    var body: some View {
+        VStack(spacing: 16) {
+            if showsTopControls, onClose != nil {
+                HStack(spacing: 12) {
+                    WakeveCircleButton(
+                        systemImage: closeButtonSystemImage,
+                        accessibilityLabel: closeButtonAccessibilityLabel,
+                        variant: .light,
+                        size: 44,
+                        action: onClose ?? {}
+                    )
+
+                    Spacer()
+
+                    trailing
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, WakeveTheme.Navigation.controlTopSpacing)
+            }
+
+            VStack(spacing: 8) {
+                Text(title)
+                    .font(WakeveTheme.Typography.display)
+                    .foregroundColor(.primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                if let subtitle {
+                    Text(subtitle)
+                        .font(WakeveTheme.Typography.title2)
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+            .padding(.horizontal, 20)
+        }
+        .accessibilityElement(children: .contain)
+    }
+}
+
 // MARK: - Search Field
 
 struct WakeveSearchField: View {
