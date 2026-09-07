@@ -6,7 +6,7 @@ import SwiftUI
 /// colors in content where they communicate state, mood, grouping, or feedback.
 public enum SemanticColor {
     public static func appBackground(for colorScheme: ColorScheme) -> Color {
-        colorScheme == .dark ? BrandColor.midnightBlue : Color(hex: "F6F1EA")
+        colorScheme == .dark ? BrandColor.midnightBlue : Color.wakeveWarmIvory
     }
 
     public static func contentSurface(for colorScheme: ColorScheme) -> Color {
