@@ -185,6 +185,7 @@ struct EventArchiveView: View {
                 }
                 .padding()
             }
+            .background(WakeveScreenBackground(style: .app))
             .navigationTitle(String(localized: "invitation.archive.title"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

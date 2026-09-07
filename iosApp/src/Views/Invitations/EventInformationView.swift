@@ -257,6 +257,7 @@ struct EventInformationView: View {
                 }
                 .padding()
             }
+            .background(WakeveScreenBackground(style: .app))
             .navigationTitle(String(localized: "invitation.information.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

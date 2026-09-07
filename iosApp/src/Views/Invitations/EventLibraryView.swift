@@ -278,6 +278,7 @@ struct EventLibraryView: View {
                 }
                 .padding()
             }
+            .background(WakeveScreenBackground(style: .app))
             .navigationTitle(String(localized: "invitation.library.title"))
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
