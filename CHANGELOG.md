@@ -7,6 +7,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Uniformisation UX (Swarm DAO #27/#24/#25/#26)
+
+Programme d'uniformisation de l'expérience utilisateur inspiré de l'écran
+Résultats (réf. `qa-screenshots/cycle-2026-09-04/28-poll-results.png`),
+gouverné via Swarm DAO (4 propositions shipped, note 4/5).
+
+- **Design tokens (DAO #27)**
+  - Fond ivoire chaud `#F6F1EA` (mesuré au pixel) standardisé iOS + Android
+    via token unique `WarmIvory` (3 ivoires dispersés iOS unifiés)
+  - Dark mode : `WarmIvoryDark` `#071421` aligné sur `BrandColor.midnightBlue`
+  - Arbitrage Android : Material You dynamic color conservé (statu quo O3),
+    AC fond uniforme rescopée iOS
+- **En-têtes unifiés (DAO #24)**
+  - `WakeveScreenHeader` (SwiftUI + Compose) : bouton circulaire 44pt,
+    grand titre display, sous-titre contexte événement, slot trailing
+  - Migrés : Résultats (référence), Scénarios (dégradé bleu hero supprimé,
+    statut en chip accent), Détail événement Android, Résultats sondage Android
+- **Cartes + carte héro (DAO #25)**
+  - `WakeveHeroCard` (SwiftUI + Compose) : bordure dorée réservée à
+    l'information confirmée (meilleur créneau, date confirmée)
+  - `WakeveCard` Compose : fond blanc + bordure hairline sur fond ivoire
+- **Boutons & chips (DAO #26)**
+  - Un seul bleu d'action `#2563EB` (CTA primaire, texte secondaire,
+    icônes) — `permissionBlue #3F8FF2` retiré
+  - `WakeveSecondaryIconButton` (46pt), `WakeveMetaChip` (fuseau, invités,
+    échéance), `PollTimeZoneBadge` délègue, `WakevePrimaryPillButton` Compose
+
+### Added — QA tooling headless
+
+- **iOS** : bypass auth `--wakeve-debug-authenticated` + seed repository
+  idempotent + 9 routes déterministes (`--wakeve-qa-open-invitation-route`)
+- **Android** : bypass auth `--ez wakeve.dev.auth true` (chemin guest
+  officiel, DEBUG) + `AndroidQaSeeder` (5 événements de cycle, audiences,
+  lieu, notification, invitations protégées hmac-v1 — idempotent,
+  viewerId stabilisé) + routes déterministes `--es wakeve.qa.route
+  poll|poll-results|scenarios|detail`
+- **Tests** : 5 suites contract iOS (tokens 6, headers 3, cards 3,
+  boutons/chips 4, couverture fonds 1) + `DesignTokensTest` Compose (5)
+
+### Validated — Cycles QA & revues (2026-09-07)
+
+- Cycles `qa-screenshots/cycle-2026-09-07/` (iOS light, 8 écrans),
+  `-dark/`, `-reduce-transparency/`, `cycle-2026-09-07-android/`
+- Fond ivoire `#F6F1EA` mesuré exact sur 6 écrans iOS light ; midnight
+  `#071421` sur 7 écrans dark ; Material You assumé sur Android (O3)
+- Contrastes WCAG 2.1 : light 6/8 pass (A2 corrigé `#1D4ED8` 4.94:1),
+  dark 4/4 pass (D1 corrigé cross-scheme 8.03:1)
+- Flux vote Android E2E : sélection → soumission → Score 2 sur la carte
+  héro dorée (bordure pixel-mesurée `srgba(244,214,180)`)
+- Revues : `docs/reviews/uniformisation-ux-design-a11y-review-2026-09-07.md`,
+  `docs/reviews/android-compose-audit-2026-09-07.md`,
+  `docs/reviews/dark-mode-cycle-2026-09-07.md`
+- Backlog produit : `docs/product/android-invitation-surfaces-gap-analysis.md`
+  (P1–P4, décision requise)
+- Mesures device physique : `docs/testing/DEVICE_MEASUREMENT_RUNBOOK.md`
+
+### Changed
+
+- `androidUnitTest` : `AndroidProductLanguageContractTest` échoue sur
+  develop pour des causes préexistantes au programme (4 tests, non liés)
+- Gradle : échec configuration-cache préexistant sur
+  `processDebugGoogleServices` (contourner avec
+  `-Dorg.gradle.configuration-cache=false`)
+
 ### Added (Phase 6: MeetingService & E2E Testing)
 
 - **MeetingService**
