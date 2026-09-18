@@ -5590,7 +5590,7 @@
         "server/src/main/kotlin/com/guyghost/wakeve/routes/AccommodationRoutes.kt"
       ],
       "proposedBy": "user",
-      "status": "controlled",
+      "status": "executed",
       "votes": [
         {
           "agentId": "architect",
@@ -5752,7 +5752,9 @@
         "riskZone": "green",
         "breakdown": "8.0×0.3 + 7.2×0.2 + 5.2×0.15 + 7.2×0.2 + 7.3×0.15 = 7.1"
       },
-      "synthesis": "## Synthesis — Proposal #33\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 8\n**For:** 6 | **Against:** 0 | **Abstain:** 2 | **Errors:** 2\n\n### Supporting Arguments\n- **Solution Architect:** Every claim is verifiable in code: the finalization transition is effectively unreachable and its failure opaque, two blockers have no API path, the accommodation guard contradicts the finalization ch...\n- **Product Strategist:** Three of the four fixes are precisely verified against code, empirically grounded in the QA session, and directly serve the documented workflow contract and the Product Excellence gate (actionable pen...\n- **UX/UI Designer:** Three of the four defects are verified in code and are pure defect-restoration: they restore reachability and legibility of the product's terminal user journey, which is the heart of the Product Excel...\n- **Prioritization Agent:** This is a bug fix restoring intended behavior (the DRAFT→FINALIZED workflow promised in AGENTS.md), with the highest user-impact profile available in the current queue: the terminal milestone of the e...\n- **Spec Writer:** The problem is real, verified in code, and QA-blocking: the ORGANIZING→FINALIZED transition is the terminal state of the product's headline workflow and is currently unreachable via API. Three of four...\n- **Delivery Agent:** Three of four bugs verified true in code, and the fourth is a real deadlock of the same family — the proposal's stated mechanism is misattributed, but its alternative fix option (\"marquer synced à l'i...\n\n### Agent Errors\n- **Research Agent:** Pi subprocess output exceeded 4000000 chars\n- **Critic / Risk Agent:** Pi subprocess timed out after 240000ms\n\n### Key Themes\n- User experience\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n"
+      "synthesis": "## Synthesis — Proposal #33\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 8\n**For:** 6 | **Against:** 0 | **Abstain:** 2 | **Errors:** 2\n\n### Supporting Arguments\n- **Solution Architect:** Every claim is verifiable in code: the finalization transition is effectively unreachable and its failure opaque, two blockers have no API path, the accommodation guard contradicts the finalization ch...\n- **Product Strategist:** Three of the four fixes are precisely verified against code, empirically grounded in the QA session, and directly serve the documented workflow contract and the Product Excellence gate (actionable pen...\n- **UX/UI Designer:** Three of the four defects are verified in code and are pure defect-restoration: they restore reachability and legibility of the product's terminal user journey, which is the heart of the Product Excel...\n- **Prioritization Agent:** This is a bug fix restoring intended behavior (the DRAFT→FINALIZED workflow promised in AGENTS.md), with the highest user-impact profile available in the current queue: the terminal milestone of the e...\n- **Spec Writer:** The problem is real, verified in code, and QA-blocking: the ORGANIZING→FINALIZED transition is the terminal state of the product's headline workflow and is currently unreachable via API. Three of four...\n- **Delivery Agent:** Three of four bugs verified true in code, and the fourth is a real deadlock of the same family — the proposal's stated mechanism is misattributed, but its alternative fix option (\"marquer synced à l'i...\n\n### Agent Errors\n- **Research Agent:** Pi subprocess output exceeded 4000000 chars\n- **Critic / Risk Agent:** Pi subprocess timed out after 240000ms\n\n### Key Themes\n- User experience\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n",
+      "resolvedAt": "2026-09-18T20:05:06.162Z",
+      "executionResult": "Executed with delivery plan: feature/dao-33-fix-lifecycle-rendre-la-finali"
     },
     {
       "id": 34,
@@ -8023,10 +8025,19 @@
       "action": "proposal_executed",
       "actor": "user",
       "details": "Executed #32"
+    },
+    {
+      "id": 174,
+      "timestamp": "2026-09-18T20:05:06.164Z",
+      "proposalId": 33,
+      "layer": "delivery",
+      "action": "proposal_executed",
+      "actor": "user",
+      "details": "Executed #33"
     }
   ],
-  "nextAuditId": 174,
-  "stateRevision": 36,
+  "nextAuditId": 175,
+  "stateRevision": 37,
   "controlResults": {
     "1": {
       "proposalId": 1,
@@ -17209,6 +17220,14 @@
       "proposalId": 32,
       "timestamp": "2026-09-18T19:42:31.826Z",
       "branch": "feature/dao-32-fix-sync-accorder-le-permis-ag",
+      "commitSha": "unknown",
+      "filesChanged": [],
+      "stateSnapshot": "{\"agents\":7,\"proposals\":36}"
+    },
+    "33": {
+      "proposalId": 33,
+      "timestamp": "2026-09-18T20:05:06.162Z",
+      "branch": "feature/dao-33-fix-lifecycle-rendre-la-finali",
       "commitSha": "unknown",
       "filesChanged": [],
       "stateSnapshot": "{\"agents\":7,\"proposals\":36}"

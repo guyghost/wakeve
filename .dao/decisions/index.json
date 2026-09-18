@@ -287,9 +287,10 @@
     "id": 33,
     "title": "fix(lifecycle): rendre la finalisation atteignable et explicite (BUG-3 + BUG-5)",
     "type": "technical-change",
-    "status": "controlled",
+    "status": "executed",
     "riskZone": "orange",
-    "createdAt": "2026-09-18T19:06:16.798Z"
+    "createdAt": "2026-09-18T19:06:16.798Z",
+    "resolvedAt": "2026-09-18T20:05:06.162Z"
   },
   {
     "id": 34,

@@ -54,7 +54,14 @@ fun io.ktor.server.routing.Route.commentRoutes(
                     mapOf("error" to "Event ID required")
                 )
 
-                val request = call.receive<CreateCommentRequest>()
+                val request = try {
+                    call.receive<CreateCommentRequest>()
+                } catch (e: Exception) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Invalid comment payload: authorId, authorName, content and section are required")
+                    )
+                }
                 val principal = call.principal<JWTPrincipal>()
                 val authorId = bindCommentAuthorToAuthenticatedUser(
                     requestedAuthorId = request.authorId,
@@ -65,11 +72,16 @@ fun io.ktor.server.routing.Route.commentRoutes(
                         mapOf("error" to commentAuthorForbiddenMessage())
                     )
                 }
-                val authorName = resolveAuthenticatedCommentAuthorName(
-                    authenticatedUserName = principal?.payload?.getClaim("userName")?.asString(),
-                    authenticatedEmail = principal?.payload?.getClaim("email")?.asString(),
-                    authenticatedUserId = authorId
-                )
+                // Prefer the display name supplied by the client (trimmed, non-blank)
+                // so guest participants can label themselves; fall back to the
+                // authenticated account identity.
+                val providedAuthorName = request.authorName.trim().takeIf { it.isNotBlank() }
+                val authorName = providedAuthorName
+                    ?: resolveAuthenticatedCommentAuthorName(
+                        authenticatedUserName = principal?.payload?.getClaim("userName")?.asString(),
+                        authenticatedEmail = principal?.payload?.getClaim("email")?.asString(),
+                        authenticatedUserId = authorId
+                    )
 
                 val commentRequest = CommentRequest(
                     section = request.section,

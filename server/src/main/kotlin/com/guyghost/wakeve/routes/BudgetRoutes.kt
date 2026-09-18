@@ -118,7 +118,14 @@ fun io.ktor.server.routing.Route.budgetRoutes(
                     )
                 }
 
-                val budget = call.receive<Budget>()
+                val budget = try {
+                    call.receive<Budget>()
+                } catch (e: Exception) {
+                    return@put call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Invalid budget payload: required fields are missing or malformed")
+                    )
+                }
 
                 // Ensure eventId matches
                 if (budget.eventId != eventId) {
@@ -140,8 +147,16 @@ fun io.ktor.server.routing.Route.budgetRoutes(
                     )
                     repository.updateBudget(updated)
                 } else {
-                    // Create new budget
-                    repository.createBudget(eventId)
+                    // First save: create the budget record, then persist the received
+                    // baseline. Previously the organizer's values were silently
+                    // dropped here and a zeroed budget was returned (QA BUG-6).
+                    val created = repository.createBudget(eventId)
+                    val updated = budget.copy(
+                        id = created.id,
+                        createdAt = created.createdAt,
+                        updatedAt = getCurrentIsoTimestamp()
+                    )
+                    repository.updateBudget(updated)
                 }
 
                 call.respond(HttpStatusCode.OK, savedBudget)
