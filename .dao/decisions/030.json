@@ -1,0 +1,9 @@
+{
+  "id": 30,
+  "title": "Nettoyage repo passe 3 : sources d'icônes déjà intégrées, extension orpheline, rapport de patchs daté (creative-production, extensions/wakeve-health, SECURITY_PATCHES)",
+  "type": "technical-change",
+  "status": "executed",
+  "riskZone": "red",
+  "createdAt": "2026-09-18T11:24:39.920Z",
+  "resolvedAt": "2026-09-18T11:31:36.709Z"
+}
