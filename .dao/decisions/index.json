@@ -314,8 +314,9 @@
     "id": 36,
     "title": "fix(calendar): conformité RFC 5545 des invitations ICS — TRIGGER VALARM + invitees (BUG-9)",
     "type": "technical-change",
-    "status": "controlled",
+    "status": "executed",
     "riskZone": "orange",
-    "createdAt": "2026-09-18T19:06:54.102Z"
+    "createdAt": "2026-09-18T19:06:54.102Z",
+    "resolvedAt": "2026-09-18T20:13:50.873Z"
   }
 ]

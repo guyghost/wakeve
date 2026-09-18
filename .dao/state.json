@@ -6230,7 +6230,7 @@
         "shared/src/commonTest/kotlin/com/guyghost/wakeve/calendar/CalendarServiceTest.kt"
       ],
       "proposedBy": "user",
-      "status": "controlled",
+      "status": "executed",
       "votes": [
         {
           "agentId": "strategist",
@@ -6418,7 +6418,9 @@
         "riskZone": "orange",
         "breakdown": "6.8×0.3 + 5.6×0.2 + 7.1×0.15 + 7.6×0.2 + 8.0×0.15 = 6.9"
       },
-      "synthesis": "## Synthesis — Proposal #36\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 8\n**For:** 8 | **Against:** 0 | **Abstain:** 0\n\n### Supporting Arguments\n- **Product Strategist:** All factual claims check out against the source: the malformed TRIGGER exists verbatim, the invitees parameter is provably dead code, and this contradicts the Calendar Agent's documented RFC 5545 cont...\n- **Solution Architect:** The proposal's factual claims all check out in source: the malformed TRIGGER, the dead `invitees` parameter, and the guest-placeholder ORGANIZER are real, and the fix is feasible with the existing sta...\n- **Research Agent:** Every factual claim in the proposal is verified directly in the codebase: malformed TRIGGER at CalendarService.kt:85, unused `invitees` parameter, guest-address ORGANIZER mechanism, UTC-only DTSTART/D...\n- **Critic / Risk Agent:** Le diagnostic est exact et vérifié ligne par ligne : TRIGGER invalide, `invitees` mort, ORGANIZER guest. Le correctif rend strictement mieux que le statu quo (rappels parsables, invitations adressées)...\n- **Prioritization Agent:** Bug verified line-by-line in source: the TRIGGER is genuinely malformed, the `invitees` parameter is genuinely dead, and the current test suite enshrines the bug. This is the last blocker-tier QA Rio ...\n- **Delivery Agent:** The bug is real, verified line-by-line in source, well-scoped, independently testable (ideal TDD shape: pure string builder), with no dependencies and minimal regression blast radius. It restores a co...\n- **UX/UI Designer:** This is a genuine defect fix restoring intended behavior, and every claim I could check verified in source: a malformed TRIGGER that silently kills reminders, a silently ignored `invitees` parameter, ...\n- **Spec Writer:** The bug is real and verified in source: a dead `invitees` parameter, malformed TRIGGER, and guest-address ORGANIZER contradict the AGENTS.md RFC 5545 requirement and cause user-visible reminder failur...\n\n### Key Themes\n- User experience\n- Alignment\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n"
+      "synthesis": "## Synthesis — Proposal #36\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 8\n**For:** 8 | **Against:** 0 | **Abstain:** 0\n\n### Supporting Arguments\n- **Product Strategist:** All factual claims check out against the source: the malformed TRIGGER exists verbatim, the invitees parameter is provably dead code, and this contradicts the Calendar Agent's documented RFC 5545 cont...\n- **Solution Architect:** The proposal's factual claims all check out in source: the malformed TRIGGER, the dead `invitees` parameter, and the guest-placeholder ORGANIZER are real, and the fix is feasible with the existing sta...\n- **Research Agent:** Every factual claim in the proposal is verified directly in the codebase: malformed TRIGGER at CalendarService.kt:85, unused `invitees` parameter, guest-address ORGANIZER mechanism, UTC-only DTSTART/D...\n- **Critic / Risk Agent:** Le diagnostic est exact et vérifié ligne par ligne : TRIGGER invalide, `invitees` mort, ORGANIZER guest. Le correctif rend strictement mieux que le statu quo (rappels parsables, invitations adressées)...\n- **Prioritization Agent:** Bug verified line-by-line in source: the TRIGGER is genuinely malformed, the `invitees` parameter is genuinely dead, and the current test suite enshrines the bug. This is the last blocker-tier QA Rio ...\n- **Delivery Agent:** The bug is real, verified line-by-line in source, well-scoped, independently testable (ideal TDD shape: pure string builder), with no dependencies and minimal regression blast radius. It restores a co...\n- **UX/UI Designer:** This is a genuine defect fix restoring intended behavior, and every claim I could check verified in source: a malformed TRIGGER that silently kills reminders, a silently ignored `invitees` parameter, ...\n- **Spec Writer:** The bug is real and verified in source: a dead `invitees` parameter, malformed TRIGGER, and guest-address ORGANIZER contradict the AGENTS.md RFC 5545 requirement and cause user-visible reminder failur...\n\n### Key Themes\n- User experience\n- Alignment\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n",
+      "resolvedAt": "2026-09-18T20:13:50.873Z",
+      "executionResult": "Executed with delivery plan: feature/dao-36-fix-calendar-conformit-rfc-554"
     }
   ],
   "config": {
@@ -8045,10 +8047,19 @@
       "action": "proposal_executed",
       "actor": "user",
       "details": "Executed #35"
+    },
+    {
+      "id": 176,
+      "timestamp": "2026-09-18T20:13:50.874Z",
+      "proposalId": 36,
+      "layer": "delivery",
+      "action": "proposal_executed",
+      "actor": "user",
+      "details": "Executed #36"
     }
   ],
-  "nextAuditId": 176,
-  "stateRevision": 38,
+  "nextAuditId": 177,
+  "stateRevision": 41,
   "controlResults": {
     "1": {
       "proposalId": 1,
@@ -17040,6 +17051,40 @@
       "createdAt": "2026-09-18T19:23:45.162Z",
       "updatedAt": "2026-09-18T19:23:45.162Z"
     },
+    "32": {
+      "proposalId": 32,
+      "ratings": [
+        {
+          "proposalId": 32,
+          "rater": "user",
+          "score": 5,
+          "comment": "BUG-2 corrigé et validé en réel : la confirmation de date via sync passe désormais le fence aggregate (permis accordé/clear dans la transaction), statut CONFIRMED atteint sur le replay QA avec 0 conflit. Test de fidélité ajouté (revision > 1) vérifié rouge sans le fix.",
+          "ratedAt": "2026-09-18T20:15:54.242Z"
+        }
+      ],
+      "metrics": [],
+      "overallScore": 5,
+      "status": "pending",
+      "createdAt": "2026-09-18T20:15:54.242Z",
+      "updatedAt": "2026-09-18T20:15:54.242Z"
+    },
+    "33": {
+      "proposalId": 33,
+      "ratings": [
+        {
+          "proposalId": 33,
+          "rater": "user",
+          "score": 4,
+          "comment": "BUG-3/BUG-5 : la finalisation expose désormais ses blockers exacts (409 + liste), readiness visible via GET, décisions not-needed exposées (organisateur), catch-22 hébergement levé. Le contrat Phase 6 (blocage sync pending) a été préservé après découverte en test — replay QA : 409 avec blockers actionnables.",
+          "ratedAt": "2026-09-18T20:15:54.243Z"
+        }
+      ],
+      "metrics": [],
+      "overallScore": 4,
+      "status": "pending",
+      "createdAt": "2026-09-18T20:15:54.243Z",
+      "updatedAt": "2026-09-18T20:15:54.243Z"
+    },
     "34": {
       "proposalId": 34,
       "ratings": [
@@ -17056,6 +17101,40 @@
       "status": "pending",
       "createdAt": "2026-09-18T19:23:45.162Z",
       "updatedAt": "2026-09-18T19:23:45.162Z"
+    },
+    "35": {
+      "proposalId": 35,
+      "ratings": [
+        {
+          "proposalId": 35,
+          "rater": "user",
+          "score": 4,
+          "comment": "BUG-6/7/8 corrigés : baseline persistée au premier PUT (4200€ visibles du premier coup dans le replay), payloads invalides → 400 (budget et commentaires), DTO mort supprimé. La partie authorName a été correctement revert après découverte du contrat anti-usurpation UgcModerationRoutesTest — la sécurité prime sur l'UX, le point nom-affiché est reporté.",
+          "ratedAt": "2026-09-18T20:16:01.867Z"
+        }
+      ],
+      "metrics": [],
+      "overallScore": 4,
+      "status": "pending",
+      "createdAt": "2026-09-18T20:16:01.867Z",
+      "updatedAt": "2026-09-18T20:16:01.867Z"
+    },
+    "36": {
+      "proposalId": 36,
+      "ratings": [
+        {
+          "proposalId": 36,
+          "rater": "user",
+          "score": 5,
+          "comment": "BUG-9 corrigé : TRIGGER:-P1D valide RFC 5545 (l'ancien -P1DT090000 invalidé par test), invitees réellement adressés en ATTENDEE mailto. Validé en replay sur l'ICS réel du voyage Rio.",
+          "ratedAt": "2026-09-18T20:16:01.867Z"
+        }
+      ],
+      "metrics": [],
+      "overallScore": 5,
+      "status": "pending",
+      "createdAt": "2026-09-18T20:16:01.867Z",
+      "updatedAt": "2026-09-18T20:16:01.867Z"
     }
   },
   "snapshots": {
@@ -17255,6 +17334,14 @@
       "proposalId": 35,
       "timestamp": "2026-09-18T20:10:10.565Z",
       "branch": "feature/dao-35-fix-api-budget-baseline-perdue",
+      "commitSha": "unknown",
+      "filesChanged": [],
+      "stateSnapshot": "{\"agents\":7,\"proposals\":36}"
+    },
+    "36": {
+      "proposalId": 36,
+      "timestamp": "2026-09-18T20:13:50.873Z",
+      "branch": "feature/dao-36-fix-calendar-conformit-rfc-554",
       "commitSha": "unknown",
       "filesChanged": [],
       "stateSnapshot": "{\"agents\":7,\"proposals\":36}"
