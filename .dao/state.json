@@ -5956,7 +5956,7 @@
     }
   ],
   "nextAuditId": 137,
-  "stateRevision": 4,
+  "stateRevision": 5,
   "controlResults": {
     "1": {
       "proposalId": 1,
@@ -12679,6 +12679,23 @@
       "status": "pending",
       "createdAt": "2026-09-07T08:52:21.874Z",
       "updatedAt": "2026-09-07T08:52:21.874Z"
+    },
+    "28": {
+      "proposalId": 28,
+      "ratings": [
+        {
+          "proposalId": 28,
+          "rater": "user",
+          "score": 5,
+          "comment": "Nettoyage exécuté sans accroc : 5 répertoires supprimés (~70 Mo, 197k lignes), .gitignore durci, 1846 tests shared:jvmTest verts, zéro référence fonctionnelle impactée. Vérifications préalables (git grep, CI) ont rendu l'exécution triviale et sûre.",
+          "ratedAt": "2026-09-18T10:04:10.615Z"
+        }
+      ],
+      "metrics": [],
+      "overallScore": 5,
+      "status": "pending",
+      "createdAt": "2026-09-18T10:04:10.615Z",
+      "updatedAt": "2026-09-18T10:04:10.615Z"
     }
   },
   "snapshots": {
