@@ -1,0 +1,9 @@
+{
+  "id": 29,
+  "title": "Nettoyage repo passe 2 : captures QA/store obsolètes, artefacts orphelins (screenshots, review-screenshots, audit_report, .run, context-log, .playwright-mcp, .gradle-home)",
+  "type": "technical-change",
+  "status": "executed",
+  "riskZone": "orange",
+  "createdAt": "2026-09-18T11:12:56.507Z",
+  "resolvedAt": "2026-09-18T11:16:44.575Z"
+}

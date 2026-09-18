@@ -40,6 +40,10 @@ qa-screenshots/
 .superpowers/
 audits/
 openspec/
+/screenshots/
+.gradle-home/
+.playwright-mcp/
+.run/
 
 # SvelteKit / Cloudflare adapter build artifacts
 .svelte-kit/
