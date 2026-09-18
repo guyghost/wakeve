@@ -83,7 +83,7 @@ fun Route.accommodationRoutes(repository: AccommodationRepository, database: Wak
                 if (!isAccommodationCreationAllowed(database, eventId)) {
                     return@post call.respond(
                         HttpStatusCode.Conflict,
-                        mapOf("error" to "Accommodations can only be created for CONFIRMED or COMPARING events")
+                        mapOf("error" to "Accommodations can only be created for CONFIRMED, COMPARING or ORGANIZING events")
                     )
                 }
                 
@@ -695,7 +695,11 @@ private fun isAccommodationCreationAllowed(database: WakeveDb, eventId: String):
         .executeAsOneOrNull()
         ?.status
 
-    return status == EventStatus.CONFIRMED.name || status == EventStatus.COMPARING.name
+    // ORGANIZING is allowed because the finalization readiness checklist requires a
+    // confirmed lodging; blocking creation at that stage made finalization a catch-22
+    // (QA BUG-3).
+    return status == EventStatus.CONFIRMED.name || status == EventStatus.COMPARING.name ||
+        status == EventStatus.ORGANIZING.name
 }
 
 private fun isAccommodationEventFinalized(database: WakeveDb, eventId: String): Boolean {

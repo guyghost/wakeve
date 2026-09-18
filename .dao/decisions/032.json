@@ -1,0 +1,9 @@
+{
+  "id": 32,
+  "title": "fix(sync): accorder le permis aggregate_write_authorization dans la confirmation par sync (BUG-2)",
+  "type": "technical-change",
+  "status": "executed",
+  "riskZone": "red",
+  "createdAt": "2026-09-18T19:06:16.798Z",
+  "resolvedAt": "2026-09-18T19:42:31.826Z"
+}

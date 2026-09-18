@@ -22,6 +22,7 @@ import com.guyghost.wakeve.models.UpdateEventStatusRequest
 import com.guyghost.wakeve.moderation.ModerationPolicy
 import com.guyghost.wakeve.moderation.ModerationStatus
 import com.guyghost.wakeve.notification.EventNotificationTrigger
+import com.guyghost.wakeve.organization.EventOrganizationReadinessRepository
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
@@ -527,6 +528,22 @@ fun io.ktor.server.routing.Route.eventRoutes(
                         )
                     }
                 } else {
+                    // Finalization is gated by an organization readiness checklist;
+                    // surface the exact blockers so the organizer can act on them
+                    // (QA BUG-3/BUG-5: previously a generic "try again" message).
+                    if (status == EventStatus.FINALIZED && database != null) {
+                        val readiness = EventOrganizationReadinessRepository(database).getReadiness(eventId)
+                        if (!readiness.complete) {
+                            call.respond(
+                                HttpStatusCode.Conflict,
+                                FinalizationBlockersResponse(
+                                    error = "Event cannot be finalized yet",
+                                    blockers = readiness.blockers
+                                )
+                            )
+                            return@put
+                        }
+                    }
                     call.respond(
                         HttpStatusCode.BadRequest,
                         mapOf("error" to eventStatusUpdateFailureMessage())
@@ -536,6 +553,89 @@ fun io.ktor.server.routing.Route.eventRoutes(
                 call.respond(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to eventStatusUpdateFailureMessage())
+                )
+            }
+        }
+
+        // GET /api/events/{id}/readiness - Aggregated finalization readiness checklist
+        get("/{id}/readiness") {
+            try {
+                val eventId = call.parameters["id"] ?: return@get call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Valid event ID required")
+                )
+                val principal = call.principal<JWTPrincipal>() ?: return@get call.respond(
+                    HttpStatusCode.Unauthorized,
+                    mapOf("error" to "Not authenticated")
+                )
+                val event = repository.getEvent(eventId) ?: return@get call.respond(
+                    HttpStatusCode.NotFound,
+                    mapOf("error" to "Event not found")
+                )
+                if (event.organizerId != principal.userId) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only the event organizer can view finalization readiness")
+                    )
+                }
+                val db = database ?: return@get call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("error" to "Database not available")
+                )
+                call.respond(HttpStatusCode.OK, EventOrganizationReadinessRepository(db).getReadiness(eventId))
+            } catch (e: Exception) {
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("error" to "Failed to compute finalization readiness")
+                )
+            }
+        }
+
+        // POST /api/events/{id}/readiness/{section}/not-needed - Organizer decision
+        // that a readiness section does not apply to this event (e.g. no meetings
+        // needed for an in-person trip). Only sections backed by an explicit
+        // decision record are supported.
+        post("/{id}/readiness/{section}/not-needed") {
+            try {
+                val eventId = call.parameters["id"] ?: return@post call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Valid event ID required")
+                )
+                val section = (call.parameters["section"] ?: "").trim().uppercase()
+                if (section !in setOf("MEETINGS", "LODGING")) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Unsupported readiness section: $section")
+                    )
+                }
+                val principal = call.principal<JWTPrincipal>() ?: return@post call.respond(
+                    HttpStatusCode.Unauthorized,
+                    mapOf("error" to "Not authenticated")
+                )
+                val event = repository.getEvent(eventId) ?: return@post call.respond(
+                    HttpStatusCode.NotFound,
+                    mapOf("error" to "Event not found")
+                )
+                if (event.organizerId != principal.userId) {
+                    return@post call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only the event organizer can mark a readiness section as not needed")
+                    )
+                }
+                val db = database ?: return@post call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("error" to "Database not available")
+                )
+                val readinessRepository = EventOrganizationReadinessRepository(db)
+                when (section) {
+                    "MEETINGS" -> readinessRepository.markMeetingsNotNeeded(eventId, principal.userId)
+                    "LODGING" -> readinessRepository.markLodgingNotNeeded(eventId, principal.userId)
+                }
+                call.respond(HttpStatusCode.OK, ReadinessDecisionResponse(section = section, notNeeded = true))
+            } catch (e: Exception) {
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("error" to "Failed to record the readiness decision")
                 )
             }
         }
@@ -615,6 +715,18 @@ internal fun nearbyEventsFailureMessage(): String =
 
 internal fun recommendedEventsFailureMessage(): String =
     "Failed to fetch recommended events. Please try again."
+
+@kotlinx.serialization.Serializable
+private data class FinalizationBlockersResponse(
+    val error: String,
+    val blockers: List<String>
+)
+
+@kotlinx.serialization.Serializable
+private data class ReadinessDecisionResponse(
+    val section: String,
+    val notNeeded: Boolean
+)
 
 internal fun eventStatusUpdateFailureMessage(): String =
     "Failed to update event status. Please try again."

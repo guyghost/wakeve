@@ -1,0 +1,8 @@
+{
+  "id": 35,
+  "title": "fix(api): budget baseline perdue au premier PUT + erreurs 400 au lieu de 500 sur budget/commentaires (BUG-6,7,8)",
+  "type": "technical-change",
+  "status": "controlled",
+  "riskZone": "red",
+  "createdAt": "2026-09-18T19:06:54.102Z"
+}

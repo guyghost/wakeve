@@ -2,7 +2,8 @@
   "id": 34,
   "title": "fix(server): monter les routes activities et equipment dans le routing (BUG-4)",
   "type": "technical-change",
-  "status": "controlled",
+  "status": "executed",
   "riskZone": "red",
-  "createdAt": "2026-09-18T19:06:16.798Z"
+  "createdAt": "2026-09-18T19:06:16.798Z",
+  "resolvedAt": "2026-09-18T19:23:14.852Z"
 }
