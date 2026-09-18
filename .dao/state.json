@@ -4455,6 +4455,229 @@
       "dryRunCanProceed": false,
       "resolvedAt": "2026-09-07T08:51:26.055Z",
       "executionResult": "Executed with delivery plan: feature/dao-27-design-tokens-fond-ivoire-chau"
+    },
+    {
+      "id": 28,
+      "title": "Nettoyage du repo : suppression des dossiers non essentiels et artefacts QA (qa-screenshots, .superpowers, audits, .local, openspec)",
+      "type": "technical-change",
+      "description": "Suppression de 5 répertoires non essentiels totalisant ~70 Mo d'artefacts historiques : qa-screenshots/ (50 Mo de captures QA), audits/ (13 Mo, rapport iOS 2026-06-19 + captures), .local/ (4 Mo, fixtures QA non référencées), .superpowers/ (3.5 Mo, artefacts SDD de sessions passées), openspec/ (vide). Analyse préalable : aucune référence fonctionnelle dans le code, les tests, les scripts ou la CI (.github/workflows). Seules des mentions historiques existent (commentaires de code citant la source de la couleur WarmIvory, CHANGELOG, piste d'audit .dao — toutes conservées telles quelles). Gate Product Excellence : non applicable au runtime — cette maintenance ne touche aucun parcours utilisateur ; elle réduit la taille du repo (~70 Mo), accélère les clones et fiabilise le CI en éliminant du bruit non fonctionnel.",
+      "problemStatement": "Le repo contient ~70 Mo d'artefacts historiques trackés dans git qui n'ont aucune valeur fonctionnelle : captures d'écran QA de cycles passés (qa-screenshots/, 35+ fichiers, 50 Mo), rapports et captures d'audit datés (audits/, 13 Mo), fixtures QA orphelines (.local/qa/, 4 Mo, non référencées par aucun test ni script), artefacts de sessions SDD terminées (.superpowers/, briefs/diffs/rapports historiques) et un répertoire openspec/ entièrement vide. Ces fichiers alourdissent les clones, polluent les recherches (grep, IDE) et créent du bruit pour les agents IA naviguant dans le repo.",
+      "acceptanceCriteria": [
+        "Les 5 chemins (qa-screenshots/, .superpowers/, audits/, .local/, openspec/) sont supprimés du repo et de l'index git",
+        "Aucun fichier de build/test/CI ne référencait fonctionnellement ces chemins (vérifié avant suppression)",
+        "git grep ne trouve plus ces répertoires dans l'index après suppression",
+        "./gradlew shared:test passe toujours (aucune dépendance code)",
+        "Le .gitignore est mis à jour pour éviter la re-création accidentelle de .local/ et qa-screenshots/"
+      ],
+      "successMetrics": [
+        "~70 Mo libérés du dépôt git",
+        "git grep -l 'qa-screenshots' ne retourne plus que des mentions historiques (CHANGELOG, .dao, commentaires)",
+        "CI verte sur le commit suivant"
+      ],
+      "rollbackConditions": [
+        "Un build ou test échoue après suppression (référence manquante imprévue)",
+        "Un workflow CI échoue par dépendance à un chemin supprimé",
+        "Une référence fonctionnelle est découverte a posteriori dans un module"
+      ],
+      "affectedPaths": [
+        "qa-screenshots/",
+        ".superpowers/",
+        "audits/",
+        ".local/",
+        "openspec/"
+      ],
+      "proposedBy": "user",
+      "status": "executed",
+      "votes": [
+        {
+          "agentId": "architect",
+          "agentName": "Solution Architect",
+          "position": "for",
+          "reasoning": "Evidence checks out on every acceptance criterion I could mechanically verify: sizes match, no functional references exist in code, tests, scripts, or CI, and the surviving mentions are comments/docs that the proposal explicitly preserves. Architecturally this is a pure subtraction touching no module boundary, adding no dependency, and fully reversible via git history (Option A). I vote for with two caveats the swarm should adopt: (1) reframe the success metric — working-copy and noise reduction, not clone size, unless Option B is separately deliberated; (2) correct \"openspec/ vide\" — its untracked local archives are the only irreversible deletion here and should be explicitly accepted or archived first.",
+          "weight": 3
+        },
+        {
+          "agentId": "critic",
+          "agentName": "Critic / Risk Agent",
+          "position": "for",
+          "reasoning": "L'action fondamentale est sûre, vérifiée et parfaitement réversible : zéro référence fonctionnelle dans code/tests/scripts/CI (confirmé par inspection directe), zéro impact runtime, rollback par `git revert`. Les bénéfices réels (checkout, bruit grep, navigation agent) sont authentiques. Mes deux objections — métrique « 70 Mo libérés du dépôt / clones accélérés » fausse (l'historique conserve les blobs) et dé-versionnage silencieux des preuves QA futures — sont des défauts d'énoncé et de politique à corriger, pas des bloqueurs de production. Je vote pour en exigeant que le swarm retienne : (1) la métrique doit être reformulée en « 70 Mo retirés du working tree, pas de l'historique » ; (2) l'équipe doit trancher consciemment si les futures captures QA doivent être commitées (auquel cas retirer qa-screenshots/ du .gitignore) — ne pas laisser ce changement de pratique passer inaperçu sous l'étiquette « nettoyage ».",
+          "weight": 3
+        },
+        {
+          "agentId": "researcher",
+          "agentName": "Research Agent",
+          "position": "for",
+          "reasoning": "The deletions are verified safe (no functional references in code, tests, scripts, or CI; openspec/ is empty residue after tooling removal in `1575e6de`), fully recoverable via git history, and low effort. I vote for *despite* two evidenced corrections the swarm should weigh: (1) the clone-speed/70MB-repo claim is technically wrong without history rewrite — the true benefits are checkout size and grep noise; (2) gitignoring `qa-screenshots/` silently ends the active practice of tracking QA cycle evidence cited by CHANGELOG and shipped design tokens. I recommend the executor scope the gitignore to `.local/` and either keep the CHANGELOG-cited cycles (`cycle-2026-09-04`, `cycle-2026-09-07`) or archive them — but that amendment is the Strategist's call, and neither issue breaks the change.",
+          "weight": 2
+        },
+        {
+          "agentId": "strategist",
+          "agentName": "Product Strategist",
+          "position": "for",
+          "reasoning": "The core action is verified-safe, reversible via git history, well-specified (test + CI + git grep acceptance criteria), and touches zero user-facing behavior. Four of the five directories (audits 2026-06-19, .superpowers completed SDD sessions, .local orphan fixture, empty openspec) are genuinely stale. My concerns do not kill the proposal, but the tally should weigh them as amendments: (1) drop or reword the clone-size success metric — it will not materialize without history rewrite; (2) relocate the single canonical reference PNG to `docs/assets/` before deletion to keep the WarmIvory provenance and review-doc links alive; (3) confirm with the QA workflow owner that untracked captures are intended, since the gitignore criterion currently decides an active evidence policy by side effect. Voting for the bundle because every concern is addressable within the same effort and none breaks reversibility.",
+          "weight": 3
+        },
+        {
+          "agentId": "prioritizer",
+          "agentName": "Prioritization Agent",
+          "position": "for",
+          "reasoning": "Risk-adjusted, this is a clear net positive: near-zero effort, near-zero code risk (I independently confirmed no functional references in CI, scripts, or tests), modest but real operational value (noise reduction for humans and AI agents navigating the repo, working-tree weight, future-accumulation guard). It requires no displacement of the current queue (AI workflows, iOS WeatherKit, UX cycles). I discount the expected value for the misleading clone-size metric (~70 MB stays in history without a rewrite) and flag that gitignoring `qa-screenshots/` is a live workflow decision, not pure cleanup — but neither flips the cost/benefit balance. The proposal is correctly scoped as index deletion without history rewrite, which is the safe version of this change.",
+          "weight": 2
+        },
+        {
+          "agentId": "delivery",
+          "agentName": "Delivery Agent",
+          "position": "for",
+          "reasoning": "Every verifiable claim checked out: no functional references anywhere in code, tests, scripts, or CI; sizes accurate; effort is trivial (single S-sized PR); risk is near zero (pure repo hygiene, no runtime surface — and removing the production-like fixtures file marginally *reduces* exposure). I vote for with two flagged caveats the swarm should note: (1) the clone-speed success metric is wrong as stated — history still carries the blobs until a separate filter-repo proposal; (2) the .gitignore criterion deliberately ends the recent practice of committing QA captures as design evidence — a conscious practice change worth acknowledging, with future evidence staying local.",
+          "weight": 1
+        },
+        {
+          "agentId": "designer",
+          "agentName": "UX/UI Designer",
+          "position": "against",
+          "reasoning": "Four of the five deletions are sound and I verified they're unreferenced. But the proposal as written rests on a factual error (active design-evidence workflow described as \"cycles passés\"), includes an acceptance criterion (gitignoring `qa-screenshots/`) that would silently break the next QA cycle commit, and claims a clone-size benefit that `git rm` cannot deliver. For a design-governance swarm, deleting the canonical visual reference that four source files and two contract tests cite — without relocating it or updating the pointers — is a traceability defect, and the gitignore clause converts it into a future workflow failure. I'd vote **for** a rescoped version (Option A or B) without hesitation.",
+          "weight": 2
+        },
+        {
+          "agentId": "spec-writer",
+          "agentName": "Spec Writer",
+          "position": "against",
+          "reasoning": "La direction est saine et les vérifications préalables sont largement exactes (je les ai confirmées : zéro dépendance fonctionnelle, tailles correctes, fixture `.local` orphèle). Mais en tant que Spec Writer, la spécification n'est pas exécutable en l'état pour trois raisons blocking :\n\n1. **Le critère #3 est un test qui échouera quoi qu'il arrive** et contredit la métrique #2. Un implémenteur suivant les critères à la lettre pourrait « réussir » en supprimant les mentions historiques — exactement ce que la proposition promet de préserver. Un critère d'acceptation auto-contradictoire est un défaut bloquant.\n2. **La métrique centrale de bénéfice (clones accélérés, 70 Mo libérés du dépôt) est fausse pour le mécanisme spécifié** (git rm sans réécriture d'historique). Le vote serait faussé sur un bénéfice qui ne se matérialisera pas.\n3. **La question du workflow QA est une décision produit implicite** : gitignorer un répertoire alimenté il y a 3 jours par des commits de evidence change le processus d'assurance qualité de l'équipe sans que ce soit délibéré.\n\nRévision peu coûteuse attendue : (a) critère #3 reformulé en `git ls-files` = 0 entrée ; (b) reformulation du bénéfice (working tree/checkouts, pas historique/clones) ou rescopage explicite ; (c) décision explicite sur la destination des captures QA futures ; (d) suppression des doublons. Avec ces 4 corrections, je voterais for. Ma voix est un signal pour le tally, pas une autorité — le propriétaire humain décide.",
+          "weight": 1
+        }
+      ],
+      "agentOutputs": [
+        {
+          "agentId": "architect",
+          "agentName": "Solution Architect",
+          "role": "Technical options, tradeoffs",
+          "content": "## Analysis\n\nI verified the proposal's claims directly against the repo before deliberating.\n\n**Feasibility (verified):**\n- Tracked sizes confirmed: `qa-screenshots/` 51.3 MB (80 files), `audits/` 13.6 MB (15 files), `.local/` 4.1 MB (1 file: `qa/wakeve-production-like-fixtures.json`), `.superpowers/` 3.3 MB (43 files) ≈ 72 MB in the git index. Claims match.\n- No functional references found: `.github/` CI has zero mentions; the only code references to `qa-screenshots/` are doc comments citing the WarmIvory provenance (`Color.kt:34`, `WakeveColors.swift:35`, `DesignTokensTest.kt`, `DesignTokensContractTests.swift`) — explicitly preserved per the proposal. The `.local` matches in android tests are false positives (`http://internal.local/` URLs). `lint-store-metadata.sh` mentions `openspec/changes/...` only as expected string content inside docs (which are retained), not as file access. The `.local` fixture is referenced nowhere else.\n\n**Two factual corrections to flag:**\n1. **\"openspec/ (vide)\" is inaccurate.** Nothing under `openspec/` is tracked in git, but the on-disk directory contains untracked spec archives (2025-12, 2026-05). `git rm` won't touch it; deleting it from disk destroys the only copy of that content. Minor, but it's the one genuinely irreversible piece of this proposal and should be a conscious choice.\n2. **The \"~70 Mo libérés du dépôt git / accélère les clones\" metric is overstated.** `git rm` removes files from the tree, but blobs remain in history — clones of `github.com/guyghost/wakeve` still download ~72 MB of old blobs. What actually improves: working-copy size, checkout of the current tree, repo navigation/grep noise, and agent context. Real clone reduction requires history rewriting.\n\n**Boundaries / dependency direction / coupling:** No module changes. Core policy, UI, IO, and framework layers untouched. No new dependencies; nothing the policy layer needs is removed. Pure subtraction of dead weight — this is the cleanest class of technical change.\n\n**Options:**\n- **Option A (as proposed): `git rm -r` the 5 paths + extend `.gitignore`** (currently only `review-screenshots/` is ignored — the update is genuinely needed). **Reversible**: history retains all tracked content; a revert restores everything. Recommended.\n- **Option B: A + history rewrite (`git filter-repo`)** to actually reclaim clone bandwidth. **Irreversible**: rewrites all SHAs, breaks existing clones, and destroys the commit-history tamper-evidence that App Store evidence docs lean on. Not warranted unless clone size becomes a proven pain. Not recommended now.\n- **Option C: status quo.** Zero risk, retains noise. Dominated by A.\n\n**Debt:** Retires navigation/noise debt and stops future growth (via `.gitignore`); forecloses nothing under Option A. Option B would foreclose history integrity — that's the tradeoff boundary.\n\n## Vote\nfor\n\n## Reasoning\nEvidence checks out on every acceptance criterion I could mechanically verify: sizes match, no functional references exist in code, tests, scripts, or CI, and the surviving mentions are comments/docs that the proposal explicitly preserves. Architecturally this is a pure subtraction touching no module boundary, adding no dependency, and fully reversible via git history (Option A). I vote for with two caveats the swarm should adopt: (1) reframe the success metric — working-copy and noise reduction, not clone size, unless Option B is separately deliberated; (2) correct \"openspec/ vide\" — its untracked local archives are the only irreversible deletion here and should be explicitly accepted or archived first.\n\n## Composite Score Inputs (0-10)\n- userImpact: 1\n- businessImpact: 3\n- effort: 1\n- securityRisk: 1\n- confidence: 9\n\n## Risk Score (1-10)\n2",
+          "durationMs": 93631,
+          "vote": {
+            "agentId": "architect",
+            "agentName": "Solution Architect",
+            "position": "for",
+            "reasoning": "Evidence checks out on every acceptance criterion I could mechanically verify: sizes match, no functional references exist in code, tests, scripts, or CI, and the surviving mentions are comments/docs that the proposal explicitly preserves. Architecturally this is a pure subtraction touching no module boundary, adding no dependency, and fully reversible via git history (Option A). I vote for with two caveats the swarm should adopt: (1) reframe the success metric — working-copy and noise reduction, not clone size, unless Option B is separately deliberated; (2) correct \"openspec/ vide\" — its untracked local archives are the only irreversible deletion here and should be explicitly accepted or archived first.",
+            "weight": 3
+          }
+        },
+        {
+          "agentId": "critic",
+          "agentName": "Critic / Risk Agent",
+          "role": "Risk scoring, objections, guardrails",
+          "content": "## Analysis\n\n**Vérifications effectuées directement dans le repo (pas uniquement depuis le texte de la proposition) :**\n\n1. **Tailles confirmées** : qa-screenshots/ 50 Mo, audits/ 13 Mo, .local/ 4 Mo, .superpowers/ 3,5 Mo, openspec/ 0 octet — cohérent avec la proposition.\n\n2. **Références fonctionnelles — la proposition a raison sur l'essentiel, avec une nuance :**\n   - `.github/workflows/` (ci.yml, deploy-landing.yml, store-readiness.yml) : zéro match pour les 5 chemins. CI propre.\n   - Les 3 tests Android qui matchent `.local/` sont des faux positifs (`http://internal.local/...` — noms de domaine, pas le répertoire).\n   - `scripts/lint-store-metadata.sh` mentionne `openspec/changes/...` à ~15 reprises, mais exclusivement comme **chaînes attendues** dans des tableaux de vérification (assertions sur le contenu de `.env.appstore.example` et des docs `docs/APP_STORE_*.md`, qui sont conservés). Aucune exécution de `openspec validate` sur le répertoire.\n   - **Fait têtu** : `openspec/` contient 0 fichier (uniquement des répertoires vides non trackés par git). `git rm -r openspec/` est donc un no-op sur l'index — c'est un `rmdir` local, pas un changement git. Cosmétique dans l'énoncé (« supprimés du repo et de l'index »), sans impact.\n\n3. **Le problème factuel majeur — la métrique phare est fausse telle que formulée.** `git count-objects -vH` : size-pack = 93,5 MiB. Un `git rm` dans un nouveau commit retire les fichiers du working tree, mais **tous les blobs restent dans l'historique**. Un clone frais télécharge toujours ~93 Mo. La métrique « ~70 Mo libérés du dépôt git » et le bénéfice « accélère les clones » ne se matérialisent pas avec l'action proposée. Les bénéfices réels sont : checkout allégé de ~70 Mo, bruit grep/IDE réduit, navigation agent améliorée. Réduire réellement le clone exigerait une réécriture d'historique (filter-repo/BFG + force-push) — un breaking change pour tous les contributeurs, **non demandé** et correctement hors scope.\n\n**Modes de défaillance (les 2 plus sévères) :**\n\n- **FM1 — Métrique de succès inatteignable.** Déclencheur : quiconque mesure `git count-objects` ou la taille d'un clone avant/après. Rayon d'impact : crédibilité de la gouvernance (proposition « shipped » avec une métrique fausse) ; effort gaspillé si l'objectif réel était l'amincissement du dépôt. Détection : triviale mais personne ne l'a prévue dans les critères d'acceptation.\n- **FM2 — Le workflow QA est actif, pas « historique ».** Les commits récents (`027da1e5`, `9f9a03e2` : cycles QA 2026-09-07 ; `cde28cfa` : QA seeder) montrent que qa-screenshots/ est la **sortie courante d'un harnais QA délibéré**, commité à chaque cycle. Le .gitignore proposé rendra silencieusement non-trackées toutes les captures futures : plus aucune preuve QA versionnée, alors que le CHANGELOG et 4 fichiers de code/test citent `qa-screenshots/cycle-2026-09-04/28-poll-results.png` comme **source normative du token WarmIvory livré**. Déclencheur : prochaine régression UI ou design review cherchant la capture de référence au chemin cité. Rayon d'impact : traçabilité des cycles futurs (les passés restent dans l'historique, récupérables via `git show`). Détection : **aucune** — git ignore silencieusement ; personne ne s'en aperçoit avant d'avoir besoin de la preuve. C'est un changement de politique d'équipe déguisé en nettoyage ; il est explicite dans les critères d'acceptation, mais le problem statement le présente à tort comme des « artefacts historiques ».\n\n**Garde-fous :** rollback excellent — `git revert` restaure intégralement les 5 chemins, zéro impact runtime, aucune API touchée. Critère `./gradlew shared:test` pertinent et vérifié comme non-dépendant. Le garde-fou manquant : aucun critère ne mesure ce que la métrique promet (taille du pack/clone).\n\n**Inconnu non résolvable depuis la proposition :** les docs d'evidence App Store (`docs/APP_STORE_ACCOUNT_DELETION_EVIDENCE.md`, etc.) documentent `openspec validate ... --strict` comme « closure rule » exécutable par un mainteneur en audit. Si cette commande est rejouée un jour pour l'App Store Review, elle échouera — mais elle échouerait déjà aujourd'hui (répertoire vide de fichiers), donc la suppression n'aggrave rien.\n\n## Vote\nfor\n\n## Reasoning\nL'action fondamentale est sûre, vérifiée et parfaitement réversible : zéro référence fonctionnelle dans code/tests/scripts/CI (confirmé par inspection directe), zéro impact runtime, rollback par `git revert`. Les bénéfices réels (checkout, bruit grep, navigation agent) sont authentiques. Mes deux objections — métrique « 70 Mo libérés du dépôt / clones accélérés » fausse (l'historique conserve les blobs) et dé-versionnage silencieux des preuves QA futures — sont des défauts d'énoncé et de politique à corriger, pas des bloqueurs de production. Je vote pour en exigeant que le swarm retienne : (1) la métrique doit être reformulée en « 70 Mo retirés du working tree, pas de l'historique » ; (2) l'équipe doit trancher consciemment si les futures captures QA doivent être commitées (auquel cas retirer qa-screenshots/ du .gitignore) — ne pas laisser ce changement de pratique passer inaperçu sous l'étiquette « nettoyage ».\n\n## Composite Score Inputs (0-10)\n- userImpact: 0\n- businessImpact: 2\n- effort: 2\n- securityRisk: 1\n- confidence: 8\n\n## Risk Score (1-10)\n3",
+          "durationMs": 118677,
+          "vote": {
+            "agentId": "critic",
+            "agentName": "Critic / Risk Agent",
+            "position": "for",
+            "reasoning": "L'action fondamentale est sûre, vérifiée et parfaitement réversible : zéro référence fonctionnelle dans code/tests/scripts/CI (confirmé par inspection directe), zéro impact runtime, rollback par `git revert`. Les bénéfices réels (checkout, bruit grep, navigation agent) sont authentiques. Mes deux objections — métrique « 70 Mo libérés du dépôt / clones accélérés » fausse (l'historique conserve les blobs) et dé-versionnage silencieux des preuves QA futures — sont des défauts d'énoncé et de politique à corriger, pas des bloqueurs de production. Je vote pour en exigeant que le swarm retienne : (1) la métrique doit être reformulée en « 70 Mo retirés du working tree, pas de l'historique » ; (2) l'équipe doit trancher consciemment si les futures captures QA doivent être commitées (auquel cas retirer qa-screenshots/ du .gitignore) — ne pas laisser ce changement de pratique passer inaperçu sous l'étiquette « nettoyage ».",
+            "weight": 3
+          }
+        },
+        {
+          "agentId": "researcher",
+          "agentName": "Research Agent",
+          "role": "Market, competition, user signals",
+          "content": "## Analysis\n\nI verified the proposal's claims directly against the repo (`/Users/guy/Developer/dev/wakeve`).\n\n**Claim classification:**\n\n| Claim | Verdict |\n|---|---|\n| Sizes: qa-screenshots 50M, audits 13M, .local 4M, .superpowers 3.5M, openspec empty | **Evidenced** — `git ls-files -z \\| xargs du -ch` = 71M tracked total |\n| \"Aucune référence fonctionnelle dans le code, tests, scripts, CI\" | **Mostly evidenced, with nuance.** CI (3 workflows) clean; `audits/` and `.superpowers/` have zero references anywhere; `.local/qa/wakeve-production-like-fixtures.json` has zero references (grep across kt/swift/sh/kts/yml/md). BUT `scripts/lint-store-metadata.sh` mentions `openspec/changes/...` ~12 times — verified these are allowlisted *documentation strings* (evidence markers in `docs/APP_STORE_*.md`), not filesystem checks → no breakage. The `qa-screenshots` references in 4 code/test files (Color.kt, DesignTokensTest.kt, DesignTokensContractTests.swift, WakeveColors.swift) are provenance *comments* — preserved as the proposal states |\n| \"Captures QA de cycles **passés**\" | **Partially contradicted.** qa-screenshots is an *active* workflow: last commits touching it (`795e6daa`, `027da1e5`, `9f9a03e2`) are among the repo's most recent; CHANGELOG [Unreleased] cites `qa-screenshots/cycle-2026-09-04/28-poll-results.png` as the design reference for the shipped UX unification program (DAO #27) and `cycle-2026-09-07/` as recent evidence; `docs/ios-qa-app-tour-2026-06-30.md` references ~10 captures. Deleting makes these cited references dangling (comments survive, images don't) |\n| \"Réduit la taille du repo (~70 Mo), accélère les clones\" | **Unsupported as stated.** `.git` = 195M; removing paths from index+worktree does not shrink history — fresh clones download the same blobs. Only the checkout gets ~70M lighter. Real clone reduction requires history rewrite (filter-repo + force push), which is out of scope and much riskier. Grep/IDE noise reduction is real |\n| Gate Product Excellence non applicable | **Plausible** — no runtime/user-facing surface touched |\n\n**Competitive scan / prior art:** \"Do nothing\" costs 71M of tracked binaries + grep noise for agents/IDE — real but mild. Repo hygiene via `git rm --cached` + `.gitignore` is standard industry practice (the repo already ignores `review-screenshots/`, establishing precedent for untracked screenshot dirs — though qa-screenshots was deliberately *kept tracked* as QA evidence until now). A middle option not in the proposal: keep the latest cycle(s) cited by CHANGELOG, or park old cycles on an archive branch (zero default-clone cost, preserves dangling refs). Recoverability: everything stays in git history → fully reversible via `git checkout <old-sha> -- path`.\n\n**User signals:** None applicable — zero end-user impact; beneficiaries are developers and AI agents navigating the repo. No runtime behavior change claimed or found.\n\n**Data quality:** What's known is verified above from the working tree and index. Unknown/assumed: (1) whether the team intends QA cycle captures to remain tracked going forward — the gitignore criterion *changes an active practice* (recent cycles were deliberately committed as evidence) and is a policy change embedded in a cleanup proposal; (2) `./gradlew shared:test` passing is asserted, not yet demonstrated (acceptance criterion covers it; risk low given zero code references).\n\n**Cheapest evidence for the biggest open question:** run `./gradlew shared:test` and `scripts/lint-store-metadata.sh` post-deletion (minutes, already in acceptance criteria). The QA-practice question is a decision for the owner/strategist, not more data.\n\n## Vote\nfor\n\n## Reasoning\nThe deletions are verified safe (no functional references in code, tests, scripts, or CI; openspec/ is empty residue after tooling removal in `1575e6de`), fully recoverable via git history, and low effort. I vote for *despite* two evidenced corrections the swarm should weigh: (1) the clone-speed/70MB-repo claim is technically wrong without history rewrite — the true benefits are checkout size and grep noise; (2) gitignoring `qa-screenshots/` silently ends the active practice of tracking QA cycle evidence cited by CHANGELOG and shipped design tokens. I recommend the executor scope the gitignore to `.local/` and either keep the CHANGELOG-cited cycles (`cycle-2026-09-04`, `cycle-2026-09-07`) or archive them — but that amendment is the Strategist's call, and neither issue breaks the change.\n\n## Composite Score Inputs (0-10)\n- userImpact: 1\n- businessImpact: 2\n- effort: 2\n- securityRisk: 1\n- confidence: 8\n\n## Risk Score (1-10)\n3 — Fully reversible via git history; near-zero functional risk. Residual risks: dangling design-token/QA-evidence references in CHANGELOG, docs, and code comments; gitignore criterion quietly changes an active QA-capture practice; overstated success metrics may create expectation mismatch on clone size.",
+          "durationMs": 130408,
+          "vote": {
+            "agentId": "researcher",
+            "agentName": "Research Agent",
+            "position": "for",
+            "reasoning": "The deletions are verified safe (no functional references in code, tests, scripts, or CI; openspec/ is empty residue after tooling removal in `1575e6de`), fully recoverable via git history, and low effort. I vote for *despite* two evidenced corrections the swarm should weigh: (1) the clone-speed/70MB-repo claim is technically wrong without history rewrite — the true benefits are checkout size and grep noise; (2) gitignoring `qa-screenshots/` silently ends the active practice of tracking QA cycle evidence cited by CHANGELOG and shipped design tokens. I recommend the executor scope the gitignore to `.local/` and either keep the CHANGELOG-cited cycles (`cycle-2026-09-04`, `cycle-2026-09-07`) or archive them — but that amendment is the Strategist's call, and neither issue breaks the change.",
+            "weight": 2
+          }
+        },
+        {
+          "agentId": "strategist",
+          "agentName": "Product Strategist",
+          "role": "Vision, objectives, hypotheses",
+          "content": "## Analysis\n\n**1. Restatement of intended outcome.** Remove ~70 Mo of tracked, non-functional historical artifacts (QA captures, dated audit reports, orphan fixtures, SDD session artifacts, empty dir) to shrink the checkout and reduce search/navigation noise — with zero runtime impact. Restatable in one sentence: yes.\n\n**2. Mapping to objectives.** No formal OKR exists for repo hygiene. The nearest concrete anchors in the project brief: (a) the project runs an agent-heavy workflow (AGENTS.md defines agent delegation; agents navigate via grep/find) — so \"bruit pour les agents IA\" is a real mechanism, not vision talk, though it applies mainly to the *text* artifacts (`.superpowers/` briefs/diffs, `.local/` JSON); the 50 Mo bulk is binary PNGs that never pollute text grep; (b) trunk-based development with CI on every commit — the proposal's test/CI acceptance criteria map to that. The Gate Product Excellence claim (no user parcours touched) is verified: my grep of code/tests/workflows found only comment-level references.\n\n**3. Verification of the proposal's claims (independently checked).**\n- Sizes confirmed: qa-screenshots 50M, audits 13M, .local 4M, .superpowers 3.5M, openspec empty.\n- No functional references found in `.kt/.swift/.kts/.sh/.yml` — only comments citing `qa-screenshots/cycle-2026-09-04/28-poll-results.png` in 4 code/test files, plus doc mentions. `.local/qa/wakeve-production-like-fixtures.json` is indeed unreferenced.\n- The `openspec` strings in `scripts/lint-store-metadata.sh` are expected-substring checks against docs content, not filesystem checks on `openspec/` (which is empty anyway). Safe.\n\n**4. Findings that weaken the proposal.**\n- **The headline benefit is overstated.** `git rm` does not shrink the pack (93.5 MiB today) or speed up standard clones — history retains the blobs. \"~70 Mo libérés du dépôt git\" is only true of the working tree. Real clone acceleration would require history rewrite, which is *not* proposed (correctly so — it would be a breaking change).\n- **qa-screenshots is not stale — it is this week's active workflow.** 5 capture cycles exist, latest `cycle-2026-09-07-reduce-transparency`, matching the most recent commits (`test(qa)` evidence commits). At least 10 docs (CHANGELOG Unreleased, `docs/reviews/*-2026-09-07.md`, `.dao/state.json`) cite qa-screenshots paths as evidence links; deletion turns these into dead links days after the UX unification program (#24–27) shipped. The deleted PNG is the documented provenance of the WarmIvory token (`#F6F1EA`) cited in contract tests — recoverable from git history, but no longer by convention.\n- **The gitignore criterion embeds an implicit policy decision.** \"Éviter la re-création accidentelle\" contradicts observed *deliberate* re-creation: QA cycles commit captures as evidence. Gitignoring `qa-screenshots/` silently ends versioned QA evidence — a workflow decision presented as housekeeping.\n\n**5. Load-bearing assumptions.**\n- A1 \"No functional references\" — validated by grep; cheap to confirm, already done. Holds.\n- A2 \"These artifacts have zero future value\" — **the killable assumption.** Fails if the DAO's review process needs live evidence links and the ivory reference. Cheap validation/mitigation: relocate `28-poll-results.png` (a few hundred Ko) to `docs/assets/` and update the 4 code refs + CHANGELOG *before* deleting the rest — roughly 30 minutes of the same effort budget.\n- A3 \"QA capture tracking should stop\" — cheap validation: one question to the QA-cycle owner; or scope the gitignore narrower.\n\n**6. Opportunity cost.** Effort is small (≤ half-day). The real cost is attention on the evidence/governance layer while the unification program is one cycle old. Alternative uses of the same effort: closing the pending QA-capture policy explicitly rather than implicitly via .gitignore.\n\n## Vote\nfor\n\n## Reasoning\nThe core action is verified-safe, reversible via git history, well-specified (test + CI + git grep acceptance criteria), and touches zero user-facing behavior. Four of the five directories (audits 2026-06-19, .superpowers completed SDD sessions, .local orphan fixture, empty openspec) are genuinely stale. My concerns do not kill the proposal, but the tally should weigh them as amendments: (1) drop or reword the clone-size success metric — it will not materialize without history rewrite; (2) relocate the single canonical reference PNG to `docs/assets/` before deletion to keep the WarmIvory provenance and review-doc links alive; (3) confirm with the QA workflow owner that untracked captures are intended, since the gitignore criterion currently decides an active evidence policy by side effect. Voting for the bundle because every concern is addressable within the same effort and none breaks reversibility.\n\n## Composite Score Inputs (0-10)\n- userImpact: 0\n- businessImpact: 3\n- effort: 2\n- securityRisk: 2\n- confidence: 8\n\n## Risk Score (1-10)\n3 — dominant risks are dead evidence links in active review docs and an implicit QA-capture policy change; both are low-severity and reversible from git history. No runtime, security, or data-loss exposure found.",
+          "durationMs": 152914,
+          "vote": {
+            "agentId": "strategist",
+            "agentName": "Product Strategist",
+            "position": "for",
+            "reasoning": "The core action is verified-safe, reversible via git history, well-specified (test + CI + git grep acceptance criteria), and touches zero user-facing behavior. Four of the five directories (audits 2026-06-19, .superpowers completed SDD sessions, .local orphan fixture, empty openspec) are genuinely stale. My concerns do not kill the proposal, but the tally should weigh them as amendments: (1) drop or reword the clone-size success metric — it will not materialize without history rewrite; (2) relocate the single canonical reference PNG to `docs/assets/` before deletion to keep the WarmIvory provenance and review-doc links alive; (3) confirm with the QA workflow owner that untracked captures are intended, since the gitignore criterion currently decides an active evidence policy by side effect. Voting for the bundle because every concern is addressable within the same effort and none breaks reversibility.",
+            "weight": 3
+          }
+        },
+        {
+          "agentId": "prioritizer",
+          "agentName": "Prioritization Agent",
+          "role": "Impact/cost/risk scoring, roadmap fit",
+          "content": "## Analysis\n\n**Verified claims (all checked against the repo):**\n\n1. **Sizes are accurate**: `qa-screenshots/` 50M (80 tracked files), `audits/` 13M (15 files), `.local/` 4M (1 file: an orphaned QA fixture — I confirmed `git grep wakeve-production-like-fixtures` returns nothing outside `.local/` itself), `.superpowers/` 3.5M, `openspec/` 0 tracked files. Total ~70.5 MB across 139 tracked files.\n2. **No functional dependencies confirmed**: no references in `.github/workflows/`; code references to `qa-screenshots` in `Color.kt`, `WakeveColors.swift`, `DesignTokensTest.kt`, `DesignTokensContractTests.swift` are all doc comments citing the WarmIvory design source — not file loads. `openspec` mentions in `lint-store-metadata.sh` and `.env.appstore.example` are embedded historical checklist strings, and `openspec/` is already empty in git, so nothing can depend on it.\n\n**Two material caveats that discount the claimed value:**\n\n1. **The headline metric is overstated.** `git rm` + commit removes paths from HEAD but blobs remain in git history (~103 MB of history objects for these paths across revisions). Fresh clones fetch full history, so \"accélère les clones\" will **not** materialize without a history rewrite (`git filter-repo`) — which the proposal does not include. Rightly so: rewriting history would be the genuinely risky version. The *actual* delivered value is: 70 MB lighter working tree, less grep/IDE noise, cleaner agent navigation (real value in this agent-driven repo), and stopping future accumulation via `.gitignore`.\n2. **`qa-screenshots/` is an active workflow, not purely historical.** Recent commits (`test(qa): cycle-2026-09-07 captures…`) and review docs from the current UX-unification program cite `cycle-2026-09-07*` captures as evidence. Deleting it mid-convention orphans those citations (recoverable from history, but inconvenient), and gitignoring it changes the team's evidence practice going forward. Mitigating precedent: `review-screenshots/` is *already* gitignored, so ignoring `qa-screenshots/` is consistency, not a break.\n\n**Sequencing:** Effort is trivial (git rm + gitignore + test run); it displaces nothing on the roadmap. \"Small now beats large later\" holds — this is about as small as changes get. If the team wants clone-size reduction for real, that's a separate, explicitly-governed history-rewrite proposal, not this one.\n\n**If split:** the value-carrying core is deleting `.superpowers/`, `.local/`, `openspec/` (unambiguously dead, zero references) plus the gitignore guards. `qa-screenshots/` and `audits/` deletion is still fine (history preserves recoverability), but the gitignore decision on `qa-screenshots/` should be acknowledged as a deliberate workflow change for future QA cycles.\n\n## Vote\nfor\n\n## Reasoning\n\nRisk-adjusted, this is a clear net positive: near-zero effort, near-zero code risk (I independently confirmed no functional references in CI, scripts, or tests), modest but real operational value (noise reduction for humans and AI agents navigating the repo, working-tree weight, future-accumulation guard). It requires no displacement of the current queue (AI workflows, iOS WeatherKit, UX cycles). I discount the expected value for the misleading clone-size metric (~70 MB stays in history without a rewrite) and flag that gitignoring `qa-screenshots/` is a live workflow decision, not pure cleanup — but neither flips the cost/benefit balance. The proposal is correctly scoped as index deletion without history rewrite, which is the safe version of this change.\n\n## Composite Score Inputs (0-10)\n- userImpact: 0\n- businessImpact: 3\n- effort: 2\n- securityRisk: 1\n- confidence: 8\n\n## Risk Score (1-10)\n3",
+          "durationMs": 93092,
+          "vote": {
+            "agentId": "prioritizer",
+            "agentName": "Prioritization Agent",
+            "position": "for",
+            "reasoning": "Risk-adjusted, this is a clear net positive: near-zero effort, near-zero code risk (I independently confirmed no functional references in CI, scripts, or tests), modest but real operational value (noise reduction for humans and AI agents navigating the repo, working-tree weight, future-accumulation guard). It requires no displacement of the current queue (AI workflows, iOS WeatherKit, UX cycles). I discount the expected value for the misleading clone-size metric (~70 MB stays in history without a rewrite) and flag that gitignoring `qa-screenshots/` is a live workflow decision, not pure cleanup — but neither flips the cost/benefit balance. The proposal is correctly scoped as index deletion without history rewrite, which is the safe version of this change.",
+            "weight": 2
+          }
+        },
+        {
+          "agentId": "delivery",
+          "agentName": "Delivery Agent",
+          "role": "Implementation plan, tasks, CI/CD",
+          "content": "## Analysis\n\nI verified the proposal's claims directly against the repo before scoring.\n\n**Verified facts:**\n\n1. **Sizes confirmed**: `du -sh` gives qa-screenshots 50M, audits 13M, .local 4.0M, .superpowers 3.5M, openspec 0B → ~70.5M working tree. Git pack total is 93.5 MiB, so this is the bulk of the repo.\n\n2. **No functional references — confirmed**:\n   - `qa-screenshots/` appears only in doc comments (Color.kt, DesignTokensTest.kt, WakeveColors.swift, DesignTokensContractTests.swift) citing the WarmIvory reference image — the proposal keeps these mentions, consistent with its acceptance criteria.\n   - `.local/` has exactly 1 tracked file (`qa/wakeve-production-like-fixtures.json`); grep across .kt/.swift/.kts/.sh/.yml finds zero references to it or `.local/qa`.\n   - `openspec/` mentions in `scripts/lint-store-metadata.sh` (lines 1436, 3261, etc.) are all **quoted string literals** — expected substrings of evidence docs, not filesystem checks. Proof: `git ls-files` shows **0 tracked files under openspec/**, so it's already absent from fresh CI clones, and CI runs `lint-store-metadata.sh` (store-readiness.yml) green today. The dependency is impossible by construction.\n   - `.superpowers/` and `audits/`: zero references in build/test/CI files.\n\n**Three corrections to the proposal's claims (none blocking):**\n\n- **\"Accélère les clones\" won't materialize from this change alone.** `git rm` removes files from the index/working tree but not from history — fresh full clones still download the ~70M of blobs until a history rewrite (`git filter-repo`), which is out of scope and would be a breaking change needing its own proposal. The real, immediate benefits are: lighter working tree, cleaner grep/IDE/agent navigation, and stopping future growth.\n- **openspec/ is already untracked** (empty dirs only, 0 files in index) — \"supprimés du repo et de l'index git\" is a no-op for git there; it's a local `rm -rf`.\n- **This ends an active practice, not just \"historical\" cleanup**: the most recent commits (9f9a03e2, 027da1e5 — cycle-2026-09-07) actively commit QA captures as design-review evidence, and code comments cite `cycle-2026-09-04/28-poll-results.png` as the source of a shipped design token. Adding `qa-screenshots/` to .gitignore means future QA evidence stays local/untracked and the cited reference becomes a dangling pointer. Acceptable if conscious — the team should know future design evidence won't be committable there.\n\n**Delivery plan:**\n\n- **Slice 1 (S)**: `git rm -r --cached` + delete the 4 tracked paths (80+43+15+1 files); `rm -rf openspec/`. Verify: `git ls-files | grep -cE '^(qa-screenshots|\\.superpowers|audits|\\.local)/'` → 0; `./gradlew shared:test` before/after identical.\n- **Slice 2 (S)**: append `.local/` and `qa-screenshots/` to .gitignore (matches existing `review-screenshots/` precedent). Verify: `git check-ignore -v`.\n- **Slice 3 (S)**: CI green on next commit (store-readiness.yml is the only consumer of anything string-adjacent, proven non-dependent above).\n- No migrations, no feature flags, no adapter seams — zero runtime surface. Effort: S, ~30 min. Uncertainty: low; running the test suite + one CI pass post-change closes it entirely.\n\n## Vote\nfor\n\n## Reasoning\nEvery verifiable claim checked out: no functional references anywhere in code, tests, scripts, or CI; sizes accurate; effort is trivial (single S-sized PR); risk is near zero (pure repo hygiene, no runtime surface — and removing the production-like fixtures file marginally *reduces* exposure). I vote for with two flagged caveats the swarm should note: (1) the clone-speed success metric is wrong as stated — history still carries the blobs until a separate filter-repo proposal; (2) the .gitignore criterion deliberately ends the recent practice of committing QA captures as design evidence — a conscious practice change worth acknowledging, with future evidence staying local.\n\n## Composite Score Inputs (0-10)\n- userImpact: 1\n- businessImpact: 4\n- effort: 1\n- securityRisk: 1\n- confidence: 9\n\n## Risk Score (1-10)\n2",
+          "durationMs": 100815,
+          "vote": {
+            "agentId": "delivery",
+            "agentName": "Delivery Agent",
+            "position": "for",
+            "reasoning": "Every verifiable claim checked out: no functional references anywhere in code, tests, scripts, or CI; sizes accurate; effort is trivial (single S-sized PR); risk is near zero (pure repo hygiene, no runtime surface — and removing the production-like fixtures file marginally *reduces* exposure). I vote for with two flagged caveats the swarm should note: (1) the clone-speed success metric is wrong as stated — history still carries the blobs until a separate filter-repo proposal; (2) the .gitignore criterion deliberately ends the recent practice of committing QA captures as design evidence — a conscious practice change worth acknowledging, with future evidence staying local.",
+            "weight": 1
+          }
+        },
+        {
+          "agentId": "designer",
+          "agentName": "UX/UI Designer",
+          "role": "UX/UI critique, design directions, accessibility",
+          "content": "## Analysis\n\nI verified the proposal's claims directly against the repo before voting.\n\n**Verified true:**\n- Sizes check out: qa-screenshots/ 50M, audits/ 13M, .local/ 4M, .superpowers/ 3.5M, openspec/ 0B (~70M total, 139 tracked files).\n- No *functional* references: mentions of `qa-screenshots` in `Color.kt:34`, `WakeveColors.swift:35`, `DesignTokensTest.kt:10`, `DesignTokensContractTests.swift:6` are doc comments only. `.local/qa/wakeve-production-like-fixtures.json` is referenced by nothing. `openspec/` is empty. `lint-store-metadata.sh`'s openspec strings are historical expected-content assertions, not executed paths.\n\n**Contested — and this is where the proposal mischaracterizes the surface:**\n\n1. **qa-screenshots/ is not \"historical artifacts.\"** It is the *active* design-evidence corpus. Recent commits (`027da1e5` reduce-transparency cycle, `9f9a03e2` cycle-2026-09-07 captures, `cde28cfa` Android QA seeder port, `795e6daa` QA seed stabilization) show this workflow ramping **up**, not winding down. Five review docs in `docs/reviews/` (all dated 2026-09-07) cite these captures as their evidence base, and `qa-screenshots/cycle-2026-09-04/28-poll-results.png` is the **canonical design reference** for the entire Uniformisation UX program (DAO #27): the source of WarmIvory `#F6F1EA`, cited in CHANGELOG, both platforms' color files, and both design-token contract tests. Deleting it severs the design system's provenance chain — every future designer or `@designer` agent following those references hits a dead end in the working tree and must do git archaeology (`git show <rev>:…`) to recover the reference.\n\n2. **The gitignore criterion would sabotage the next QA cycle.** The proposal frames recreation as \"accidentelle,\" but QA captures are deliberately committed as durable review evidence. Adding `qa-screenshots/` to `.gitignore` means the next cycle's `git add` will silently skip the captures — a quiet failure discovered only when a review doc cites a file nobody can find.\n\n3. **The success metric \"~70 Mo libérés du dépôt git\" is false as stated.** `git rm` leaves blobs in history; clones (current size-pack: 93.5 MiB) won't shrink without a history rewrite. Only future growth is avoided. The metric should read \"working tree\" or be paired with a filter-repo decision (architect's call).\n\n**Directions a designer/repo-owner could execute:**\n- **Option A (rescope):** Delete `.superpowers/`, `.local/`, `audits/`, `openspec/` now (genuinely dead, verified); keep `qa-screenshots/` (or at minimum the five cycles cited by docs/reviews + CHANGELOG) while the QA-cycle workflow is active; no gitignore entry for it.\n- **Option B (curate then delete):** Copy the cited reference + 5 cycle folders (~a few MB) to `docs/design-references/`, update the 4 code comments and 5 review docs to the new path, then delete the rest and gitignore. Preserves provenance; ~1 extra hour.\n\n## Vote\nagainst\n\n## Reasoning\nFour of the five deletions are sound and I verified they're unreferenced. But the proposal as written rests on a factual error (active design-evidence workflow described as \"cycles passés\"), includes an acceptance criterion (gitignoring `qa-screenshots/`) that would silently break the next QA cycle commit, and claims a clone-size benefit that `git rm` cannot deliver. For a design-governance swarm, deleting the canonical visual reference that four source files and two contract tests cite — without relocating it or updating the pointers — is a traceability defect, and the gitignore clause converts it into a future workflow failure. I'd vote **for** a rescoped version (Option A or B) without hesitation.\n\n## Composite Score Inputs (0-10)\n- userImpact: 1 (no runtime change; only indirect effect on future design-work quality)\n- businessImpact: 4 (real repo-hygiene value, but overstated metrics and workflow break discount it)\n- effort: 2 (trivial to execute as written; proper curation adds ~1h)\n- securityRisk: 1 (pure deletion, no new surface, fixtures non-sensitive)\n- confidence: 8 (all claims verified against the repo; residual uncertainty only on the team's intent to retire the QA-cycle workflow, which recent commits contradict)\n\n## Risk Score (1-10)\n5 — Near-zero runtime risk, but moderate process/design-governance risk: silent QA-workflow break via gitignore, severed design-system provenance, and a success metric that will read as \"achieved\" when it wasn't.",
+          "durationMs": 109554,
+          "vote": {
+            "agentId": "designer",
+            "agentName": "UX/UI Designer",
+            "position": "against",
+            "reasoning": "Four of the five deletions are sound and I verified they're unreferenced. But the proposal as written rests on a factual error (active design-evidence workflow described as \"cycles passés\"), includes an acceptance criterion (gitignoring `qa-screenshots/`) that would silently break the next QA cycle commit, and claims a clone-size benefit that `git rm` cannot deliver. For a design-governance swarm, deleting the canonical visual reference that four source files and two contract tests cite — without relocating it or updating the pointers — is a traceability defect, and the gitignore clause converts it into a future workflow failure. I'd vote **for** a rescoped version (Option A or B) without hesitation.",
+            "weight": 2
+          }
+        },
+        {
+          "agentId": "spec-writer",
+          "agentName": "Spec Writer",
+          "role": "PRD, user stories, acceptance criteria",
+          "content": "## Analysis\n\n**Vérifications effectuées sur le repo (preuves directes) :**\n\n- **Existence et tailles confirmées** : `qa-screenshots/` 50 Mo (80 fichiers trackés), `audits/` 13 Mo (15 fichiers), `.local/` 4 Mo (1 seul fichier tracké : `.local/qa/wakeve-production-like-fixtures.json`), `.superpowers/` 3,5 Mo (43 fichiers), `openspec/` 0 B (0 fichier tracké). Total ~70,5 Mo — cohérent avec la proposition.\n- **Aucune référence fonctionnelle vérifiée** : `.github/workflows/` ne référence aucun des 5 chemins ; le fixture `.local` n'est référencé nulle part (git grep sur `wakeve-production-like-fixtures`, `.local/qa`, `production-like` : zéro hit hors `.dao/state.json`) ; `AndroidQaSeeder.kt` ne charge aucun fichier JSON. Les mentions dans `Color.kt`, `DesignTokensTest.kt`, `.env.appstore.example` sont des commentaires/chaînes documentaires, comme affirmé.\n- **Mais** : `scripts/lint-store-metadata.sh` — **exécuté par la CI** (`.github/workflows/store-readiness.yml:578`) — contient ~10 occurrences des chaînes `openspec/changes/add-in-app-account-deletion/` et `openspec/changes/add-ugc-moderation-controls/` (listes de sous-chaînes attendues dans les docs d'evidence, pas des dépendances filesystem : la suppression ne devrait pas le casser, incertitude résiduelle faible).\n\n**Sweep d'ambiguïtés — chaque point est une question à trancher :**\n\n1. **Le critère d'acceptation #3 est inatteignable et contredit la métrique de succès #2.** « git grep ne trouve plus ces répertoires dans l'index après suppression » ne peut pas passer : la proposition elle-même conserve les mentions historiques (CHANGELOG, commentaires Color.kt/DesignTokensTest, chaînes de `lint-store-metadata.sh`, `.env.appstore.example`, 51 fichiers .md). La métrique #2 dit précisément l'inverse (« ne retourne plus que des mentions historiques »). Deux critères mutuellement exclusifs = spécification non déterministe. Réécrire en critère testable : « `git ls-files <chemin>` retourne 0 entrée pour chacun des 5 chemins ».\n2. **« Supprimés du repo et de l'index git » : `git rm` ou réécriture d'historique ?** Le bénéfice annoncé « accélère les clones » est faux pour un `git rm` simple : les blobs restent dans l'historique, un clone frais télécharge toujours les ~70 Mo. Le working tree et les checkouts futurs sont allégés ; pas l'historique. La métrique « ~70 Mo libérés du dépôt git » doit être reformulée (ou la proposition rescopée vers un filter-repo, ce qui serait un breaking change différent).\n3. **Conflit non tranché avec le workflow QA actif** : `qa-screenshots/` n'est pas purement historique — des cycles datés du 2026-09-07 ont été commités il y a 3 jours (commits 9f9a03e2, 027da1e5), et le CHANGELOG cite `cycle-2026-09-04/28-poll-results.png` comme **référence de design source** des tokens ivoire. Ajouter `qa-screenshots/` au `.gitignore` change le comportement de l'équipe : les captures futures ne pourront plus être commitées comme evidence. Où iront les captures du prochain cycle ? Workflow retiré, captures local-only, nouveau répertoire ? Non spécifié.\n4. **Portée du .gitignore incohérente** : pourquoi ignorer seulement `.local/` et `qa-screenshots/`, pas `.superpowers/`, `audits/`, `openspec/` ? La distinction (générés/régénérables vs rédigés) devrait être explicite.\n5. **`openspec/` « vide » est imprécis** : il ne contient que des répertoires vides (0 fichier tracké — git ne tracke pas les répertoires vides). Sa « suppression de l'index » est un no-op ; c'est un nettoyage filesystem local uniquement.\n6. **Défaut de forme** : chaque critère d'acceptation est dupliqué verbatim (« X : X ») — artefact mécanique qui dégrade la lisibilité du registre de gouvernance.\n\n## Vote\nagainst\n\n## Reasoning\n\nLa direction est saine et les vérifications préalables sont largement exactes (je les ai confirmées : zéro dépendance fonctionnelle, tailles correctes, fixture `.local` orphèle). Mais en tant que Spec Writer, la spécification n'est pas exécutable en l'état pour trois raisons blocking :\n\n1. **Le critère #3 est un test qui échouera quoi qu'il arrive** et contredit la métrique #2. Un implémenteur suivant les critères à la lettre pourrait « réussir » en supprimant les mentions historiques — exactement ce que la proposition promet de préserver. Un critère d'acceptation auto-contradictoire est un défaut bloquant.\n2. **La métrique centrale de bénéfice (clones accélérés, 70 Mo libérés du dépôt) est fausse pour le mécanisme spécifié** (git rm sans réécriture d'historique). Le vote serait faussé sur un bénéfice qui ne se matérialisera pas.\n3. **La question du workflow QA est une décision produit implicite** : gitignorer un répertoire alimenté il y a 3 jours par des commits de evidence change le processus d'assurance qualité de l'équipe sans que ce soit délibéré.\n\nRévision peu coûteuse attendue : (a) critère #3 reformulé en `git ls-files` = 0 entrée ; (b) reformulation du bénéfice (working tree/checkouts, pas historique/clones) ou rescopage explicite ; (c) décision explicite sur la destination des captures QA futures ; (d) suppression des doublons. Avec ces 4 corrections, je voterais for. Ma voix est un signal pour le tally, pas une autorité — le propriétaire humain décide.\n\n## Composite Score Inputs (0-10)\n- userImpact: 0\n- businessImpact: 2\n- effort: 2\n- securityRisk: 1\n- confidence: 8\n\n## Risk Score (1-10)\n3 — Risque technique faible (suppression réversible via git, aucune dépendance code/CI identifiée). Le risque résiduel porte sur l'exécution littérale du critère contradictoire #3 (suppression de mentions historiques au-delà du périmètre) et sur le changement silencieux du workflow de captures QA ; les deux sont évitables par une reformulation avant exécution.",
+          "durationMs": 153552,
+          "vote": {
+            "agentId": "spec-writer",
+            "agentName": "Spec Writer",
+            "position": "against",
+            "reasoning": "La direction est saine et les vérifications préalables sont largement exactes (je les ai confirmées : zéro dépendance fonctionnelle, tailles correctes, fixture `.local` orphèle). Mais en tant que Spec Writer, la spécification n'est pas exécutable en l'état pour trois raisons blocking :\n\n1. **Le critère #3 est un test qui échouera quoi qu'il arrive** et contredit la métrique #2. Un implémenteur suivant les critères à la lettre pourrait « réussir » en supprimant les mentions historiques — exactement ce que la proposition promet de préserver. Un critère d'acceptation auto-contradictoire est un défaut bloquant.\n2. **La métrique centrale de bénéfice (clones accélérés, 70 Mo libérés du dépôt) est fausse pour le mécanisme spécifié** (git rm sans réécriture d'historique). Le vote serait faussé sur un bénéfice qui ne se matérialisera pas.\n3. **La question du workflow QA est une décision produit implicite** : gitignorer un répertoire alimenté il y a 3 jours par des commits de evidence change le processus d'assurance qualité de l'équipe sans que ce soit délibéré.\n\nRévision peu coûteuse attendue : (a) critère #3 reformulé en `git ls-files` = 0 entrée ; (b) reformulation du bénéfice (working tree/checkouts, pas historique/clones) ou rescopage explicite ; (c) décision explicite sur la destination des captures QA futures ; (d) suppression des doublons. Avec ces 4 corrections, je voterais for. Ma voix est un signal pour le tally, pas une autorité — le propriétaire humain décide.",
+            "weight": 1
+          }
+        }
+      ],
+      "createdAt": "2026-09-18T09:55:20.103Z",
+      "riskZone": "orange",
+      "deliberationStartedAt": "2026-09-18T09:55:44.382Z",
+      "compositeScore": {
+        "axes": {
+          "userImpact": 0.5,
+          "businessImpact": 2.875,
+          "effort": 1.75,
+          "securityRisk": 1.125,
+          "confidence": 8.25
+        },
+        "weighted": 5,
+        "riskZone": "orange",
+        "breakdown": "0.5×0.3 + 2.9×0.2 + 8.3×0.15 + 8.9×0.2 + 8.3×0.15 = 5.0"
+      },
+      "synthesis": "## Synthesis — Proposal #28\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 8\n**For:** 6 | **Against:** 2 | **Abstain:** 0\n\n### Supporting Arguments\n- **Solution Architect:** Evidence checks out on every acceptance criterion I could mechanically verify: sizes match, no functional references exist in code, tests, scripts, or CI, and the surviving mentions are comments/docs ...\n- **Critic / Risk Agent:** L'action fondamentale est sûre, vérifiée et parfaitement réversible : zéro référence fonctionnelle dans code/tests/scripts/CI (confirmé par inspection directe), zéro impact runtime, rollback par `git ...\n- **Research Agent:** The deletions are verified safe (no functional references in code, tests, scripts, or CI; openspec/ is empty residue after tooling removal in `1575e6de`), fully recoverable via git history, and low ef...\n- **Product Strategist:** The core action is verified-safe, reversible via git history, well-specified (test + CI + git grep acceptance criteria), and touches zero user-facing behavior. Four of the five directories (audits 202...\n- **Prioritization Agent:** Risk-adjusted, this is a clear net positive: near-zero effort, near-zero code risk (I independently confirmed no functional references in CI, scripts, or tests), modest but real operational value (noi...\n- **Delivery Agent:** Every verifiable claim checked out: no functional references anywhere in code, tests, scripts, or CI; sizes accurate; effort is trivial (single S-sized PR); risk is near zero (pure repo hygiene, no ru...\n\n### Opposing Arguments\n- **UX/UI Designer:** Four of the five deletions are sound and I verified they're unreferenced. But the proposal as written rests on a factual error (active design-evidence workflow described as \"cycles passés\"), includes ...\n- **Spec Writer:** La direction est saine et les vérifications préalables sont largement exactes (je les ai confirmées : zéro dépendance fonctionnelle, tailles correctes, fixture `.local` orphèle). Mais en tant que Spec...\n\n### Key Themes\n- User experience\n- Technical debt\n- Maintenance burden\n- Alignment\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n",
+      "resolvedAt": "2026-09-18T10:01:15.136Z",
+      "executionResult": "Executed with delivery plan: feature/dao-28-nettoyage-du-repo-suppression-"
     }
   ],
   "config": {
@@ -4504,7 +4727,7 @@
     "quorumFloor": 60,
     "staleThresholdHours": 24
   },
-  "nextProposalId": 28,
+  "nextProposalId": 29,
   "initialized": true,
   "auditLog": [
     {
@@ -5685,9 +5908,55 @@
       "action": "proposal_executed",
       "actor": "user",
       "details": "Executed #26"
+    },
+    {
+      "id": 132,
+      "timestamp": "2026-09-18T09:55:20.105Z",
+      "proposalId": 28,
+      "layer": "governance",
+      "action": "proposal_created",
+      "actor": "user",
+      "details": "Proposal \"Nettoyage du repo : suppression des dossiers non essentiels et artefacts QA (qa-screenshots, .superpowers, audits, .local, openspec)\" created"
+    },
+    {
+      "id": 133,
+      "timestamp": "2026-09-18T09:55:44.386Z",
+      "proposalId": 28,
+      "layer": "governance",
+      "action": "deliberation_started",
+      "actor": "system",
+      "details": "Deliberation on #28"
+    },
+    {
+      "id": 134,
+      "timestamp": "2026-09-18T10:00:50.863Z",
+      "proposalId": 28,
+      "layer": "intelligence",
+      "action": "deliberation_approved",
+      "actor": "system",
+      "details": "Approved: 82%"
+    },
+    {
+      "id": 135,
+      "timestamp": "2026-09-18T10:00:56.782Z",
+      "proposalId": 28,
+      "layer": "control",
+      "action": "gates_passed",
+      "actor": "system",
+      "details": "All gates passed"
+    },
+    {
+      "id": 136,
+      "timestamp": "2026-09-18T10:01:15.137Z",
+      "proposalId": 28,
+      "layer": "delivery",
+      "action": "proposal_executed",
+      "actor": "user",
+      "details": "Executed #28"
     }
   ],
-  "nextAuditId": 132,
+  "nextAuditId": 137,
+  "stateRevision": 5,
   "controlResults": {
     "1": {
       "proposalId": 1,
@@ -9359,6 +9628,160 @@
           "autoChecked": true
         }
       ]
+    },
+    "28": {
+      "proposalId": 28,
+      "timestamp": "2026-09-18T10:00:56.780Z",
+      "allGatesPassed": true,
+      "blockerCount": 0,
+      "warningCount": 1,
+      "gates": [
+        {
+          "gateId": "quorum-quality",
+          "name": "Quorum Quality",
+          "passed": true,
+          "severity": "blocker",
+          "message": "Quorum met (100% weighted participation ≥ 60%)",
+          "details": {
+            "quorumPercent": 100,
+            "quorumRequired": 60,
+            "votingAgents": 8,
+            "totalAgents": 7,
+            "totalVotingWeight": 17
+          }
+        },
+        {
+          "gateId": "risk-threshold",
+          "name": "Risk Threshold",
+          "passed": true,
+          "severity": "warning",
+          "message": "Risk score 3.0 ≤ threshold 7",
+          "details": {
+            "avgRisk": 3,
+            "riskScores": [
+              2,
+              3,
+              3,
+              3,
+              3,
+              2,
+              5,
+              3
+            ]
+          }
+        },
+        {
+          "gateId": "vote-consensus",
+          "name": "Vote Consensus",
+          "passed": true,
+          "severity": "warning",
+          "message": "No high-weight agent voted against"
+        },
+        {
+          "gateId": "zone-compliance",
+          "name": "Zone Compliance",
+          "passed": true,
+          "severity": "info",
+          "message": "Risk zone classified: orange"
+        },
+        {
+          "gateId": "acceptance-criteria",
+          "name": "Acceptance Criteria",
+          "passed": true,
+          "severity": "warning",
+          "message": "5 acceptance criteria defined"
+        },
+        {
+          "gateId": "dependency-readiness",
+          "name": "Dependency Readiness",
+          "passed": true,
+          "severity": "info",
+          "message": "No inter-proposal dependencies"
+        },
+        {
+          "gateId": "dependency-conflict",
+          "name": "Dependency Conflict",
+          "passed": false,
+          "severity": "warning",
+          "message": "Overlapping affected paths with in-flight proposals: #12 (controlled): qa-screenshots/",
+          "details": {
+            "conflicts": [
+              "#12 (controlled): qa-screenshots/"
+            ]
+          }
+        },
+        {
+          "gateId": "mandatory-dry-run",
+          "name": "Mandatory Dry-Run",
+          "passed": true,
+          "severity": "blocker",
+          "message": "Dry-run not required"
+        },
+        {
+          "gateId": "type-specific-quality",
+          "name": "Type-Specific Quality",
+          "passed": true,
+          "severity": "blocker",
+          "message": "technical-change: approval 82% ≥ 55%, quorum 100% ≥ 60%",
+          "details": {
+            "approvalScore": 82,
+            "approvalRequired": 55,
+            "quorumPercent": 100,
+            "quorumRequired": 60
+          }
+        }
+      ],
+      "checklist": [
+        {
+          "id": "security-review",
+          "category": "security",
+          "label": "Security review completed",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "data-handling",
+          "category": "compliance",
+          "label": "Data handling reviewed",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "compliance-check",
+          "category": "compliance",
+          "label": "Compliance requirements met",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "specs-written",
+          "category": "quality",
+          "label": "Specifications written",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "architecture-reviewed",
+          "category": "quality",
+          "label": "Architecture reviewed",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "rollback-plan",
+          "category": "operational",
+          "label": "Rollback plan defined",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "monitoring-plan",
+          "category": "operational",
+          "label": "Monitoring plan defined",
+          "checked": true,
+          "autoChecked": true
+        }
+      ]
     }
   },
   "deliveryPlans": {
@@ -11921,6 +12344,134 @@
       "branchStrategy": "feature/dao-27-design-tokens-fond-ivoire-chau",
       "rollbackPlan": "Revert the merge commit and redeploy previous version",
       "estimatedDuration": "5-9 days"
+    },
+    "28": {
+      "proposalId": 28,
+      "createdAt": "2026-09-18T10:00:56.782Z",
+      "phases": [
+        {
+          "number": 1,
+          "name": "Setup & Design",
+          "tasks": [
+            {
+              "id": "T1",
+              "title": "Review proposal and acceptance criteria",
+              "description": "Understand requirements and clarify ambiguities",
+              "effort": "xs",
+              "phase": 1,
+              "dependencies": [],
+              "status": "pending"
+            },
+            {
+              "id": "T2",
+              "title": "Design solution",
+              "description": "Create technical design document",
+              "effort": "s",
+              "phase": 1,
+              "dependencies": [
+                "T1"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T3",
+              "title": "Set up feature branch",
+              "description": "Create branch for implementation",
+              "effort": "xs",
+              "phase": 1,
+              "dependencies": [
+                "T2"
+              ],
+              "status": "pending"
+            }
+          ],
+          "duration": "1-2 days"
+        },
+        {
+          "number": 2,
+          "name": "Implementation",
+          "tasks": [
+            {
+              "id": "T4",
+              "title": "Core implementation",
+              "description": "Implement the main functionality",
+              "effort": "m",
+              "phase": 2,
+              "dependencies": [
+                "T3"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T5",
+              "title": "Add tests",
+              "description": "Unit and integration tests",
+              "effort": "m",
+              "phase": 2,
+              "dependencies": [
+                "T4"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T6",
+              "title": "Documentation",
+              "description": "Update docs and README",
+              "effort": "s",
+              "phase": 2,
+              "dependencies": [
+                "T4"
+              ],
+              "status": "pending"
+            }
+          ],
+          "duration": "3-5 days"
+        },
+        {
+          "number": 3,
+          "name": "Review & Release",
+          "tasks": [
+            {
+              "id": "T7",
+              "title": "Code review",
+              "description": "Self-review and peer review",
+              "effort": "s",
+              "phase": 3,
+              "dependencies": [
+                "T5",
+                "T6"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T8",
+              "title": "Quality gates",
+              "description": "Run control checks and verify acceptance criteria",
+              "effort": "s",
+              "phase": 3,
+              "dependencies": [
+                "T7"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T9",
+              "title": "Merge and deploy",
+              "description": "Merge to main and deploy",
+              "effort": "xs",
+              "phase": 3,
+              "dependencies": [
+                "T8"
+              ],
+              "status": "pending"
+            }
+          ],
+          "duration": "1-2 days"
+        }
+      ],
+      "branchStrategy": "feature/dao-28-nettoyage-du-repo-suppression-",
+      "rollbackPlan": "Revert the merge commit and redeploy previous version",
+      "estimatedDuration": "5-9 days"
     }
   },
   "artefacts": {},
@@ -12128,6 +12679,23 @@
       "status": "pending",
       "createdAt": "2026-09-07T08:52:21.874Z",
       "updatedAt": "2026-09-07T08:52:21.874Z"
+    },
+    "28": {
+      "proposalId": 28,
+      "ratings": [
+        {
+          "proposalId": 28,
+          "rater": "user",
+          "score": 5,
+          "comment": "Nettoyage exécuté sans accroc : 5 répertoires supprimés (~70 Mo, 197k lignes), .gitignore durci, 1846 tests shared:jvmTest verts, zéro référence fonctionnelle impactée. Vérifications préalables (git grep, CI) ont rendu l'exécution triviale et sûre.",
+          "ratedAt": "2026-09-18T10:04:10.615Z"
+        }
+      ],
+      "metrics": [],
+      "overallScore": 5,
+      "status": "pending",
+      "createdAt": "2026-09-18T10:04:10.615Z",
+      "updatedAt": "2026-09-18T10:04:10.615Z"
     }
   },
   "snapshots": {
@@ -12266,6 +12834,14 @@
       "commitSha": "unknown",
       "filesChanged": [],
       "stateSnapshot": "{\"agents\":7,\"proposals\":27}"
+    },
+    "28": {
+      "proposalId": 28,
+      "timestamp": "2026-09-18T10:01:15.136Z",
+      "branch": "feature/dao-28-nettoyage-du-repo-suppression-",
+      "commitSha": "unknown",
+      "filesChanged": [],
+      "stateSnapshot": "{\"agents\":7,\"proposals\":28}"
     }
   },
   "verifications": {},
