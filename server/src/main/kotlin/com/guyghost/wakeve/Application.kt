@@ -36,8 +36,10 @@ import com.guyghost.wakeve.repository.PotentialLocationRepositoryInterface
 import com.guyghost.wakeve.routes.ChatService
 import com.guyghost.wakeve.routes.analyticsRoutes
 import com.guyghost.wakeve.routes.accountRoutes
+import com.guyghost.wakeve.routes.activityRoutes
 import com.guyghost.wakeve.routes.authRoutes
 import com.guyghost.wakeve.routes.budgetRoutes
+import com.guyghost.wakeve.routes.equipmentRoutes
 import com.guyghost.wakeve.routes.calendarRoutes
 import com.guyghost.wakeve.routes.chatRoutes
 import com.guyghost.wakeve.routes.chatWebSocketRoute
@@ -247,6 +249,8 @@ fun main() {
     val budgetRepository = com.guyghost.wakeve.budget.BudgetRepository(database)
     val mealRepository = com.guyghost.wakeve.meal.MealRepository(database)
     val commentRepository = com.guyghost.wakeve.comment.CommentRepository(database)
+    val activityRepository = com.guyghost.wakeve.activity.ActivityRepository(database)
+    val equipmentRepository = com.guyghost.wakeve.equipment.EquipmentRepository(database)
     val locationRepository = PotentialLocationRepository(eventRepository)
     val accommodationRepository = com.guyghost.wakeve.accommodation.AccommodationRepository(database)
     val transportRepository = TransportRepository(database)
@@ -294,6 +298,8 @@ fun main() {
             budgetRepository = budgetRepository,
             mealRepository = mealRepository,
             commentRepository = commentRepository,
+            activityRepository = activityRepository,
+            equipmentRepository = equipmentRepository,
             locationRepository = locationRepository,
             calendarService = calendarService,
             moderationRepository = moderationRepository,
@@ -317,6 +323,8 @@ fun Application.module(
     budgetRepository: com.guyghost.wakeve.budget.BudgetRepository = com.guyghost.wakeve.budget.BudgetRepository(database),
     mealRepository: com.guyghost.wakeve.meal.MealRepository = com.guyghost.wakeve.meal.MealRepository(database),
     commentRepository: com.guyghost.wakeve.comment.CommentRepository = com.guyghost.wakeve.comment.CommentRepository(database),
+    activityRepository: com.guyghost.wakeve.activity.ActivityRepository = com.guyghost.wakeve.activity.ActivityRepository(database),
+    equipmentRepository: com.guyghost.wakeve.equipment.EquipmentRepository = com.guyghost.wakeve.equipment.EquipmentRepository(database),
     locationRepository: PotentialLocationRepositoryInterface = PotentialLocationRepository(eventRepository),
     calendarService: CalendarService = CalendarService(database, PlatformCalendarServiceImpl()),
     moderationRepository: ModerationRepository = ModerationRepository(database),
@@ -572,6 +580,8 @@ fun Application.module(
                             paymentRoutes(tricountHandoffRepository, eventRepository, database)
                             mealRoutes(mealRepository, eventRepository, database, moderationPolicy)
                             commentRoutes(commentRepository, eventNotificationTrigger, eventRepository, moderationRepository)
+                            activityRoutes(activityRepository, eventRepository, database)
+                            equipmentRoutes(equipmentRepository)
                             moderationRoutes(moderationRepository, database)
                             potentialLocationRoutes(locationRepository, eventRepository, database, moderationPolicy)
                             syncRoutes(syncService)

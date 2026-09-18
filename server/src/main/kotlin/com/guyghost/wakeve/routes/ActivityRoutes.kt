@@ -1,10 +1,16 @@
+package com.guyghost.wakeve.routes
 
 import com.guyghost.wakeve.activity.ActivityRepository
+import com.guyghost.wakeve.auth.userId
+import com.guyghost.wakeve.database.WakeveDb
+import com.guyghost.wakeve.repository.DatabaseEventRepository
 import com.guyghost.wakeve.models.ActivityParticipant
 import com.guyghost.wakeve.models.CreateActivityRequest
 import com.guyghost.wakeve.models.RegisterActivityRequest
 import com.guyghost.wakeve.models.UpdateActivityRequest
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.delete
@@ -24,7 +30,11 @@ import java.time.LocalDate
  * - Cost calculations
  * - Schedule generation
  */
-fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) {
+fun io.ktor.server.routing.Route.activityRoutes(
+    repository: ActivityRepository,
+    eventRepository: DatabaseEventRepository? = null,
+    database: WakeveDb? = null
+) {
     route("/events/{eventId}/activities") {
         
         // GET /api/events/{eventId}/activities - Get all activities for event
@@ -34,6 +44,15 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                val qaCallerId = call.principal<JWTPrincipal>()?.userId
+                if (qaCallerId == null || eventRepository == null || database == null ||
+                    !hasActivityEventAccess(eventRepository, database, eventId, qaCallerId)
+                ) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to this event")
+                    )
+                }
 
                 val activities = repository.getActivitiesByEventId(eventId)
                 call.respond(HttpStatusCode.OK, activities)
@@ -52,6 +71,15 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                val qaCallerId = call.principal<JWTPrincipal>()?.userId
+                if (qaCallerId == null || eventRepository == null || database == null ||
+                    !hasActivityEventAccess(eventRepository, database, eventId, qaCallerId)
+                ) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to this event")
+                    )
+                }
 
                 val schedule = repository.getActivitiesByDateGrouped(eventId)
                 call.respond(HttpStatusCode.OK, schedule)
@@ -70,6 +98,15 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                val qaCallerId = call.principal<JWTPrincipal>()?.userId
+                if (qaCallerId == null || eventRepository == null || database == null ||
+                    !hasActivityEventAccess(eventRepository, database, eventId, qaCallerId)
+                ) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to this event")
+                    )
+                }
                 
                 val dateStr = call.parameters["date"] ?: return@get call.respond(
                     HttpStatusCode.BadRequest,
@@ -103,6 +140,15 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                val qaCallerId = call.principal<JWTPrincipal>()?.userId
+                if (qaCallerId == null || eventRepository == null || database == null ||
+                    !hasActivityEventAccess(eventRepository, database, eventId, qaCallerId)
+                ) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to this event")
+                    )
+                }
 
                 val totalCost = repository.sumActivityCostByEvent(eventId)
                 val totalActivities = repository.countActivitiesByEvent(eventId)
@@ -137,6 +183,15 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                val qaCallerId = call.principal<JWTPrincipal>()?.userId
+                if (qaCallerId == null || eventRepository == null || database == null ||
+                    !hasActivityEventAccess(eventRepository, database, eventId, qaCallerId)
+                ) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to this event")
+                    )
+                }
                 
                 val activityId = call.parameters["activityId"] ?: return@get call.respond(
                     HttpStatusCode.BadRequest,
@@ -174,6 +229,15 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                val qaCallerId = call.principal<JWTPrincipal>()?.userId
+                if (qaCallerId == null || eventRepository == null || database == null ||
+                    !hasActivityEventAccess(eventRepository, database, eventId, qaCallerId)
+                ) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to this event")
+                    )
+                }
                 
                 val activityId = call.parameters["activityId"] ?: return@get call.respond(
                     HttpStatusCode.BadRequest,
@@ -197,6 +261,15 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                val qaCallerId = call.principal<JWTPrincipal>()?.userId
+                if (qaCallerId == null || eventRepository == null || database == null ||
+                    !hasActivityEventAccess(eventRepository, database, eventId, qaCallerId)
+                ) {
+                    return@post call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to this event")
+                    )
+                }
 
                 val request = call.receive<CreateActivityRequest>()
                 
@@ -246,6 +319,15 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                val qaCallerId = call.principal<JWTPrincipal>()?.userId
+                if (qaCallerId == null || eventRepository == null || database == null ||
+                    !hasActivityEventAccess(eventRepository, database, eventId, qaCallerId)
+                ) {
+                    return@post call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to this event")
+                    )
+                }
                 
                 val activityId = call.parameters["activityId"] ?: return@post call.respond(
                     HttpStatusCode.BadRequest,
@@ -305,6 +387,15 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                val qaCallerId = call.principal<JWTPrincipal>()?.userId
+                if (qaCallerId == null || eventRepository == null || database == null ||
+                    !hasActivityEventAccess(eventRepository, database, eventId, qaCallerId)
+                ) {
+                    return@put call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to this event")
+                    )
+                }
                 
                 val activityId = call.parameters["activityId"] ?: return@put call.respond(
                     HttpStatusCode.BadRequest,
@@ -367,6 +458,15 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                val qaCallerId = call.principal<JWTPrincipal>()?.userId
+                if (qaCallerId == null || eventRepository == null || database == null ||
+                    !hasActivityEventAccess(eventRepository, database, eventId, qaCallerId)
+                ) {
+                    return@delete call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to this event")
+                    )
+                }
                 
                 val activityId = call.parameters["activityId"] ?: return@delete call.respond(
                     HttpStatusCode.BadRequest,
@@ -390,6 +490,15 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                val qaCallerId = call.principal<JWTPrincipal>()?.userId
+                if (qaCallerId == null || eventRepository == null || database == null ||
+                    !hasActivityEventAccess(eventRepository, database, eventId, qaCallerId)
+                ) {
+                    return@delete call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to this event")
+                    )
+                }
                 
                 val activityId = call.parameters["activityId"] ?: return@delete call.respond(
                     HttpStatusCode.BadRequest,
@@ -445,3 +554,22 @@ internal fun activityDeleteFailureMessage(): String =
 
 internal fun activityUnregistrationFailureMessage(): String =
     "Failed to unregister from this activity. Please try again."
+
+/**
+ * Access control for activity endpoints: only the event organizer or an event
+ * participant may read or mutate activities (QA BUG-4 hardening).
+ */
+private fun hasActivityEventAccess(
+    eventRepository: DatabaseEventRepository,
+    database: WakeveDb,
+    eventId: String,
+    userId: String
+): Boolean {
+    val event = eventRepository.getEvent(eventId) ?: return false
+    if (event.organizerId == userId) {
+        return true
+    }
+    return database.participantQueries
+        .selectByEventIdAndUserId(eventId, userId)
+        .executeAsOneOrNull() != null
+}

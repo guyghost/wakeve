@@ -1,3 +1,5 @@
+package com.guyghost.wakeve.routes
+
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
