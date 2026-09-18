@@ -4904,6 +4904,216 @@
       "synthesis": "## Synthesis — Proposal #29\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 8\n**For:** 8 | **Against:** 0 | **Abstain:** 0\n\n### Supporting Arguments\n- **Product Strategist:** Strategically this is cheap, reversible (git history preserves everything), evidence-verified debt removal that directly improves the operating efficiency of an agent-heavy development model. Every fa...\n- **Critic / Risk Agent:** Every functional claim in the proposal survived direct verification against CI workflows, fastlane, scripts, the extension source, and git state. The two most severe failure modes are documentation-le...\n- **Solution Architect:** Every factual claim in the proposal verified true against the repo: all 7 artifacts are tracked, none are functionally referenced by CI/fastlane/scripts/build code, the canonical screenshot path is `c...\n- **Research Agent:** Every functional-safety claim in the proposal is directly verifiable in the repo, and I verified them all: the 7 paths exist at the stated size, none is referenced by any workflow, fastlane lane, scri...\n- **Prioritization Agent:** Every factual claim I could test verified cleanly (tracked files, sizes, canonical CI/fastlane paths, graceful extension degradation, zero functional references). This is a low-cost, low-risk, fully r...\n- **Delivery Agent:** Every factual claim I could test checked out against the repo: the 7 paths are tracked, the store-functional screenshot path is `composeApp/screenshots/` (fastlane + CI confirmed), the health extensio...\n- **UX/UI Designer:** Every factual claim I could test held up under direct inspection: the canonical screenshot path is `composeApp/screenshots/`, the tracked review-screenshots contradict `.gitignore`, the run config is ...\n- **Spec Writer:** Every factual claim in the proposal is verified true against the repo (tracked status, ~13.5 MB size, canonical `composeApp/screenshots/` path used by fastlane and store-readiness.yml, graceful wakeve...\n\n### Key Themes\n- User experience\n- Technical debt\n- Scalability\n- Alignment\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n",
       "resolvedAt": "2026-09-18T11:16:44.575Z",
       "executionResult": "Executed with delivery plan: feature/dao-29-nettoyage-repo-passe-2-capture"
+    },
+    {
+      "id": 30,
+      "title": "Nettoyage repo passe 3 : sources d'icônes déjà intégrées, extension orpheline, rapport de patchs daté (creative-production, extensions/wakeve-health, SECURITY_PATCHES)",
+      "type": "technical-change",
+      "description": "Troisième passe de nettoyage, ciblée sur les derniers artefacts historiques/orphelins : (1) creative-production/ — 26 fichiers de sources d'icônes de marque (SVG logo mark/symbol/horizontal, PNG 1024 light/dark/tinted, script Python de génération, moodboards, run-state). Les icônes sont déjà générées et présentes dans les apps (mipmap Android et AppIcon iOS vérifiés) ; les sources restent récupérables via git history si une régénération est nécessaire. (2) extensions/wakeve-health.ts — extension de dashboard santé orpheline : aucune configuration dans le repo ne la charge, et elle lit audit_report.json qui a été supprimé en passe 2 (elle génère donc des warnings). (3) SECURITY_PATCHES.md — rapport historique daté 2026-02-08 décrivant des patchs déjà appliqués, sans mention dans le CHANGELOG. Exclusions vérifiées durant l'analyse : scripts/deploy-cloudflare-web.sh (outil opérationnel de déploiement landing+dashboard Cloudflare, invoqué manuellement) et scripts/tests/audit-product-language-test.sh (test fonctionnel du script actif audit-product-language.sh) — tous deux initialement suspectés orphelins puis confirmés actifs et conservés. Gate Product Excellence : non applicable au runtime — zéro impact sur les parcours utilisateur ; supprime du bruit et des artefacts cassés pour les agents et développeurs.",
+      "problemStatement": "Après les passes 1 et 2 (~83 Mo libérés), subsistent 3 artefacts historiques ou orphelins : les sources de génération d'icônes (creative-production/, 2 Mo) dont le produit généré est déjà intégré aux apps et versionné, une extension pi orpheline et partiellement cassée (extensions/wakeve-health.ts, plus de fichier audit_report.json à lire), et un rapport de patchs sécurité daté de février 2026 déjà appliqués (SECURITY_PATCHES.md). Ces éléments polluent la racine et les recherches sans valeur opérationnelle actuelle.",
+      "acceptanceCriteria": [
+        "Les 3 chemins (creative-production/, extensions/, SECURITY_PATCHES.md) sont supprimés de l'index git et du filesystem",
+        "Les icônes générées restent intactes dans les apps (composeApp/src/androidMain/res/mipmap-*, iosApp AppIcon)",
+        "scripts/deploy-cloudflare-web.sh et scripts/audit-product-language*.sh restent intacts (vérifiés actifs)",
+        "./gradlew shared:jvmTest passe toujours après suppression",
+        "Aucune référence fonctionnelle dans code/tests/CI/fastlane/package.json (vérifié avant suppression)"
+      ],
+      "successMetrics": [
+        "~2 Mo libérés du dépôt et racine allégée de 3 entrées",
+        "Aucune régression CI/test sur le commit suivant",
+        "git ls-files ne retourne plus les chemins supprimés"
+      ],
+      "rollbackConditions": [
+        "Besoin identifié de régénérer les icônes sans accès git history (rollback ou restauration du dossier)",
+        "Un workflow ou outil référence l'extension wakeve-health de manière imprévue",
+        "Une régression de build ou test est détectée après suppression"
+      ],
+      "affectedPaths": [
+        "creative-production/",
+        "extensions/",
+        "SECURITY_PATCHES.md"
+      ],
+      "proposedBy": "user",
+      "status": "executed",
+      "votes": [
+        {
+          "agentId": "architect",
+          "agentName": "Solution Architect",
+          "position": "for",
+          "reasoning": "Every factual claim survived direct verification — most decisively the md5-identity between the creative-production outputs and the shipped iOS AppIcon assets, which upgrades \"icons already in apps\" from assertion to proven fact. Architecturally this is pure debt retirement: no module boundary, dependency direction, or testability surface changes; the only dependency edge affected is an already-broken one being removed. The acceptance criteria are mechanically checkable (`git ls-files`, intact mipmap/AppIcon paths, jvmTest gate), and reversibility via git history matches the precedent accepted in #28/#29. I note the two soft costs — icon regeneration becomes git-archaeology, and a once-handy health dashboard disappears (while broken) — both bounded and recoverable. My vote is a signal for the tally, which alone decides.",
+          "weight": 3
+        },
+        {
+          "agentId": "strategist",
+          "agentName": "Product Strategist",
+          "position": "for",
+          "reasoning": "Every factual claim verified directly against the repo: icons integrated in both apps with sources recoverable at commit `111d7e6e`; the extension is loaded by nothing and reads a file deleted in pass 2; the security report is dated, applied, and referenced nowhere functional. Strategically this finishes a well-executed hygiene program that directly serves the agent-driven operating model, costs almost nothing, is fully reversible via git history, and is gated by test/CI acceptance criteria. My two notes are execution-level, not blocking: add a CHANGELOG/docs pointer to the git-history location of the icon sources (mitigates the killable discoverability assumption), and note in the CHANGELOG \"Removed\" section that the security patch history moved to git history.",
+          "weight": 3
+        },
+        {
+          "agentId": "critic",
+          "agentName": "Critic / Risk Agent",
+          "position": "for",
+          "reasoning": "Every factual claim survived direct verification: sizes, file counts, icon integration in both apps, orphan status of the extension (including absence from the live global extensions dir), absence of any functional reference, and — critically — that every documented security patch is confirmed applied in current code, so deleting the dated report creates no hidden exposure. The change is zero-runtime, precisely scoped with verified exclusions, and fully reversible via a single revert commit. My findings (FM1's interaction with a hypothetical future history-rewrite pass, the audit-trail convenience loss, missing re-creation guard) are documentation- and convention-level; none blocks a technical-change of this scope, but FM1 deserves an explicit \"no history rewrite\" note at ship time since three consecutive proposals now lean on history recoverability.",
+          "weight": 3
+        },
+        {
+          "agentId": "designer",
+          "agentName": "UX/UI Designer",
+          "position": "for",
+          "reasoning": "All factual claims check out against the actual tree: generated icons are intact and versioned in both apps, the extension is orphaned with its data source deleted, the security report is a stale dated snapshot, and spared scripts are genuinely unreferenced by the deletions. Zero runtime UX impact; positive developer/agent experience impact (less root noise, one fewer broken dashboard). My only reservation — source-recovery friction for future brand iteration — is mitigated by git history and would be fully resolved by a one-line CHANGELOG breadcrumb, which I recommend as an execution note rather than a scope change.",
+          "weight": 2
+        },
+        {
+          "agentId": "prioritizer",
+          "agentName": "Prioritization Agent",
+          "position": "for",
+          "reasoning": "Every factual claim in the proposal verified cleanly against the repo: icons are integrated in both apps, the extension reads a file deleted in pass 2 and is loaded by nothing, and the security report documents patches git history confirms as applied, with zero CHANGELOG references. Cost is near-zero (verification already done), risk is near-zero (git history as recovery, standard pattern from passes 1-2), and the change is strictly positive for developer/agent experience even if the magnitude is small. Third-pass cleanup has diminishing returns, but at this effort/risk profile the bar for \"worth doing now\" is easily met. It should not and will not displace roadmap feature work.",
+          "weight": 2
+        },
+        {
+          "agentId": "delivery",
+          "agentName": "Delivery Agent",
+          "position": "for",
+          "reasoning": "As Delivery Agent I verified every acceptance criterion against the working tree before voting: the 3 paths exist and are tracked; generated icons are integrated and versioned on both platforms; the only repo references to the deleted paths are the DAO's own state record and self-references; the excluded scripts are present; and the named test gate (`shared:jvmTest`) is green at baseline. Effort is a single S commit with deterministic, mechanical verification and a trivial rollback (git revert; partial recovery via history for icon sources). Zero runtime impact — this is pure noise reduction for agents and developers. The minor tradeoffs (history-based icon regeneration, possible un-versioned local extension loads) are documented and do not justify keeping 2 MB of dead artifacts in the tree.",
+          "weight": 1
+        },
+        {
+          "agentId": "spec-writer",
+          "agentName": "Spec Writer",
+          "position": "for",
+          "reasoning": "Every factual claim in the proposal survived direct verification: file counts (26 tracked), size (2.0 MB), icon integration in both apps (mipmap set + AppIcon trio), orphan status of the extension (zero loaders, data source deleted in #29), the dated unreferenced security report, and the correctness of both exclusions. The spec defects I found are wording and completeness level — AC 5 process-as-outcome, unpinned iOS path, directory-vs-file ambiguity on `extensions/`, silent recreation policy — all fixable during execution without changing scope, effort, or risk. The change is zero-runtime-impact, follows two cleanly-shipped precedents (#28, #29), is fully reversible via git history, and the decisive regression gate (`shared:jvmTest`) is already an acceptance criterion. My vote is a signal for the tally, which alone decides.",
+          "weight": 1
+        }
+      ],
+      "agentOutputs": [
+        {
+          "agentId": "architect",
+          "agentName": "Solution Architect",
+          "role": "Technical options, tradeoffs",
+          "content": "## Analysis\n\n**Feasibility (verified against the repo):** Trivially feasible with the existing toolchain — this is `git rm` of three leaf paths plus a regression gate (`./gradlew shared:jvmTest`). No build file, module, or code path changes.\n\n**Claim verification performed directly:**\n- `creative-production/`: exactly 26 tracked files, 2.0M on disk — matches the proposal (SVG logo mark/symbol/horizontal, 1024 PNGs light/dark/tinted, `generate_wakeve_icons.py`, moodboards, run-state, mcp-thumbs, review-board).\n- **Icons integrated — verified at byte level, not just by presence:** `iosApp/src/Assets.xcassets/AppIcon.appiconset/AppIcon.png` is md5-identical to `creative-production/.../wakeve-ios-light.png` (`da5aef82…`), `AppIconDark.png` identical to `wakeve-ios-dark.png` (`882f4c8e…`), `AppIconTinted.png` size-identical (182,709 B) to `wakeve-ios-tinted-dark.png`. Android `ic_launcher`/`ic_launcher_round` present in all five mipmap densities. The pipeline's *products* are versioned in the apps; only the *sources* would go.\n- `extensions/` contains exactly one file (`wakeve-health.ts`). Nothing loads it: no reference in repo `package.json` (no `extensions` field), no repo `.pi/` config exists, and the user-level pi settings load extensions only via packages (`pi-extensions`, `swarm-dao-pi-adapter`) — a repo-root `extensions/` dir is not a pi auto-load location. Orphan confirmed.\n- Its one inbound data dependency (`audit_report.json`) was deleted in pass 2, so the extension currently renders permanent warnings — a dangling dependency, i.e. existing debt this proposal retires rather than creates.\n- `SECURITY_PATCHES.md`: dated 2026-02-08/09, describes fixes already applied (\"Status: ✅ Applied\"), zero references from CHANGELOG, docs/, CI, fastlane, scripts (greps clean; only historical `.dao/` deliberation records mention it, which is fine — history, not function).\n- Exclusions re-verified: `scripts/deploy-cloudflare-web.sh` and `scripts/tests/audit-product-language-test.sh` untouched by the delete list.\n\n**Boundaries & dependency direction:** No policy/core module is touched. The only dependency edge in play (extension → deleted JSON) already points outward and is broken; deletion removes it. Nothing in UI/IO/framework layers references any of the three paths. Information hiding is unaffected.\n\n**Coupling/cohesion:** The split *improves* cohesion — generated app assets stay with the app; the design-studio pipeline (run-state, moodboards, thumbs) leaves the delivery repo. This resolves the ambiguity #29 deliberately deferred (\"creative-production/ conservée\" without a long-term home decision); #29's acceptance criterion that wakeve-health \"stay functional\" is superseded, not violated — the extension's input no longer exists, so retirement is the coherent follow-up.\n\n**Debt:** Retires three artifacts of stale-state debt (dangling reader, dated untracked-in-CHANGELOG report, duplicate source-of-truth for already-shipped icons). Creates none; the residual cost is discoverability of icon sources via git history.\n\n**Options considered:**\n1. **As proposed — delete all three.** *Reversible* (git history; blobs persist absent history rewrite, same rollback basis as #28/#29). Max debt retired; regeneration requires git archaeology.\n2. **Delete only extensions/ + SECURITY_PATCHES.md, keep creative-production/** (the #29 conservative stance). *Reversible.* Defers the source-of-truth question a third time; keeps 2MB and root clutter the problem statement targets.\n3. **Delete all three but salvage the 3 SVGs + `generate_wakeve_icons.py` (~150KB) into `docs/brand/`, dropping the ~1.9MB of PNGs/thumbs/state.** *Reversible.* Keeps regeneration discoverable at small cost; slightly more execution effort and re-introduces a tiny root-adjacent home for design assets.\n\nOption 1 is sound because the byte-identical integration proves the sources' job is done; Option 3 is the variant to prefer only if a brand refresh is expected soon.\n\n## Vote\nfor\n\n## Reasoning\nEvery factual claim survived direct verification — most decisively the md5-identity between the creative-production outputs and the shipped iOS AppIcon assets, which upgrades \"icons already in apps\" from assertion to proven fact. Architecturally this is pure debt retirement: no module boundary, dependency direction, or testability surface changes; the only dependency edge affected is an already-broken one being removed. The acceptance criteria are mechanically checkable (`git ls-files`, intact mipmap/AppIcon paths, jvmTest gate), and reversibility via git history matches the precedent accepted in #28/#29. I note the two soft costs — icon regeneration becomes git-archaeology, and a once-handy health dashboard disappears (while broken) — both bounded and recoverable. My vote is a signal for the tally, which alone decides.\n\n## Composite Score Inputs (0-10)\n- userImpact: 1\n- businessImpact: 3\n- effort: 1\n- securityRisk: 1\n- confidence: 9\n\n## Risk Score (1-10)\n2 — Residual risks: future brand refresh requires recovering SVGs/script from git history (mitigated: byte-identical PNGs remain in-repo as fallback sources); deletion of a dated security-applied report moves that audit trail to history only (mitigated: fixes are in code and git log). No runtime, build, CI, or fastlane exposure found.",
+          "durationMs": 95734,
+          "vote": {
+            "agentId": "architect",
+            "agentName": "Solution Architect",
+            "position": "for",
+            "reasoning": "Every factual claim survived direct verification — most decisively the md5-identity between the creative-production outputs and the shipped iOS AppIcon assets, which upgrades \"icons already in apps\" from assertion to proven fact. Architecturally this is pure debt retirement: no module boundary, dependency direction, or testability surface changes; the only dependency edge affected is an already-broken one being removed. The acceptance criteria are mechanically checkable (`git ls-files`, intact mipmap/AppIcon paths, jvmTest gate), and reversibility via git history matches the precedent accepted in #28/#29. I note the two soft costs — icon regeneration becomes git-archaeology, and a once-handy health dashboard disappears (while broken) — both bounded and recoverable. My vote is a signal for the tally, which alone decides.",
+            "weight": 3
+          }
+        },
+        {
+          "agentId": "strategist",
+          "agentName": "Product Strategist",
+          "role": "Vision, objectives, hypotheses",
+          "content": "## Analysis\n\n**1. Restated intended outcome:** Delete the last three historical/orphaned artifacts from the repo — brand-icon generation sources (already integrated into the apps), an orphaned pi health extension degraded by pass 2, and a dated applied-security-patches report — completing the cleanup program begun in #28/#29 with zero runtime impact.\n\n**2. Evidence verification (performed directly against the repo):**\n- `creative-production/` exists (2.0 Mo, 26 files: SVG logo mark/symbol/horizontal, PNG 1024 light/dark/tinted, `generate_wakeve_icons.py`, moodboards, run-state). Generated icons confirmed integrated: `ic_launcher.png`/`ic_launcher_round.png` in `mipmap-*` and `AppIcon.png`/`AppIconDark.png`/`AppIconTinted.png` in `iosApp/.../AppIcon.appiconset`. Sources recoverable via commit `111d7e6e` (\"chore(ios): update app icons\"). Only references to `creative-production` are inside its own run-state files. ✓\n- `extensions/wakeve-health.ts`: no repo-level `.pi/` config exists, no CI/fastlane/package.json reference, not in `~/.pi/agent/settings.json` packages; it reads `audit_report.json`, which is confirmed absent (deleted in pass 2) → produces warnings. Orphan + degraded. ✓\n- `SECURITY_PATCHES.md`: dated 2026-02-08, describes already-applied fixes (e.g., BudgetRoutes JWT auth); zero mentions in CHANGELOG; only reference is `.dao/state.json` (governance record). ✓\n- Exclusions (`deploy-cloudflare-web.sh`, `audit-product-language*.sh`) untouched by the delete list. ✓\n\n**3. Strategic alignment:** The project is explicitly agent-driven (Swarm DAO governance, AGENTS.md delegation matrix). Stale tracked paths are a recurring per-session context tax on every AI agent and developer — a concrete mechanism, not vision talk. This completes a trilogy with clean precedent (#28 ~70 Mo, PR #41; #29 ~13.5 Mo, PR #42). The Product Excellence gate self-assessment (N/A at runtime) is honest and correct — no manufactured user story.\n\n**4. Load-bearing assumptions:**\n1. *Git history suffices as archive for icon sources* — the killable assumption. If the brand ever needs regeneration (rebrand, new variant), someone must know to dig for `111d7e6e`. Failure = inconvenience, not breakage. Cheap mitigation the proposal omits: a one-line docs/CHANGELOG pointer to the history commit.\n2. *Nothing loads wakeve-health.ts* — verified in-repo and in global pi config; residual unknown is a purely local manual invocation habit, unobservable from here, bounded by one-file recoverability.\n3. *SECURITY_PATCHES.md has no living compliance role* — verified unreferenced; patches live in the code. If an external audit ever demands a first-class patch trail, it's recoverable.\n4. *No history rewrite will occur* — true by design (passes 1–2 explicitly avoided it); this is what makes all deletions reversible.\n\n**5. Findings:** This proposal **reverses two documented exclusions from #29** (which conserved `creative-production/` as \"brand sources\" and kept wakeve-health as \"fonctionnelle\"). The reversal is legitimate — #29's own deletion of `audit_report.json` degraded the extension, and recoverability holds — but the swarm should note it is overriding its own recent scoping rationale, and the CHANGELOG \"Removed\" entry should point to git history for both. Also, \"~2 Mo libérés\" is working-tree/index relief, not clone-size reduction (blobs remain in history) — expectation-setting, not a flaw.\n\n**6. Opportunity cost:** Near zero. Sub-hour effort (3 deletions + `shared:jvmTest`). No roadmap item competes for this time; deferring only lets the documented noise persist into every future agent session. Timing is optimal — cleanup context and verification patterns are warm from #28/#29.\n\n## Vote\nfor\n\n## Reasoning\nEvery factual claim verified directly against the repo: icons integrated in both apps with sources recoverable at commit `111d7e6e`; the extension is loaded by nothing and reads a file deleted in pass 2; the security report is dated, applied, and referenced nowhere functional. Strategically this finishes a well-executed hygiene program that directly serves the agent-driven operating model, costs almost nothing, is fully reversible via git history, and is gated by test/CI acceptance criteria. My two notes are execution-level, not blocking: add a CHANGELOG/docs pointer to the git-history location of the icon sources (mitigates the killable discoverability assumption), and note in the CHANGELOG \"Removed\" section that the security patch history moved to git history.\n\n## Composite Score Inputs (0-10)\n- userImpact: 0\n- businessImpact: 2\n- effort: 1\n- securityRisk: 1\n- confidence: 9\n\n## Risk Score (1-10)\n2 — Fully reversible via git history; gated by `shared:jvmTest` and next-commit CI. Residual risks: discoverability decay of icon sources buried in history (cheap doc-pointer mitigation), a possible out-of-repo manual consumer of wakeve-health.ts (unobservable, one-file recoverable), and the loss of a first-class security patch trail (recoverable, patches live in code).",
+          "durationMs": 111364,
+          "vote": {
+            "agentId": "strategist",
+            "agentName": "Product Strategist",
+            "position": "for",
+            "reasoning": "Every factual claim verified directly against the repo: icons integrated in both apps with sources recoverable at commit `111d7e6e`; the extension is loaded by nothing and reads a file deleted in pass 2; the security report is dated, applied, and referenced nowhere functional. Strategically this finishes a well-executed hygiene program that directly serves the agent-driven operating model, costs almost nothing, is fully reversible via git history, and is gated by test/CI acceptance criteria. My two notes are execution-level, not blocking: add a CHANGELOG/docs pointer to the git-history location of the icon sources (mitigates the killable discoverability assumption), and note in the CHANGELOG \"Removed\" section that the security patch history moved to git history.",
+            "weight": 3
+          }
+        },
+        {
+          "agentId": "critic",
+          "agentName": "Critic / Risk Agent",
+          "role": "Risk scoring, objections, guardrails",
+          "content": "## Analysis\n\nI verified every load-bearing claim directly against the repo before judging.\n\n**Claims verified ✓**\n\n1. **`creative-production/` exists, 26 tracked files, 2.0M** — matches the proposal exactly (SVG logo-mark/symbol/horizontal, 1024 PNG light/dark/tinted, `generate_wakeve_icons.py`, moodboards, run-state).\n2. **Icons already integrated and versioned** — `git ls-files` confirms Android `mipmap-*` at all densities and iOS `Assets.xcassets/AppIcon.appiconset/` with `AppIcon.png`, `AppIconDark.png`, `AppIconTinted.png` (the light/dark/tinted trio mirrors the sources). Deleting sources cannot touch these.\n3. **Zero functional references** — grep across the repo (excluding `.git`, `.dao/state.json`) finds no reference to `creative-production`, the source filenames, `wakeve-health`, or `SECURITY_PATCHES` in code, CI, fastlane, scripts, or docs. CHANGELOG confirmed silent on SECURITY_PATCHES.\n4. **Extension genuinely orphaned and half-broken** — no `.pi/` dir in repo, no repo config loads it, and it is absent from the global `~/.pi/agent/extensions/` (which holds `herdr-agent-state.ts`, `superset-hooks.ts`). `audit_report.json` is confirmed absent (deleted in pass 2), so its accessibility section permanently warns and its drill-down tool always returns \"non trouvé\".\n5. **Security patches actually applied** — the report's three headline fixes are present in code today: `BudgetRoutes.kt:50` wraps routes in `authenticate(\"auth-jwt\")`; `Application.kt:354-356` throws on missing `JWT_SECRET` (no fallback); `Application.kt:152-155` fails closed on blacklist errors. Deleting the report hides no unapplied fix.\n6. **Exclusions intact** — `scripts/deploy-cloudflare-web.sh`, `scripts/audit-product-language.sh`, `scripts/tests/audit-product-language-test.sh` all present.\n\n**Failure modes enumerated:**\n\n- **FM1 (most severe): brand regeneration after future history rewrite.** Trigger: a design change needs the SVG masters or the Python generator; normal recovery is `git checkout <sha> -- creative-production/`. That works today — but passes 1–3 all justify deletion via history recoverability while citing repo size as motivation. If a future pass proposes history rewrite to actually reclaim ~85MB of blobs, the safety net for *all three cleanup passes* evaporates silently. Blast radius: designer/agent re-creates brand assets from scratch. Detection: immediate (files missing), but the loss is real. This is an interaction risk between proposals, not a defect of this one — the guardrail is a repo convention \"no history rewrite,\" which is currently only implicit.\n- **FM2: security audit-trail loss.** Trigger: an auditor or App Store reviewer asks \"document your security remediation history.\" Blast radius: the mapping issue→fix→file lives only in history (commit `d1c6a846`). Detection: none automated. Bounded: the fixes are verified in code and recoverable, so this is documentation convenience, not protection.\n- **FM3 (minor): unobservable local installs.** If any machine outside this checkout loaded the extension from this path, it breaks on load. Nothing observable here; flagged as unknown.\n\n**Guardrails:** Rollback path exists and is clean (single revert commit restores all 28 tracked files; AC includes `shared:jvmTest` + next-commit CI green). Limits are explicit (3 paths, exclusions verified). Two nits: no `.gitignore` entry to prevent re-creation of `creative-production/` if the icon tooling runs again, and one AC (\"vérifié avant suppression\") is process-as-outcome — its substance is already covered by the test gates. Dangling `audit_report.json` references in 4 `docs/a11y/*.md` predate this proposal (pass 2) and are not worsened by deleting the extension.\n\n**Unknown I cannot resolve:** whether any workflow outside git observability (another developer's machine, an external brand/design process) expects `creative-production/` or the extension at these paths.\n\n## Vote\nfor\n\n## Reasoning\nEvery factual claim survived direct verification: sizes, file counts, icon integration in both apps, orphan status of the extension (including absence from the live global extensions dir), absence of any functional reference, and — critically — that every documented security patch is confirmed applied in current code, so deleting the dated report creates no hidden exposure. The change is zero-runtime, precisely scoped with verified exclusions, and fully reversible via a single revert commit. My findings (FM1's interaction with a hypothetical future history-rewrite pass, the audit-trail convenience loss, missing re-creation guard) are documentation- and convention-level; none blocks a technical-change of this scope, but FM1 deserves an explicit \"no history rewrite\" note at ship time since three consecutive proposals now lean on history recoverability.\n\n## Composite Score Inputs (0-10)\n- userImpact: 0\n- businessImpact: 2\n- effort: 1\n- securityRisk: 1\n- confidence: 9\n\n## Risk Score (1-10)\n2 — No runtime, CI, or build surface is touched (verified by grep and by inspecting the extension source); rollback is a single git revert. Residual risk is the silent loss of the git-history safety net if a later pass rewrites history to reclaim blob size, plus minor audit-trail convenience loss; both are bounded and detectable, and the acceptance criteria's test/CI gates cover the regression question.",
+          "durationMs": 149910,
+          "vote": {
+            "agentId": "critic",
+            "agentName": "Critic / Risk Agent",
+            "position": "for",
+            "reasoning": "Every factual claim survived direct verification: sizes, file counts, icon integration in both apps, orphan status of the extension (including absence from the live global extensions dir), absence of any functional reference, and — critically — that every documented security patch is confirmed applied in current code, so deleting the dated report creates no hidden exposure. The change is zero-runtime, precisely scoped with verified exclusions, and fully reversible via a single revert commit. My findings (FM1's interaction with a hypothetical future history-rewrite pass, the audit-trail convenience loss, missing re-creation guard) are documentation- and convention-level; none blocks a technical-change of this scope, but FM1 deserves an explicit \"no history rewrite\" note at ship time since three consecutive proposals now lean on history recoverability.",
+            "weight": 3
+          }
+        },
+        {
+          "agentId": "researcher",
+          "agentName": "Research Agent",
+          "role": "Market, competition, user signals",
+          "content": "",
+          "durationMs": 240015,
+          "error": "Pi subprocess timed out after 240000ms"
+        },
+        {
+          "agentId": "designer",
+          "agentName": "UX/UI Designer",
+          "role": "UX/UI critique, design directions, accessibility",
+          "content": "## Analysis\n\nI verified the proposal's factual claims directly against the repo before forming a judgment.\n\n**Surface classification:** This proposal touches no runtime user surface — it is developer/agent-facing repo hygiene. So I judge it against Operate/Read criteria for the people who navigate this repo daily: can they find what matters, without dead ends and stale artifacts? By that mode's standard, the change is a net improvement.\n\n**Verification results (evidence):**\n\n1. **`creative-production/`** — exists, 2.0 Mo, 28 files (proposal says 26; minor discrepancy, immaterial). Contains icon sources (SVG/PNG masters, generation run-state, moodboards, prompts). Cross-referenced against the apps: Android has full `ic_launcher` + `ic_launcher_round` in all five mipmap densities; iOS `AppIcon.appiconset` has light/dark/tinted PNGs + `Contents.json`. The generated brand assets are versioned in-app — the sources are genuinely redundant at runtime. `rg` shows no functional references outside the proposal's own DAO state file.\n2. **`extensions/wakeve-health.ts`** — exists, reads `audit_report.json`, which no longer exists anywhere in the tree (confirmed). It degrades to a \"⚠️ audit non trouvé\" warning state, and no config in the repo loads it. This is a dead dev-dashboard surface showing empty/stale data — the exact kind of accidental state my review method flags.\n3. **`SECURITY_PATCHES.md`** — exists, dated 2026-02-08, documents already-applied fixes, no CHANGELOG linkage. Stale Read-mode documentation; it invites trust in a snapshot that no longer reflects anything actionable.\n4. **Exclusions honored** — no references to any of the three paths in `package.json`, CI workflows, `Fastfile`, or `Gemfile`. The two deliberately-spared scripts were correctly kept.\n\n**Design-domain concern (my main one):** deleting brand icon sources is the only item in my remit worth scrutinizing. Sources-in-git-history is a real but acceptable mitigation for a product repo that already executed two cleanup passes under the same policy. One cheap improvement I'd hand to delivery: add a one-line breadcrumb in the CHANGELOG entry (e.g., \"icon sources recoverable via git history — see commit before deletion\") so a future designer regenerating icons for a splash screen or marketing cut doesn't rediscover this the hard way. That's an option, not a blocker.\n\n**Uncertainty:** low. The moodboards and generation prompts are mild institutional-memory loss, but equally recoverable via git.\n\n## Vote\nfor\n\n## Reasoning\nAll factual claims check out against the actual tree: generated icons are intact and versioned in both apps, the extension is orphaned with its data source deleted, the security report is a stale dated snapshot, and spared scripts are genuinely unreferenced by the deletions. Zero runtime UX impact; positive developer/agent experience impact (less root noise, one fewer broken dashboard). My only reservation — source-recovery friction for future brand iteration — is mitigated by git history and would be fully resolved by a one-line CHANGELOG breadcrumb, which I recommend as an execution note rather than a scope change.\n\n## Composite Score Inputs (0-10)\n- userImpact: 0\n- businessImpact: 2\n- effort: 2\n- securityRisk: 1\n- confidence: 9\n\n## Risk Score (1-10)\n2",
+          "durationMs": 55361,
+          "vote": {
+            "agentId": "designer",
+            "agentName": "UX/UI Designer",
+            "position": "for",
+            "reasoning": "All factual claims check out against the actual tree: generated icons are intact and versioned in both apps, the extension is orphaned with its data source deleted, the security report is a stale dated snapshot, and spared scripts are genuinely unreferenced by the deletions. Zero runtime UX impact; positive developer/agent experience impact (less root noise, one fewer broken dashboard). My only reservation — source-recovery friction for future brand iteration — is mitigated by git history and would be fully resolved by a one-line CHANGELOG breadcrumb, which I recommend as an execution note rather than a scope change.",
+            "weight": 2
+          }
+        },
+        {
+          "agentId": "prioritizer",
+          "agentName": "Prioritization Agent",
+          "role": "Impact/cost/risk scoring, roadmap fit",
+          "content": "## Analysis\nI independently verified the proposal's factual claims against the repo:\n\n1. **`creative-production/`** — exists, 2.0 MB, 28 files (proposal says 26; immaterial counting discrepancy, same disposition). Only references to it are self-referential run-state files inside the directory itself. Generated icons confirmed present in apps: `composeApp/src/androidMain/res/mipmap-*` (`ic_launcher.png`, `ic_launcher_round.png`) and `iosApp/src/Assets.xcassets/AppIcon.appiconset` (`AppIcon.png`, `AppIconDark.png`, `AppIconTinted.png`, `Contents.json`). ✅\n2. **`extensions/wakeve-health.ts`** — exists, structurally reads `audit_report.json`, which I confirmed is **deleted** (pass 2). No reference in `package.json`, CI configs, or any code — truly orphaned and broken. ✅\n3. **`SECURITY_PATCHES.md`** — exists, dated 2026-02-08, describes already-applied patches (git log confirms `security: apply critical security patches from code review`). Zero mentions in CHANGELOG. ✅\n4. **Exclusions verified** — `scripts/deploy-cloudflare-web.sh` and `scripts/audit-product-language.sh` both exist and are correctly kept out of scope. ✅\n\n**Prioritization assessment:**\n- **Impact:** Zero user/runtime value by design. Business value is small and mostly developer/agent-facing: removing a broken extension that emits warnings, reducing search noise, ~2 MB. This is pass 3 of a cleanup — we are deep in diminishing-returns territory (~2 MB vs ~83 MB from passes 1-2).\n- **Cost:** Near zero. The verification work — normally the bulk of effort for a deletion proposal — is already done and I re-confirmed it in minutes. Remaining work is `git rm` + one test run. Opportunity cost is negligible; it displaces nothing on the roadmap.\n- **Risk-adjusted value:** Probability of success is very high (~99%); expected value is small but strictly positive. \"Small now beats large later\" holds exactly here: this is a tiny, atomic, verified change — deferring it would only accumulate more noise for agents working on actual feature proposals.\n- **Sequencing:** Before feature work (Auth Phase 3, agents). It's a hygiene task that improves the surface future agents grep against, costs minutes, and doesn't queue-jump anything meaningful. It doesn't need to displace current work.\n- **Where the value lives:** Most of it is in the orphaned extension removal (active breakage/warnings) and `creative-production/` (noise + largest chunk). `SECURITY_PATCHES.md` is the weakest of the three (historical audit-trail value), but git history preserves it and CHANGELOG is the proper record — no reason to split the proposal over it.\n\n## Vote\nfor\n\n## Reasoning\nEvery factual claim in the proposal verified cleanly against the repo: icons are integrated in both apps, the extension reads a file deleted in pass 2 and is loaded by nothing, and the security report documents patches git history confirms as applied, with zero CHANGELOG references. Cost is near-zero (verification already done), risk is near-zero (git history as recovery, standard pattern from passes 1-2), and the change is strictly positive for developer/agent experience even if the magnitude is small. Third-pass cleanup has diminishing returns, but at this effort/risk profile the bar for \"worth doing now\" is easily met. It should not and will not displace roadmap feature work.\n\n## Composite Score Inputs (0-10)\n- userImpact: 0\n- businessImpact: 3\n- effort: 1\n- securityRisk: 1\n- confidence: 9\n\n## Risk Score (1-10)\n2",
+          "durationMs": 60055,
+          "vote": {
+            "agentId": "prioritizer",
+            "agentName": "Prioritization Agent",
+            "position": "for",
+            "reasoning": "Every factual claim in the proposal verified cleanly against the repo: icons are integrated in both apps, the extension reads a file deleted in pass 2 and is loaded by nothing, and the security report documents patches git history confirms as applied, with zero CHANGELOG references. Cost is near-zero (verification already done), risk is near-zero (git history as recovery, standard pattern from passes 1-2), and the change is strictly positive for developer/agent experience even if the magnitude is small. Third-pass cleanup has diminishing returns, but at this effort/risk profile the bar for \"worth doing now\" is easily met. It should not and will not displace roadmap feature work.",
+            "weight": 2
+          }
+        },
+        {
+          "agentId": "delivery",
+          "agentName": "Delivery Agent",
+          "role": "Implementation plan, tasks, CI/CD",
+          "content": "All checks complete. Baseline `./gradlew shared:jvmTest` exits 0 (green). Here is my delivery review.\n\n## Analysis\n\n**Verified facts on the working tree (all of the proposal's claims check out):**\n\n1. **creative-production/** — 2.0 MB on disk; `git ls-files` shows exactly **26 tracked files** (matches proposal; 28 on disk = 26 + 2 untracked `.DS_Store`). Contents as described: 3 SVGs (mark/symbol/horizontal), 4× 1024px PNG variants (light/dark/tinted ×2), `generate_wakeve_icons.py`, moodboards/run-state JSONs, review-board HTML.\n2. **Generated icons confirmed integrated and versioned**: Android `mipmap-*` (5 densities, `ic_launcher.png` + round), iOS `AppIcon.appiconset` with `AppIcon.png`/`AppIconDark.png`/`AppIconTinted.png` + `Contents.json` — exactly mirroring the light/dark/tinted trio in sources. Recoverability claim holds: paths are tracked (last touched `111d7e6e`), so `git checkout <sha> -- creative-production/` restores everything.\n3. **extensions/wakeve-health.ts is orphaned and degraded**: reads `audit_report.json` (absent — removed in pass 2); it degrades to a warning rather than crashing, but nothing loads it — no `.pi/` config in repo, no reference in any settings, CI, fastlane, or package.json.\n4. **SECURITY_PATCHES.md** — dated 2026-02-08/09, describes already-applied fixes; referenced nowhere (CHANGELOG included).\n5. **Repo-wide reference sweep** (code/tests/CI/fastlane/package.json, excluding build/git dirs): the only hits are `.dao/state.json` (this proposal's own governance record — expected, non-functional) and self-references inside `creative-production/` itself.\n6. **Exclusions verified present and untouched**: `scripts/deploy-cloudflare-web.sh`, `scripts/audit-product-language.sh`, `scripts/tests/audit-product-language-test.sh`.\n7. **Baseline**: `./gradlew shared:jvmTest` passes (exit 0) pre-deletion.\n\n**Delivery slices:**\n\n| Slice | Test (what fails if done wrong) | Size |\n|---|---|---|\n| S1: `git rm -r` the 3 paths | `git ls-files <paths>` returns 0; filesystem dirs absent | S |\n| S2: Non-regression invariants | (a) `shared:jvmTest` green (baseline verified); (b) `git status` shows no modification under mipmap-*/AppIcon.appiconset; (c) excluded scripts still present + executable | S |\n| S3: Pre-delete reference guard (re-run sweep at execution time) | `grep -rln` over .github/, fastlane/, package.json, sources returns nothing | S |\n\n**Test-first fit**: this deletes unreferenced artifacts — there is no new behavior to drive with a failing test. The proposal correctly frames acceptance as post-condition invariants instead; I flag that explicitly rather than pretend TDD applies. **No adapter seams needed** — no IO-near code is touched; the only IO (Gradle) sits behind the standard build tool.\n\n**Dependencies**: passes 1–2 already merged (PRs #41/#42); no migrations, no feature flags, parallel-safe with any other work (paths unreferenced). Total effort **S — one commit**; uncertainty low (every fact verified on disk; only the post-deletion state is unverified, and it's deterministic). Naming: `chore(dao): remove historical icon sources, orphaned extension, dated security report (~2MB)`.\n\n**Tradeoffs flagged (not blockers)**: (1) future icon regeneration requires recovering the Python script from history plus its environment — acceptable since the product is shipped and versioned, but worth one line in the CHANGELOG entry. (2) Local (un-versioned) configs outside the repo loading wakeve-health.ts can't be ruled out from inside the repo — but the extension already warns about the missing `audit_report.json`, so it's degraded regardless.\n\n## Vote\nfor\n\n## Reasoning\nAs Delivery Agent I verified every acceptance criterion against the working tree before voting: the 3 paths exist and are tracked; generated icons are integrated and versioned on both platforms; the only repo references to the deleted paths are the DAO's own state record and self-references; the excluded scripts are present; and the named test gate (`shared:jvmTest`) is green at baseline. Effort is a single S commit with deterministic, mechanical verification and a trivial rollback (git revert; partial recovery via history for icon sources). Zero runtime impact — this is pure noise reduction for agents and developers. The minor tradeoffs (history-based icon regeneration, possible un-versioned local extension loads) are documented and do not justify keeping 2 MB of dead artifacts in the tree.\n\n## Composite Score Inputs (0-10)\n- userImpact: 1\n- businessImpact: 2\n- effort: 1\n- securityRisk: 1\n- confidence: 9\n\n## Risk Score (1-10)\n2 — Residual risks only: icon regeneration now requires git-history recovery (mitigated: tracked, single checkout restores), and hypothetical local extension configs outside repo scope (already degraded by the missing audit_report.json). No CI, deployment, migration, or runtime exposure.",
+          "durationMs": 96323,
+          "vote": {
+            "agentId": "delivery",
+            "agentName": "Delivery Agent",
+            "position": "for",
+            "reasoning": "As Delivery Agent I verified every acceptance criterion against the working tree before voting: the 3 paths exist and are tracked; generated icons are integrated and versioned on both platforms; the only repo references to the deleted paths are the DAO's own state record and self-references; the excluded scripts are present; and the named test gate (`shared:jvmTest`) is green at baseline. Effort is a single S commit with deterministic, mechanical verification and a trivial rollback (git revert; partial recovery via history for icon sources). Zero runtime impact — this is pure noise reduction for agents and developers. The minor tradeoffs (history-based icon regeneration, possible un-versioned local extension loads) are documented and do not justify keeping 2 MB of dead artifacts in the tree.",
+            "weight": 1
+          }
+        },
+        {
+          "agentId": "spec-writer",
+          "agentName": "Spec Writer",
+          "role": "PRD, user stories, acceptance criteria",
+          "content": "## Analysis\n\n**Factual verification (performed directly against the repo):**\n\n- `creative-production/` — exactly **26 tracked files** (`git ls-files` count matches the claim; 28 on disk = 26 + 2 untracked `.DS_Store`), **2.0 MB** (`du -sh`), contents match the description precisely: `wakeve-logo-mark.svg`, `wakeve-symbol.svg`, `wakeve-logo-horizontal.svg`, `wakeve-icon-1024-{light,dark,tinted}.png`, `generate_wakeve_icons.py`, moodboards, run-state files.\n- **Icons already integrated** — `composeApp/src/androidMain/res/mipmap-{mdpi…xxxhdpi}/ic_launcher{,_round}.png` exist; `iosApp/src/Assets.xcassets/AppIcon.appiconset/` contains `AppIcon.png`, `AppIconDark.png`, `AppIconTinted.png` (the light/dark/tinted trio mirroring the sources). Claim verified.\n- `extensions/wakeve-health.ts` — exists (224 lines); no repo config loads it (no `.pi/` dir, no settings file, `git grep` finds zero references outside `.dao/state.json`); its primary data source `audit_report.json` was deleted in pass 2 (confirmed in #29's record), so it now always renders its \"non trouvé\" warning branch. Orphan-and-broken claim verified.\n- `SECURITY_PATCHES.md` — exists (394 lines), header dated **2026-02-08**, zero mentions in CHANGELOG, README, or docs (`git grep` clean). Claim verified.\n- **Exclusions** — `scripts/deploy-cloudflare-web.sh` (real Cloudflare Workers deploy tool) and `scripts/tests/audit-product-language-test.sh` (real functional test harness with `expect_failure` cases) both exist and are substantive. Correctly excluded.\n- **References** — `git grep` for all 3 paths across all tracked files returns matches only in `.dao/state.json` (append-only governance history). No functional references anywhere.\n\n**Ambiguity sweep — each item is a question to settle (my deliverables):**\n\n1. **AC 1 says `extensions/` (directory) but title/body say `extensions/wakeve-health`.** Equivalent today (single file), but as written the AC mandates deleting any extension added between proposal and execution. → *Q1: pin to the file, plus \"remove `extensions/` only if empty\"?*\n2. **AC 2's iOS path is loose** (\"iosApp AppIcon\"). Deterministic path is `iosApp/src/Assets.xcassets/AppIcon.appiconset/`. \"Restent intactes\" should be given/when/then: *given* HEAD before deletion, *when* the deletion commit is applied, *then* `git diff` on the two pinned path sets is empty and the files exist on disk. → *Q2*\n3. **AC 3 and AC 5 embed process as outcome** (\"vérifié actifs\", \"vérifié avant suppression\") — unobservable post-hoc. AC 5's substance should be recast as post-state: `git grep` for the 3 path strings returns 0 matches when scoped `':!.dao'`. → *Q3*\n4. **Recreation prevention is silent.** No `.gitignore` entries proposed. Likely correct — all three paths could legitimately be recreated (new brand work, new pi extensions, future security report) — but it should be stated as a decision, not left implicit. → *Q4*\n5. **CHANGELOG entry for the deletion itself is unspecified**, while the project follows Keep a Changelog and #28/#29 recorded their removals. Minor completeness gap. → *Q5*\n6. **Unobservable external:** a user-level pi config (outside the repo, e.g. `~/.pi/`) could load `wakeve-health.ts` by relative path — repo-scoped grep cannot see this. The proposal honestly lists it as its own risk. → *Q6 (for the human owner): do you load this extension locally?*\n\n**Determinism notes:** \"~2 Mo libérés du dépôt\" overstates — working tree/index relief only; blobs remain in git history, clone size unchanged (same caveat as #28/#29, accepted precedent). Success metric 3 (`git ls-files` returns nothing) **is** deterministic — this fixes the grep-wording defect flagged in #29; the swarm visibly learned. Each AC string is duplicated (cosmetic formatting defect, same as #29).\n\n**Sequencing note:** #29's acceptance criteria explicitly guaranteed `creative-production/` and `wakeve-health.ts` intact *for that execution*; #30 supersedes those exclusions with evidenced rationale (extension's data source now gone; icon products integrated and versioned). Legitimate sequencing, not a contradiction — but the supersession deserves one explicit line.\n\n**Scope check:** Passes. The spec prescribes deletions, invariants, and a regression gate — no implementation detail.\n\n## Vote\nfor\n\n## Reasoning\n\nEvery factual claim in the proposal survived direct verification: file counts (26 tracked), size (2.0 MB), icon integration in both apps (mipmap set + AppIcon trio), orphan status of the extension (zero loaders, data source deleted in #29), the dated unreferenced security report, and the correctness of both exclusions. The spec defects I found are wording and completeness level — AC 5 process-as-outcome, unpinned iOS path, directory-vs-file ambiguity on `extensions/`, silent recreation policy — all fixable during execution without changing scope, effort, or risk. The change is zero-runtime-impact, follows two cleanly-shipped precedents (#28, #29), is fully reversible via git history, and the decisive regression gate (`shared:jvmTest`) is already an acceptance criterion. My vote is a signal for the tally, which alone decides.\n\n## Composite Score Inputs (0-10)\n- userImpact: 0\n- businessImpact: 2\n- effort: 1\n- securityRisk: 1\n- confidence: 9\n\n## Risk Score (1-10)\n2 — Residual risks: an out-of-repo (user-level) pi config loading `wakeve-health.ts` (unobservable from the repo, recoverable from git history), no recreation-prevention entries (acceptable if recreation is deemed legitimate), and the \"Mo libérés\" metric overstating actual repo-size relief. No runtime, CI, or store-pipeline exposure.",
+          "durationMs": 144507,
+          "vote": {
+            "agentId": "spec-writer",
+            "agentName": "Spec Writer",
+            "position": "for",
+            "reasoning": "Every factual claim in the proposal survived direct verification: file counts (26 tracked), size (2.0 MB), icon integration in both apps (mipmap set + AppIcon trio), orphan status of the extension (zero loaders, data source deleted in #29), the dated unreferenced security report, and the correctness of both exclusions. The spec defects I found are wording and completeness level — AC 5 process-as-outcome, unpinned iOS path, directory-vs-file ambiguity on `extensions/`, silent recreation policy — all fixable during execution without changing scope, effort, or risk. The change is zero-runtime-impact, follows two cleanly-shipped precedents (#28, #29), is fully reversible via git history, and the decisive regression gate (`shared:jvmTest`) is already an acceptance criterion. My vote is a signal for the tally, which alone decides.",
+            "weight": 1
+          }
+        }
+      ],
+      "createdAt": "2026-09-18T11:24:39.920Z",
+      "riskZone": "red",
+      "deliberationStartedAt": "2026-09-18T11:24:46.234Z",
+      "compositeScore": {
+        "axes": {
+          "userImpact": 0.2857142857142857,
+          "businessImpact": 2.2857142857142856,
+          "effort": 1.1428571428571428,
+          "securityRisk": 1,
+          "confidence": 9
+        },
+        "weighted": 5,
+        "riskZone": "orange",
+        "breakdown": "0.3×0.3 + 2.3×0.2 + 8.9×0.15 + 9.0×0.2 + 9.0×0.15 = 5.0"
+      },
+      "synthesis": "## Synthesis — Proposal #30\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 8\n**For:** 7 | **Against:** 0 | **Abstain:** 1 | **Errors:** 1\n\n### Supporting Arguments\n- **Solution Architect:** Every factual claim survived direct verification — most decisively the md5-identity between the creative-production outputs and the shipped iOS AppIcon assets, which upgrades \"icons already in apps\" f...\n- **Product Strategist:** Every factual claim verified directly against the repo: icons integrated in both apps with sources recoverable at commit `111d7e6e`; the extension is loaded by nothing and reads a file deleted in pass...\n- **Critic / Risk Agent:** Every factual claim survived direct verification: sizes, file counts, icon integration in both apps, orphan status of the extension (including absence from the live global extensions dir), absence of ...\n- **UX/UI Designer:** All factual claims check out against the actual tree: generated icons are intact and versioned in both apps, the extension is orphaned with its data source deleted, the security report is a stale date...\n- **Prioritization Agent:** Every factual claim in the proposal verified cleanly against the repo: icons are integrated in both apps, the extension reads a file deleted in pass 2 and is loaded by nothing, and the security report...\n- **Delivery Agent:** As Delivery Agent I verified every acceptance criterion against the working tree before voting: the 3 paths exist and are tracked; generated icons are integrated and versioned on both platforms; the o...\n- **Spec Writer:** Every factual claim in the proposal survived direct verification: file counts (26 tracked), size (2.0 MB), icon integration in both apps (mipmap set + AppIcon trio), orphan status of the extension (ze...\n\n### Agent Errors\n- **Research Agent:** Pi subprocess timed out after 240000ms\n\n### Key Themes\n- Security concerns\n- User experience\n- Technical debt\n- Scalability\n- Alignment\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n",
+      "dryRunAt": "2026-09-18T11:31:30.215Z",
+      "dryRunCanProceed": false,
+      "resolvedAt": "2026-09-18T11:31:36.709Z",
+      "executionResult": "Executed with delivery plan: feature/dao-30-nettoyage-repo-passe-3-sources"
     }
   ],
   "config": {
@@ -4953,7 +5163,7 @@
     "quorumFloor": 60,
     "staleThresholdHours": 24
   },
-  "nextProposalId": 30,
+  "nextProposalId": 31,
   "initialized": true,
   "auditLog": [
     {
@@ -6224,10 +6434,55 @@
       "action": "proposal_executed",
       "actor": "user",
       "details": "Executed #29"
+    },
+    {
+      "id": 142,
+      "timestamp": "2026-09-18T11:24:39.920Z",
+      "proposalId": 30,
+      "layer": "governance",
+      "action": "proposal_created",
+      "actor": "user",
+      "details": "Proposal \"Nettoyage repo passe 3 : sources d'icônes déjà intégrées, extension orpheline, rapport de patchs daté (creative-production, extensions/wakeve-health, SECURITY_PATCHES)\" created"
+    },
+    {
+      "id": 143,
+      "timestamp": "2026-09-18T11:24:46.236Z",
+      "proposalId": 30,
+      "layer": "governance",
+      "action": "deliberation_started",
+      "actor": "system",
+      "details": "Deliberation on #30"
+    },
+    {
+      "id": 144,
+      "timestamp": "2026-09-18T11:31:10.767Z",
+      "proposalId": 30,
+      "layer": "intelligence",
+      "action": "deliberation_approved",
+      "actor": "system",
+      "details": "Approved: 100%"
+    },
+    {
+      "id": 145,
+      "timestamp": "2026-09-18T11:31:34.489Z",
+      "proposalId": 30,
+      "layer": "control",
+      "action": "gates_passed",
+      "actor": "system",
+      "details": "All gates passed"
+    },
+    {
+      "id": 146,
+      "timestamp": "2026-09-18T11:31:36.710Z",
+      "proposalId": 30,
+      "layer": "delivery",
+      "action": "proposal_executed",
+      "actor": "user",
+      "details": "Executed #30"
     }
   ],
-  "nextAuditId": 142,
-  "stateRevision": 10,
+  "nextAuditId": 147,
+  "stateRevision": 15,
   "controlResults": {
     "1": {
       "proposalId": 1,
@@ -10202,6 +10457,154 @@
           "autoChecked": true
         }
       ]
+    },
+    "30": {
+      "proposalId": 30,
+      "timestamp": "2026-09-18T11:31:34.484Z",
+      "allGatesPassed": true,
+      "blockerCount": 0,
+      "warningCount": 0,
+      "gates": [
+        {
+          "gateId": "quorum-quality",
+          "name": "Quorum Quality",
+          "passed": true,
+          "severity": "blocker",
+          "message": "Quorum met (88% weighted participation ≥ 60%)",
+          "details": {
+            "quorumPercent": 88,
+            "quorumRequired": 60,
+            "votingAgents": 7,
+            "totalAgents": 7,
+            "totalVotingWeight": 15
+          }
+        },
+        {
+          "gateId": "risk-threshold",
+          "name": "Risk Threshold",
+          "passed": true,
+          "severity": "warning",
+          "message": "Risk score 2.0 ≤ threshold 7",
+          "details": {
+            "avgRisk": 2,
+            "riskScores": [
+              2,
+              2,
+              2,
+              2,
+              2,
+              2,
+              2
+            ]
+          }
+        },
+        {
+          "gateId": "vote-consensus",
+          "name": "Vote Consensus",
+          "passed": true,
+          "severity": "warning",
+          "message": "No high-weight agent voted against"
+        },
+        {
+          "gateId": "zone-compliance",
+          "name": "Zone Compliance",
+          "passed": true,
+          "severity": "info",
+          "message": "Risk zone classified: red"
+        },
+        {
+          "gateId": "acceptance-criteria",
+          "name": "Acceptance Criteria",
+          "passed": true,
+          "severity": "warning",
+          "message": "5 acceptance criteria defined"
+        },
+        {
+          "gateId": "dependency-readiness",
+          "name": "Dependency Readiness",
+          "passed": true,
+          "severity": "info",
+          "message": "No inter-proposal dependencies"
+        },
+        {
+          "gateId": "dependency-conflict",
+          "name": "Dependency Conflict",
+          "passed": true,
+          "severity": "warning",
+          "message": "No overlapping affected paths with in-flight proposals"
+        },
+        {
+          "gateId": "mandatory-dry-run",
+          "name": "Mandatory Dry-Run",
+          "passed": true,
+          "severity": "blocker",
+          "message": "Dry-run completed at 2026-09-18T11:31:30.215Z"
+        },
+        {
+          "gateId": "type-specific-quality",
+          "name": "Type-Specific Quality",
+          "passed": true,
+          "severity": "blocker",
+          "message": "technical-change: approval 100% ≥ 55%, quorum 88% ≥ 60%",
+          "details": {
+            "approvalScore": 100,
+            "approvalRequired": 55,
+            "quorumPercent": 88,
+            "quorumRequired": 60
+          }
+        }
+      ],
+      "checklist": [
+        {
+          "id": "security-review",
+          "category": "security",
+          "label": "Security review completed",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "data-handling",
+          "category": "compliance",
+          "label": "Data handling reviewed",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "compliance-check",
+          "category": "compliance",
+          "label": "Compliance requirements met",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "specs-written",
+          "category": "quality",
+          "label": "Specifications written",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "architecture-reviewed",
+          "category": "quality",
+          "label": "Architecture reviewed",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "rollback-plan",
+          "category": "operational",
+          "label": "Rollback plan defined",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "monitoring-plan",
+          "category": "operational",
+          "label": "Monitoring plan defined",
+          "checked": true,
+          "autoChecked": true
+        }
+      ]
     }
   },
   "deliveryPlans": {
@@ -13020,6 +13423,134 @@
       "branchStrategy": "feature/dao-29-nettoyage-repo-passe-2-capture",
       "rollbackPlan": "Revert the merge commit and redeploy previous version",
       "estimatedDuration": "5-9 days"
+    },
+    "30": {
+      "proposalId": 30,
+      "createdAt": "2026-09-18T11:31:34.489Z",
+      "phases": [
+        {
+          "number": 1,
+          "name": "Setup & Design",
+          "tasks": [
+            {
+              "id": "T1",
+              "title": "Review proposal and acceptance criteria",
+              "description": "Understand requirements and clarify ambiguities",
+              "effort": "xs",
+              "phase": 1,
+              "dependencies": [],
+              "status": "pending"
+            },
+            {
+              "id": "T2",
+              "title": "Design solution",
+              "description": "Create technical design document",
+              "effort": "s",
+              "phase": 1,
+              "dependencies": [
+                "T1"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T3",
+              "title": "Set up feature branch",
+              "description": "Create branch for implementation",
+              "effort": "xs",
+              "phase": 1,
+              "dependencies": [
+                "T2"
+              ],
+              "status": "pending"
+            }
+          ],
+          "duration": "1-2 days"
+        },
+        {
+          "number": 2,
+          "name": "Implementation",
+          "tasks": [
+            {
+              "id": "T4",
+              "title": "Core implementation",
+              "description": "Implement the main functionality",
+              "effort": "m",
+              "phase": 2,
+              "dependencies": [
+                "T3"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T5",
+              "title": "Add tests",
+              "description": "Unit and integration tests",
+              "effort": "m",
+              "phase": 2,
+              "dependencies": [
+                "T4"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T6",
+              "title": "Documentation",
+              "description": "Update docs and README",
+              "effort": "s",
+              "phase": 2,
+              "dependencies": [
+                "T4"
+              ],
+              "status": "pending"
+            }
+          ],
+          "duration": "3-5 days"
+        },
+        {
+          "number": 3,
+          "name": "Review & Release",
+          "tasks": [
+            {
+              "id": "T7",
+              "title": "Code review",
+              "description": "Self-review and peer review",
+              "effort": "s",
+              "phase": 3,
+              "dependencies": [
+                "T5",
+                "T6"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T8",
+              "title": "Quality gates",
+              "description": "Run control checks and verify acceptance criteria",
+              "effort": "s",
+              "phase": 3,
+              "dependencies": [
+                "T7"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T9",
+              "title": "Merge and deploy",
+              "description": "Merge to main and deploy",
+              "effort": "xs",
+              "phase": 3,
+              "dependencies": [
+                "T8"
+              ],
+              "status": "pending"
+            }
+          ],
+          "duration": "1-2 days"
+        }
+      ],
+      "branchStrategy": "feature/dao-30-nettoyage-repo-passe-3-sources",
+      "rollbackPlan": "Revert the merge commit and redeploy previous version",
+      "estimatedDuration": "5-9 days"
     }
   },
   "artefacts": {},
@@ -13415,6 +13946,14 @@
       "commitSha": "unknown",
       "filesChanged": [],
       "stateSnapshot": "{\"agents\":7,\"proposals\":29}"
+    },
+    "30": {
+      "proposalId": 30,
+      "timestamp": "2026-09-18T11:31:36.709Z",
+      "branch": "feature/dao-30-nettoyage-repo-passe-3-sources",
+      "commitSha": "unknown",
+      "filesChanged": [],
+      "stateSnapshot": "{\"agents\":7,\"proposals\":30}"
     }
   },
   "verifications": {},
