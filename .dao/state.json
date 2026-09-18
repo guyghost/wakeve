@@ -6227,7 +6227,7 @@
     }
   ],
   "nextAuditId": 142,
-  "stateRevision": 9,
+  "stateRevision": 10,
   "controlResults": {
     "1": {
       "proposalId": 1,
@@ -13244,6 +13244,23 @@
       "status": "pending",
       "createdAt": "2026-09-18T10:04:10.615Z",
       "updatedAt": "2026-09-18T10:04:10.615Z"
+    },
+    "29": {
+      "proposalId": 29,
+      "ratings": [
+        {
+          "proposalId": 29,
+          "rater": "user",
+          "score": 5,
+          "comment": "Seconde passe exécutée proprement : 7 artefacts supprimés (~13.5 Mo), vérification explicite que composeApp/screenshots reste trackable (ancrage racine /screenshots/ dans .gitignore), tests verts. Exclusions documentées (apps/dashboard, infra, models, creative-production) ont évité tout risque. 100% d'approbation unanime.",
+          "ratedAt": "2026-09-18T11:18:42.614Z"
+        }
+      ],
+      "metrics": [],
+      "overallScore": 5,
+      "status": "pending",
+      "createdAt": "2026-09-18T11:18:42.614Z",
+      "updatedAt": "2026-09-18T11:18:42.614Z"
     }
   },
   "snapshots": {
