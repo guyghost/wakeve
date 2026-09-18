@@ -168,6 +168,36 @@ class ConfirmationEnvelopeIngestionRedTest {
         )
     }
 
+    @Test
+    fun confirmedDecisionSyncPassesTheAggregateFenceWhenRevisionIsGreaterThanOne() = runBlocking {
+        val database = DatabaseProvider.getDatabase(JvmDatabaseFactory(":memory:"))
+        seedPollingEvent(database)
+        val repository = DatabaseEventRepository(database)
+
+        // Simulate a real event lifecycle: at least one prior aggregate write bumps
+        // the revision above 1 while the artwork row created with the event remains.
+        // That combination arms the fence_protected_event_update trigger and used to
+        // abort the confirmation sync (EVENT_AGGREGATE_WRITER_FENCED, QA BUG-2).
+        assertTrue(repository.updateEventStatus(EVENT_ID, EventStatus.POLLING, null).isSuccess)
+        val revisionBefore = database.eventQueries.selectById(EVENT_ID).executeAsOne().aggregateRevision
+        assertTrue(revisionBefore > 1, "precondition: aggregateRevision > 1")
+
+        val response = SyncService(database).processSyncChanges(
+            SyncRequest(changes = listOf(confirmedDecisionChange())),
+            ORGANIZER_ID
+        )
+
+        assertTrue(response.success, response.message.orEmpty())
+        assertEquals(1, response.appliedChanges, response.conflicts.toString())
+        assertTrue(response.conflicts.isEmpty(), response.conflicts.toString())
+        assertEquals(EventStatus.CONFIRMED, repository.getEvent(EVENT_ID)?.status)
+        assertEquals(
+            TimeSlotStorageIdentity.physicalId(EVENT_ID, SLOT_ID),
+            database.confirmedDateQueries.selectByEventId(EVENT_ID).executeAsOne().timeslotId,
+            "The confirmation must persist the exact selected slot"
+        )
+    }
+
     private suspend fun seedConfirmedEvent(
         database: WakeveDb,
         confirmedSlotId: String = SLOT_ID

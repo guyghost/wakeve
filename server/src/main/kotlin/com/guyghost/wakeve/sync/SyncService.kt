@@ -565,6 +565,27 @@ class SyncService(
             when {
                 confirmedDate == null && event.status == com.guyghost.wakeve.models.EventStatus.POLLING.name -> {
                     val now = getCurrentUtcIsoString()
+                    // Grant the aggregate writer permit required by the
+                    // fence_protected_event_update trigger before mutating the event
+                    // aggregate. This is the same protocol DatabaseEventRepository
+                    // follows; without it every confirmation on an event with
+                    // aggregateRevision > 1 and an artwork row is aborted
+                    // (EVENT_AGGREGATE_WRITER_FENCED) and rolled back.
+                    val authorizationId = "sync-confirmation:${change.recordId}:${event.aggregateRevision}"
+                    db.invitationExperienceQueries.authorizeAggregateWrite(
+                        writer_schema_version = AGGREGATE_WRITER_SCHEMA_VERSION,
+                        operation_id = authorizationId,
+                        created_at = now,
+                        id = change.recordId,
+                        aggregateRevision = event.aggregateRevision,
+                        aggregateSchemaVersion = AGGREGATE_WRITER_SCHEMA_VERSION
+                    )
+                    val authorization = db.invitationExperienceQueries
+                        .selectAggregateWriteAuthorization(change.recordId)
+                        .executeAsOneOrNull()
+                    if (authorization == null || authorization.expected_revision != event.aggregateRevision) {
+                        throw IllegalStateException("Event aggregate writer is incompatible or stale")
+                    }
                     db.eventQueries.updateEventStatus(
                         status = com.guyghost.wakeve.models.EventStatus.CONFIRMED.name,
                         updatedAt = now,
@@ -577,6 +598,10 @@ class SyncService(
                         confirmedByOrganizerId = change.userId,
                         confirmedAt = change.timestamp,
                         updatedAt = now
+                    )
+                    db.invitationExperienceQueries.clearAggregateWriteAuthorization(
+                        change.recordId,
+                        authorizationId
                     )
                 }
                 confirmedDate?.timeslotId == persistedSlotId &&
@@ -885,3 +910,6 @@ private class ConfirmationEnvelopeIngestor(
 
 internal fun serverSyncFailureMessage(): String =
     "Sync failed. Please retry when your connection is stable."
+
+/** Must stay in sync with the aggregate schema version used by DatabaseEventRepository. */
+private const val AGGREGATE_WRITER_SCHEMA_VERSION = 1L
