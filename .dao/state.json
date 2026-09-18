@@ -5114,6 +5114,589 @@
       "dryRunCanProceed": false,
       "resolvedAt": "2026-09-18T11:31:36.709Z",
       "executionResult": "Executed with delivery plan: feature/dao-30-nettoyage-repo-passe-3-sources"
+    },
+    {
+      "id": 31,
+      "title": "fix(poll): permettre la modification de vote avant la deadline (BUG-1)",
+      "type": "technical-change",
+      "description": "Le handler addVote de DatabaseEventRepository (L370) appelle systématiquement voteQueries.insertVote (INSERT brut) alors que la table vote possède UNIQUE(timeslotId, participantId) et un id déterministe vote_{slot}_{participant}. Un 2ᵉ vote du même participant sur le même slot viole la contrainte → échec → HTTP 400 côté VoteRoutes. La requête updateVote existe déjà dans Vote.sq mais n'est jamais utilisée. Fix : détecter le vote existant (selectByTimeslotAndParticipant) et appeler updateVote, ou basculer sur un upsert, en rafraîchissant updatedAt. Tests unitaires obligatoires (insert puis update, rejet après deadline inchangé).",
+      "problemStatement": "Lors d'un sondage de dates, un participant qui change d'avis (ex: NO → MAYBE) reçoit HTTP 400 « Failed to save your vote » et son ancien vote persiste. Observation QA : 6 votes initiaux OK, le re-vote de Bob renvoie 400. C'est une régression du parcours principal : en planification de groupe, changer d'avis avant la deadline est un cas d'usage cœur.",
+      "acceptanceCriteria": [
+        "Re-voter avec une valeur différente sur un même (slotId, participantId) met à jour le vote existant et rafraîchit updatedAt (HTTP 200/201)",
+        "Un premier vote sur un slot fonctionne comme avant (HTTP 201)",
+        "Le garde deadline continue de bloquer les votes après échéance (400/409)",
+        "Le garde statut POLLING continue de bloquer les votes hors sondage",
+        "Test unitaire couvrant insert puis update du vote, et rejet après deadline"
+      ],
+      "successMetrics": [
+        "Scénario QA Rio rejoué : re-vote NO→MAYBE accepté (HTTP 2xx)",
+        "Tests unitaires verts (shared:jvmTest)",
+        "Aucune régression sur les 6 tests PollLogicTest et tests VoteRoutes existants"
+      ],
+      "rollbackConditions": [
+        "Régression sur les gardes deadline/statut POLLING",
+        "Corruption ou perte de votes existants lors d'un revote",
+        "Échec des tests shared:jvmTest existants"
+      ],
+      "affectedPaths": [
+        "shared/src/commonMain/kotlin/com/guyghost/wakeve/repository/DatabaseEventRepository.kt",
+        "shared/src/commonTest/kotlin/com/guyghost/wakeve/repository"
+      ],
+      "proposedBy": "user",
+      "status": "executed",
+      "votes": [
+        {
+          "agentId": "strategist",
+          "agentName": "Product Strategist",
+          "position": "for",
+          "reasoning": "Verified-in-code regression of the core voting loop, with the fix mechanism (select-then-update or upsert via the already-existing `updateVote` query) precisely scoped and guarded acceptance criteria that preserve the deadline and POLLING protections. The killable assumption (vote mutability before deadline is intended) is confirmed by the schema design and the existing ballot-revision path. Value is immediate and on the main path; effort is minimal. Two flagged side findings (sync operation type on update, gamification points per re-vote) warrant follow-ups but don't block a bug restore.",
+          "weight": 3
+        },
+        {
+          "agentId": "researcher",
+          "agentName": "Research Agent",
+          "position": "for",
+          "reasoning": "Every factual claim in the proposal is verified against source: the raw insert, both constraints, the unused `updateVote` query, the exact 400 symptom, and the QA reproduction doc. This is a P0 regression of the core polling flow with an established fix pattern already proven in the same file (`commitCompleteBallotLocked`). Guards are structurally safe (they precede the insert). Effort is small and bounded; no new security surface. Per project governance (AGENTS.md), bug fixes restoring intended behavior are even proposal-exempt — this one is harmless over-governance of a well-evidenced fix. Residual risk is limited to implementation details (sync operation type on update path, select-vs-upsert race), both handled by the mandated unit tests plus code review.",
+          "weight": 2
+        },
+        {
+          "agentId": "architect",
+          "agentName": "Solution Architect",
+          "position": "for",
+          "reasoning": "The bug is real and I reproduced its exact failure path in source: blind `insertVote` against a UNIQUE constraint, surfaced as HTTP 400 on a core polling journey. The fix is small, layer-correct (repository shell only), needs no migration, uses queries that already exist, and matches semantics the codebase already established in `ScenarioRepository` and `commitCompleteBallot`. I recommend Option A, with the two traps above (syncMetadata PK collision, id-key mismatch) explicitly covered by the mandated unit tests — a naive fix that misses the metadata collision would still ship the 400 and falsely pass superficial testing.",
+          "weight": 3
+        },
+        {
+          "agentId": "critic",
+          "agentName": "Critic / Risk Agent",
+          "position": "for",
+          "reasoning": "The bug is real, precisely diagnosed (I verified line numbers, the constraint, the unused query, and the exact 400 message in the code), and blocks a core use case of the product. Rollback is trivial and the acceptance criteria explicitly pin the deadline/status guards. My findings are scope gaps — the sync-metadata second blocker and the points-award loophole — not flaws in the diagnosis or direction; the mandated insert-then-update unit test, if written against the full `addVote` path, will surface FM1 and force the implementer to extend the fix. I vote for with the expectation that implementation addresses FM1 and consciously decides on FM2 (award points on insert only, or cap per event).",
+          "weight": 3
+        },
+        {
+          "agentId": "spec-writer",
+          "agentName": "Spec Writer",
+          "position": "for",
+          "reasoning": "The bug is real, precisely diagnosed, and verified line-by-line in the code: the schema itself (`UNIQUE` + existing `updateVote` query) proves vote mutation was the intended design, making insert-only a genuine defect, not a design question. This is a regression of Wakeve's core flow — weighted polling is the product's heart, and \"changing your mind before the deadline\" is a primary use case for group scheduling. Per project governance, bug fixes restoring intended behavior need no DAO proposal, but since one was raised, it is well-formed: evidence-backed problem statement, behavior-level acceptance criteria, concrete regression metrics. My questions (Q1–Q8) are spec-quality gaps that should be answered in the PR — notably Q4 (gamification/notification re-trigger on re-vote) — but none alter the correctness of the fix or justify deferring a main-parcours regression. Voting for; the questions travel with the proposal as review checklist items.",
+          "weight": 1
+        },
+        {
+          "agentId": "prioritizer",
+          "agentName": "Prioritization Agent",
+          "position": "for",
+          "reasoning": "This is the highest value-per-effort item visible in the current queue: a verified regression in the product's core loop (voting), where re-voting before the deadline fails with HTTP 400 and silently keeps the stale preference, corrupting best-slot scoring. The fix is small and localized, uses queries that already exist in the schema, preserves both guards untouched, and ships with the right acceptance criteria (insert-then-update test, deadline rejection preserved). Relative to a queue of UX cleanups and repo hygiene, this jumps ahead. Uncertainty is minimal: I reproduced the failure chain by reading the code path the QA scenario exercised.",
+          "weight": 2
+        },
+        {
+          "agentId": "designer",
+          "agentName": "UX/UI Designer",
+          "position": "for",
+          "reasoning": "This is a defect, not a preference: the primary task of the app's core loop (group date polling) dead-ends on re-vote, and worse, silently persists the stale vote while the user believes they changed it — corrupting the weighted best-slot calculation for the entire group. The diagnosis is verified in code, the fix reuses an existing unused query (`updateVote`), all guards are preserved by the acceptance criteria, and tests are mandated. The residual side effects (gamification double-award, notification re-fire on re-votes) are real but follow-up-able and strictly less harmful than the current silent data corruption. Per the project's own charter, a bug fix restoring intended behavior wouldn't even require a proposal; as one, it's an easy yes.",
+          "weight": 2
+        },
+        {
+          "agentId": "delivery",
+          "agentName": "Delivery Agent",
+          "position": "for",
+          "reasoning": "The bug is real, reproduced in code line-by-line, and breaks a core planning journey (changing one's mind before deadline). The fix is small, contained in one handler, needs no migration or API change, and the mandated test-first approach is fully supported by existing fixtures against the real database driver — which will also catch the two non-obvious traps (participant record-id vs userId, syncMetadata deterministic PK) that a naive patch would miss. Acceptance criteria are concrete and testable as written; guards are preserved and testable deterministically. Residual concerns (updatedAt observability, gamification double-award, dual write paths) are flag-worthy, not blocking.",
+          "weight": 1
+        }
+      ],
+      "agentOutputs": [
+        {
+          "agentId": "strategist",
+          "agentName": "Product Strategist",
+          "role": "Vision, objectives, hypotheses",
+          "content": "## Analysis\n**1. Restated outcome:** Enable a participant to change their poll vote (e.g., NO → MAYBE) before the deadline by updating the existing vote record instead of failing on the UNIQUE constraint with an opaque HTTP 400.\n\n**2. Evidence verification (I inspected the code):**\n- `Vote.sq` confirms `UNIQUE(timeslotId, participantId)`, an `updatedAt` column, and an `updateVote` query that no Kotlin code calls for poll votes (only `ScenarioRepository.updateVote` exists, for scenario votes).\n- `DatabaseEventRepository.addVote` (L344–402) calls `insertVote` unconditionally at L370 with deterministic id `vote_{slot}_{participant}` — a second vote on the same (slot, participant) must violate the constraint.\n- `VoteRoutes.kt` responds 400 `\"Failed to save your vote. Please try again.\"` on the failure path — matches the QA observation exactly.\n- Decisive design evidence: the parallel `commitCompleteBallotLocked` path already implements vote revision via `deleteByEventAndParticipant` + re-insert, guarded by the same deadline and POLLING checks. Revision-before-deadline is demonstrably the intended semantics; `addVote` simply never caught up. The deadline guard in `addVote` only makes sense if votes are mutable before it.\n\n**3. Strategic alignment (named, not vibes):**\n- README core capability: \"Real-time availability polling\" + \"weighted voting system\" + \"automatic best-time calculation\". Stale votes poison the scoring (YES=2/MAYBE=1/NO=-1) → wrong best-slot recommendation → the product's central \"decide when to meet\" loop fails at the decision step.\n- DAO Product Excellence gate (AGENTS.md): \"rend clair ce qui est confirmé, en attente\" — a participant locked into a stale NO until deadline is the opposite. AGENTS.md also explicitly classifies bug fixes as non-governed \"restaurer le comportement prévu\", so this proposal is well-scoped as `technical-change` restore, not a feature.\n\n**4. Load-bearing assumptions:**\n- *Killable assumption:* re-voting before deadline is intended core behavior. **It holds** — the schema (`updatedAt`, UNIQUE, pre-written unused `updateVote`) and the ballot path prove mutability was designed in. If it failed, this fix would be wrong; it doesn't.\n- Assumption that sync metadata remains coherent: the current code records `SyncOperation.CREATE` per vote; an update flow should arguably record UPDATE. Acceptance criteria don't cover sync — flag for the implementer, not a blocker for a local-first fix.\n- Assumption that re-award side effects are acceptable: `VoteRoutes` awards +10 gamification points on every successful vote. Re-voting repeatedly farms points. Secondary finding worth a follow-up ticket; does not invalidate the core fix.\n\n**5. Opportunity cost:** ~Half-day of one engineer. The alternative uses of that effort (any next backlog item) are strictly dominated: this repairs the primary voting endpoint used by `PollViewModel` on the main poll screen — not a legacy side path.\n\n**6. Timing:** This \"adds value now\" — QA hit it in a real replayed scenario (6 initial votes OK, Bob's re-vote → 400). Every poll that runs before the fix risks deciding on stale preferences.\n\n## Vote\nfor\n\n## Reasoning\nVerified-in-code regression of the core voting loop, with the fix mechanism (select-then-update or upsert via the already-existing `updateVote` query) precisely scoped and guarded acceptance criteria that preserve the deadline and POLLING protections. The killable assumption (vote mutability before deadline is intended) is confirmed by the schema design and the existing ballot-revision path. Value is immediate and on the main path; effort is minimal. Two flagged side findings (sync operation type on update, gamification points per re-vote) warrant follow-ups but don't block a bug restore.\n\n## Composite Score Inputs (0-10)\n- userImpact: 9\n- businessImpact: 7\n- effort: 2\n- securityRisk: 2\n- confidence: 9\n\n## Risk Score (1-10)\n2 — Low. Guards are unchanged and explicit in acceptance criteria; the change is one handler plus tests. Residual risks are the untracked sync-operation semantics and the gamification re-award path, both containable as follow-ups.",
+          "durationMs": 75528,
+          "vote": {
+            "agentId": "strategist",
+            "agentName": "Product Strategist",
+            "position": "for",
+            "reasoning": "Verified-in-code regression of the core voting loop, with the fix mechanism (select-then-update or upsert via the already-existing `updateVote` query) precisely scoped and guarded acceptance criteria that preserve the deadline and POLLING protections. The killable assumption (vote mutability before deadline is intended) is confirmed by the schema design and the existing ballot-revision path. Value is immediate and on the main path; effort is minimal. Two flagged side findings (sync operation type on update, gamification points per re-vote) warrant follow-ups but don't block a bug restore.",
+            "weight": 3
+          }
+        },
+        {
+          "agentId": "researcher",
+          "agentName": "Research Agent",
+          "role": "Market, competition, user signals",
+          "content": "## Analysis\n\n**Claim-by-claim verification (against source):**\n\n| Claim | Classification | Evidence |\n|---|---|---|\n| `addVote` (L370) appelle systématiquement `insertVote` (INSERT brut) | **Evidenced** | `DatabaseEventRepository.kt` L370: raw `insertVote`, no existence check before it |\n| Table `vote` possède `UNIQUE(timeslotId, participantId)` | **Evidenced** | `shared/src/commonMain/sqldelight/com/guyghost/wakeve/Vote.sq` — constraint present |\n| Id déterministe `vote_{slot}_{participant}` | **Evidenced** | L368-369: `val voteId = \"vote_${persistedSlotId}_${participantId}\"` — a second insert violates both the PK and the UNIQUE constraint |\n| Échec → HTTP 400 côté VoteRoutes | **Evidenced** | `VoteRoutes.kt`: failure branch responds `HttpStatusCode.BadRequest` + `\"Failed to save your vote. Please try again.\"` (L163) — matches the reported symptom exactly |\n| `updateVote` existe dans Vote.sq mais n'est jamais utilisée | **Evidenced** | Grep across `shared/` and `server/`: zero call sites of `voteQueries.updateVote`; the only `updateVote(` hits are `ScenarioRepository` (different domain) |\n| Observation QA : 6 votes initiaux OK, re-vote → 400 | **Evidenced** | `docs/qa/RIO_QA_SESSION_2026-09-18.md` BUG-1: « renvoie 400 au 2ᵉ vote d'un même participant/slot », scénario « votes 6/6 » avec Bob participant. Minor: the doc doesn't name Bob in the BUG-1 line — the proposal paraphrases |\n| « Changer d'avis avant la deadline est un cas d'usage cœur » | **Plausible** | Product-design inference, not measured user data — but strongly supported: weighted YES/MAYBE/NO voting + a deadline guard that permits votes until échéance imply revision is intended behavior; the QA E2E session hit it in a realistic flow |\n| Guards deadline/POLLING préservables | **Evidenced** | Both guards (L348-353) run *before* the insert; a fix confined to the persistence step cannot touch them. `selectByTimeslotAndParticipant` already exists in Vote.sq |\n\n**Prior art / competitive scan:**\n- **In-codebase (strongest):** `commitCompleteBallotLocked` (same file, ~L613-615) already solves this exact problem with `deleteByEventAndParticipant` + `insertVote` inside a transaction + mutex. The plain REST `addVote` path diverges from an established, proven pattern in the same file — the fix aligns it.\n- **External:** Doodle/When2meet-class schedulers treat vote revision before deadline as table-stakes. \"Do nothing\" leaves the core polling loop functional only for participants who never change their mind — the QA session demonstrates the break concretely.\n\n**User signals:** Direct — an executed E2E QA session (3 participants, full lifecycle) reproduced the 400 on second vote. Indirect — the voting model itself (MAYBE tier, deadline semantics) is designed around revisable preferences.\n\n**Gaps / unknowns (labeled):**\n- No field data on re-vote frequency — *speculation would be required to size it*; irrelevant to fixing a regression of intended behavior.\n- Implementation choice left open (select-then-update vs upsert vs delete-then-insert): all three are viable; upsert or the delete-then-insert pattern is race-free vs. a select-then-insert race on simultaneous first votes. Minor, implementation-level.\n- One detail the proposal omits: on the update path, the side-effect writes (`SyncOperation.CREATE`, `syncMetadata` insert) should arguably become `UPDATE` — small scope addition, not blocking.\n\n**Cheapest evidence settling the biggest open question:** none needed for the bug itself (code + QA reproduction are conclusive). Cheapest post-fix evidence: the proposed unit test (insert → re-vote → assert single row, new value, refreshed `updatedAt`; deadline rejection), runnable via `./gradlew shared:jvmTest`.\n\n## Vote\nfor\n\n## Reasoning\nEvery factual claim in the proposal is verified against source: the raw insert, both constraints, the unused `updateVote` query, the exact 400 symptom, and the QA reproduction doc. This is a P0 regression of the core polling flow with an established fix pattern already proven in the same file (`commitCompleteBallotLocked`). Guards are structurally safe (they precede the insert). Effort is small and bounded; no new security surface. Per project governance (AGENTS.md), bug fixes restoring intended behavior are even proposal-exempt — this one is harmless over-governance of a well-evidenced fix. Residual risk is limited to implementation details (sync operation type on update path, select-vs-upsert race), both handled by the mandated unit tests plus code review.\n\n## Composite Score Inputs (0-10)\n- userImpact: 9\n- businessImpact: 8\n- effort: 3\n- securityRisk: 2\n- confidence: 10\n\n## Risk Score (1-10)\n2",
+          "durationMs": 86111,
+          "vote": {
+            "agentId": "researcher",
+            "agentName": "Research Agent",
+            "position": "for",
+            "reasoning": "Every factual claim in the proposal is verified against source: the raw insert, both constraints, the unused `updateVote` query, the exact 400 symptom, and the QA reproduction doc. This is a P0 regression of the core polling flow with an established fix pattern already proven in the same file (`commitCompleteBallotLocked`). Guards are structurally safe (they precede the insert). Effort is small and bounded; no new security surface. Per project governance (AGENTS.md), bug fixes restoring intended behavior are even proposal-exempt — this one is harmless over-governance of a well-evidenced fix. Residual risk is limited to implementation details (sync operation type on update path, select-vs-upsert race), both handled by the mandated unit tests plus code review.",
+            "weight": 2
+          }
+        },
+        {
+          "agentId": "architect",
+          "agentName": "Solution Architect",
+          "role": "Technical options, tradeoffs",
+          "content": "## Analysis\n\nI verified the proposal's claims directly against the code before reviewing.\n\n**Verified facts (all accurate):**\n- `DatabaseEventRepository.addVote` (L335–397) guards POLLING status, deadline, and membership, then unconditionally calls `voteQueries.insertVote` (L370).\n- `Vote.sq` defines `UNIQUE(timeslotId, participantId)` and a deterministic id `vote_{slotId}_{participantId}`; a second insert violates the constraint → `Result.failure` → `VoteRoutes` maps any failure to HTTP 400 \"Failed to save your vote.\"\n- `updateVote` and `selectByTimeslotAndParticipant` both exist in `Vote.sq` and are unused for time-slot votes.\n- The newer `commitCompleteBallot` path (L560–620) already implements replace-on-revote (delete-then-insert in a transaction), and `ScenarioRepository.addVote` does read-then-branch with an `updateScenarioVote` fallback. So revote-as-update is already the codebase's semantics elsewhere — `addVote` is the outlier.\n\n**Two implementation traps the proposal doesn't mention (must be covered by tests):**\n1. **`syncMetadata` PK collision.** `addVote` also inserts `syncMetadata(id = \"sync_${voteId}\", operation = CREATE)` where `syncMetadata.id` is `PRIMARY KEY`. A naive upsert-only fix on the `vote` table would still 400 on the metadata insert. The update path must skip/branch sync metadata, or use the collision-safe timestamp-suffixed \"UPSERT\" id pattern already used in `ScenarioRepository` (`\"${now}_UPSERT_${scenarioId}_${participantId}\"`).\n2. **Id key mismatch.** The vote id is built from the *userId* (`vote_{persistedSlotId}_${participantId}` param), but the UNIQUE constraint and the `participantId` column store `participantRecord.id`. Existence lookup must use `selectByTimeslotAndParticipant(persistedSlotId, participantRecord.id)`, not the constructed id.\n\n**Options (per review rules):**\n- **Option A — Read-then-branch in `addVote` (recommended, reversible).** Use existing queries; on existing vote call `updateVote(vote.name, now, existing.id)` preserving `createdAt`, refresh `updatedAt`, branch the sync metadata. Direct precedent: `ScenarioRepository.addVote`. Tradeoff: read+write isn't atomic (same exposure class as existing code; single-user re-vote makes the race practically negligible, and can be closed later with a transaction).\n- **Option B — SQLDelight upsert in `Vote.sq` (reversible).** `INSERT ... ON CONFLICT(timeslotId, participantId) DO UPDATE SET vote=excluded.vote, updatedAt=excluded.updatedAt` — atomic and race-free. But it saves little: the `syncMetadata` collision still needs branching, and it blurs CREATE vs UPDATE sync semantics.\n- **Option C — Route through ballot semantics (delete-then-insert, reversible).** Not recommended: `deleteByEventAndParticipant` would wipe the participant's votes on *other* slots unless `addVote` becomes a full-ballot API — a contract change beyond this bug fix.\n\n**Boundaries & dependencies:** Change is confined to the persistence shell (repository). Pure scoring (`PollLogic`), the HTTP layer, and all guards are untouched — acceptance criteria explicitly pin the deadline and POLLING guards, which is the right protection. No schema migration, no new dependency, no new data crossing the boundary (`(slotId, participantId, vote)` and `Result<Boolean>` unchanged, so no ripple to routes or viewmodels). This **retires debt**: dormant `updateVote` gets used and re-vote semantics become consistent across scenario votes, ballots, and slot votes.\n\n## Vote\nfor\n\n## Reasoning\nThe bug is real and I reproduced its exact failure path in source: blind `insertVote` against a UNIQUE constraint, surfaced as HTTP 400 on a core polling journey. The fix is small, layer-correct (repository shell only), needs no migration, uses queries that already exist, and matches semantics the codebase already established in `ScenarioRepository` and `commitCompleteBallot`. I recommend Option A, with the two traps above (syncMetadata PK collision, id-key mismatch) explicitly covered by the mandated unit tests — a naive fix that misses the metadata collision would still ship the 400 and falsely pass superficial testing.\n\n## Composite Score Inputs (0-10)\n- userImpact: 8\n- businessImpact: 7\n- effort: 2\n- securityRisk: 1\n- confidence: 9\n\n## Risk Score (1-10)\n2 — Residual risks are the unhandled `syncMetadata` PK collision (testable, must be in acceptance) and a minor non-atomic read-then-write window that is pre-existing in class and negligible in practice. All options are reversible; no schema or contract change.",
+          "durationMs": 89356,
+          "vote": {
+            "agentId": "architect",
+            "agentName": "Solution Architect",
+            "position": "for",
+            "reasoning": "The bug is real and I reproduced its exact failure path in source: blind `insertVote` against a UNIQUE constraint, surfaced as HTTP 400 on a core polling journey. The fix is small, layer-correct (repository shell only), needs no migration, uses queries that already exist, and matches semantics the codebase already established in `ScenarioRepository` and `commitCompleteBallot`. I recommend Option A, with the two traps above (syncMetadata PK collision, id-key mismatch) explicitly covered by the mandated unit tests — a naive fix that misses the metadata collision would still ship the 400 and falsely pass superficial testing.",
+            "weight": 3
+          }
+        },
+        {
+          "agentId": "critic",
+          "agentName": "Critic / Risk Agent",
+          "role": "Risk scoring, objections, guardrails",
+          "content": "## Analysis\n\nI verified every factual claim in the proposal against the source before judging.\n\n**Claims verified as true:**\n- `DatabaseEventRepository.addVote` (L356–L410) unconditionally calls `voteQueries.insertVote` at L370 — confirmed.\n- `Vote.sq` declares `UNIQUE(timeslotId, participantId)` and `updateVote` / `selectByTimeslotAndParticipant` exist and are unused by `addVote` — confirmed.\n- `VoteRoutes.kt` maps any repository failure to HTTP 400 `\"Failed to save your vote. Please try again.\"` — matches the QA observation exactly.\n- Deadline guard (`isDeadlinePassed`) and POLLING-status guard run before the insert and are untouched by the fix — confirmed. Rollback is trivial (single-handler change, no schema migration, existing queries), which satisfies the guardrail check.\n\nThe diagnosis is accurate and the acceptance criteria are testable and self-protecting (they pin the deadline/status guards). Conceded: this is a real, verified, main-path regression and the fix direction is correct.\n\n**Failure mode 1 — the fix as described re-fails 3 lines later (most severe).** `addVote` does not only insert the vote row. Inside the same `try`, it calls `syncMetadataQueries.insertSyncMetadata(id = \"sync_${voteId}\", ...)` where `voteId` is the same deterministic `vote_{slot}_{participant}`. `SyncMetadata.sq` L31 is a raw `INSERT` on a `PRIMARY KEY` id. Scenario: participant votes NO (ok), then changes to MAYBE → `insertVote` replaced by `updateVote` (ok) → `insertSyncMetadata` with the same `sync_vote_{slot}_{user}` id → PRIMARY KEY violation → caught → `Result.failure` → **HTTP 400 again**. The proposal scopes the fix to the vote row only. Mitigation: the mandated unit test (insert then update through the real `addVote` path, not just the query layer) will catch this and force the fix to extend to the sync metadata (upsert or delete-then-insert). `syncManager?.recordLocalChange(..., SyncOperation.CREATE, ...)` on an update is also semantically wrong and unaddressed.\n\n**Failure mode 2 — gamification point farming.** `VoteRoutes` awards +10 points via `incrementVotingPoints` on **every** successful POST, with no dedupe (verified in `GamificationService.kt` L85 and `UserPointsRepository`). Today the UNIQUE bug accidentally rate-limits awards to one per (slot, participant). After the fix, a user toggles YES/NO repeatedly and farms unlimited points. Blast radius: leaderboard/points integrity. Detection: none — points silently accumulate. Guardrail: award points only when no prior vote existed; `Result<Boolean>` currently cannot express \"insert vs update\", so this needs a deliberate decision.\n\n**Failure mode 3 — TOCTOU race.** `addVote` holds no lock (unlike `commitCompleteBallot`, which uses `ballotMutex`). Select-then-insert leaves a window where two concurrent first-votes both see \"no existing vote\", both insert, one gets 400. Not a regression (same as today), and the \"upsert\" option in the proposal eliminates it; the select-then-update option does not.\n\n**Implementation trap:** `voteId` is built from the `participantId` parameter (userId) but the vote row stores `participantRecord.id`, and the UNIQUE constraint is on the record id. The fix must query `selectByTimeslotAndParticipant` with `participantRecord.id`; querying with the userId always returns null and reproduces the 400. The acceptance test would catch this.\n\n**Unresolved unknown:** whether the sync replay path (`SyncManager`, receipt envelopes) tolerates a second CREATE-recorded change for the same vote record id — cannot be determined from the proposal or brief; depends on SyncManager's dedupe semantics.\n\n## Vote\nfor\n\n## Reasoning\nThe bug is real, precisely diagnosed (I verified line numbers, the constraint, the unused query, and the exact 400 message in the code), and blocks a core use case of the product. Rollback is trivial and the acceptance criteria explicitly pin the deadline/status guards. My findings are scope gaps — the sync-metadata second blocker and the points-award loophole — not flaws in the diagnosis or direction; the mandated insert-then-update unit test, if written against the full `addVote` path, will surface FM1 and force the implementer to extend the fix. I vote for with the expectation that implementation addresses FM1 and consciously decides on FM2 (award points on insert only, or cap per event).\n\n## Composite Score Inputs (0-10)\n- userImpact: 8\n- businessImpact: 6\n- effort: 3\n- securityRisk: 3\n- confidence: 8\n\n## Risk Score (1-10)\n4 — Fix-as-described is incomplete (syncMetadata insert re-fails at the same 400; TOCTOU window remains with the select-then-update variant), and removing the accidental rate limit opens a small point-farming loophole; both are contained by mandatory unit tests and a trivially reversible single-handler change.",
+          "durationMs": 96954,
+          "vote": {
+            "agentId": "critic",
+            "agentName": "Critic / Risk Agent",
+            "position": "for",
+            "reasoning": "The bug is real, precisely diagnosed (I verified line numbers, the constraint, the unused query, and the exact 400 message in the code), and blocks a core use case of the product. Rollback is trivial and the acceptance criteria explicitly pin the deadline/status guards. My findings are scope gaps — the sync-metadata second blocker and the points-award loophole — not flaws in the diagnosis or direction; the mandated insert-then-update unit test, if written against the full `addVote` path, will surface FM1 and force the implementer to extend the fix. I vote for with the expectation that implementation addresses FM1 and consciously decides on FM2 (award points on insert only, or cap per event).",
+            "weight": 3
+          }
+        },
+        {
+          "agentId": "spec-writer",
+          "agentName": "Spec Writer",
+          "role": "PRD, user stories, acceptance criteria",
+          "content": "## Analysis\n\n**Fact verification against the codebase (all claims check out):**\n\n1. **Bug confirmed.** `DatabaseEventRepository.addVote` (L344–390) unconditionally calls `voteQueries.insertVote(...)` at L370 with a deterministic id `vote_{slotId}_{participantId}`. No existing-vote detection.\n2. **Constraint confirmed.** `Vote.sq` declares `UNIQUE(timeslotId, participantId)` plus `id TEXT PRIMARY KEY` — a second insert for the same (slot, participant) violates both. The exception lands in the `try` block → `Result.failure` → VoteRoutes responds HTTP 400 `\"Failed to save your vote. Please try again.\"` Exactly the reported symptom.\n3. **Dead query confirmed.** `updateVote` exists in `Vote.sq` and is never called by `DatabaseEventRepository`. (The `updateVote` hits elsewhere are `ScenarioRepository` — a different table; no conflation in the proposal.)\n4. **Guards confirmed.** The POLLING-status check and `isDeadlinePassed` check exist at the top of `addVote`; AC3/AC4 reference real, currently-working guards that must not regress.\n5. **Test inventory confirmed.** `PollLogicTest.kt` = exactly 6 tests; `VoteRoutesErrorMessageTest.kt` exists in server tests. Success metrics are verifiable as stated.\n\n**Ambiguity sweep — questions to settle (deliverables, none blocking):**\n\n- **Q1 (AC1): \"HTTP 200/201\" — which one?** Current route always returns 201. Pin a single value (201 for both first vote and update is the least-change option) or explicitly write \"assert status ∈ {200, 201}\".\n- **Q2 (AC3): \"400/409\" — same looseness.** Current behavior is 400 on deadline. Pin 400, or specify the mapping.\n- **Q3 (gap): Same-value re-vote (NO → NO) is unspecified.** It also hits the UNIQUE constraint and currently 400s. The detect-then-update fix handles it naturally, but the spec should state expected behavior: accepted idempotently with 2xx.\n- **Q4 (gap): Side effects on re-vote are unspecified and externally visible.** VoteRoutes awards +10 gamification points and triggers `onVoteAdded` on *every* successful POST. Once re-votes succeed, a participant changing their mind re-earns points and re-triggers notifications. Decide: re-award (current wiring, simplest) vs award-once-per-(event,participant). This is the largest spec gap.\n- **Q5 (minor): `updatedAt` is not API-observable** — `PollResponse` exposes only vote names. AC1's \"raffraîchit updatedAt\" is verifiable at repository level (unit test), which is fine but should say so.\n- **Q6 (minor): `createdAt` preservation on update** — implied by \"met à jour le vote existant\" but worth one sentence: `createdAt` unchanged, `updatedAt` refreshed.\n- **Q7 (minor): Sync operation on re-vote** — currently records `SyncOperation.CREATE`; an update should presumably record UPDATE. Internal, but affects offline sync correctness.\n- **Q8 (minor): AC4 lacks a status code** while AC3 specifies one — inconsistent granularity; add the expected status.\n\n**Testability:** AC1–AC4 are observable via HTTP responses (good). AC5 is a meta-criterion (\"a test exists\") — acceptable as the TDD artifact. Suggested given/when/then for the missing case: *Given* a participant has voted NO on slot S before deadline, *when* they re-vote NO on S, *then* the response is 2xx and the stored vote is unchanged-or-refreshed per Q3's decision.\n\n**Scope:** The proposal names two implementation options (detect-then-update vs upsert). Since the acceptance criteria are purely behavioral and the options are behaviorally equivalent, this is acceptable — the choice correctly stays with the implementer.\n\n## Vote\nfor\n\n## Reasoning\n\nThe bug is real, precisely diagnosed, and verified line-by-line in the code: the schema itself (`UNIQUE` + existing `updateVote` query) proves vote mutation was the intended design, making insert-only a genuine defect, not a design question. This is a regression of Wakeve's core flow — weighted polling is the product's heart, and \"changing your mind before the deadline\" is a primary use case for group scheduling. Per project governance, bug fixes restoring intended behavior need no DAO proposal, but since one was raised, it is well-formed: evidence-backed problem statement, behavior-level acceptance criteria, concrete regression metrics. My questions (Q1–Q8) are spec-quality gaps that should be answered in the PR — notably Q4 (gamification/notification re-trigger on re-vote) — but none alter the correctness of the fix or justify deferring a main-parcours regression. Voting for; the questions travel with the proposal as review checklist items.\n\n## Composite Score Inputs (0-10)\n- userImpact: 8\n- businessImpact: 7\n- effort: 3\n- securityRisk: 2\n- confidence: 9\n\n## Risk Score (1-10)\n3",
+          "durationMs": 65546,
+          "vote": {
+            "agentId": "spec-writer",
+            "agentName": "Spec Writer",
+            "position": "for",
+            "reasoning": "The bug is real, precisely diagnosed, and verified line-by-line in the code: the schema itself (`UNIQUE` + existing `updateVote` query) proves vote mutation was the intended design, making insert-only a genuine defect, not a design question. This is a regression of Wakeve's core flow — weighted polling is the product's heart, and \"changing your mind before the deadline\" is a primary use case for group scheduling. Per project governance, bug fixes restoring intended behavior need no DAO proposal, but since one was raised, it is well-formed: evidence-backed problem statement, behavior-level acceptance criteria, concrete regression metrics. My questions (Q1–Q8) are spec-quality gaps that should be answered in the PR — notably Q4 (gamification/notification re-trigger on re-vote) — but none alter the correctness of the fix or justify deferring a main-parcours regression. Voting for; the questions travel with the proposal as review checklist items.",
+            "weight": 1
+          }
+        },
+        {
+          "agentId": "prioritizer",
+          "agentName": "Prioritization Agent",
+          "role": "Impact/cost/risk scoring, roadmap fit",
+          "content": "I have verified the root cause end-to-end in the code. Producing my deliberation output.\n\n## Analysis\n\n**Bug verification (code-grounded):**\n- `Vote.sq` confirms `UNIQUE(timeslotId, participantId)` on the `vote` table, deterministic PK `vote_{slot}_{participant}`, and both `updateVote` and `selectByTimeslotAndParticipant` queries exist — `updateVote` is never called from `addVote`. Confirmed.\n- `DatabaseEventRepository.addVote` (the handler at the cited location) does a raw `insertVote` after the POLLING-status and deadline guards. A second vote by the same participant on the same slot violates the unique constraint → exception → `Result.failure` → `VoteRoutes` maps any failure to HTTP 400 with \"Failed to save your vote. Please try again.\" — exactly the QA-observed message. The old vote silently persists, so poll scoring (YES=2/MAYBE=1/NO=-1) keeps using the stale preference. The proposal's diagnosis is accurate on every point checked.\n\n**Is this path actually live?** Yes. Android `PollViewModel` and the iOS shell both route vote submission through `repository.addVote`, and `POST /events/{id}/poll/votes` is the server endpoint. A newer `commitCompleteBallot` flow with proper replace semantics (delete-then-insert) exists, but it does not serve the per-slot HTTP path clients hit — this is not dead code being polished.\n\n**Comparative value vs current queue:** The DAO's recent shipped items (#23–#30) were UX uniformization and repo cleanup. The last commit (795e6daa) is E2E validation of the full vote flow — this bug directly blocks that validation. Nothing in the current queue competes with a core-loop regression fix.\n\n**Cost:** Localized — one branch in `addVote` using queries that already exist, plus the specified unit tests. The guards (POLLING, deadline) sit upstream of the insert and are untouched by the fix. Two minor scope details for the Delivery Agent, not blockers: (a) the persisted row uses the participant record ID while the deterministic vote ID uses the userId — the lookup must use the record ID; (b) the update path should record a sync `UPDATE` (not `CREATE`) operation for coherent offline sync, and the route should decide 200 vs 201 for updates.\n\n**Sequencing:** Should go **before** any new feature work. It displaces nothing — the recent queue is cleanup passes. Small now clearly beats large later here: a ~30-line fix restores a core product loop that every polling event depends on.\n\n## Vote\nfor\n\n## Reasoning\nThis is the highest value-per-effort item visible in the current queue: a verified regression in the product's core loop (voting), where re-voting before the deadline fails with HTTP 400 and silently keeps the stale preference, corrupting best-slot scoring. The fix is small and localized, uses queries that already exist in the schema, preserves both guards untouched, and ships with the right acceptance criteria (insert-then-update test, deadline rejection preserved). Relative to a queue of UX cleanups and repo hygiene, this jumps ahead. Uncertainty is minimal: I reproduced the failure chain by reading the code path the QA scenario exercised.\n\n## Composite Score Inputs (0-10)\n- userImpact: 9\n- businessImpact: 7\n- effort: 2\n- securityRisk: 1\n- confidence: 9\n\n## Risk Score (1-10)\n2 — Low. Guards are upstream and untouched; regression surface is bounded by the specified tests. Residual subtleties (participant record ID vs userId in the lookup, sync operation type on update, 200 vs 201 for updated votes) are implementation details within Delivery's scope, not sources of meaningful failure.",
+          "durationMs": 66482,
+          "vote": {
+            "agentId": "prioritizer",
+            "agentName": "Prioritization Agent",
+            "position": "for",
+            "reasoning": "This is the highest value-per-effort item visible in the current queue: a verified regression in the product's core loop (voting), where re-voting before the deadline fails with HTTP 400 and silently keeps the stale preference, corrupting best-slot scoring. The fix is small and localized, uses queries that already exist in the schema, preserves both guards untouched, and ships with the right acceptance criteria (insert-then-update test, deadline rejection preserved). Relative to a queue of UX cleanups and repo hygiene, this jumps ahead. Uncertainty is minimal: I reproduced the failure chain by reading the code path the QA scenario exercised.",
+            "weight": 2
+          }
+        },
+        {
+          "agentId": "designer",
+          "agentName": "UX/UI Designer",
+          "role": "UX/UI critique, design directions, accessibility",
+          "content": "## Analysis\n\n**Evidence check (root cause confirmed in source):**\n- `DatabaseEventRepository.addVote` (L344–404) calls `voteQueries.insertVote` (L370) unconditionally, with the deterministic ID `vote_{slot}_{participant}`. The `vote` table enforces `UNIQUE(timeslotId, participantId)` *and* that ID is the PRIMARY KEY — a second vote fails twice over. The exception is swallowed into `Result.failure`, `VoteRoutes` maps any failure to 400 \"Failed to save your vote. Please try again.\"\n- `updateVote` exists in `Vote.sq` and has **zero call sites** in the repository — the proposal's diagnosis is exact.\n- The QA scenario is credible: 6 first votes insert fine; any re-vote (e.g., Bob NO→MAYBE) hits the constraint.\n\n**UX review (mode: Operate — complete a task):**\n\n1. **Flow — dead end with silent corruption.** The re-vote path is not hypothetical: `PollViewModel` has a single-vote `submitVote` path with a designed `isChangingVote` analytics flag — changing one's mind is an intended interaction. Today it dead-ends: the generic error invites retry (\"Please try again\"), retry fails identically. Worse than the visible failure: the **stale vote persists**. The user believes they updated their availability while the poll keeps scoring the old one (YES=2/MAYBE=1/NO=-1). The best-slot recommendation — the shared decision artifact for the whole group — is computed on wrong data. This bug doesn't just block one user; it silently corrupts the group's decision input. That's the strongest case for fixing it fast.\n2. **Language.** \"Failed to save your vote. Please try again.\" becomes accurate once re-votes succeed. Follow-up direction (not blocking): server-side failures currently collapse deadline-passed, not-in-POLLING, and save errors into one generic message; differentiate them so the client can show specific copy (\"La date limite est passée\" vs \"Réessaie\").\n3. **States and edges.** Acceptance criteria correctly preserve the deadline and POLLING guards — the fix widens the success path only where the UI already promises it works.\n4. **Accessibility.** No UI change proposed; existing touch targets (`WakeveSize.minTouchTarget`) and semantics unaffected. Nothing to flag.\n\n**Handoff notes (owned by Solution Architect / Delivery, not blocking):** the widened success path re-fires side effects per re-vote — `GamificationService.awardPoints(+10, no dedup confirmed)` and `onVoteAdded` notifications will double-fire on re-votes (points inflation, organizer notification spam). Also `syncMetadata` operation is hardcoded \"CREATE\" — should read \"UPDATE\" on the re-vote branch. Name these in the delivery plan or a follow-up ticket.\n\n## Vote\nfor\n\n## Reasoning\nThis is a defect, not a preference: the primary task of the app's core loop (group date polling) dead-ends on re-vote, and worse, silently persists the stale vote while the user believes they changed it — corrupting the weighted best-slot calculation for the entire group. The diagnosis is verified in code, the fix reuses an existing unused query (`updateVote`), all guards are preserved by the acceptance criteria, and tests are mandated. The residual side effects (gamification double-award, notification re-fire on re-votes) are real but follow-up-able and strictly less harmful than the current silent data corruption. Per the project's own charter, a bug fix restoring intended behavior wouldn't even require a proposal; as one, it's an easy yes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 9\n- businessImpact: 7\n- effort: 3\n- securityRisk: 2\n- confidence: 9\n\n## Risk Score (1-10)\n2",
+          "durationMs": 80963,
+          "vote": {
+            "agentId": "designer",
+            "agentName": "UX/UI Designer",
+            "position": "for",
+            "reasoning": "This is a defect, not a preference: the primary task of the app's core loop (group date polling) dead-ends on re-vote, and worse, silently persists the stale vote while the user believes they changed it — corrupting the weighted best-slot calculation for the entire group. The diagnosis is verified in code, the fix reuses an existing unused query (`updateVote`), all guards are preserved by the acceptance criteria, and tests are mandated. The residual side effects (gamification double-award, notification re-fire on re-votes) are real but follow-up-able and strictly less harmful than the current silent data corruption. Per the project's own charter, a bug fix restoring intended behavior wouldn't even require a proposal; as one, it's an easy yes.",
+            "weight": 2
+          }
+        },
+        {
+          "agentId": "delivery",
+          "agentName": "Delivery Agent",
+          "role": "Implementation plan, tasks, CI/CD",
+          "content": "## Analysis\n\nI verified the proposal's diagnosis directly against the source before planning delivery.\n\n**Diagnosis confirmed (exact):**\n- `shared/src/commonMain/kotlin/com/guyghost/wakeve/repository/DatabaseEventRepository.kt` L344–402: `addVote` runs guards (POLLING status L347, deadline L351), then unconditionally calls `voteQueries.insertVote` with deterministic id `vote_{persistedSlotId}_{userId}`.\n- `Vote.sq`: table has `UNIQUE(timeslotId, participantId)`; `updateVote` and `selectByTimeslotAndParticipant` exist and are **never called** in shared code (only `ScenarioRepository` has its own unrelated `updateVote`).\n- `server/.../routes/VoteRoutes.kt` L108: `POST /votes` → `repository.addVote`; failure → 400 `\"Failed to save your vote.\"` — matching the QA observation exactly.\n- Clients affected via the same path: Android `PollViewModel` (L149, L204).\n\n**Behavior slices (each independently testable):**\n\n1. **Re-vote updates existing row** (core fix, S–M): second `addVote` on same (slot, participant) → `selectByTimeslotAndParticipant` → `updateVote` with refreshed `updatedAt`, `Result.success(true)` → existing HTTP 201. Two implementation traps found in code that TDD against the real driver will catch:\n   - **Trap A (identity mismatch):** the persisted `participantId` column stores `participantRecord.id`, while the vote id string embeds the *userId* param. Detection must query with the record id and `updateVote` must target the **stored row id**, not a recomputed string. A wrong impl passes first-vote tests but fails re-vote tests.\n   - **Trap B (hidden PK conflict):** `addVote` also unconditionally calls `syncMetadataQueries.insertSyncMetadata(id = \"sync_${voteId}\", ...)` — a deterministic PK. Re-inserting on re-vote violates it, so the \"obvious\" fix still returns 400. The re-vote test on the real in-memory driver catches this; the sync-metadata write must be CREATE-path-only or refreshed (`SyncManager.recordLocalChange` already uses timestamped ids and is safe).\n2. **Guards locked, no regression** (S): status guard already has a 5-status test; add re-vote-specific deadline rejection using the existing fixed `ConfirmationClock` fixture (\"2025-11-12T10:00:00Z\") — deterministic, no clock seam needed.\n3. **HTTP-level re-vote 2xx** (S, optional): no route code changes required (201 on both insert and update satisfies the criterion); existing `VoteRoutesErrorMessageTest` covers wiring. QA Rio replay is manual verification, outside CI.\n\n**Test-first fit:** strong. `EnhancedEventRepositoryTest` already runs the real SQLDelight implementation on an in-memory JVM driver with future-deadline fixtures; adding insert→update→assert-single-row-changed and deadline-rejection tests is incremental. One observability gap: `updatedAt` refresh isn't exposed via `getPoll` — assert via direct driver query in the fixture, or relax that assertion; flag it rather than silently skip.\n\n**Dependencies:** none. `updateVote` query already generated (no migration), no new libraries, no feature flag, no pipeline change. Slices 2 and 3 parallelize trivially; slice 1 lands first.\n\n**Flags outside my ownership (for Solution Architect / follow-up tickets):**\n- Two vote-write paths now coexist: `addVote` (becoming insert-or-update) and `commitCompleteBallot` (transactional delete+insert with poll-revision guard and receipts). Correct fix today, consolidation candidate later.\n- Gamification awards +10 points on every *successful* `addVote` → re-vote double-awards. Out of scope; should not block this fix.\n\n**Effort:** S overall (~15–30 lines in one handler + tests). Uncertainty: low — verified against source; what would shrink the remainder to zero: a 30-min check of how the sync loop consumes `syncMetadata` operations (CREATE vs UPDATE) to pick the right refresh semantics for Trap B.\n\n## Vote\nfor\n\n## Reasoning\nThe bug is real, reproduced in code line-by-line, and breaks a core planning journey (changing one's mind before deadline). The fix is small, contained in one handler, needs no migration or API change, and the mandated test-first approach is fully supported by existing fixtures against the real database driver — which will also catch the two non-obvious traps (participant record-id vs userId, syncMetadata deterministic PK) that a naive patch would miss. Acceptance criteria are concrete and testable as written; guards are preserved and testable deterministically. Residual concerns (updatedAt observability, gamification double-award, dual write paths) are flag-worthy, not blocking.\n\n## Composite Score Inputs (0-10)\n- userImpact: 8\n- businessImpact: 6\n- effort: 3\n- securityRisk: 2\n- confidence: 9\n\n## Risk Score (1-10)\n3 — Main residual risk is implementation-level: the two hidden traps mean a superficial fix fails its own acceptance test (mitigated by test-first against the real driver). Secondary: gamification double-award on re-vote is an unhandled side effect that should become a follow-up ticket. No schema, API, or security surface changes.",
+          "durationMs": 117836,
+          "vote": {
+            "agentId": "delivery",
+            "agentName": "Delivery Agent",
+            "position": "for",
+            "reasoning": "The bug is real, reproduced in code line-by-line, and breaks a core planning journey (changing one's mind before deadline). The fix is small, contained in one handler, needs no migration or API change, and the mandated test-first approach is fully supported by existing fixtures against the real database driver — which will also catch the two non-obvious traps (participant record-id vs userId, syncMetadata deterministic PK) that a naive patch would miss. Acceptance criteria are concrete and testable as written; guards are preserved and testable deterministically. Residual concerns (updatedAt observability, gamification double-award, dual write paths) are flag-worthy, not blocking.",
+            "weight": 1
+          }
+        }
+      ],
+      "createdAt": "2026-09-18T19:06:16.797Z",
+      "riskZone": "orange",
+      "deliberationStartedAt": "2026-09-18T19:07:03.203Z",
+      "compositeScore": {
+        "axes": {
+          "userImpact": 8.5,
+          "businessImpact": 6.875,
+          "effort": 2.625,
+          "securityRisk": 1.875,
+          "confidence": 9
+        },
+        "weighted": 8,
+        "riskZone": "green",
+        "breakdown": "8.5×0.3 + 6.9×0.2 + 7.4×0.15 + 8.1×0.2 + 9.0×0.15 = 8.0"
+      },
+      "synthesis": "## Synthesis — Proposal #31\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 8\n**For:** 8 | **Against:** 0 | **Abstain:** 0\n\n### Supporting Arguments\n- **Product Strategist:** Verified-in-code regression of the core voting loop, with the fix mechanism (select-then-update or upsert via the already-existing `updateVote` query) precisely scoped and guarded acceptance criteria ...\n- **Research Agent:** Every factual claim in the proposal is verified against source: the raw insert, both constraints, the unused `updateVote` query, the exact 400 symptom, and the QA reproduction doc. This is a P0 regres...\n- **Solution Architect:** The bug is real and I reproduced its exact failure path in source: blind `insertVote` against a UNIQUE constraint, surfaced as HTTP 400 on a core polling journey. The fix is small, layer-correct (repo...\n- **Critic / Risk Agent:** The bug is real, precisely diagnosed (I verified line numbers, the constraint, the unused query, and the exact 400 message in the code), and blocks a core use case of the product. Rollback is trivial ...\n- **Spec Writer:** The bug is real, precisely diagnosed, and verified line-by-line in the code: the schema itself (`UNIQUE` + existing `updateVote` query) proves vote mutation was the intended design, making insert-only...\n- **Prioritization Agent:** This is the highest value-per-effort item visible in the current queue: a verified regression in the product's core loop (voting), where re-voting before the deadline fails with HTTP 400 and silently ...\n- **UX/UI Designer:** This is a defect, not a preference: the primary task of the app's core loop (group date polling) dead-ends on re-vote, and worse, silently persists the stale vote while the user believes they changed ...\n- **Delivery Agent:** The bug is real, reproduced in code line-by-line, and breaks a core planning journey (changing one's mind before deadline). The fix is small, contained in one handler, needs no migration or API change...\n\n### Key Themes\n- Security concerns\n- User experience\n- Technical debt\n- Maintenance burden\n- Alignment\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n",
+      "resolvedAt": "2026-09-18T19:11:21.402Z",
+      "executionResult": "Executed with delivery plan: feature/dao-31-fix-poll-permettre-la-modifica"
+    },
+    {
+      "id": 32,
+      "title": "fix(sync): accorder le permis aggregate_write_authorization dans la confirmation par sync (BUG-2)",
+      "type": "technical-change",
+      "description": "SyncService.applyConfirmedEventDecision (L545-578) écrit db.eventQueries.updateEventStatus(...) directement, sans le protocole fence utilisé partout ailleurs dans DatabaseEventRepository : authorizeAggregateWrite(eventId, expectedRevision, operationId, now) → UPDATE → clearAggregateWriteAuthorization dans la même transaction. Le trigger fence_protected_event_update (créé par la migration 11.sqm) avorte alors toute UPDATE event quand aggregateRevision > 1 ET une ligne event_artwork existe (toujours vrai : la création d'événement insère un artwork kind=NONE) ET aucun permis valide. Résultat : ROLLBACK, status reste POLLING, la sync remonte un conflit SERVER_WINS permanent. Fix : réutiliser le protocole fence (idéalement extraire une fonction partagée du repo, ou répliquer authorize+clear dans la transaction sync), garder les gardes organisateur/slot/startTime. Test d'intégration : confirmation sync sur événement avec revision>1 + artwork.",
+      "problemStatement": "La confirmation de date passe obligatoirement par la « modeled confirmation command » (PUT /events/{id}/status renvoie volontairement 409), c'est-à-dire POST /api/sync avec un change events UPDATE portant status=CONFIRMED + confirmedSlotId + finalDate. Or cette voie est cassée : le trigger SQL fence_protected_event_update (EVENT_AGGREGATE_WRITER_FENCED) rejette l'UPDATE car SyncService n'insère pas le permis aggregate_write_authorization. Toute confirmation sur un événement avec aggregateRevision > 1 + artwork row (i.e. tous les événements réels) échoue en rollback silencieux → conflit SERVER_WINS. Le parcours principal DRAFT→POLLING→CONFIRMED est bloqué (observation QA : HTTP 409 puis conflit sync, statut jamais CONFIRMED).",
+      "acceptanceCriteria": [
+        "POST /api/sync avec events UPDATE (status CONFIRMED + confirmedSlotId + finalDate = startTime du slot) applique le changement (appliedChanges=1, sans conflit)",
+        "Le permis aggregate_write_authorization est inséré avant l'UPDATE et supprimé dans la même transaction (statut CONFIRMED + ligne confirmedDate créées)",
+        "Re-confirmation idempotente (même slot déjà confirmé) sans erreur ni duplication",
+        "Toute tentative de confirmation par un non-organisateur reste rejetée",
+        "Test d'intégration serveur : confirmation sync sur événement POLLING avec aggregateRevision > 1 + artwork row passe le fence"
+      ],
+      "successMetrics": [
+        "Scénario QA Rio rejoué : confirmation via sync appliquée (statut CONFIRMED + confirmedDate en base)",
+        "Tests serveur verts incluant nouveau test fence",
+        "Aucune ligne aggregate_write_authorization résiduelle après confirmation"
+      ],
+      "rollbackConditions": [
+        "Régression sur la résolution de conflits sync existante (tests SyncService/confirmation envelope)",
+        "Confirmation possible par un non-organisateur",
+        "Écritures event hors transaction (incohérence fence)"
+      ],
+      "affectedPaths": [
+        "server/src/main/kotlin/com/guyghost/wakeve/sync/SyncService.kt",
+        "shared/src/commonMain/kotlin/com/guyghost/wakeve/repository/DatabaseEventRepository.kt",
+        "server/src/test/kotlin/com/guyghost/wakeve"
+      ],
+      "proposedBy": "user",
+      "status": "open",
+      "votes": [],
+      "agentOutputs": [],
+      "createdAt": "2026-09-18T19:06:16.798Z",
+      "riskZone": "red"
+    },
+    {
+      "id": 33,
+      "title": "fix(lifecycle): rendre la finalisation atteignable et explicite (BUG-3 + BUG-5)",
+      "type": "technical-change",
+      "description": "4 corrections coordonnées : (1) EventRoutes PUT /status FINALIZED : renvoyer les blockers de EventOrganizationReadinessRepository.getReadiness dans le corps d'erreur (et/ou exposer GET /api/events/{id}/readiness). (2) Readiness MEETINGS/REMINDERS : ajouter un endpoint organisateur pour enregistrer une réunion + rappel serveur, ou une décision not-needed par section (organizationReadinessDecisionQueries existe déjà : markMeetingsNotNeeded/markLodgingNotNeeded sont définis mais jamais exposés). (3) AccommodationRoutes : autoriser la création d'hébergement en ORGANIZING (le garde limite aujourd'hui à CONFIRMED/COMPARING, en contradiction avec la checklist qui exige un hébergement CONFIRMED pour finaliser). (4) Deadlock sync : la tentative FINALIZED elle-même insère sync_status_*_FINALIZED (synced=0) que la readiness relit au tour suivant → exclure de isCriticalSyncRecord les entités sync_status_* générées par le changement de statut, ou les marquer synced à l'insertion côté serveur. Chaque point avec test.",
+      "problemStatement": "La transition ORGANIZING→FINALIZED est inatteignable en pratique et son échec est opaque : (1) le message renvoyé est « Failed to update event status. Please try again. » sans lister les blockers (MEETING_REQUIRED, NOTIFICATION_REMINDERS_REQUIRED, LODGING_REQUIRED, TRICOUNT_HANDOFF_REQUIRED, CRITICAL_SYNC_PENDING…). (2) Deux blockers sont insatisfiables via API : réunions et rappels ne sont écrits que par le client (MeetingRepository.insertMeeting côté local, aucun handler serveur/sync). (3) Catch-22 hébergement : AccommodationRoutes refuse la création en ORGANIZING (409, réservé CONFIRMED/COMPARING) alors que la checklist de finalisation exige un hébergement CONFIRMED. (4) Spirale de deadlock : chaque tentative FINALIZED insère une ligne syncMetadata synced=0 (sync_status_*_FINALIZED) que la readiness relit comme CRITICAL_SYNC_PENDING à la tentative suivante — même après correction des vrais blocages. QA : 4 tentatives avant de devoir contourner par 3 écritures DB manuelles.",
+      "acceptanceCriteria": [
+        "Le corps d'erreur 400/409 de ORGANIZING→FINALIZED liste les blockers exacts (ex: MEETING_REQUIRED, LODGING_REQUIRED, CRITICAL_SYNC_PENDING)",
+        "Les organisateurs peuvent satisfaire MEETING_REQUIRED et NOTIFICATION_REMINDERS_REQUIRED via API : création/renseignement de réunion + rappel, ou décision not-needed par section (endpoint dédié organisateur)",
+        "L'ajout d'hébergement est autorisé en statut ORGANIZING (suppression du catch-22) avec gardes organisateur/participant inchangés",
+        "La finalisation n'échoue plus en cascade : l'UPDATE FINALIZED n'insère plus une ligne syncMetadata synced=0 qui bloque la tentative suivante (exclure les sync rows auto-générées par le statut lui-même de la readiness CRITICAL_SYNC_PENDING, ou les marquer synced à la source)",
+        "Un parcours FINALIZED complet passe via API seule sur un événement de test",
+        "Tests : readiness agrégée, finalisation complète, refus si blocker réel"
+      ],
+      "successMetrics": [
+        "Scénario QA Rio rejoué : ORGANIZING→FINALIZED réussi via API seule, sans workaround DB",
+        "Message d'erreur finalisation liste les blockers actionnables",
+        "Readiness visible avant tentative (GET)",
+        "Tests serveur verts incluant nouveaux tests readiness"
+      ],
+      "rollbackConditions": [
+        "Régression sur les gardes d'accès (non-organisateur peut modifier readiness/accommodation)",
+        "Finalisation possible malgré un blocker de sécurité (UNSAFE_EXTERNAL_LINKS, CRITICAL_CONFLICT_PENDING)",
+        "Échec des tests EventManagementStateMachine/Workflow existants"
+      ],
+      "affectedPaths": [
+        "server/src/main/kotlin/com/guyghost/wakeve/routes/EventRoutes.kt",
+        "shared/src/commonMain/kotlin/com/guyghost/wakeve/organization/EventOrganizationReadinessRepository.kt",
+        "server/src/main/kotlin/com/guyghost/wakeve/repository/DatabaseEventRepository.kt",
+        "server/src/main/kotlin/com/guyghost/wakeve/routes/AccommodationRoutes.kt"
+      ],
+      "proposedBy": "user",
+      "status": "open",
+      "votes": [],
+      "agentOutputs": [],
+      "createdAt": "2026-09-18T19:06:16.798Z",
+      "riskZone": "orange"
+    },
+    {
+      "id": 34,
+      "title": "fix(server): monter les routes activities et equipment dans le routing (BUG-4)",
+      "type": "technical-change",
+      "description": "Ajouter activityRoutes(...) et equipmentRoutes(...) dans le bloc route(\"/api\") du routing Application.kt (bloc authenticate auth-jwt + rateLimit api, aux côtés de budgetRoutes/mealRoutes), en injectant les repository requis par leurs signatures (voir les fonctions dans ActivityRoutes.kt et EquipmentRoutes.kt). Vérifier que les repository nécessaires sont instanciés dans le module. Les activités sont nécessaires à la phase ORGANIZING et à la gamification.",
+      "problemStatement": "Les fonctions activityRoutes (routes/ActivityRoutes.kt) et equipmentRoutes (routes/EquipmentRoutes.kt) sont définies mais jamais appelées dans le routing de Application.kt → toutes les requêtes /api/events/{id}/activities et équipements renvoient 404, y compris pour des participants légitimes (observation QA : 3 créations d'activités Rio → 404). La fonctionnalité activités de la phase ORGANIZING est inutilisable par les clients iOS/Android.",
+      "acceptanceCriteria": [
+        "POST /api/events/{id}/activities renvoie 201 pour un participant du groupe (payload CreateActivityRequest actuel)",
+        "Les endpoints équipement répondent (2xx attendu sur opération valide) au lieu de 404",
+        "Steve (utilisateur hors groupe) reçoit 403/404 sur activities",
+        "Les routes sont montées dans le bloc authenticate JWT + rateLimit(api), comme les autres routes métier",
+        "Vérification manuelle QA : création des 3 activités du scénario Rio acceptée"
+      ],
+      "successMetrics": [
+        "QA : création d'activité par Bob (participant) → 201",
+        "Endpoints equipment joignables",
+        "Suite de tests serveur verte"
+      ],
+      "rollbackConditions": [
+        "Conflit de routage (routes existantes cassées)",
+        "Échec de compilation du module serveur"
+      ],
+      "affectedPaths": [
+        "server/src/main/kotlin/com/guyghost/wakeve/Application.kt"
+      ],
+      "proposedBy": "user",
+      "status": "controlled",
+      "votes": [
+        {
+          "agentId": "architect",
+          "agentName": "Solution Architect",
+          "position": "for",
+          "reasoning": "Le diagnostic est vérifié et exact, la faisabilité est immédiate avec la stack existante, et le changement est purement du wiring au composition root — réversible et conforme au pattern des autres routes. Je vote FOR **à condition explicite que l'implémentation suive l'Option B** : le montage seul ne peut pas satisfaire le propre critère d'acceptation de la proposition (Steve → 403), car ces fichiers de routes n'ont aucune garde d'appartenance. Le plan de livraison doit inclure l'élargissement des signatures (`eventRepository`, `database`) et les gardes 403 sur le modèle de `MealRoutes`, sinon la QA du critère 3 échouera mécaniquement — ou pire, passera inaperçue si personne ne teste Steve.",
+          "weight": 3
+        },
+        {
+          "agentId": "strategist",
+          "agentName": "Product Strategist",
+          "position": "for",
+          "reasoning": "The bug is verified in code, blocks a shipped user-facing feature central to the ORGANIZING phase, unblocks active QA and a dependent DAO proposal, and costs very little. It restores designed behavior rather than adding new scope. My one material reservation — the route handlers lack the group-membership guards their own acceptance criteria (Steve → 403/404) presuppose — is an execution constraint, not a rejection reason; the criteria as written already force that guard work to happen. I recommend the implementer follow the `budgetRoutes`/`mealRoutes` pattern (pass `eventRepository` + `database` for membership checks) rather than a bare mount.",
+          "weight": 3
+        },
+        {
+          "agentId": "critic",
+          "agentName": "Critic / Risk Agent",
+          "position": "against",
+          "reasoning": "The bug is genuine and the fix direction is correct, but the proposal is under-scoped against its own acceptance criteria: mounting routes that contain zero per-event authorization cannot deliver \"Steve reçoit 403/404\", and shipping as-described exposes every event's activities and equipment to read/write/delete by any authenticated platform user — including unauthenticated-per-event DELETE with no ownership check and no detection. Re-scope to include the same participant-membership guard MealRoutes/BudgetRoutes use (route signatures need `database` + userId extraction), plus at least one mounted-route test; then this is a clear \"for\".",
+          "weight": 3
+        },
+        {
+          "agentId": "researcher",
+          "agentName": "Research Agent",
+          "position": "for",
+          "reasoning": "The core defect is fully evidenced in code (zero call sites) and independently confirmed by a real-backend QA session (BUG-4, P0). The fix pattern already exists in-repo, repositories are trivial to instantiate, and client surfaces are blocked today. The one material finding — the Steve 403/404 criterion requires authorization guards that the handlers currently lack and the description doesn't explicitly scope — is a gap to flag for `dao_plan`, not a reason to reject: the acceptance criteria already force the correct, secure outcome, and failing criteria at `dao_check` would block a guards-free implementation.",
+          "weight": 2
+        },
+        {
+          "agentId": "prioritizer",
+          "agentName": "Prioritization Agent",
+          "position": "for",
+          "reasoning": "Verified, user-facing regression in a core workflow (ORGANIZING) with a small, mechanical fix and clear acceptance criteria. Highest value-per-effort item visible in the current queue. I vote for with one deliberate amendment the swarm should adopt: the authorization criterion (Steve → 403) requires adding membership guards inside the route files, not merely mounting them — otherwise the proposal's own acceptance criteria cannot pass, and mounting unguarded write endpoints would regress below the guard standard already set by meals/budget. Effort remains small either way.",
+          "weight": 2
+        },
+        {
+          "agentId": "designer",
+          "agentName": "UX/UI Designer",
+          "position": "for",
+          "reasoning": "The diagnosis is verified against source: fully implemented route files exist and are simply never mounted, so a shipped, core ORGANIZING feature 404s for every legitimate user — a hard dead end at the primary action of an Operate surface. The fix is minimal, follows the established mounting pattern exactly (same auth + rateLimit block as siblings), and restores cross-feature consistency. I vote for while flagging one delivery-critical gap: the acceptance criterion requiring 403/404 for out-of-group users cannot be met by mounting alone, because the route files contain no membership guards and their signatures lack the dependencies needed to add them. Delivery must extend the wiring to include the sibling-style authorization checks; otherwise the proposal ships an authorization inconsistency where every other domain has guards.",
+          "weight": 2
+        },
+        {
+          "agentId": "spec-writer",
+          "agentName": "Spec Writer",
+          "position": "for",
+          "reasoning": "The bug is verified directly in source (zero call sites; missing repository instantiation), the fix is mechanically simple, and it unblocks the entire ORGANIZING phase and gamification for all clients — the proposal must proceed. However, my vote is conditional in substance: AC3 as written requires membership guards that the described change does not include. Q1 must be settled during planning (add guards, matching the budget/meal precedent — recommended — or explicitly rescoped AC3), otherwise the proposal will fail its own acceptance at QA and would expose unguarded write endpoints (POST/PUT/DELETE activities and equipment) to any authenticated user, below the API's own guard standard. Q2–Q4 are specification debt that should be attached to the plan as settle-before-execute questions.",
+          "weight": 1
+        },
+        {
+          "agentId": "delivery",
+          "agentName": "Delivery Agent",
+          "position": "for",
+          "reasoning": "The bug is real, verified in source (dead route functions, zero call sites), and blocks an entire phase-ORGANIZING capability plus gamification dependencies. The fix is cheap, well-precedented (identical MealRoutes/BudgetRoutes mounting pattern), needs no migration, no new dependencies, no conflicts. My FOR is explicitly conditioned on the scope including **access guards (slice C)**: mounting without them would ship an IDOR and fail the proposal's own Steve-403 acceptance criterion — I flag this for the swarm rather than treating the literal \"just mount + inject\" text as sufficient. Existing tests only cover error-message copy, so test-first route tests are mandatory, not optional. This is also squarely a bug fix (restore intended behavior), which per AGENTS.md needs no separate governance proposal — this one is appropriately scoped as technical-change.",
+          "weight": 1
+        }
+      ],
+      "agentOutputs": [
+        {
+          "agentId": "architect",
+          "agentName": "Solution Architect",
+          "role": "Technical options, tradeoffs",
+          "content": "## Analysis\n\n**Vérification directe du code (facts):**\n- Confirmé : `activityRoutes` et `equipmentRoutes` ne sont appelées **nulle part** (aucun appel, aucun test). Non importées dans `Application.kt` → 404 systématique sur `/api/events/{id}/activities` et `/api/events/{id}/equipment`. Le diagnostic du BUG-4 est exact.\n- Faisabilité ✅ : `ActivityRepository(db: WakeveDb)` et `EquipmentRepository(db: WakeveDb)` existent déjà dans `shared/commonMain` ; `EquipmentManager` est un objet avec valeur par défaut. L'instantiation dans `main()` + passage à `module()` est trivial et colle au pattern existant (`accommodationRoutes`, `mealRoutes`…).\n\n**Découverte critique — les routes n'ont aucun contrôle d'accès :** contrairement à toutes les autres routes métier montées, `ActivityRoutes.kt` et `EquipmentRoutes.kt` ne contiennent **aucune** extraction de principal JWT, aucun check d'appartenance au groupe, aucun chemin 403 (seul un `isParticipantRegistered` métier pour l'inscription à une activité). Le pattern de garde existe chez `MealRoutes` (`hasMealReadAccess` : organizer OU `participantQueries.selectByEventIdAndUserId` → 403). Monter les routes telles quelles dans `authenticate(\"auth-jwt\")` donne 401 aux non-authentifiés, mais **n'importe quel utilisateur JWT authentifié (Steve compris) obtient 200/201 en CRUD sur les activités/équipements de n'importe quel événement** (IDOR). Le critère d'acceptation « Steve reçoit 403/404 » ne sera donc **pas** satisfait par le montage seul.\n\n**Options :**\n- **Option A — Monter tel quel (2 lignes + imports + injection).** Réversible. Échoue au critère d'acceptation Steve/403 ; crée un trou de contrôle d'accès immédiat. Insuffisant en l'état.\n- **Option B — Monter + ajouter les gardes d'appartenance par événement dans les deux fichiers de routes, sur le pattern MealRoutes** (élargir les signatures pour recevoir `eventRepository` + `database`, répondre 403 hors groupe). Réversible. ~20 lignes par fichier, réutilise un pattern établi. Seule option satisfaisant tous les critères d'acceptation, critère 3 compris.\n- **Option C — Différer.** Non justifié : la phase ORGANIZING est bloquée pour tous les clients ; le fix est petit et réversible.\n\n**Architecture :** changement confiné au composition root (`Application.kt`) + adaptateurs HTTP ; aucune règle du core n'est touchée ; dépendances dirigées du root vers les adaptateurs, pas de cycle ; les repositories restent dans `shared/commonMain` sans fuite framework. La dette : l'option B **retire** de la dette (routes mortes + IDOR évité) ; l'option A en crée.\n\n## Vote\nfor\n\n## Reasoning\nLe diagnostic est vérifié et exact, la faisabilité est immédiate avec la stack existante, et le changement est purement du wiring au composition root — réversible et conforme au pattern des autres routes. Je vote FOR **à condition explicite que l'implémentation suive l'Option B** : le montage seul ne peut pas satisfaire le propre critère d'acceptation de la proposition (Steve → 403), car ces fichiers de routes n'ont aucune garde d'appartenance. Le plan de livraison doit inclure l'élargissement des signatures (`eventRepository`, `database`) et les gardes 403 sur le modèle de `MealRoutes`, sinon la QA du critère 3 échouera mécaniquement — ou pire, passera inaperçue si personne ne teste Steve.\n\n## Composite Score Inputs (0-10)\n- userImpact: 8\n- businessImpact: 6\n- effort: 2\n- securityRisk: 3\n- confidence: 9\n\n## Risk Score (1-10)\n3 — Petit changement réversible avec pattern établi. Le seul risque réel est l'exécution littérale (Option A, montage sans gardes), qui ouvrirait un IDOR authentifié sur les activités/équipements de tous les événements ; couvert si le critère d'acceptation Steve/403 est réellement testé en QA.",
+          "durationMs": 74482,
+          "vote": {
+            "agentId": "architect",
+            "agentName": "Solution Architect",
+            "position": "for",
+            "reasoning": "Le diagnostic est vérifié et exact, la faisabilité est immédiate avec la stack existante, et le changement est purement du wiring au composition root — réversible et conforme au pattern des autres routes. Je vote FOR **à condition explicite que l'implémentation suive l'Option B** : le montage seul ne peut pas satisfaire le propre critère d'acceptation de la proposition (Steve → 403), car ces fichiers de routes n'ont aucune garde d'appartenance. Le plan de livraison doit inclure l'élargissement des signatures (`eventRepository`, `database`) et les gardes 403 sur le modèle de `MealRoutes`, sinon la QA du critère 3 échouera mécaniquement — ou pire, passera inaperçue si personne ne teste Steve.",
+            "weight": 3
+          }
+        },
+        {
+          "agentId": "strategist",
+          "agentName": "Product Strategist",
+          "role": "Vision, objectives, hypotheses",
+          "content": "## Analysis\n\n**1. Restatement of intended outcome.** Mount the already-written `activityRoutes(...)` and `equipmentRoutes(...)` into the authenticated `/api` routing block of `Application.kt` so that activity and equipment endpoints stop returning 404 and the ORGANIZING-phase activities feature becomes usable by mobile clients.\n\n**2. Verification against the codebase (evidence, not vision talk).**\n- Confirmed in `server/src/main/kotlin/com/guyghost/wakeve/Application.kt`: neither `activityRoutes` nor `equipmentRoutes` appears in the routing block, nor in the imports. Every other business route (budget, meal, accommodation, transport, etc.) is mounted inside `authenticate(\"auth-jwt\")` + `rateLimit(\"api\")`. The bug is real and exactly as described.\n- Repositories exist and are injectable: `ActivityRepository(db: WakeveDb)` in `shared/.../activity/ActivityRepository.kt`, `EquipmentRepository(db: WakeveDb)` in `shared/.../equipment/EquipmentRepository.kt`; the server already depends on `projects.shared`. Only instantiation in `main()` + wiring into `module()` is missing — the proposal explicitly covers this.\n- Client demand is real, not hypothetical: Android `EventDetailScreen.kt` navigates to `event/{eventId}/activities` (`onOpenProgram`, `onOpenActivities`), and `Phase5OrganizationUiContractTest` contract-locks those routes. The Rio QA observation (3 creations → 404) is consistent with the code state.\n- Strategic mapping: ORGANIZING is a first-class stage of the DRAFT → FINALIZED workflow (AGENTS.md status table; ROADMAP.md verifies these transitions). A prior DAO proposal (web dashboard explore) also depends on ActivityRoutes for scenario detail. This fix unblocks two consumers: mobile ORGANIZING flows and the dashboard workstream.\n\n**3. Load-bearing assumptions.**\n- *A1 — mounting is pure wiring.* Mostly validated by inspection: repositories exist, signatures take one/two args, DTOs (`CreateActivityRequest`) exist in `server/models/ActivityDTOs.kt`. Cheap to confirm at implementation time.\n- *A2 — the acceptance criteria are satisfiable by mounting.* **This one is questionable.** The acceptance criterion \"Steve (hors groupe) reçoit 403/404\" cannot pass with the current route code: the POST handler in `ActivityRoutes.kt` validates the payload and creates the activity with **no group-membership check** — the function only receives `ActivityRepository`, unlike `budgetRoutes`/`mealRoutes` which receive `eventRepository` + `database` precisely for guards. Merely mounting these routes means any authenticated user can read/create activities on any event (cross-event data exposure). Execution will therefore require either adding guards (small scope creep, the right outcome) or the criterion fails QA.\n- *Killable assumption:* A2. If the team refuses to add membership guards, the proposal ships an under-isolated endpoint and its own acceptance criteria fail. Its failure doesn't kill the 404 fix itself, but it kills the proposal *as specified*.\n\n**4. Opportunity cost.** Negligible — this is a small wiring fix plus guard work. The true cost of *not* doing it is higher: a shipped, navigable client feature is dead, QA cycles (Rio scenario) are blocked, and dependent workstreams (dashboard explore, gamification hooks) stay stalled.\n\n**5. Timing.** This \"adds value now\": activities belong to the ORGANIZING phase, which is the product's active workflow stage, and QA is actively hitting the 404s.\n\n## Vote\nfor\n\n## Reasoning\nThe bug is verified in code, blocks a shipped user-facing feature central to the ORGANIZING phase, unblocks active QA and a dependent DAO proposal, and costs very little. It restores designed behavior rather than adding new scope. My one material reservation — the route handlers lack the group-membership guards their own acceptance criteria (Steve → 403/404) presuppose — is an execution constraint, not a rejection reason; the criteria as written already force that guard work to happen. I recommend the implementer follow the `budgetRoutes`/`mealRoutes` pattern (pass `eventRepository` + `database` for membership checks) rather than a bare mount.\n\n## Composite Score Inputs (0-10)\n- userImpact: 8\n- businessImpact: 6\n- effort: 2\n- securityRisk: 5\n- confidence: 9\n\n## Risk Score (1-10)\n4 — Low delivery risk (wiring is trivial and evidence-backed), moderate security risk if mounted without the membership guards the acceptance criteria implicitly require (cross-event access for any authenticated JWT holder). Mitigated by criterion 3 (Steve check) forcing guard verification during QA.",
+          "durationMs": 90122,
+          "vote": {
+            "agentId": "strategist",
+            "agentName": "Product Strategist",
+            "position": "for",
+            "reasoning": "The bug is verified in code, blocks a shipped user-facing feature central to the ORGANIZING phase, unblocks active QA and a dependent DAO proposal, and costs very little. It restores designed behavior rather than adding new scope. My one material reservation — the route handlers lack the group-membership guards their own acceptance criteria (Steve → 403/404) presuppose — is an execution constraint, not a rejection reason; the criteria as written already force that guard work to happen. I recommend the implementer follow the `budgetRoutes`/`mealRoutes` pattern (pass `eventRepository` + `database` for membership checks) rather than a bare mount.",
+            "weight": 3
+          }
+        },
+        {
+          "agentId": "critic",
+          "agentName": "Critic / Risk Agent",
+          "role": "Risk scoring, objections, guardrails",
+          "content": "## Analysis\n\nI verified the proposal's core claims directly against the codebase.\n\n**Claim 1 — \"routes defined but never mounted\" → CONFIRMED.** `Application.kt` routing block mounts 26 route families (`budgetRoutes`, `mealRoutes`, `accommodationRoutes`, …) inside `authenticate(\"auth-jwt\")` + `rateLimit(RateLimitName(\"api\"))`. `activityRoutes` and `equipmentRoutes` appear in neither the imports nor the routing block. All `/api/events/{id}/activities|equipment` requests 404. The bug diagnosis is accurate.\n\n**Claim 2 — \"inject the required repositories\" → FEASIBLE.** `ActivityRepository(db)` lives in `shared/.../activity/ActivityRepository.kt`, `EquipmentRepository`/`EquipmentManager` in `shared/.../equipment/`. All take the existing `WakeveDb`. Trivial instantiation in `main()`/`module()`. The proposal correctly anticipates this.\n\n**Claim 3 — acceptance criterion \"Steve (hors groupe) reçoit 403/404 sur activities\" → NOT SATISFIABLE BY THE PROPOSED CHANGE.** This is the material finding. I grepped both route files end to end: **zero authorization logic**. No `call.principal`, no userId extraction, no participant-membership check, no `database` parameter. Contrast `MealRoutes.kt`, which does per-request checks (`database.participantQueries.selectByEventIdAndUserId(eventId, userId)`, `hasMealReadAccess(...)`). Mounting these routes inside `authenticate(\"auth-jwt\")` provides *authentication only*: any logged-in user of the platform — not just group members — passes.\n\n**Failure mode 1 (most severe) — cross-event broken access control (BOLA/API1):**\n- **Trigger:** any authenticated user (any valid JWT, any account) calls `GET /api/events/{anyEventId}/activities` to enumerate IDs, then `DELETE /api/events/{id}/activities/{activityId}` or `POST .../activities/{id}/register` with a foreign `participantId`.\n- **Blast radius:** every event on the platform. The delete handler has no ownership check at all → data destruction. Spoofed registrations fill capacity → legit participants get 409. Activity lists, costs, and participant identities leak to non-members.\n- **Detection:** routes return 2xx and log nothing; only the proposal's own Steve QA criterion would catch it — and it **will fail as scoped** (Steve gets 201, not 403). The success metric \"suite de tests serveur verte\" is false confidence: `ActivityRoutesErrorMessageTest.kt` only asserts error-message strings; no test mounts these routes in a real `testApplication`, so the suite stays green while the exposure ships.\n\n**Failure mode 2 — acceptance criteria contradict the described change.** The proposal as described (\"mount + inject\") either fails its own Steve criterion in QA, or, if QA is run loosely and passes, it has shipped the vulnerability above. There is no version of \"just mount them\" that satisfies the stated criteria.\n\n**Guardrails:** Rollback is trivial (revert a ~4-line diff) — acceptable. Rate limiting (100/min) and JWT-blacklist plugin are inherited correctly. Monitoring: generic 500 messages, no per-route metric — the BOLA would be invisible in production. No dedicated kill switch, but revert serves as one at this size.\n\n**What is solid:** the bug is real and well-evidenced (QA observation, code confirms), the mounting location matches the established pattern, repositories are trivially injectable, and this restores a phase-blocking ORGANIZING feature. I am not objecting to mounting the routes — I am objecting to mounting them *without the per-event authorization every sibling route family already implements*, which the description omits while the acceptance criteria demand it.\n\n**Unknown I cannot resolve:** whether the team intends to add authorization inside this fix (MealRoutes-style per-handler checks) or via a future shared middleware — nothing in the proposal or brief says, and the route signatures as written (`repository`-only) cannot express it without changes.\n\n## Vote\nagainst\n\n## Reasoning\nThe bug is genuine and the fix direction is correct, but the proposal is under-scoped against its own acceptance criteria: mounting routes that contain zero per-event authorization cannot deliver \"Steve reçoit 403/404\", and shipping as-described exposes every event's activities and equipment to read/write/delete by any authenticated platform user — including unauthenticated-per-event DELETE with no ownership check and no detection. Re-scope to include the same participant-membership guard MealRoutes/BudgetRoutes use (route signatures need `database` + userId extraction), plus at least one mounted-route test; then this is a clear \"for\".\n\n## Composite Score Inputs (0-10)\n- userImpact: 8 — activities/equipment are 100% broken today; fix restores a core ORGANIZING capability\n- businessImpact: 6 — unblocks the phase, but as scoped imports a security regression that could undo trust\n- effort: 3 — mounting is ~4 lines; the omitted authorization work is the real (moderate) cost\n- securityRisk: 8 — high as scoped: cross-tenant BOLA on all 20+ activity/equipment endpoints, incl. destructive delete\n- confidence: 9 — claims verified directly in Application.kt, ActivityRoutes.kt, EquipmentRoutes.kt, MealRoutes.kt, and the test suite\n\n## Risk Score (1-10)\n8",
+          "durationMs": 91717,
+          "vote": {
+            "agentId": "critic",
+            "agentName": "Critic / Risk Agent",
+            "position": "against",
+            "reasoning": "The bug is genuine and the fix direction is correct, but the proposal is under-scoped against its own acceptance criteria: mounting routes that contain zero per-event authorization cannot deliver \"Steve reçoit 403/404\", and shipping as-described exposes every event's activities and equipment to read/write/delete by any authenticated platform user — including unauthenticated-per-event DELETE with no ownership check and no detection. Re-scope to include the same participant-membership guard MealRoutes/BudgetRoutes use (route signatures need `database` + userId extraction), plus at least one mounted-route test; then this is a clear \"for\".",
+            "weight": 3
+          }
+        },
+        {
+          "agentId": "researcher",
+          "agentName": "Research Agent",
+          "role": "Market, competition, user signals",
+          "content": "## Analysis\n**Claim-by-claim verification (code + docs inspected):**\n\n1. **\"activityRoutes/equipmentRoutes définies mais jamais appelées dans Application.kt\" — EVIDENCED.** `grep` across `server/src` returns zero references to either function outside their definition files (`routes/ActivityRoutes.kt`, `routes/EquipmentRoutes.kt`). The routing block in `Application.kt` mounts `budgetRoutes`, `mealRoutes`, `accommodationRoutes`, etc., inside `authenticate(\"auth-jwt\") + rateLimit(api)` — but neither activities nor equipment. In Ktor, unmounted routes = 404; claim holds mechanically.\n\n2. **QA observation \"3 créations d'activités Rio → 404\" — EVIDENCED (pattern) / PLAUSIBLE (count).** `docs/qa/RIO_QA_SESSION_2026-09-18.md` lists **BUG-4 as a P0 blocker**: \"activityRoutes et equipmentRoutes ne sont pas enregistrés dans Application.kt → 404 systématique... La phase ORGANIZING perd sa fonctionnalité phare.\" The exact count of 3 creations is not in the report excerpt — plausible, unlabeled as such.\n\n3. **\"Inutilisable par les clients iOS/Android\" — EVIDENCED.** Client surfaces exist: `EventDetailScreen.kt` navigates to `event/{id}/activities`; `Phase5OrganizationUiContractTest` asserts the route contract exists.\n\n4. **\"Vérifier que les repository nécessaires sont instanciés\" — EVIDENCED as needed.** Neither `ActivityRepository` nor `EquipmentRepository` is currently instantiated in `Application.kt`; constructors are trivial (`(db: WakeveDb)` only; `EquipmentManager` is a default-arg singleton). Low effort, correctly anticipated by the proposal.\n\n5. **⚠️ Acceptance criterion \"Steve (hors groupe) reçoit 403/404\" — UNSUPPORTED by the described fix as written.** I inspected both route files: **neither contains any JWT-principal or group-membership check** (no `principal`, no 403 path). Peer routes cited in the proposal (`BudgetRoutes`, `MealRoutes`, `AccommodationRoutes`) all have per-handler guards (e.g., `hasConfirmedAccommodationAccess`, `mealAccessDenied`). Mere mounting inside `authenticate(\"auth-jwt\")` gives Steve a **valid JWT → 201**, not 403 — i.e., cross-event write access for any authenticated user. Meeting this criterion requires adding guards inside the handlers, which the description (\"monter + injecter repository\") does not mention. **Scope gap between description and acceptance criteria; the criteria are correct, the description under-scopes the work.**\n\n6. **Existing tests explain the silent failure:** `ActivityRoutesErrorMessageTest`/`EquipmentRoutesErrorMessageTest` test handlers in isolation — CI stays green while production 404s. This validates the proposal's inclusion of manual QA verification as a success metric.\n\n**Competitive scan / prior art:** The in-repo prior art is the mounting + guard pattern of budget/meal/accommodation routes. \"Do nothing\" leaves a QA-confirmed P0 that disables the ORGANIZING phase's flagship feature. No alternative approach competes.\n\n**Cheapest evidence to settle the biggest open question (Steve criterion):** one `testApplication` integration test mounting the routes with a valid JWT for a non-member — settles whether guards exist/are needed, at near-zero cost.\n\n## Vote\nfor\n\n## Reasoning\nThe core defect is fully evidenced in code (zero call sites) and independently confirmed by a real-backend QA session (BUG-4, P0). The fix pattern already exists in-repo, repositories are trivial to instantiate, and client surfaces are blocked today. The one material finding — the Steve 403/404 criterion requires authorization guards that the handlers currently lack and the description doesn't explicitly scope — is a gap to flag for `dao_plan`, not a reason to reject: the acceptance criteria already force the correct, secure outcome, and failing criteria at `dao_check` would block a guards-free implementation.\n\n## Composite Score Inputs (0-10)\n- userImpact: 8\n- businessImpact: 7\n- effort: 3\n- securityRisk: 4\n- confidence: 8\n\n## Risk Score (1-10)\n4 — Implementation risk is low (mounting + two one-arg constructors), but a literal reading of the description (mount only) would expose unguarded cross-event write endpoints to any JWT holder; the security outcome hinges on the acceptance criteria being enforced verbatim at dao_check.",
+          "durationMs": 101292,
+          "vote": {
+            "agentId": "researcher",
+            "agentName": "Research Agent",
+            "position": "for",
+            "reasoning": "The core defect is fully evidenced in code (zero call sites) and independently confirmed by a real-backend QA session (BUG-4, P0). The fix pattern already exists in-repo, repositories are trivial to instantiate, and client surfaces are blocked today. The one material finding — the Steve 403/404 criterion requires authorization guards that the handlers currently lack and the description doesn't explicitly scope — is a gap to flag for `dao_plan`, not a reason to reject: the acceptance criteria already force the correct, secure outcome, and failing criteria at `dao_check` would block a guards-free implementation.",
+            "weight": 2
+          }
+        },
+        {
+          "agentId": "prioritizer",
+          "agentName": "Prioritization Agent",
+          "role": "Impact/cost/risk scoring, roadmap fit",
+          "content": "I verified the proposal's claims directly against the codebase before deliberating.\n\n## Analysis\n\n**Bug confirmed (verified in source).** `Route.activityRoutes(...)` (ActivityRoutes.kt:27) and `Route.equipmentRoutes(...)` (EquipmentRoutes.kt:32) are defined but never invoked. Application.kt's `route(\"/api\")` block (lines 565–597) mounts 26 route groups — budget, meal, transport, accommodation, etc. — but not these two. Every `/api/events/{id}/activities` and `/equipment` request 404s. Additionally, `ActivityRepository` / `EquipmentRepository` are never instantiated in Application.kt at all, so the fix requires DI wiring plus mounting — the proposal correctly anticipates this (\"vérifier que les repository nécessaires sont instanciés dans le module\").\n\n**Prioritization assessment (comparative to current queue: repo-cleanup passes #28–30, UX uniformity #24–27):**\n- **Impact:** High relative to queue. The ORGANIZING phase — a core workflow state per AGENTS.md — has a fully dead server capability. QA is concretely blocked (3 failed Rio activity creations). `BadgeEligibilityChecker` in shared references activities, so gamification hooks are also starved. This outranks further cleanup work in user value; it restores a shipped-but-broken loop rather than adding new surface.\n- **Cost:** Small. The mount is 2 lines + repository instantiation. \"Small now beats large later\" holds trivially — no phased alternative is worth it.\n- **Scope inconsistency to flag (not mine to rate, but mine to sequence):** Acceptance criterion #3 (\"Steve receives 403/404 on activities\") is **not achievable by the described implementation**. `activityRoutes` takes only `ActivityRepository` — no `eventRepository`/`database` — and contains zero membership checks. Contrast `mealRoutes(...)`, which takes `eventRepository, database, moderationPolicy` and returns 403 per endpoint via `hasMealReadAccess`. Mounting activity routes as-is inside `authenticate(\"auth-jwt\") + rateLimit(\"api\")` would let any authenticated user read/write/delete activities on any event — below the project's own guard standard. The value-carrying scope is therefore: mount **with the mealRoutes-pattern membership guard added to ActivityRoutes.kt/EquipmentRoutes.kt** (signature change), wire repositories, and add a module-level routing test (the existing Phase5 test mounts the real `module()` — extending it to activities would have caught this bug and prevents recurrence). If forced to descope: activities carry the value (client + QA blocked); equipment rides along at near-zero marginal cost in the same PR.\n- **Sequencing:** Go **before** any further feature work touching activities/gamification and before more cleanup passes. Displaces nothing material — it's a fast, unblocking fix.\n\n**Uncertainty:** I did not run the server to reproduce the 404s, but the static evidence is conclusive. Effort/risk figures below are scoring inputs only; authoritative estimates belong to the Delivery Agent and Critic.\n\n## Vote\nfor\n\n## Reasoning\nVerified, user-facing regression in a core workflow (ORGANIZING) with a small, mechanical fix and clear acceptance criteria. Highest value-per-effort item visible in the current queue. I vote for with one deliberate amendment the swarm should adopt: the authorization criterion (Steve → 403) requires adding membership guards inside the route files, not merely mounting them — otherwise the proposal's own acceptance criteria cannot pass, and mounting unguarded write endpoints would regress below the guard standard already set by meals/budget. Effort remains small either way.\n\n## Composite Score Inputs (0-10)\n- userImpact: 7\n- businessImpact: 6\n- effort: 3 (lower = less effort; includes guard addition + regression test)\n- securityRisk: 4 (lower = less risk; 4 only because mounting without guards would expose endpoints — with guards it drops to ~2; Critic owns this rating)\n- confidence: 9\n\n## Risk Score (1-10)\n3 — mechanical wiring fix with small blast radius; the main residual risk is the described-scope vs acceptance-criteria mismatch on authorization, which is resolved by including the membership guards.",
+          "durationMs": 79016,
+          "vote": {
+            "agentId": "prioritizer",
+            "agentName": "Prioritization Agent",
+            "position": "for",
+            "reasoning": "Verified, user-facing regression in a core workflow (ORGANIZING) with a small, mechanical fix and clear acceptance criteria. Highest value-per-effort item visible in the current queue. I vote for with one deliberate amendment the swarm should adopt: the authorization criterion (Steve → 403) requires adding membership guards inside the route files, not merely mounting them — otherwise the proposal's own acceptance criteria cannot pass, and mounting unguarded write endpoints would regress below the guard standard already set by meals/budget. Effort remains small either way.",
+            "weight": 2
+          }
+        },
+        {
+          "agentId": "designer",
+          "agentName": "UX/UI Designer",
+          "role": "UX/UI critique, design directions, accessibility",
+          "content": "## Analysis\n\n**Verified in code — the defect is real and user-facing:**\n\n- `activityRoutes(repository: ActivityRepository)` is defined at `server/.../routes/ActivityRoutes.kt:27` and `equipmentRoutes(repository, manager)` at `EquipmentRoutes.kt:32`, but neither function is imported or called anywhere in `Application.kt`. The routing block (lines 558–605) mounts 20+ domain route groups (`budgetRoutes`, `mealRoutes`, `transportRoutes`, `accommodationRoutes`…) — activities and equipment are the only absentees. Every request to `/api/events/{id}/activities` and `/equipment` 404s.\n- The required repositories exist and follow the exact instantiation pattern already used for siblings: `BudgetRepository(database)` / `MealRepository(database)` at `Application.kt:247-248`; `ActivityRepository(db: WakeveDb)` and `EquipmentRepository(db: WakeveDb)` exist in shared code. `EquipmentManager` is a singleton with a default value. Wiring is genuinely trivial.\n\n**UX read (Mode: Operate):** This is the worst-class defect for an Operate surface — a visible, promoted entry point (the ORGANIZING phase, reachable in both clients) terminating in a hard dead end. QA observed 3 consecutive failed creation attempts (Rio scenario): each is a user told \"yes, do this\" by the UI, then denied by the backend. This erodes trust precisely at the phase where the product promise (\"decide who does what\") must be delivered. The fix removes the dead end at the primary action step — exactly where hesitation is most costly.\n\n**Consistency check — one real gap found:** Sibling routes perform explicit per-event membership guards: `MealRoutes.kt` returns 403 with contextual copy (`mealAccessDenied(eventId, userId, \"create_meal\")`) on every endpoint; `BudgetRoutes.kt` likewise. `ActivityRoutes.kt` and `EquipmentRoutes.kt` contain **no membership checks and no 403 paths** — their signatures take only their own repository, so they *cannot* check membership as written. The proposal's acceptance criterion \"Steve (hors groupe) reçoit 403/404 sur activities\" is therefore **not achievable by the described fix** (mount + inject). Delivery must either extend the signatures to include `eventRepository`/`database` and add guards matching the meal/budget pattern, or the AC fails QA. The AC encodes the correct behavior — the description under-scopes it. Flagging this so it isn't resolved by silently dropping the criterion.\n\n**Minor polish note (non-blocking):** Activity/Equipment error copy is generic (\"Failed to fetch activity participants. Please try again.\") vs. the contextual, action-scoped messages in MealRoutes. Match the sibling pattern when touching these files.\n\n**Accessibility:** No UI changes; no WCAG impact. N/A.\n\n## Vote\nfor\n\n## Reasoning\nThe diagnosis is verified against source: fully implemented route files exist and are simply never mounted, so a shipped, core ORGANIZING feature 404s for every legitimate user — a hard dead end at the primary action of an Operate surface. The fix is minimal, follows the established mounting pattern exactly (same auth + rateLimit block as siblings), and restores cross-feature consistency. I vote for while flagging one delivery-critical gap: the acceptance criterion requiring 403/404 for out-of-group users cannot be met by mounting alone, because the route files contain no membership guards and their signatures lack the dependencies needed to add them. Delivery must extend the wiring to include the sibling-style authorization checks; otherwise the proposal ships an authorization inconsistency where every other domain has guards.\n\n## Composite Score Inputs (0-10)\n- userImpact: 9\n- businessImpact: 7\n- effort: 3\n- securityRisk: 4\n- confidence: 9\n\n## Risk Score (1-10)\n4 — Small, surgical, reversible change; but the description/AC mismatch on authorization means a naive implementation would mount endpoints that any authenticated user can hit for any event, inconsistent with every sibling route. Resolving that gap (signature extension + membership guards per the meal/budget template) is modest, well-templated work — provided it isn't descoped during delivery.",
+          "durationMs": 79584,
+          "vote": {
+            "agentId": "designer",
+            "agentName": "UX/UI Designer",
+            "position": "for",
+            "reasoning": "The diagnosis is verified against source: fully implemented route files exist and are simply never mounted, so a shipped, core ORGANIZING feature 404s for every legitimate user — a hard dead end at the primary action of an Operate surface. The fix is minimal, follows the established mounting pattern exactly (same auth + rateLimit block as siblings), and restores cross-feature consistency. I vote for while flagging one delivery-critical gap: the acceptance criterion requiring 403/404 for out-of-group users cannot be met by mounting alone, because the route files contain no membership guards and their signatures lack the dependencies needed to add them. Delivery must extend the wiring to include the sibling-style authorization checks; otherwise the proposal ships an authorization inconsistency where every other domain has guards.",
+            "weight": 2
+          }
+        },
+        {
+          "agentId": "spec-writer",
+          "agentName": "Spec Writer",
+          "role": "PRD, user stories, acceptance criteria",
+          "content": "## Analysis\n\n**Verified evidence (direct code inspection):**\n\n1. **Root cause confirmed.** `grep` across `server/` finds zero call sites for `activityRoutes(...)` or `equipmentRoutes(...)` outside their own definition files. `Application.kt` `main()`/`module()` instantiates repositories for budget/meal/comment/accommodation/transport but **not** `ActivityRepository` nor `EquipmentRepository`. The described bug (404 on `/api/events/{id}/activities` and equipment) is real.\n2. **Injection is feasible as described.** `ActivityRepository(db: WakeveDb)` and `EquipmentRepository(db: WakeveDb)` live in `shared/commonMain` and take only the database, which is a `module()` parameter. `equipmentRoutes` has a defaulted `manager` param. No hidden blocker.\n3. **Material spec defect — AC3 is not deliverable by the described change.** `ActivityRoutes.kt` and `EquipmentRoutes.kt` contain **zero** membership/permission checks (no `principal`, no `Forbidden`, no event-membership lookup — grep count: 0). Sibling routes (e.g., `BudgetRoutes`) extract `principal.userId` and enforce `hasConfirmedAttendeeBudgetAccess(...)` → 403. Mounting `activityRoutes(repository)` as-is inside `authenticate(\"auth-jwt\")` means any **authenticated** user outside the group (Steve) gets **201**, not 403/404. The acceptance criteria demand a security property the scoped change does not implement. Either the scope must add budget-style guards, or AC3 must be dropped — the proposal is internally inconsistent as written.\n\n**Ambiguity sweep (each is a question to settle before `dao_plan`):**\n- **Q1 (blocking):** Does scope include adding membership guards to activity/equipment handlers (pattern: `BudgetRoutes`), or is AC3 removed? As specified, AC3 fails at QA.\n- **Q2:** \"Les endpoints équipement répondent (2xx attendu sur opération valide)\" — which operation? Deterministic rewrite: *GIVEN an authenticated participant of event E, WHEN `GET /api/events/{E}/equipment`, THEN 200 with a JSON array (possibly empty).*\n- **Q3:** \"Participant du groupe\" — any participant, confirmed attendee only, or organizer? Sibling budget routes use confirmed-attendee semantics. Also: must the event be in `ORGANIZING`/`CONFIRMED` status for activity creation? Current handler checks neither.\n- **Q4:** Unspecified failure behavior: `POST /api/events/{nonexistent-id}/activities` — handlers never verify the event exists; as written this returns 201 with an orphan activity. Intended?\n\n**Testability:** AC1 is testable but under-specified (Q3). AC2 is vague (Q2). AC3 is deterministic but contradicts scope (Q1). AC4 is verifiable (route placement + 429 behavior at >100 req/min). AC5 (\"3 activités du scénario Rio acceptée\") references QA-local fixtures and \"acceptée\" is undefined — acceptable as a supplementary smoke check, not as an acceptance criterion. Note: every AC string is duplicated verbatim (formatting artifact, harmless to parsing).\n\n**Scope:** Prescribing the routing block and injection points is acceptable here — the fix *is* a code-location change; the behavior spec (\"endpoints reachable under JWT + rate limit, membership enforced\") is correctly separated.\n\n## Vote\nfor\n\n## Reasoning\nThe bug is verified directly in source (zero call sites; missing repository instantiation), the fix is mechanically simple, and it unblocks the entire ORGANIZING phase and gamification for all clients — the proposal must proceed. However, my vote is conditional in substance: AC3 as written requires membership guards that the described change does not include. Q1 must be settled during planning (add guards, matching the budget/meal precedent — recommended — or explicitly rescoped AC3), otherwise the proposal will fail its own acceptance at QA and would expose unguarded write endpoints (POST/PUT/DELETE activities and equipment) to any authenticated user, below the API's own guard standard. Q2–Q4 are specification debt that should be attached to the plan as settle-before-execute questions.\n\n## Composite Score Inputs (0-10)\n- userImpact: 8\n- businessImpact: 6\n- effort: 3\n- securityRisk: 6\n- confidence: 8\n\n## Risk Score (1-10)\n6 — Low-complexity change with verified root cause, but as literally specified it either fails its own AC3 or ships unguarded write endpoints (IDOR-style exposure on any event's activities/equipment), an access-control regression relative to sibling routes. Risk drops to ~2 if Q1 is resolved in favor of adding budget-style membership guards.",
+          "durationMs": 81656,
+          "vote": {
+            "agentId": "spec-writer",
+            "agentName": "Spec Writer",
+            "position": "for",
+            "reasoning": "The bug is verified directly in source (zero call sites; missing repository instantiation), the fix is mechanically simple, and it unblocks the entire ORGANIZING phase and gamification for all clients — the proposal must proceed. However, my vote is conditional in substance: AC3 as written requires membership guards that the described change does not include. Q1 must be settled during planning (add guards, matching the budget/meal precedent — recommended — or explicitly rescoped AC3), otherwise the proposal will fail its own acceptance at QA and would expose unguarded write endpoints (POST/PUT/DELETE activities and equipment) to any authenticated user, below the API's own guard standard. Q2–Q4 are specification debt that should be attached to the plan as settle-before-execute questions.",
+            "weight": 1
+          }
+        },
+        {
+          "agentId": "delivery",
+          "agentName": "Delivery Agent",
+          "role": "Implementation plan, tasks, CI/CD",
+          "content": "All evidence gathered. The routes have zero call sites, repositories live in shared (already a server dependency), schema tables exist, no path conflicts — but a critical authorization gap needs flagging.\n\n## Analysis\n\n**Bug verified in source.** `activityRoutes` and `equipmentRoutes` have **zero call sites** anywhere in `server/src` (grep-confirmed); they are also absent from the imports of `Application.kt`, while all 20+ sibling route functions are mounted inside `authenticate(\"auth-jwt\") { rateLimit(\"api\") { route(\"/api\") { ... } } }`. Every request to `/api/events/{id}/activities` and `/api/events/{id}/equipment` 404s. The QA observation (Rio activities → 404) is fully consistent.\n\n**Wiring feasibility verified.** Server already depends on `projects.shared` (server/build.gradle.kts:79). `ActivityRepository(db: WakeveDb)` and `EquipmentRepository(db: WakeveDb)` are in shared commonMain and constructible from the `database` instance the server already builds; `equipmentRoutes`' `manager` param has a default (`EquipmentManager` object). Schema tables (`Activity.sq`, `ActivityParticipant.sq`, `EquipmentItem.sq`) already exist — **no migration**. No path conflicts with other `/events/{eventId}/*` prefixes.\n\n**⚠️ Critical scope gap — flagging, not silently planning.** The proposal's acceptance criterion \"Steve (hors groupe) reçoit 403/404 sur activities\" will **not** be satisfied by the fix as literally described. Neither route file contains any group-membership or organizer check — unlike `mealRoutes`/`budgetRoutes`, which the proposal itself cites as the pattern: every meal endpoint checks `hasMealReadAccess` (organizer OR participant via `database.participantQueries.selectByEventIdAndUserId`) or `isMealOrganizer` for mutations. Mounting the routes as-is creates an **IDOR**: any authenticated user could read/create/update/delete activities and equipment of *any* event, register/unregister arbitrary `participantId`s (taken from the request body), and `DELETE` endpoints don't even verify the item belongs to the given `eventId` (cross-event deletion). Meeting the proposal's own AC therefore requires widening the signatures (e.g., `activityRoutes(repository, eventRepository, database)`) and inserting per-endpoint guards per the MealRoutes pattern. The mechanical mount alone is ~4 lines; the guard work is the real substance.\n\nSecondary policy nuance to settle in plan: AC #1 says a *participant* (Bob) gets 201 on POST activities, but the meal pattern makes create organizer-only. The plan must choose \"any group member may create activities\" to satisfy AC #1 as written.\n\n**Behavior slices:**\n- **Slice A** — Activities reachable & functional behind JWT+rateLimit (POST→201, list/schedule/stats/date/schedule queries).\n- **Slice B** — Equipment reachable (2xx on valid create/list/assign/status ops).\n- **Slice C** — Access-control parity with sibling routes: non-member authenticated user → 403 on activities and equipment; cross-event item access rejected; eventId-consistency on delete.\n- **Slice D** — Wire-up: repository instantiation in `main()` + module default params + mount calls.\n\n**Test strategy.** The seam already exists: `ApplicationTest.kt` shows `testApplication { module(database, eventRepository) }` with a test DB; JWT tokens obtainable via the auth test helpers used by `AuthRoutesTest`/`EventRoutesAuthValidationTest`. No new adapter seam needed — repositories and DB are already injected params. Existing `ActivityRoutesErrorMessageTest`/`EquipmentRoutesErrorMessageTest` only assert error-copy hygiene, **not routing** — which is exactly why this bug survived a green suite. Route-level tests must be written first: (1) member POST activities → 201 (fails today with 404 — perfect red state); (2) equipment create → 2xx; (3) outsider with valid JWT → 403 (fails after a naive mount — keeps slice C honest).\n\n**Dependencies & ordering.** None external: no migrations, no other proposals, no library additions. C depends on A/B; D last. A and B parallelizable.\n\n**Effort.**\n- A+B+D (mount + wiring): **S** (< half day). Uncertainty: low — signatures and dependencies verified directly in source.\n- C (guards across ~11 activity + ~10 equipment endpoints, mirroring MealRoutes helpers + tests): **M** (0.5–1.5 days). Uncertainty source: mutation-policy decision (who besides organizer may update/delete/register) — a one-line decision in plan shrinks it.\n\n**Delivery impact.** Server-only; no feature flag needed (routes were dead — mounting with guards restores intended behavior); no deployment/pipeline changes beyond normal server deploy; rollback = revert commit. CI: existing server test task picks up the new route tests.\n\n## Vote\nfor\n\n## Reasoning\nThe bug is real, verified in source (dead route functions, zero call sites), and blocks an entire phase-ORGANIZING capability plus gamification dependencies. The fix is cheap, well-precedented (identical MealRoutes/BudgetRoutes mounting pattern), needs no migration, no new dependencies, no conflicts. My FOR is explicitly conditioned on the scope including **access guards (slice C)**: mounting without them would ship an IDOR and fail the proposal's own Steve-403 acceptance criterion — I flag this for the swarm rather than treating the literal \"just mount + inject\" text as sufficient. Existing tests only cover error-message copy, so test-first route tests are mandatory, not optional. This is also squarely a bug fix (restore intended behavior), which per AGENTS.md needs no separate governance proposal — this one is appropriately scoped as technical-change.\n\n## Composite Score Inputs (0-10)\n- userImpact: 8 — unblocks the activities feature entirely (currently 100% broken → 404) for both mobile clients during ORGANIZING phase, plus equipment endpoints.\n- businessImpact: 6 — restores a roadmap-critical capability (ORGANIZING phase, gamification dependency); not revenue-facing but gates a whole workflow.\n- effort: 2 — S for the mount + M for guards/tests ≈ ≤2 dev-days total; low uncertainty (all signatures/deps verified in source).\n- securityRisk: 3 — low *if* guards are included as flagged; a naive mount-only interpretation would be 8-9 (authenticated IDOR across all events). Score assumes the flagged scope amendment is honored.\n- confidence: 9 — claims verified directly against source: dead routes, shared dependency present, schema present, no path conflicts, precedent pattern on file.\n\n## Risk Score (1-10)\n3 — Low delivery risk (no migration, no dependencies, trivially revertible). The dominant risk is interpretive, not technical: if the swarm reads the proposal as mount-only, it ships an authorization hole that its own acceptance criteria would then fail to catch without route-level tests. Secondary: the participant-vs-organizer create-permission nuance must be settled in the plan (one decision). Both are resolved cheaply by adopting the flagged guard scope and test-first slices.",
+          "durationMs": 126754,
+          "vote": {
+            "agentId": "delivery",
+            "agentName": "Delivery Agent",
+            "position": "for",
+            "reasoning": "The bug is real, verified in source (dead route functions, zero call sites), and blocks an entire phase-ORGANIZING capability plus gamification dependencies. The fix is cheap, well-precedented (identical MealRoutes/BudgetRoutes mounting pattern), needs no migration, no new dependencies, no conflicts. My FOR is explicitly conditioned on the scope including **access guards (slice C)**: mounting without them would ship an IDOR and fail the proposal's own Steve-403 acceptance criterion — I flag this for the swarm rather than treating the literal \"just mount + inject\" text as sufficient. Existing tests only cover error-message copy, so test-first route tests are mandatory, not optional. This is also squarely a bug fix (restore intended behavior), which per AGENTS.md needs no separate governance proposal — this one is appropriately scoped as technical-change.",
+            "weight": 1
+          }
+        }
+      ],
+      "createdAt": "2026-09-18T19:06:16.798Z",
+      "riskZone": "red",
+      "deliberationStartedAt": "2026-09-18T19:07:03.213Z",
+      "compositeScore": {
+        "axes": {
+          "userImpact": 8,
+          "businessImpact": 6.25,
+          "effort": 2.625,
+          "securityRisk": 4.625,
+          "confidence": 8.75
+        },
+        "weighted": 7.1,
+        "riskZone": "green",
+        "breakdown": "8.0×0.3 + 6.3×0.2 + 7.4×0.15 + 5.4×0.2 + 8.8×0.15 = 7.1"
+      },
+      "synthesis": "## Synthesis — Proposal #34\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 8\n**For:** 7 | **Against:** 1 | **Abstain:** 0\n\n### Supporting Arguments\n- **Solution Architect:** Le diagnostic est vérifié et exact, la faisabilité est immédiate avec la stack existante, et le changement est purement du wiring au composition root — réversible et conforme au pattern des autres rou...\n- **Product Strategist:** The bug is verified in code, blocks a shipped user-facing feature central to the ORGANIZING phase, unblocks active QA and a dependent DAO proposal, and costs very little. It restores designed behavior...\n- **Research Agent:** The core defect is fully evidenced in code (zero call sites) and independently confirmed by a real-backend QA session (BUG-4, P0). The fix pattern already exists in-repo, repositories are trivial to i...\n- **Prioritization Agent:** Verified, user-facing regression in a core workflow (ORGANIZING) with a small, mechanical fix and clear acceptance criteria. Highest value-per-effort item visible in the current queue. I vote for with...\n- **UX/UI Designer:** The diagnosis is verified against source: fully implemented route files exist and are simply never mounted, so a shipped, core ORGANIZING feature 404s for every legitimate user — a hard dead end at th...\n- **Spec Writer:** The bug is verified directly in source (zero call sites; missing repository instantiation), the fix is mechanically simple, and it unblocks the entire ORGANIZING phase and gamification for all clients...\n- **Delivery Agent:** The bug is real, verified in source (dead route functions, zero call sites), and blocks an entire phase-ORGANIZING capability plus gamification dependencies. The fix is cheap, well-precedented (identi...\n\n### Opposing Arguments\n- **Critic / Risk Agent:** The bug is genuine and the fix direction is correct, but the proposal is under-scoped against its own acceptance criteria: mounting routes that contain zero per-event authorization cannot deliver \"Ste...\n\n### Key Themes\n- User experience\n- Technical debt\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n",
+      "dryRunAt": "2026-09-18T19:11:06.872Z",
+      "dryRunCanProceed": false
+    },
+    {
+      "id": 35,
+      "title": "fix(api): budget baseline perdue au premier PUT + erreurs 400 au lieu de 500 sur budget/commentaires (BUG-6,7,8)",
+      "type": "technical-change",
+      "description": "3 corrections d'API : (1) BudgetRoutes PUT baseline : si aucun budget n'existe, créer le budget avec les valeurs reçues (upsert) au lieu de createBudget(eventId) à zéro ; distinguer receive ValidationError (400 avec champ) des échecs repository (500). (2) BudgetRoutes : attraper kotlinx.serialization.MissingFieldException/ConversionException et répondre 400 descriptive plutôt que le catch générique 500 ; idéalement rendre createdAt/updatedAt optionnels dans le DTO Budget reçu (le serveur les régénère de toute façon via copy(existing.createdAt)). (3) Commentaires : supprimer le CreateCommentRequest mort de models/CommentDTOs.kt (éclipsé par celui de CommentRoutes.kt) pour une seule source de vérité ; mapper receive failures vers 400 ; persister le authorName fourni (ou résolu depuis le user) au lieu de « guest_<uuid> » afin que le fil affiche les prénoms. Tests d'intégration pour chaque cas.",
+      "problemStatement": "Trois défauts d'API constatés en QA : (1) le premier PUT /api/events/{id}/budget répond 200 OK mais la branche existing==null appelle repository.createBudget(eventId) qui ignore totalement le payload → baseline 4 200 € perdue silencieusement, budget à zéro (le 2ᵉ PUT fonctionne). (2) Un payload budget incomplet (createdAt/updatedAt requis dans le DTO) lève MissingFieldException attrapée par le catch générique → 500 au lieu de 400. (3) Commentaires : deux CreateCommentRequest coexistent — celui de CommentRoutes.kt (authorId, authorName, section, sectionItemId, parentCommentId requis) éclipse celui de models/CommentDTOs.kt (participantId/content/parentId + toComment()) qui est du code mort ; un payload naïf renvoie 500 au lieu de 400, et le authorName fourni n'est pas conservé (affichage guest_<uuid> dans le fil).",
+      "acceptanceCriteria": [
+        "Le premier PUT /api/events/{id}/budget avec un payload complet crée le budget avec les valeurs reçues (totalEstimated et catégories persistées, réponse 200 fidèle)",
+        "Un payload budget incomplet renvoie 400 avec indication du champ manquant (plus de 500)",
+        "Un payload commentaire sans authorId/section valide renvoie 400 (et non 500) ; un intrus hors groupe reste 403",
+        "Le DTO mort CreateCommentRequest de server/src/main/kotlin/com/guyghost/wakeve/models/CommentDTOs.kt est supprimé ou aligné (une seule source de vérité)",
+        "authorName fourni est persisté (ou résolu depuis le user) et visible dans GET /comments",
+        "Tests : baseline au premier PUT, 400 sur payload partiel, commentaires 400/403/201"
+      ],
+      "successMetrics": [
+        "QA : premier PUT budget persiste 4 200 € du premier coup",
+        "Payloads invalides → 400 sur budget et commentaires",
+        "Fil de commentaires affiche les noms fournis",
+        "Tests serveur verts"
+      ],
+      "rollbackConditions": [
+        "Régression sur la validation modération des commentaires (ModerationRejectedException doit rester 400)",
+        "Perte de baseline budget existante lors d'un PUT de mise à jour",
+        "Échec des tests serveur existants (budget, commentaires, modération)"
+      ],
+      "affectedPaths": [
+        "server/src/main/kotlin/com/guyghost/wakeve/routes/BudgetRoutes.kt",
+        "server/src/main/kotlin/com/guyghost/wakeve/routes/CommentRoutes.kt",
+        "server/src/main/kotlin/com/guyghost/wakeve/models/CommentDTOs.kt"
+      ],
+      "proposedBy": "user",
+      "status": "open",
+      "votes": [],
+      "agentOutputs": [],
+      "createdAt": "2026-09-18T19:06:54.102Z",
+      "riskZone": "red"
+    },
+    {
+      "id": 36,
+      "title": "fix(calendar): conformité RFC 5545 des invitations ICS — TRIGGER VALARM + invitees (BUG-9)",
+      "type": "technical-change",
+      "description": "Corriger generateICSInvitation dans CalendarService : (1) remplacer les TRIGGER de durée malformés (ex: -P1DT090000) par des durées RFC 5545 valides (-P1DT9H, -P1W, -PT15M…) — centraliser un formatter de durée ; (2) faire remonter les invitees fournis par CalendarRoutes POST /ics (ICSInvitationRequest.invitees) jusqu'aux lignes ATTENDEE;ROLE=REQ-PARTICIPANT;mailto:{invitee}, et utiliser pour ORGANIZER l'identité réelle de l'organisateur (email/nom) plutôt que l'adresse guest interne ; (3) vérifier le rendu TZ-aware de DTSTART/DTEND (UTC accepté RFC, mais conserver la cohérence avec l'événement). Mettre à jour CalendarServiceTest (le test actuel valide le contenu ICS et timezone) avec des cas TRIGGER et ATTENDEE.",
+      "problemStatement": "L'ICS généré par CalendarService (QA Rio) contient des TRIGGER VALARM invalides selon la RFC 5545 : « -P1DT090000 » n'est pas une durée valide (désignateur H manquant ; forme correcte -P1DT9H ou date-time absolu). Risque : rappels rejetés/ignorés par Apple Calendar (iOS) et Google Calendar (Android), contredisant l'exigence AGENTS.md d'invitations ICS conformes RFC 5545 avec VALARM. Par ailleurs, POST /api/events/{id}/calendar/ics accepte un champ invitees mais l'ICS produit liste uniquement les adresses guest internes (ORGANIZER;CN=Invité:mailto:guest_…@guest.wakeve.local) : les destinataires réels ne reçoivent pas d'invitation adressée.",
+      "acceptanceCriteria": [
+        "Les VALARM générés utilisent un TRIGGER conforme RFC 5545 (durée valide type -P1DT9H / -PT15M, ou date-time absolue) — plus de -P1DT090000",
+        "Quand des invitees (emails) sont fournis, ils apparaissent en ATTENDEE;mailto: et l'ORGANIZER utilise l'email/nom de l'organisateur réel",
+        "DTSTART/DTEND respectent le fuseau de l'événement (America/Sao_Paulo) conformément à l'AGENTS.md (TZ-aware)",
+        "CalendarServiceTest mis à jour : assertions sur le format TRIGGER et les ATTENDEE fournis",
+        "QA : ICS importable sans rejet du rappel (validation format)"
+      ],
+      "successMetrics": [
+        "ICS QA Rio : TRIGGER valides (-P1DT9H / -P1W), 3 ATTENDEE réels présents",
+        "CalendarServiceTest vert incluant les nouvelles assertions",
+        "Aucune régression Phase 4.6/5.6 (tests Android/iOS calendrier)"
+      ],
+      "rollbackConditions": [
+        "Régression sur la génération TZ-aware existante (CalendarServiceTest timezone)",
+        "UID d'événement modifié (casser l'idempotence des invites)",
+        "Rejet des ICS existants déjà distribués"
+      ],
+      "affectedPaths": [
+        "shared/src/commonMain/kotlin/com/guyghost/wakeve/calendar/CalendarService.kt",
+        "server/src/main/kotlin/com/guyghost/wakeve/routes/CalendarRoutes.kt",
+        "shared/src/commonTest/kotlin/com/guyghost/wakeve/calendar/CalendarServiceTest.kt"
+      ],
+      "proposedBy": "user",
+      "status": "open",
+      "votes": [],
+      "agentOutputs": [],
+      "createdAt": "2026-09-18T19:06:54.102Z",
+      "riskZone": "orange"
     }
   ],
   "config": {
@@ -5163,7 +5746,7 @@
     "quorumFloor": 60,
     "staleThresholdHours": 24
   },
-  "nextProposalId": 31,
+  "nextProposalId": 37,
   "initialized": true,
   "auditLog": [
     {
@@ -6479,10 +7062,127 @@
       "action": "proposal_executed",
       "actor": "user",
       "details": "Executed #30"
+    },
+    {
+      "id": 147,
+      "timestamp": "2026-09-18T19:06:16.798Z",
+      "proposalId": 31,
+      "layer": "governance",
+      "action": "proposal_created",
+      "actor": "user",
+      "details": "Proposal \"fix(poll): permettre la modification de vote avant la deadline (BUG-1)\" created"
+    },
+    {
+      "id": 148,
+      "timestamp": "2026-09-18T19:06:16.798Z",
+      "proposalId": 32,
+      "layer": "governance",
+      "action": "proposal_created",
+      "actor": "user",
+      "details": "Proposal \"fix(sync): accorder le permis aggregate_write_authorization dans la confirmation par sync (BUG-2)\" created"
+    },
+    {
+      "id": 149,
+      "timestamp": "2026-09-18T19:06:16.798Z",
+      "proposalId": 33,
+      "layer": "governance",
+      "action": "proposal_created",
+      "actor": "user",
+      "details": "Proposal \"fix(lifecycle): rendre la finalisation atteignable et explicite (BUG-3 + BUG-5)\" created"
+    },
+    {
+      "id": 150,
+      "timestamp": "2026-09-18T19:06:16.798Z",
+      "proposalId": 34,
+      "layer": "governance",
+      "action": "proposal_created",
+      "actor": "user",
+      "details": "Proposal \"fix(server): monter les routes activities et equipment dans le routing (BUG-4)\" created"
+    },
+    {
+      "id": 151,
+      "timestamp": "2026-09-18T19:06:54.102Z",
+      "proposalId": 35,
+      "layer": "governance",
+      "action": "proposal_created",
+      "actor": "user",
+      "details": "Proposal \"fix(api): budget baseline perdue au premier PUT + erreurs 400 au lieu de 500 sur budget/commentaires (BUG-6,7,8)\" created"
+    },
+    {
+      "id": 152,
+      "timestamp": "2026-09-18T19:06:54.102Z",
+      "proposalId": 36,
+      "layer": "governance",
+      "action": "proposal_created",
+      "actor": "user",
+      "details": "Proposal \"fix(calendar): conformité RFC 5545 des invitations ICS — TRIGGER VALARM + invitees (BUG-9)\" created"
+    },
+    {
+      "id": 153,
+      "timestamp": "2026-09-18T19:07:03.206Z",
+      "proposalId": 31,
+      "layer": "governance",
+      "action": "deliberation_started",
+      "actor": "system",
+      "details": "Deliberation on #31"
+    },
+    {
+      "id": 154,
+      "timestamp": "2026-09-18T19:07:03.213Z",
+      "proposalId": 34,
+      "layer": "governance",
+      "action": "deliberation_started",
+      "actor": "system",
+      "details": "Deliberation on #34"
+    },
+    {
+      "id": 155,
+      "timestamp": "2026-09-18T19:10:38.010Z",
+      "proposalId": 31,
+      "layer": "intelligence",
+      "action": "deliberation_approved",
+      "actor": "system",
+      "details": "Approved: 100%"
+    },
+    {
+      "id": 156,
+      "timestamp": "2026-09-18T19:10:51.263Z",
+      "proposalId": 34,
+      "layer": "intelligence",
+      "action": "deliberation_approved",
+      "actor": "system",
+      "details": "Approved: 82%"
+    },
+    {
+      "id": 157,
+      "timestamp": "2026-09-18T19:10:59.468Z",
+      "proposalId": 31,
+      "layer": "control",
+      "action": "gates_passed",
+      "actor": "system",
+      "details": "All gates passed"
+    },
+    {
+      "id": 158,
+      "timestamp": "2026-09-18T19:11:12.183Z",
+      "proposalId": 34,
+      "layer": "control",
+      "action": "gates_passed",
+      "actor": "system",
+      "details": "All gates passed"
+    },
+    {
+      "id": 159,
+      "timestamp": "2026-09-18T19:11:21.403Z",
+      "proposalId": 31,
+      "layer": "delivery",
+      "action": "proposal_executed",
+      "actor": "user",
+      "details": "Executed #31"
     }
   ],
-  "nextAuditId": 147,
-  "stateRevision": 15,
+  "nextAuditId": 160,
+  "stateRevision": 23,
   "controlResults": {
     "1": {
       "proposalId": 1,
@@ -10605,6 +11305,309 @@
           "autoChecked": true
         }
       ]
+    },
+    "31": {
+      "proposalId": 31,
+      "timestamp": "2026-09-18T19:10:59.466Z",
+      "allGatesPassed": true,
+      "blockerCount": 0,
+      "warningCount": 1,
+      "gates": [
+        {
+          "gateId": "quorum-quality",
+          "name": "Quorum Quality",
+          "passed": true,
+          "severity": "blocker",
+          "message": "Quorum met (100% weighted participation ≥ 60%)",
+          "details": {
+            "quorumPercent": 100,
+            "quorumRequired": 60,
+            "votingAgents": 8,
+            "totalAgents": 7,
+            "totalVotingWeight": 17
+          }
+        },
+        {
+          "gateId": "risk-threshold",
+          "name": "Risk Threshold",
+          "passed": true,
+          "severity": "warning",
+          "message": "Risk score 2.5 ≤ threshold 7",
+          "details": {
+            "avgRisk": 2.5,
+            "riskScores": [
+              2,
+              2,
+              2,
+              4,
+              3,
+              2,
+              2,
+              3
+            ]
+          }
+        },
+        {
+          "gateId": "vote-consensus",
+          "name": "Vote Consensus",
+          "passed": true,
+          "severity": "warning",
+          "message": "No high-weight agent voted against"
+        },
+        {
+          "gateId": "zone-compliance",
+          "name": "Zone Compliance",
+          "passed": true,
+          "severity": "info",
+          "message": "Risk zone classified: orange"
+        },
+        {
+          "gateId": "acceptance-criteria",
+          "name": "Acceptance Criteria",
+          "passed": true,
+          "severity": "warning",
+          "message": "5 acceptance criteria defined"
+        },
+        {
+          "gateId": "dependency-readiness",
+          "name": "Dependency Readiness",
+          "passed": true,
+          "severity": "info",
+          "message": "No inter-proposal dependencies"
+        },
+        {
+          "gateId": "dependency-conflict",
+          "name": "Dependency Conflict",
+          "passed": false,
+          "severity": "warning",
+          "message": "Overlapping affected paths with in-flight proposals: #32 (open): shared/src/commonMain/kotlin/com/guyghost/wakeve/repository/DatabaseEventRepository.kt",
+          "details": {
+            "conflicts": [
+              "#32 (open): shared/src/commonMain/kotlin/com/guyghost/wakeve/repository/DatabaseEventRepository.kt"
+            ]
+          }
+        },
+        {
+          "gateId": "mandatory-dry-run",
+          "name": "Mandatory Dry-Run",
+          "passed": true,
+          "severity": "blocker",
+          "message": "Dry-run not required"
+        },
+        {
+          "gateId": "type-specific-quality",
+          "name": "Type-Specific Quality",
+          "passed": true,
+          "severity": "blocker",
+          "message": "technical-change: approval 100% ≥ 55%, quorum 100% ≥ 60%",
+          "details": {
+            "approvalScore": 100,
+            "approvalRequired": 55,
+            "quorumPercent": 100,
+            "quorumRequired": 60
+          }
+        }
+      ],
+      "checklist": [
+        {
+          "id": "security-review",
+          "category": "security",
+          "label": "Security review completed",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "data-handling",
+          "category": "compliance",
+          "label": "Data handling reviewed",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "compliance-check",
+          "category": "compliance",
+          "label": "Compliance requirements met",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "specs-written",
+          "category": "quality",
+          "label": "Specifications written",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "architecture-reviewed",
+          "category": "quality",
+          "label": "Architecture reviewed",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "rollback-plan",
+          "category": "operational",
+          "label": "Rollback plan defined",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "monitoring-plan",
+          "category": "operational",
+          "label": "Monitoring plan defined",
+          "checked": true,
+          "autoChecked": true
+        }
+      ]
+    },
+    "34": {
+      "proposalId": 34,
+      "timestamp": "2026-09-18T19:11:12.183Z",
+      "allGatesPassed": true,
+      "blockerCount": 0,
+      "warningCount": 1,
+      "gates": [
+        {
+          "gateId": "quorum-quality",
+          "name": "Quorum Quality",
+          "passed": true,
+          "severity": "blocker",
+          "message": "Quorum met (100% weighted participation ≥ 60%)",
+          "details": {
+            "quorumPercent": 100,
+            "quorumRequired": 60,
+            "votingAgents": 8,
+            "totalAgents": 7,
+            "totalVotingWeight": 17
+          }
+        },
+        {
+          "gateId": "risk-threshold",
+          "name": "Risk Threshold",
+          "passed": true,
+          "severity": "warning",
+          "message": "Risk score 4.4 ≤ threshold 7",
+          "details": {
+            "avgRisk": 4.375,
+            "riskScores": [
+              3,
+              4,
+              8,
+              4,
+              3,
+              4,
+              6,
+              3
+            ]
+          }
+        },
+        {
+          "gateId": "vote-consensus",
+          "name": "Vote Consensus",
+          "passed": false,
+          "severity": "warning",
+          "message": "1 high-weight agent(s) voted against"
+        },
+        {
+          "gateId": "zone-compliance",
+          "name": "Zone Compliance",
+          "passed": true,
+          "severity": "info",
+          "message": "Risk zone classified: red"
+        },
+        {
+          "gateId": "acceptance-criteria",
+          "name": "Acceptance Criteria",
+          "passed": true,
+          "severity": "warning",
+          "message": "5 acceptance criteria defined"
+        },
+        {
+          "gateId": "dependency-readiness",
+          "name": "Dependency Readiness",
+          "passed": true,
+          "severity": "info",
+          "message": "No inter-proposal dependencies"
+        },
+        {
+          "gateId": "dependency-conflict",
+          "name": "Dependency Conflict",
+          "passed": true,
+          "severity": "warning",
+          "message": "No overlapping affected paths with in-flight proposals"
+        },
+        {
+          "gateId": "mandatory-dry-run",
+          "name": "Mandatory Dry-Run",
+          "passed": true,
+          "severity": "blocker",
+          "message": "Dry-run completed at 2026-09-18T19:11:06.872Z"
+        },
+        {
+          "gateId": "type-specific-quality",
+          "name": "Type-Specific Quality",
+          "passed": true,
+          "severity": "blocker",
+          "message": "technical-change: approval 82% ≥ 55%, quorum 100% ≥ 60%",
+          "details": {
+            "approvalScore": 82,
+            "approvalRequired": 55,
+            "quorumPercent": 100,
+            "quorumRequired": 60
+          }
+        }
+      ],
+      "checklist": [
+        {
+          "id": "security-review",
+          "category": "security",
+          "label": "Security review completed",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "data-handling",
+          "category": "compliance",
+          "label": "Data handling reviewed",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "compliance-check",
+          "category": "compliance",
+          "label": "Compliance requirements met",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "specs-written",
+          "category": "quality",
+          "label": "Specifications written",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "architecture-reviewed",
+          "category": "quality",
+          "label": "Architecture reviewed",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "rollback-plan",
+          "category": "operational",
+          "label": "Rollback plan defined",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "monitoring-plan",
+          "category": "operational",
+          "label": "Monitoring plan defined",
+          "checked": true,
+          "autoChecked": true
+        }
+      ]
     }
   },
   "deliveryPlans": {
@@ -13551,6 +14554,262 @@
       "branchStrategy": "feature/dao-30-nettoyage-repo-passe-3-sources",
       "rollbackPlan": "Revert the merge commit and redeploy previous version",
       "estimatedDuration": "5-9 days"
+    },
+    "31": {
+      "proposalId": 31,
+      "createdAt": "2026-09-18T19:10:59.468Z",
+      "phases": [
+        {
+          "number": 1,
+          "name": "Setup & Design",
+          "tasks": [
+            {
+              "id": "T1",
+              "title": "Review proposal and acceptance criteria",
+              "description": "Understand requirements and clarify ambiguities",
+              "effort": "xs",
+              "phase": 1,
+              "dependencies": [],
+              "status": "pending"
+            },
+            {
+              "id": "T2",
+              "title": "Design solution",
+              "description": "Create technical design document",
+              "effort": "s",
+              "phase": 1,
+              "dependencies": [
+                "T1"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T3",
+              "title": "Set up feature branch",
+              "description": "Create branch for implementation",
+              "effort": "xs",
+              "phase": 1,
+              "dependencies": [
+                "T2"
+              ],
+              "status": "pending"
+            }
+          ],
+          "duration": "1-2 days"
+        },
+        {
+          "number": 2,
+          "name": "Implementation",
+          "tasks": [
+            {
+              "id": "T4",
+              "title": "Core implementation",
+              "description": "Implement the main functionality",
+              "effort": "m",
+              "phase": 2,
+              "dependencies": [
+                "T3"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T5",
+              "title": "Add tests",
+              "description": "Unit and integration tests",
+              "effort": "m",
+              "phase": 2,
+              "dependencies": [
+                "T4"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T6",
+              "title": "Documentation",
+              "description": "Update docs and README",
+              "effort": "s",
+              "phase": 2,
+              "dependencies": [
+                "T4"
+              ],
+              "status": "pending"
+            }
+          ],
+          "duration": "3-5 days"
+        },
+        {
+          "number": 3,
+          "name": "Review & Release",
+          "tasks": [
+            {
+              "id": "T7",
+              "title": "Code review",
+              "description": "Self-review and peer review",
+              "effort": "s",
+              "phase": 3,
+              "dependencies": [
+                "T5",
+                "T6"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T8",
+              "title": "Quality gates",
+              "description": "Run control checks and verify acceptance criteria",
+              "effort": "s",
+              "phase": 3,
+              "dependencies": [
+                "T7"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T9",
+              "title": "Merge and deploy",
+              "description": "Merge to main and deploy",
+              "effort": "xs",
+              "phase": 3,
+              "dependencies": [
+                "T8"
+              ],
+              "status": "pending"
+            }
+          ],
+          "duration": "1-2 days"
+        }
+      ],
+      "branchStrategy": "feature/dao-31-fix-poll-permettre-la-modifica",
+      "rollbackPlan": "Revert the merge commit and redeploy previous version",
+      "estimatedDuration": "5-9 days"
+    },
+    "34": {
+      "proposalId": 34,
+      "createdAt": "2026-09-18T19:11:12.183Z",
+      "phases": [
+        {
+          "number": 1,
+          "name": "Setup & Design",
+          "tasks": [
+            {
+              "id": "T1",
+              "title": "Review proposal and acceptance criteria",
+              "description": "Understand requirements and clarify ambiguities",
+              "effort": "xs",
+              "phase": 1,
+              "dependencies": [],
+              "status": "pending"
+            },
+            {
+              "id": "T2",
+              "title": "Design solution",
+              "description": "Create technical design document",
+              "effort": "s",
+              "phase": 1,
+              "dependencies": [
+                "T1"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T3",
+              "title": "Set up feature branch",
+              "description": "Create branch for implementation",
+              "effort": "xs",
+              "phase": 1,
+              "dependencies": [
+                "T2"
+              ],
+              "status": "pending"
+            }
+          ],
+          "duration": "1-2 days"
+        },
+        {
+          "number": 2,
+          "name": "Implementation",
+          "tasks": [
+            {
+              "id": "T4",
+              "title": "Core implementation",
+              "description": "Implement the main functionality",
+              "effort": "m",
+              "phase": 2,
+              "dependencies": [
+                "T3"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T5",
+              "title": "Add tests",
+              "description": "Unit and integration tests",
+              "effort": "m",
+              "phase": 2,
+              "dependencies": [
+                "T4"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T6",
+              "title": "Documentation",
+              "description": "Update docs and README",
+              "effort": "s",
+              "phase": 2,
+              "dependencies": [
+                "T4"
+              ],
+              "status": "pending"
+            }
+          ],
+          "duration": "3-5 days"
+        },
+        {
+          "number": 3,
+          "name": "Review & Release",
+          "tasks": [
+            {
+              "id": "T7",
+              "title": "Code review",
+              "description": "Self-review and peer review",
+              "effort": "s",
+              "phase": 3,
+              "dependencies": [
+                "T5",
+                "T6"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T8",
+              "title": "Quality gates",
+              "description": "Run control checks and verify acceptance criteria",
+              "effort": "s",
+              "phase": 3,
+              "dependencies": [
+                "T7"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T9",
+              "title": "Merge and deploy",
+              "description": "Merge to main and deploy",
+              "effort": "xs",
+              "phase": 3,
+              "dependencies": [
+                "T8"
+              ],
+              "status": "pending"
+            }
+          ],
+          "duration": "1-2 days"
+        }
+      ],
+      "branchStrategy": "feature/dao-34-fix-server-monter-les-routes-a",
+      "rollbackPlan": "Revert the merge commit and redeploy previous version",
+      "estimatedDuration": "5-9 days"
     }
   },
   "artefacts": {},
@@ -13954,6 +15213,14 @@
       "commitSha": "unknown",
       "filesChanged": [],
       "stateSnapshot": "{\"agents\":7,\"proposals\":30}"
+    },
+    "31": {
+      "proposalId": 31,
+      "timestamp": "2026-09-18T19:11:21.402Z",
+      "branch": "feature/dao-31-fix-poll-permettre-la-modifica",
+      "commitSha": "unknown",
+      "filesChanged": [],
+      "stateSnapshot": "{\"agents\":7,\"proposals\":36}"
     }
   },
   "verifications": {},

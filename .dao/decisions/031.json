@@ -1,0 +1,9 @@
+{
+  "id": 31,
+  "title": "fix(poll): permettre la modification de vote avant la deadline (BUG-1)",
+  "type": "technical-change",
+  "status": "executed",
+  "riskZone": "orange",
+  "createdAt": "2026-09-18T19:06:16.797Z",
+  "resolvedAt": "2026-09-18T19:11:21.402Z"
+}

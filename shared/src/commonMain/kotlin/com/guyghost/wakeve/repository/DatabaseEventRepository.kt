@@ -367,30 +367,44 @@ class DatabaseEventRepository private constructor(
                 return Result.failure(IllegalArgumentException("Time slot not in event"))
             }
             val voteId = "vote_${persistedSlotId}_${participantId}"
-            voteQueries.insertVote(
-                id = voteId,
-                eventId = eventId,
-                timeslotId = persistedSlotId,
-                participantId = participantRecord.id,  // Use the actual participant record ID
-                vote = vote.name,
-                createdAt = now,
-                updatedAt = now
-            )
+            // Re-vote support: the (timeslotId, participantId) pair is UNIQUE, so an
+            // existing vote must be updated in place rather than re-inserted.
+            val existingVote = voteQueries
+                .selectByTimeslotAndParticipant(persistedSlotId, participantRecord.id)
+                .executeAsOneOrNull()
+            val isUpdate = existingVote != null
+            if (isUpdate) {
+                voteQueries.updateVote(
+                    vote = vote.name,
+                    updatedAt = now,
+                    id = existingVote.id
+                )
+            } else {
+                voteQueries.insertVote(
+                    id = voteId,
+                    eventId = eventId,
+                    timeslotId = persistedSlotId,
+                    participantId = participantRecord.id,  // Use the actual participant record ID
+                    vote = vote.name,
+                    createdAt = now,
+                    updatedAt = now
+                )
+            }
 
             // Record sync change for offline tracking
             syncManager?.recordLocalChange(
                 table = "votes",
-                operation = SyncOperation.CREATE,
-                recordId = voteId,
+                operation = if (isUpdate) SyncOperation.UPDATE else SyncOperation.CREATE,
+                recordId = existingVote?.id ?: voteId,
                 data = """{"eventId":"$eventId","participantId":"$participantId","slotId":"$slotId","preference":"${vote.name}"}""",
                 userId = participantId
             )
 
             syncMetadataQueries.insertSyncMetadata(
-                id = "sync_${voteId}",
+                id = if (isUpdate) "sync_${voteId}_UPDATE_$now" else "sync_${voteId}",
                 entityType = "vote",
-                entityId = voteId,
-                operation = "CREATE",
+                entityId = existingVote?.id ?: voteId,
+                operation = if (isUpdate) "UPDATE" else "CREATE",
                 timestamp = now,
                 synced = 0
             )
