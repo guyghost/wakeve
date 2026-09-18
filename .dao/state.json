@@ -4678,6 +4678,232 @@
       "synthesis": "## Synthesis — Proposal #28\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 8\n**For:** 6 | **Against:** 2 | **Abstain:** 0\n\n### Supporting Arguments\n- **Solution Architect:** Evidence checks out on every acceptance criterion I could mechanically verify: sizes match, no functional references exist in code, tests, scripts, or CI, and the surviving mentions are comments/docs ...\n- **Critic / Risk Agent:** L'action fondamentale est sûre, vérifiée et parfaitement réversible : zéro référence fonctionnelle dans code/tests/scripts/CI (confirmé par inspection directe), zéro impact runtime, rollback par `git ...\n- **Research Agent:** The deletions are verified safe (no functional references in code, tests, scripts, or CI; openspec/ is empty residue after tooling removal in `1575e6de`), fully recoverable via git history, and low ef...\n- **Product Strategist:** The core action is verified-safe, reversible via git history, well-specified (test + CI + git grep acceptance criteria), and touches zero user-facing behavior. Four of the five directories (audits 202...\n- **Prioritization Agent:** Risk-adjusted, this is a clear net positive: near-zero effort, near-zero code risk (I independently confirmed no functional references in CI, scripts, or tests), modest but real operational value (noi...\n- **Delivery Agent:** Every verifiable claim checked out: no functional references anywhere in code, tests, scripts, or CI; sizes accurate; effort is trivial (single S-sized PR); risk is near zero (pure repo hygiene, no ru...\n\n### Opposing Arguments\n- **UX/UI Designer:** Four of the five deletions are sound and I verified they're unreferenced. But the proposal as written rests on a factual error (active design-evidence workflow described as \"cycles passés\"), includes ...\n- **Spec Writer:** La direction est saine et les vérifications préalables sont largement exactes (je les ai confirmées : zéro dépendance fonctionnelle, tailles correctes, fixture `.local` orphèle). Mais en tant que Spec...\n\n### Key Themes\n- User experience\n- Technical debt\n- Maintenance burden\n- Alignment\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n",
       "resolvedAt": "2026-09-18T10:01:15.136Z",
       "executionResult": "Executed with delivery plan: feature/dao-28-nettoyage-du-repo-suppression-"
+    },
+    {
+      "id": 29,
+      "title": "Nettoyage repo passe 2 : captures QA/store obsolètes, artefacts orphelins (screenshots, review-screenshots, audit_report, .run, context-log, .playwright-mcp, .gradle-home)",
+      "type": "technical-change",
+      "description": "Seconde passe de nettoyage : suppression de 7 artefacts non essentiels (~13.5 Mo) tous vérifiés sans référence fonctionnelle dans le code, les tests, les scripts, fastlane ou la CI : captures Android store obsolètes à la racine (screenshots/, remplacées par composeApp/screenshots/ qui est le chemin réellement utilisé par store-readiness.yml et fastlane), 5 fichiers review-screenshots iOS 2026-05-22 trackés malgré le .gitignore, rapport d'audit WCAG daté (audit_report.json — l'extension wakeve-health affiche un warning propre en son absence), run config IntelliJ orpheline pointant vers un dossier webApp inexistant, artefacts de skill (context-log.jsonl), log de debug playwright-mcp et résidus de téléchargement Gradle interrompu (.gradle-home/). Exclusions vérifiées et documentées : apps/dashboard (scripts pnpm build/check), infra/cloudflare/backend (pnpm-workspace.yaml), models/ (script npm test:models), creative-production/ (sources d'icônes de marque conservées), composeApp/screenshots/ (App Store, fonctionnel). Gate Product Excellence : non applicable au runtime — zéro impact sur les parcours utilisateur ; réduit le poids du repo et élimine du bruit pour les agents et développeurs.",
+      "problemStatement": "Après la première passe (#28, ~70 Mo), subsistent ~13.5 Mo d'artefacts historiques trackés : 46 captures Android App Store obsolètes à la racine (screenshots/ — le chemin fonctionnel pour le store est composeApp/screenshots/), 5 captures review-screenshots iOS de mai 2026 trackées en contradiction avec le .gitignore, un rapport d'audit WCAG daté, une run config IntelliJ orpheline (webApp/ supprimé), un artefact de skill context-log, un log playwright-mcp et 2 résidus de téléchargement Gradle (.gradle-home/). Ce bruit pénalise les recherches et induit en erreur les agents IA sur les chemins canoniques du projet.",
+      "acceptanceCriteria": [
+        "Les 7 chemins (screenshots/, review-screenshots/, audit_report.json, .run/, context-log.jsonl, .playwright-mcp/, .gradle-home/) sont supprimés de l'index git et du filesystem",
+        "composeApp/screenshots/, apps/dashboard, infra/cloudflare/backend, models/, creative-production/ restent intacts",
+        "Aucun build, test ou workflow CI ne référençait fonctionnellement les chemins supprimés (vérifié avant suppression)",
+        "./gradlew shared:jvmTest passe toujours après suppression",
+        ".gitignore mis à jour (.gradle-home/, .playwright-mcp/, .run/) pour éviter la re-création accidentelle",
+        "L'extension extensions/wakeve-health.ts reste fonctionnelle (elle affiche déjà un warning gracieux si audit_report.json est absent)"
+      ],
+      "successMetrics": [
+        "~13.5 Mo libérés du dépôt",
+        "Aucune régression CI sur le commit suivant",
+        "git grep ne trouve plus les chemins supprimés dans l'index"
+      ],
+      "rollbackConditions": [
+        "Un workflow CI (store-readiness, deploy-landing, ci) échoue par dépendance à un chemin supprimé",
+        "Un script fastlane ou lint-store-metadata échoue faute d'un fichier supprimé",
+        "Un test Gradle échoue après suppression"
+      ],
+      "affectedPaths": [
+        "screenshots/",
+        "review-screenshots/",
+        "audit_report.json",
+        ".run/",
+        "context-log.jsonl",
+        ".playwright-mcp/",
+        ".gradle-home/"
+      ],
+      "proposedBy": "user",
+      "status": "executed",
+      "votes": [
+        {
+          "agentId": "strategist",
+          "agentName": "Product Strategist",
+          "position": "for",
+          "reasoning": "Strategically this is cheap, reversible (git history preserves everything), evidence-verified debt removal that directly improves the operating efficiency of an agent-heavy development model. Every factual claim I could check held up against the repo. The one residual risk — root Android captures being the only tracked set while composeApp/screenshots holds only iOS — is mitigated by the Android lane skipping screenshot upload, by recoverability from git history, and by the acceptance criteria's CI/test gates. The proposal is honest about the Product Excellence gate being non-applicable, which increases my trust in its framing.",
+          "weight": 3
+        },
+        {
+          "agentId": "critic",
+          "agentName": "Critic / Risk Agent",
+          "position": "for",
+          "reasoning": "Every functional claim in the proposal survived direct verification against CI workflows, fastlane, scripts, the extension source, and git state. The two most severe failure modes are documentation-level (3 dead doc references) and irreversible-but-trivial (63 untracked local QA captures from a superseded cycle). Nothing user-facing, no build/test/CI dependency, clean git-based rollback. The findings are worth noting in execution (update the 3 doc links in `docs/design/wakeve-apple-design-audit.md`, or note their git-history fallback) but none rises to a blocking risk for a technical-change of this scope.",
+          "weight": 3
+        },
+        {
+          "agentId": "architect",
+          "agentName": "Solution Architect",
+          "position": "for",
+          "reasoning": "Every factual claim in the proposal verified true against the repo: all 7 artifacts are tracked, none are functionally referenced by CI/fastlane/scripts/build code, the canonical screenshot path is `composeApp/screenshots/ios`, the health extension degrades gracefully without `audit_report.json`, and the run config is a genuine orphan. Architecturally this is a pure deletion that retires debt (canonical-path ambiguity, ignore/tracking contradiction, stale dated data) with zero dependency, boundary, or coupling impact, and it is fully reversible via git history. The only residual notes — `docs/a11y/*.md` referencing the deleted report, and the health score's cosmetic drop until a fresh audit — are documentation/cosmetic nits, not blockers, and I'd suggest a one-line docs touch-up at ship time (Option B fallback if the swarm prefers keeping the audit data).",
+          "weight": 3
+        },
+        {
+          "agentId": "researcher",
+          "agentName": "Research Agent",
+          "position": "for",
+          "reasoning": "Every functional-safety claim in the proposal is directly verifiable in the repo, and I verified them all: the 7 paths exist at the stated size, none is referenced by any workflow, fastlane lane, script, or test, the functional store path is indeed composeApp/screenshots/, and the health extension degrades gracefully without audit_report.json. The change has zero runtime impact, follows the successfully-shipped #28 precedent, is fully reversible via git history, and its main open question (test pass) is covered by an explicit acceptance criterion. The only flaws found are cosmetic: a slightly over-literal success metric (textual mentions in a11y docs will persist) and the \"warning propre\" claim holding only for the main health view — neither blocks execution.",
+          "weight": 2
+        },
+        {
+          "agentId": "prioritizer",
+          "agentName": "Prioritization Agent",
+          "position": "for",
+          "reasoning": "Every factual claim I could test verified cleanly (tracked files, sizes, canonical CI/fastlane paths, graceful extension degradation, zero functional references). This is a low-cost, low-risk, fully reversible hygiene task (git history retains everything) that sequences naturally right after #28 without displacing any product work. The two wording caveats — Android captures are unreferenced rather than replaced, and history size won't shrink — are expectation-setting issues, not blockers. Sequencing recommendation: **immediately, as a standalone chore commit** — do not bundle with feature work; it displaces nothing from the Phase 3 queue.",
+          "weight": 2
+        },
+        {
+          "agentId": "delivery",
+          "agentName": "Delivery Agent",
+          "position": "for",
+          "reasoning": "Every factual claim I could test checked out against the repo: the 7 paths are tracked, the store-functional screenshot path is `composeApp/screenshots/` (fastlane + CI confirmed), the health extension has a verified graceful fallback for the missing audit report, and no build/script/test surface references any deleted path. The work decomposes into three trivially testable slices with no dependencies and no CI/deployment impact. The .gitignore additions prevent regression of the exact \"ignored-but-tracked\" failure mode observed. This is the delivery profile I want: test-first by construction, zero runtime risk, reversible with one revert commit.",
+          "weight": 1
+        },
+        {
+          "agentId": "designer",
+          "agentName": "UX/UI Designer",
+          "position": "for",
+          "reasoning": "Every factual claim I could test held up under direct inspection: the canonical screenshot path is `composeApp/screenshots/`, the tracked review-screenshots contradict `.gitignore`, the run config is a verified orphan, the health extension degrades gracefully without the audit report, and nothing functional references the deleted paths. From my role's perspective, this proposal removes navigation decoys that mislead agents and developers, fixes a repo-intent inconsistency, and retires a stale accessibility report that could create false confidence — all without touching a single user-facing surface. Risk is minimal and the deletion is history-recoverable.",
+          "weight": 2
+        },
+        {
+          "agentId": "spec-writer",
+          "agentName": "Spec Writer",
+          "position": "for",
+          "reasoning": "Every factual claim in the proposal is verified true against the repo (tracked status, ~13.5 MB size, canonical `composeApp/screenshots/` path used by fastlane and store-readiness.yml, graceful wakeve-health degradation, orphaned run config, gitignore gaps). The spec defects I found are real but non-blocking: one success metric needs rewording from grep to `git ls-files`, one AC is process-as-outcome, and dangling historical doc references plus partial recreation-prevention should be settled as explicit decisions during execution. The change is low-risk, zero user impact, fully reversible via git history, and directly serves the stated goal of reducing repo noise and misleading paths for agents and developers. My vote is a signal for the tally, which alone decides.",
+          "weight": 1
+        }
+      ],
+      "agentOutputs": [
+        {
+          "agentId": "strategist",
+          "agentName": "Product Strategist",
+          "role": "Vision, objectives, hypotheses",
+          "content": "## Analysis\n\n**Intended outcome (restated):** Delete 7 verified-dead tracked artifacts (~13.5 MB) so the repo stays lean and agents/developers stop being misled about canonical paths — root `screenshots/` vs the functional `composeApp/screenshots/`.\n\n**Evidence verification (performed directly against the repo):**\n- All 7 paths exist and are tracked: 57 files in git index. Size claim checks out (screenshots/ 6.6M + review-screenshots/ 6.9M ≈ 13.5 MB).\n- `composeApp/screenshots/` is confirmed the functional path: `.github/workflows/store-readiness.yml` watches `composeApp/screenshots/**`; `fastlane/Fastfile` uses `composeApp/screenshots/ios` (lines 140, 176). No reference to root `screenshots/` anywhere in CI, fastlane, or scripts.\n- `extensions/wakeve-health.ts` degrades gracefully without `audit_report.json` (line 99: \"⚠️ non trouvé — lance un audit WCAG\") — claim verified.\n- `.run/webApp.run.xml` points to `webApp/package.json`; no `webApp/` directory exists (replaced by `apps/`) — confirmed orphan.\n- `review-screenshots/` is in `.gitignore` yet 5 files remain tracked — the contradiction is real and the fix is coherent.\n- `.gradle-home/` contains only `.lck`/`.part` residue from an interrupted download — safe to remove.\n- Precedent: proposal #28 (same nature, larger scope) reached \"executed\" status with no fallout visible in subsequent commits.\n\n**Strategic alignment:** This project is explicitly agent-driven (Swarm DAO governance, AGENTS.md delegation matrix). Misleading tracked paths are a recurring per-session tax on every AI agent working in the repo — the mechanism is concrete, not vision talk. Alignment is with operational excellence for the delivery process, and the proposal correctly self-assesses the Product Excellence gate as N/A (zero runtime/user-parcours impact) rather than manufacturing a user story.\n\n**Load-bearing assumptions:**\n1. *No functional consumer of root `screenshots/`* — validated (CI/fastlane/scripts grep clean); acceptance criteria re-require this check plus `shared:jvmTest` pass.\n2. *wakeve-health tolerates missing audit report* — validated in code.\n3. *Root Android captures are obsolete* — **this is the killable assumption.** `composeApp/screenshots/` contains only `ios/`; root `screenshots/android/` (incl. adaptive + zip) is the only tracked Android capture set. However, the Android fastlane lane uses `skip_upload_screenshots: true` and no workflow watches the root path, so no pipeline breaks; worst case is manual rework for a future Play upload — and everything remains recoverable via git history. Failure would be inconvenient, not fatal.\n\n**Opportunity cost:** Near zero. This is low-effort hygiene with high context-freshness value right now (immediately after #28). The next-best use of the same half-day (feature work) is not blocked by it, while deferring lets misleading paths keep polluting every agent session.\n\n**Timing:** \"Adds value now\" — yes. Doing it while cleanup context is warm minimizes verification cost; delaying compounds the confusion cost the problem statement documents.\n\n## Vote\nfor\n\n## Reasoning\nStrategically this is cheap, reversible (git history preserves everything), evidence-verified debt removal that directly improves the operating efficiency of an agent-heavy development model. Every factual claim I could check held up against the repo. The one residual risk — root Android captures being the only tracked set while composeApp/screenshots holds only iOS — is mitigated by the Android lane skipping screenshot upload, by recoverability from git history, and by the acceptance criteria's CI/test gates. The proposal is honest about the Product Excellence gate being non-applicable, which increases my trust in its framing.\n\n## Composite Score Inputs (0-10)\n- userImpact: 1\n- businessImpact: 4\n- effort: 2\n- securityRisk: 1\n- confidence: 9\n\n## Risk Score (1-10)\n2 — Main residual risk is undetected manual (non-pipeline) reuse of root Android captures for a future Google Play submission; bounded by git-history recoverability, `skip_upload_screenshots: true`, and the CI/test regression gates in acceptance criteria.",
+          "durationMs": 79952,
+          "vote": {
+            "agentId": "strategist",
+            "agentName": "Product Strategist",
+            "position": "for",
+            "reasoning": "Strategically this is cheap, reversible (git history preserves everything), evidence-verified debt removal that directly improves the operating efficiency of an agent-heavy development model. Every factual claim I could check held up against the repo. The one residual risk — root Android captures being the only tracked set while composeApp/screenshots holds only iOS — is mitigated by the Android lane skipping screenshot upload, by recoverability from git history, and by the acceptance criteria's CI/test gates. The proposal is honest about the Product Excellence gate being non-applicable, which increases my trust in its framing.",
+            "weight": 3
+          }
+        },
+        {
+          "agentId": "critic",
+          "agentName": "Critic / Risk Agent",
+          "role": "Risk scoring, objections, guardrails",
+          "content": "## Analysis\nI verified the proposal's factual claims directly against the repository before judging.\n\n**Claims verified ✓:**\n- `git ls-files screenshots/` → exactly 46 tracked files. Root `screenshots/` is referenced nowhere functional: `store-readiness.yml` watches only `composeApp/screenshots/**`, fastlane uses `composeApp/screenshots/ios` (line 140) and Android Play lanes use `skip_upload_screenshots: true` (line 62). `scripts/lint-store-metadata.sh` also only validates `composeApp/screenshots/ios`.\n- `review-screenshots/`: exactly 5 tracked files (all in `ios-2026-05-22-fixed/`), while `.gitignore:37` lists `review-screenshots/` — confirmed tracked-despite-ignore (classic pre-ignore tracking).\n- `extensions/wakeve-health.ts` handles missing `audit_report.json` gracefully (line 99: warning string; line 176: graceful return, no crash).\n- `.run/webApp.run.xml` points to `webApp/package.json`; `webApp/` does not exist → orphan confirmed.\n- `context-log.jsonl` is an agent-workflow log (2026-04-10); `.playwright-mcp/` is a 664-byte console log; `.gradle-home/` contains only 2 tracked residue files (`.zip.lck`, `.zip.part` from an interrupted Gradle 9.1.0 download).\n- Exclusions (apps/dashboard, infra, models/, creative-production/, composeApp/screenshots/) are untouched by the delete list.\n\n**Findings (scenarios, not adjectives):**\n\n1. **Dead doc references after deletion.** `docs/design/wakeve-apple-design-audit.md` cites `review-screenshots/ios-2026-05-22-fixed/*.jpg` as visual references at lines 62, 132, 154. Deleting the tracked files makes these references dead links. Blast radius: documentation only; detection: none (no link checker in CI). Mitigated by git history recoverability. The proposal does not mention updating these docs.\n\n2. **Permanent loss of 63 untracked local files.** Acceptance criteria delete `review-screenshots/` from the *filesystem* too. Only 5 files are git-tracked; the other ~63 (android-2026-05-22, android-fixed, ios-2026-05-22 dirs) are local-only and will be unrecoverable. They are May 2026 QA review captures, superseded by later QA cycles (qa-screenshots referenced in CHANGELOG), so impact is minimal — but it is irreversible and unstated in the proposal.\n\n3. **wakeve-health dashboard degrades.** Post-deletion, the health extension shows \"audit_report.json non trouvé — lance un audit WCAG\" instead of audit data. Documented, graceful, regenerable — acceptable.\n\n4. **Minor guardrail gap.** `.gitignore` additions cover `.gradle-home/`, `.playwright-mcp/`, `.run/` but not root `screenshots/`, `audit_report.json`, or `context-log.jsonl` — re-creation by an old capture flow is possible but unlikely.\n\n**Guardrails check:** Rollback path exists and is clean (git revert of a single deletion commit restores all tracked content). Acceptance criterion runs `./gradlew shared:jvmTest`; success metric gates on next-commit CI. Kill switch not needed — this is not runtime code.\n\n**Unknown I cannot resolve:** whether any external process (published Play/App Store listing re-submission workflow, or an out-of-repo review procedure) expects the root `screenshots/` captures to remain at that path. Nothing in the repo references them functionally, but external dependencies are unobservable from here.\n\n## Vote\nfor\n\n## Reasoning\nEvery functional claim in the proposal survived direct verification against CI workflows, fastlane, scripts, the extension source, and git state. The two most severe failure modes are documentation-level (3 dead doc references) and irreversible-but-trivial (63 untracked local QA captures from a superseded cycle). Nothing user-facing, no build/test/CI dependency, clean git-based rollback. The findings are worth noting in execution (update the 3 doc links in `docs/design/wakeve-apple-design-audit.md`, or note their git-history fallback) but none rises to a blocking risk for a technical-change of this scope.\n\n## Composite Score Inputs (0-10)\n- userImpact: 1\n- businessImpact: 2\n- effort: 2\n- securityRisk: 1\n- confidence: 9\n\n## Risk Score (1-10)\n2",
+          "durationMs": 85218,
+          "vote": {
+            "agentId": "critic",
+            "agentName": "Critic / Risk Agent",
+            "position": "for",
+            "reasoning": "Every functional claim in the proposal survived direct verification against CI workflows, fastlane, scripts, the extension source, and git state. The two most severe failure modes are documentation-level (3 dead doc references) and irreversible-but-trivial (63 untracked local QA captures from a superseded cycle). Nothing user-facing, no build/test/CI dependency, clean git-based rollback. The findings are worth noting in execution (update the 3 doc links in `docs/design/wakeve-apple-design-audit.md`, or note their git-history fallback) but none rises to a blocking risk for a technical-change of this scope.",
+            "weight": 3
+          }
+        },
+        {
+          "agentId": "architect",
+          "agentName": "Solution Architect",
+          "role": "Technical options, tradeoffs",
+          "content": "## Analysis\n\nI verified every claim in the proposal directly against the repository before forming a judgment.\n\n**Feasibility — confirmed trivially feasible.** All 7 paths are git-tracked (57 files total): `git ls-files` shows root `screenshots/` (46 Android captures + zip), 5 `review-screenshots/ios-2026-05-22-fixed/*.jpg`, `audit_report.json`, `.run/webApp.run.xml`, `context-log.jsonl`, `.playwright-mcp/console-*.log`, and 2 `.gradle-home/` residue files (`.zip.part`, `.zip.lck` — an interrupted Gradle 9.1.0 download). Execution is `git rm -r` + `.gitignore` additions. Stack: git only. Nothing else.\n\n**Boundaries — no module changes, no code changes.** The only code touching any deleted artifact is `extensions/wakeve-health.ts`, and I read it: `readJson()` returns `null` on missing file (line 63-64) and the accessibility section renders the warning `⚠️ audit_report.json non trouvé — lance un audit WCAG` (line 99). The proposal's claim of graceful degradation is accurate. Minor behavioral note: the global score will show `Audit présent ❌` (criticalIssues defaults to 99) until a fresh audit is regenerated — cosmetic, and arguably better than surfacing a stale January 2026 report as if current.\n\n**Dependency direction — no dependencies created; implicit coupling retired.** Canonical store path verified: `fastlane/Fastfile` (lines 140, 176), `.github/workflows/store-readiness.yml` (line 19), and `scripts/lint-store-metadata.sh` all use `composeApp/screenshots/ios` (which exists with `en-US`/`fr-FR`). Zero functional references to root `screenshots/android|phone|tablet`, `review-screenshots/`, `.gradle-home/`, `.playwright-mcp/`, or `context-log.jsonl` in CI, scripts, fastlane, Kotlin, Swift, or shell. `.run/webApp.run.xml` points to `$PROJECT_DIR$/webApp/package.json` — `webApp/` does not exist. Orphan confirmed. Removing the root `screenshots/` shadow path eliminates exactly the kind of canonical-path ambiguity that misleads agents.\n\n**Coupling/cohesion — pure removal of unrelated artifacts.** Increases repo cohesion; nothing crosses a new boundary.\n\n**Debt — retires debt, forecloses nothing.** All deletions are recoverable from git history (`git checkout <sha> -- path`). One precision caveat: the ~13.5 Mo figure is working-tree relief; blobs remain in history, so clone size does not shrink. History rewrite is NOT proposed and should not be — that would be the irreversible option.\n\n**Options considered:**\n- **Option A (as proposed):** Delete all 7 + update `.gitignore` (`.gradle-home/`, `.playwright-mcp/`, `.run/` — none currently ignored, confirmed). *Reversible.* Recommended. `.gitignore` already lists `review-screenshots/`; tracked files bypass ignore, which is the documented inconsistency.\n- **Option B (conservative):** Same, but relocate `audit_report.json` to `docs/a11y/` instead of deleting — 5 docs in `docs/a11y/` reference it by name and would go slightly stale. *Reversible.* Tradeoff: preserves dated findings that the health extension would keep presenting as current state; deletion forcing a fresh audit is cleaner. I prefer A, with a doc-consistency touch-up note at ship time.\n- **Option C: history rewrite to actually shrink the repo.** *Irrelevant to this proposal's scope and irreversible in practice.* Not recommended now.\n\nPrecedent: proposal #28 (first pass, ~70 Mo) executed cleanly (`.dao/decisions/028.json`, riskZone orange, merged via PR #41). Acceptance criteria here include a post-deletion `./gradlew shared:jvmTest` run — a verifiable gate.\n\n## Vote\nfor\n\n## Reasoning\nEvery factual claim in the proposal verified true against the repo: all 7 artifacts are tracked, none are functionally referenced by CI/fastlane/scripts/build code, the canonical screenshot path is `composeApp/screenshots/ios`, the health extension degrades gracefully without `audit_report.json`, and the run config is a genuine orphan. Architecturally this is a pure deletion that retires debt (canonical-path ambiguity, ignore/tracking contradiction, stale dated data) with zero dependency, boundary, or coupling impact, and it is fully reversible via git history. The only residual notes — `docs/a11y/*.md` referencing the deleted report, and the health score's cosmetic drop until a fresh audit — are documentation/cosmetic nits, not blockers, and I'd suggest a one-line docs touch-up at ship time (Option B fallback if the swarm prefers keeping the audit data).\n\n## Composite Score Inputs (0-10)\n- userImpact: 0\n- businessImpact: 3\n- effort: 1\n- securityRisk: 1\n- confidence: 9\n\n## Risk Score (1-10)\n2",
+          "durationMs": 102455,
+          "vote": {
+            "agentId": "architect",
+            "agentName": "Solution Architect",
+            "position": "for",
+            "reasoning": "Every factual claim in the proposal verified true against the repo: all 7 artifacts are tracked, none are functionally referenced by CI/fastlane/scripts/build code, the canonical screenshot path is `composeApp/screenshots/ios`, the health extension degrades gracefully without `audit_report.json`, and the run config is a genuine orphan. Architecturally this is a pure deletion that retires debt (canonical-path ambiguity, ignore/tracking contradiction, stale dated data) with zero dependency, boundary, or coupling impact, and it is fully reversible via git history. The only residual notes — `docs/a11y/*.md` referencing the deleted report, and the health score's cosmetic drop until a fresh audit — are documentation/cosmetic nits, not blockers, and I'd suggest a one-line docs touch-up at ship time (Option B fallback if the swarm prefers keeping the audit data).",
+            "weight": 3
+          }
+        },
+        {
+          "agentId": "researcher",
+          "agentName": "Research Agent",
+          "role": "Market, competition, user signals",
+          "content": "## Analysis\n\n**Claim-by-claim verification (performed directly in the repo):**\n\n| # | Claim in proposal | Classification | Evidence |\n|---|---|---|---|\n| 1 | 7 paths exist, ~13.5 Mo tracked | **Evidenced** | `du`: screenshots/ 6.6M + review-screenshots/ 6.9M + audit_report.json 16K ≈ 13.5 Mo; all 7 in `git ls-files` |\n| 2 | review-screenshots trackés \"malgré le .gitignore\" | **Evidenced** | `.gitignore:37` = `review-screenshots/`; `git check-ignore --no-index` confirms pattern matches; 5 files force-added and tracked — the repo's own stated intent contradicts their presence |\n| 3 | composeApp/screenshots/ est le chemin fonctionnel | **Evidenced** | `store-readiness.yml:19` watches `composeApp/screenshots/**`; `Fastfile` uses `composeApp/screenshots/ios` exclusively (validate + upload). Zero references to root `screenshots/` in any workflow or fastlane lane; Android lane uses `skip_upload_screenshots: true` |\n| 4 | wakeve-health gère l'absence d'audit_report.json | **Evidenced** (nuance) | `readJson()` returns null if file missing (wakeve-health.ts:50-54); health section shows `⚠️ audit_report.json non trouvé` (line 99). Nuance: the drill-down screen command returns `❌ non trouvé` (line 176) — graceful error string, not a crash, but \"warning propre\" describes only the main health view |\n| 5 | Run config orpheline | **Evidenced** | `.run/webApp.run.xml` points to `$PROJECT_DIR$/webApp/package.json`; no `webApp/` dir exists (replaced by apps/) |\n| 6 | Aucune référence fonctionnelle (CI/scripts/tests) | **Evidenced** | git grep found references only in `.dockerignore` (ignore-list, safe) and `.dao/state.json` (this proposal's own record). No workflow/script references `.run/`, `context-log`, `.playwright-mcp/`, `.gradle-home/` |\n| 7 | .gradle-home = téléchargement interrompu | **Evidenced** | Contains only `gradle-9.1.0-bin.zip.lck` + `.zip.part`, 0B tracked |\n| 8 | Exclusions intactes | **Evidenced** | apps/dashboard (package.json pnpm filter), infra/cloudflare/backend (pnpm-workspace.yaml), models/ (`test:models`), creative-production/, composeApp/screenshots/ — all exist and are functionally referenced |\n| 9 | `shared:jvmTest` passe après suppression | **Unverified (acceptance criterion)** | Not run pre-deletion; none of the 7 paths touch shared/ or build config, so regression risk is minimal — but this remains the cheapest decisive check |\n| 10 | Metric \"git grep ne trouve plus les chemins\" | **Partially unsupported as worded** | `audit_report` remains textually cited in 4 a11y docs + .dao/state.json; metric should mean \"no tracked files at those paths\", not \"no textual mentions\" |\n\n**Competitive scan / prior art:** The \"do nothing\" option keeps 13.5 Mo of stale artifacts whose canonical replacements already exist (composeApp/screenshots, qa-screenshots/ ignored). Direct precedent: DAO #28 (same class of change, ~70 Mo) shipped cleanly — commit `22202fd0`, merged PR #41, rated and archived. Industry standard: generated screenshots in canonical or ignored paths, IDE run configs and interrupted downloads never committed.\n\n**User signals:** Internal only (technical-change): the `.gitignore` itself signals the intent (review-screenshots/, qa-screenshots/ already listed); recent QA cycles (commits `027da1e5`, `cde28cfa`) consolidated capture workflows under ignored paths. No external user signal applies — zero runtime surface.\n\n**Cheapest evidence for the biggest open question:** Run `./gradlew shared:jvmTest` post-deletion (already an acceptance criterion) and confirm CI green on the next commit. Total cost: one test run.\n\n**Data gaps:** (a) no pre-deletion test baseline run by me; (b) doc drift — 4 a11y docs describe audit_report.json as an artifact that will no longer exist until a new WCAG audit regenerates it (recoverable from git history; the extension prompts to re-run the audit).\n\n## Vote\nfor\n\n## Reasoning\nEvery functional-safety claim in the proposal is directly verifiable in the repo, and I verified them all: the 7 paths exist at the stated size, none is referenced by any workflow, fastlane lane, script, or test, the functional store path is indeed composeApp/screenshots/, and the health extension degrades gracefully without audit_report.json. The change has zero runtime impact, follows the successfully-shipped #28 precedent, is fully reversible via git history, and its main open question (test pass) is covered by an explicit acceptance criterion. The only flaws found are cosmetic: a slightly over-literal success metric (textual mentions in a11y docs will persist) and the \"warning propre\" claim holding only for the main health view — neither blocks execution.\n\n## Composite Score Inputs (0-10)\n- userImpact: 1 (zero runtime impact; indirect benefit — less path confusion for agents/devs)\n- businessImpact: 2 (repo hygiene, reduced clone weight and search noise; no revenue effect)\n- effort: 1 (7 deletions + .gitignore lines + one test run)\n- securityRisk: 0 (removes stale artifacts including a debug log; no secrets in deleted content — verified)\n- confidence: 9 (all functional claims verified directly in repo; only post-deletion test run unverified)\n\n## Risk Score (1-10)\n2 — Fully reversible via git history; residual risks are minor doc drift (4 a11y docs referencing audit_report.json) and an imprecisely-worded success metric. The single decisive regression check (`shared:jvmTest` + next CI run) is already in the acceptance criteria.",
+          "durationMs": 138650,
+          "vote": {
+            "agentId": "researcher",
+            "agentName": "Research Agent",
+            "position": "for",
+            "reasoning": "Every functional-safety claim in the proposal is directly verifiable in the repo, and I verified them all: the 7 paths exist at the stated size, none is referenced by any workflow, fastlane lane, script, or test, the functional store path is indeed composeApp/screenshots/, and the health extension degrades gracefully without audit_report.json. The change has zero runtime impact, follows the successfully-shipped #28 precedent, is fully reversible via git history, and its main open question (test pass) is covered by an explicit acceptance criterion. The only flaws found are cosmetic: a slightly over-literal success metric (textual mentions in a11y docs will persist) and the \"warning propre\" claim holding only for the main health view — neither blocks execution.",
+            "weight": 2
+          }
+        },
+        {
+          "agentId": "prioritizer",
+          "agentName": "Prioritization Agent",
+          "role": "Impact/cost/risk scoring, roadmap fit",
+          "content": "## Analysis\nI verified the proposal's claims directly against the repository:\n\n**Facts confirmed:**\n- The 7 paths exist and are git-tracked: 57 files total, ~13.5 MB on disk (screenshots/ 6.6M + review-screenshots/ 6.9M + audit_report.json 16K + 4 small artifacts). Size claim matches.\n- **Canonical path claim holds**: `store-readiness.yml` filters on `composeApp/screenshots/**` and `fastlane/Fastfile` uses `composeApp/screenshots/ios` (lines 140, 176). Zero references to root `screenshots/` in CI, fastlane, scripts, or build files. Same for `review-screenshots/`, `.run/`, `.playwright-mcp/`, `.gradle-home/`, `context-log.jsonl` — no functional references found.\n- **review-screenshots contradiction confirmed**: `.gitignore` already contains `review-screenshots/`, yet 5 files remain tracked (classic tracked-before-ignored case).\n- **wakeve-health extension confirmed safe**: `extensions/wakeve-health.ts` displays `⚠️ audit_report.json non trouvé — lance un audit WCAG` when the file is absent — graceful degradation, as claimed.\n- `.gradle-home/` contains only `gradle-9.1.0-bin.zip.part` + `.lck` — interrupted download residue. `.run/webApp.run.xml` points to a nonexistent `webApp/` (only `apps/` exists).\n\n**Two honest caveats (do not change the outcome):**\n1. `composeApp/screenshots/` contains only `ios/` — the root Android captures are *unreferenced*, not *replaced*. If a future Play Store submission needs them, they remain recoverable from git history. The proposal's wording slightly overstates duplication.\n2. \"~13.5 Mo libérés\" frees the working tree and index, **not** `.git` history size — blobs remain in history. The real value is index hygiene and agent-path clarity, not clone-size reduction.\n\n**Prioritization lens:** Zero user impact by design (runtime untouched). Value is operational: follows through #28 (~70MB pass 1), removes misleading paths that can misdirect AI agents, and the `.gitignore` hardening prevents re-accumulation of `.gradle-home/` residue. Cost is near-trivial: deletions, one gitignore edit, one `shared:jvmTest` run. \"Small now beats large later\" holds emphatically — this is a 30-minute chore that displaces no roadmap work and benefits from fresh #28 context (same verification patterns, same reviewer muscle memory). Deferring buys nothing and risks re-accumulation.\n\n## Vote\nfor\n\n## Reasoning\nEvery factual claim I could test verified cleanly (tracked files, sizes, canonical CI/fastlane paths, graceful extension degradation, zero functional references). This is a low-cost, low-risk, fully reversible hygiene task (git history retains everything) that sequences naturally right after #28 without displacing any product work. The two wording caveats — Android captures are unreferenced rather than replaced, and history size won't shrink — are expectation-setting issues, not blockers. Sequencing recommendation: **immediately, as a standalone chore commit** — do not bundle with feature work; it displaces nothing from the Phase 3 queue.\n\n## Composite Score Inputs (0-10)\n- userImpact: 0\n- businessImpact: 2\n- effort: 1\n- securityRisk: 1\n- confidence: 9\n\n## Risk Score (1-10)\n2 — Reversible via git history; the only residual risk is an ungrepped reference to root `screenshots/` surfacing later, which the acceptance criterion (CI green on next commit) plus revert path fully covers.",
+          "durationMs": 55331,
+          "vote": {
+            "agentId": "prioritizer",
+            "agentName": "Prioritization Agent",
+            "position": "for",
+            "reasoning": "Every factual claim I could test verified cleanly (tracked files, sizes, canonical CI/fastlane paths, graceful extension degradation, zero functional references). This is a low-cost, low-risk, fully reversible hygiene task (git history retains everything) that sequences naturally right after #28 without displacing any product work. The two wording caveats — Android captures are unreferenced rather than replaced, and history size won't shrink — are expectation-setting issues, not blockers. Sequencing recommendation: **immediately, as a standalone chore commit** — do not bundle with feature work; it displaces nothing from the Phase 3 queue.",
+            "weight": 2
+          }
+        },
+        {
+          "agentId": "delivery",
+          "agentName": "Delivery Agent",
+          "role": "Implementation plan, tasks, CI/CD",
+          "content": "## Analysis\n\n**Direct verification performed against the repo (evidence, not proposal trust):**\n\n1. **All 7 paths exist and are git-tracked** (confirmed via `git ls-files`): `screenshots/` (6.6M), `review-screenshots/` (6.9M), `audit_report.json`, `.run/webApp.run.xml`, `context-log.jsonl`, `.playwright-mcp/`, `.gradle-home/` (only `.zip.lck`/`.zip.part` residue — clearly an interrupted wrapper download, not a live Gradle home).\n2. **Functional-path claims verified:** `fastlane/Fastfile` uses `composeApp/screenshots/ios` exclusively (lines 140, 176, 257–268); `store-readiness.yml` triggers only on `composeApp/screenshots/**`. Zero references to root `screenshots/` in `.github/` or `fastlane/`.\n3. **Graceful degradation verified by code inspection:** `extensions/wakeve-health.ts` guards every `audit_report.json` read — `readJson` returns null on missing file, and the extension renders `⚠️ audit_report.json non trouvé` (line 99), uses `existsSync` (line 144), and returns an error line rather than throwing (line 176). No adapter change needed; the seam already exists.\n4. **No build/test/script references** to any of the 7 paths in `.github/`, `scripts/`, `fastlane/`, `gradle/`, or root gradle files (grep clean).\n5. **`.gitignore` already contains `review-screenshots/` (line 37)** — confirming the \"tracked despite ignore\" claim (gitignore doesn't untrack). `.gradle-home/`, `.playwright-mcp/`, `.run/` are absent, so that acceptance criterion is genuinely needed, not redundant.\n\n**Delivery slices (each independently verifiable):**\n- **Slice A — index + filesystem removal** (S): `git rm -r` the 7 paths. Test: `git ls-files <path>` empty; paths absent on disk; `git status` clean.\n- **Slice B — .gitignore hardening** (S): add `.gradle-home/`, `.playwright-mcp/`, `.run/`. Test: touch a dummy file in each, `git check-ignore` must match. Can land in the same commit as A.\n- **Slice C — regression net** (S): `./gradlew shared:jvmTest` after removal; next CI run green; `git grep` finds no functional references.\n\n**Test-first fit:** the acceptance criteria *are* absence-assertions plus a regression test — directly executable pre/post. The only behavioral surface (wakeve-health extension) degrades gracefully with evidence in code; no test scaffold needed beyond one manual extension invocation if desired.\n\n**Dependencies:** #28 already shipped (merge 45e9632b); nothing depends on these artifacts. Doc-only references (e.g., CHANGELOG mentioning historical `qa-screenshots/`) are non-functional and already the #28 precedent. All three slices land in one commit; no ordering constraints.\n\n**Effort:** S overall (<1h including verification). Uncertainty: **low** — the only unverifiable-by-grep surface is an undocumented local IDE workflow relying on `.run/webApp.run.xml`, which affects only one developer's IDE state, not the repo. Running jvmTest + one CI cycle would shrink residual uncertainty to near zero.\n\n**Delivery impact:** no pipeline changes, no migrations, no feature flags, no history rewrite (blobs remain in history; savings materialize on fresh clones — acceptable, consistent with #28).\n\n## Vote\nfor\n\n## Reasoning\nEvery factual claim I could test checked out against the repo: the 7 paths are tracked, the store-functional screenshot path is `composeApp/screenshots/` (fastlane + CI confirmed), the health extension has a verified graceful fallback for the missing audit report, and no build/script/test surface references any deleted path. The work decomposes into three trivially testable slices with no dependencies and no CI/deployment impact. The .gitignore additions prevent regression of the exact \"ignored-but-tracked\" failure mode observed. This is the delivery profile I want: test-first by construction, zero runtime risk, reversible with one revert commit.\n\n## Composite Score Inputs (0-10)\n- userImpact: 0\n- businessImpact: 2\n- effort: 1\n- securityRisk: 1\n- confidence: 9\n\n## Risk Score (1-10)\n2 — Runtime risk is nil (all artifacts unreferenced functionally, verified by grep across CI/fastlane/gradle surfaces plus code inspection of the one behavioral consumer). Residual 2/10 covers: an undocumented local workflow depending on `.run/` or `.gradle-home/` (invisible to grep, affects one developer only), and history still carrying the blobs until gc — a known, accepted tradeoff matching the #28 precedent.",
+          "durationMs": 56887,
+          "vote": {
+            "agentId": "delivery",
+            "agentName": "Delivery Agent",
+            "position": "for",
+            "reasoning": "Every factual claim I could test checked out against the repo: the 7 paths are tracked, the store-functional screenshot path is `composeApp/screenshots/` (fastlane + CI confirmed), the health extension has a verified graceful fallback for the missing audit report, and no build/script/test surface references any deleted path. The work decomposes into three trivially testable slices with no dependencies and no CI/deployment impact. The .gitignore additions prevent regression of the exact \"ignored-but-tracked\" failure mode observed. This is the delivery profile I want: test-first by construction, zero runtime risk, reversible with one revert commit.",
+            "weight": 1
+          }
+        },
+        {
+          "agentId": "designer",
+          "agentName": "UX/UI Designer",
+          "role": "UX/UI critique, design directions, accessibility",
+          "content": "## Analysis\nI verified the proposal's claims directly in the repo before voting.\n\n**Evidence check (all confirmed):**\n- All 7 paths exist and are git-tracked: 57 files, ~13.5 Mo (screenshots/ 6.6M, review-screenshots/ 6.9M, plus small artifacts).\n- `review-screenshots/` is already in `.gitignore`, yet 5 iOS captures from 2026-05-22 are tracked — the repo contradicts its own declared intent. This is a consistency defect.\n- Fastlane uses `composeApp/screenshots/ios` as canonical (`Fastfile:140, :176`), and `store-readiness.yml` path-filters on `composeApp/screenshots/**`. The root `screenshots/android/` is a genuine duplicate shadowing the real path.\n- `.run/webApp.run.xml` points to `webApp/package.json` — that directory no longer exists. Confirmed orphan.\n- `extensions/wakeve-health.ts` handles missing `audit_report.json` gracefully (line 99: \"⚠️ non trouvé — lance un audit WCAG\"). Line 176 also degrades cleanly.\n- `grep` across workflows, scripts, and configs finds zero functional references to `context-log.jsonl`, `.playwright-mcp/`, or `.gradle-home/`.\n- `.gitignore` lacks `.gradle-home/`, `.playwright-mcp/`, `.run/` — the proposed additions close real gaps.\n\n**UX lens (mode: Operate, for the repo's internal users — devs and AI agents):**\n- The strongest UX argument for this proposal is **wayfinding**: a root `screenshots/android/` that looks like the store path but isn't used anywhere is exactly the kind of decoy that misleads both agents and contributors looking for canonical assets. Removing it reduces dead-end navigation.\n- On `audit_report.json`: as the accessibility reviewer, I'd rather see a stale WCAG audit removed than trusted. It's dated Jan 2026 against a UI that has since changed (unified header migration, design tokens #27). The extension's warning actively prompts a re-run, which is the correct behavior. `docs/ACCESSIBILITY_AUDIT.md` remains untouched as durable documentation.\n- No user-facing surface changes: zero runtime impact, no WCAG implications. The Product Excellence gate is correctly marked non-applicable.\n- Acceptance criteria are verifiable and include the right guards (test pass, git grep, exclusions intact).\n\n**One caveat:** git history preserves all deleted files, so any later need for historical visual reference (e.g., design regression comparison against the 2026 phone captures) remains recoverable. This makes the deletion reversible in practice.\n\n## Vote\nfor\n\n## Reasoning\nEvery factual claim I could test held up under direct inspection: the canonical screenshot path is `composeApp/screenshots/`, the tracked review-screenshots contradict `.gitignore`, the run config is a verified orphan, the health extension degrades gracefully without the audit report, and nothing functional references the deleted paths. From my role's perspective, this proposal removes navigation decoys that mislead agents and developers, fixes a repo-intent inconsistency, and retires a stale accessibility report that could create false confidence — all without touching a single user-facing surface. Risk is minimal and the deletion is history-recoverable.\n\n## Composite Score Inputs (0-10)\n- userImpact: 1\n- businessImpact: 2\n- effort: 2\n- securityRisk: 1\n- confidence: 9\n\n## Risk Score (1-10)\n2 — Low. Residual risk is limited to unverifiable local tooling references outside git; mitigated by git history recoverability and the acceptance criteria's CI verification on the following commit.",
+          "durationMs": 61240,
+          "vote": {
+            "agentId": "designer",
+            "agentName": "UX/UI Designer",
+            "position": "for",
+            "reasoning": "Every factual claim I could test held up under direct inspection: the canonical screenshot path is `composeApp/screenshots/`, the tracked review-screenshots contradict `.gitignore`, the run config is a verified orphan, the health extension degrades gracefully without the audit report, and nothing functional references the deleted paths. From my role's perspective, this proposal removes navigation decoys that mislead agents and developers, fixes a repo-intent inconsistency, and retires a stale accessibility report that could create false confidence — all without touching a single user-facing surface. Risk is minimal and the deletion is history-recoverable.",
+            "weight": 2
+          }
+        },
+        {
+          "agentId": "spec-writer",
+          "agentName": "Spec Writer",
+          "role": "PRD, user stories, acceptance criteria",
+          "content": "## Analysis\n\nI verified the proposal's factual claims directly against the repository before assessing spec quality.\n\n**Factual verification (all confirmed):**\n- All 7 paths exist and are git-tracked: 57 tracked files (46 in `screenshots/`, 5 in `review-screenshots/ios-2026-05-22-fixed/`, 2 in `.gradle-home/` (`.zip.lck`/`.zip.part`), 1 `.playwright-mcp` log, 1 `.run/webApp.run.xml`, `audit_report.json`, `context-log.jsonl`).\n- Size claim accurate: ~13.5 MB (6.6M `screenshots/` + 6.9M `review-screenshots/` + small files).\n- Canonical store path is indeed `composeApp/screenshots/`: `fastlane/Fastfile:140` uses `composeApp/screenshots/ios`; `.github/workflows/store-readiness.yml:19` triggers on `composeApp/screenshots/**`. Root `screenshots/` has no functional reference.\n- `extensions/wakeve-health.ts` degrades gracefully: `readJson<T>` returns `T | null`, and the absence branch emits `⚠️ audit_report.json non trouvé — lance un audit WCAG.` (line 99). AC 6's claim is true as written.\n- `.run/webApp.run.xml` points to `webApp/package.json`, which does not exist — genuinely orphaned.\n- `review-screenshots/` is already in `.gitignore` yet 5 files remain tracked — confirms the \"tracked despite gitignore\" claim. `.gitignore` does not yet contain `.gradle-home/`, `.playwright-mcp/`, `.run/` — AC 5 is needed and correct.\n\n**Spec-quality findings (my deliverables — ambiguities and defects):**\n\n1. **Success metric 3 is false-on-success as literally written.** \"git grep ne trouve plus les chemins supprimés dans l'index\" — the *string* `audit_report.json` legitimately remains in `extensions/wakeve-health.ts` (required by AC 6) and in 6 `docs/a11y/*.md` files. Rewrite as: `git ls-files <path>` returns 0 entries for each of the 7 paths. A naive grep-based verifier would fail a correctly executed change.\n2. **AC 3 is a past-tense process, not a post-state.** \"vérifié avant suppression\" cannot be verified by observing the repo after the change. Its substance is already covered by AC 4 (tests pass) — recast or drop.\n3. **Dangling doc references are unaddressed.** `docs/design/wakeve-apple-design-audit.md` references `review-screenshots/ios-2026-05-22-fixed/*.jpg` as visual calibration references (3 occurrences); `docs/a11y/*` document `audit_report.json` as part of the audit package. Keeping historical docs intact is a defensible scope choice (same pattern as #28 with `qa-screenshots` in CHANGELOG), but the spec should state it explicitly: deleted paths may leave historical doc references dangling by design.\n4. **AC 6 is mildly vague.** \"reste fonctionnelle\" should be given/when/then: *Given* `audit_report.json` absent, *when* the wakeve-health accessibility section runs, *then* output contains the warning line and exits 0. The parenthetical nearly pins this; acceptable with rewrite.\n5. **Recreation coverage is incomplete.** AC 5 ignores 3 of the 7 paths. `review-screenshots/` is already covered, but root `screenshots/`, `audit_report.json`, and `context-log.jsonl` could be regenerated and re-tracked. Question: is regeneration expected from any tooling? If not, add them; if yes, document why not.\n6. **AC 1 duplicates its own text** (criterion string repeated) — cosmetic formatting defect only.\n\n**Scope check:** Passes. The spec prescribes externally visible outcomes (deleted paths, gitignore entries, tests passing) without prescribing implementation.\n\nNone of these defects change the direction or safety of the change; they are verification-wording and completeness gaps fixable during execution without altering scope.\n\n## Vote\nfor\n\n## Reasoning\nEvery factual claim in the proposal is verified true against the repo (tracked status, ~13.5 MB size, canonical `composeApp/screenshots/` path used by fastlane and store-readiness.yml, graceful wakeve-health degradation, orphaned run config, gitignore gaps). The spec defects I found are real but non-blocking: one success metric needs rewording from grep to `git ls-files`, one AC is process-as-outcome, and dangling historical doc references plus partial recreation-prevention should be settled as explicit decisions during execution. The change is low-risk, zero user impact, fully reversible via git history, and directly serves the stated goal of reducing repo noise and misleading paths for agents and developers. My vote is a signal for the tally, which alone decides.\n\n## Composite Score Inputs (0-10)\n- userImpact: 0\n- businessImpact: 2\n- effort: 1\n- securityRisk: 1\n- confidence: 9\n\n## Risk Score (1-10)\n2 — Residual risk is documentation-only (dangling historical references) and possible regeneration of non-ignored paths; no runtime, CI, or store-pipeline exposure; trivially reversible.",
+          "durationMs": 78605,
+          "vote": {
+            "agentId": "spec-writer",
+            "agentName": "Spec Writer",
+            "position": "for",
+            "reasoning": "Every factual claim in the proposal is verified true against the repo (tracked status, ~13.5 MB size, canonical `composeApp/screenshots/` path used by fastlane and store-readiness.yml, graceful wakeve-health degradation, orphaned run config, gitignore gaps). The spec defects I found are real but non-blocking: one success metric needs rewording from grep to `git ls-files`, one AC is process-as-outcome, and dangling historical doc references plus partial recreation-prevention should be settled as explicit decisions during execution. The change is low-risk, zero user impact, fully reversible via git history, and directly serves the stated goal of reducing repo noise and misleading paths for agents and developers. My vote is a signal for the tally, which alone decides.",
+            "weight": 1
+          }
+        }
+      ],
+      "createdAt": "2026-09-18T11:12:56.507Z",
+      "riskZone": "orange",
+      "deliberationStartedAt": "2026-09-18T11:12:59.225Z",
+      "compositeScore": {
+        "axes": {
+          "userImpact": 0.5,
+          "businessImpact": 2.375,
+          "effort": 1.375,
+          "securityRisk": 0.875,
+          "confidence": 9
+        },
+        "weighted": 5.1,
+        "riskZone": "orange",
+        "breakdown": "0.5×0.3 + 2.4×0.2 + 8.6×0.15 + 9.1×0.2 + 9.0×0.15 = 5.1"
+      },
+      "synthesis": "## Synthesis — Proposal #29\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 8\n**For:** 8 | **Against:** 0 | **Abstain:** 0\n\n### Supporting Arguments\n- **Product Strategist:** Strategically this is cheap, reversible (git history preserves everything), evidence-verified debt removal that directly improves the operating efficiency of an agent-heavy development model. Every fa...\n- **Critic / Risk Agent:** Every functional claim in the proposal survived direct verification against CI workflows, fastlane, scripts, the extension source, and git state. The two most severe failure modes are documentation-le...\n- **Solution Architect:** Every factual claim in the proposal verified true against the repo: all 7 artifacts are tracked, none are functionally referenced by CI/fastlane/scripts/build code, the canonical screenshot path is `c...\n- **Research Agent:** Every functional-safety claim in the proposal is directly verifiable in the repo, and I verified them all: the 7 paths exist at the stated size, none is referenced by any workflow, fastlane lane, scri...\n- **Prioritization Agent:** Every factual claim I could test verified cleanly (tracked files, sizes, canonical CI/fastlane paths, graceful extension degradation, zero functional references). This is a low-cost, low-risk, fully r...\n- **Delivery Agent:** Every factual claim I could test checked out against the repo: the 7 paths are tracked, the store-functional screenshot path is `composeApp/screenshots/` (fastlane + CI confirmed), the health extensio...\n- **UX/UI Designer:** Every factual claim I could test held up under direct inspection: the canonical screenshot path is `composeApp/screenshots/`, the tracked review-screenshots contradict `.gitignore`, the run config is ...\n- **Spec Writer:** Every factual claim in the proposal is verified true against the repo (tracked status, ~13.5 MB size, canonical `composeApp/screenshots/` path used by fastlane and store-readiness.yml, graceful wakeve...\n\n### Key Themes\n- User experience\n- Technical debt\n- Scalability\n- Alignment\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n",
+      "resolvedAt": "2026-09-18T11:16:44.575Z",
+      "executionResult": "Executed with delivery plan: feature/dao-29-nettoyage-repo-passe-2-capture"
     }
   ],
   "config": {
@@ -4727,7 +4953,7 @@
     "quorumFloor": 60,
     "staleThresholdHours": 24
   },
-  "nextProposalId": 29,
+  "nextProposalId": 30,
   "initialized": true,
   "auditLog": [
     {
@@ -5953,10 +6179,55 @@
       "action": "proposal_executed",
       "actor": "user",
       "details": "Executed #28"
+    },
+    {
+      "id": 137,
+      "timestamp": "2026-09-18T11:12:56.509Z",
+      "proposalId": 29,
+      "layer": "governance",
+      "action": "proposal_created",
+      "actor": "user",
+      "details": "Proposal \"Nettoyage repo passe 2 : captures QA/store obsolètes, artefacts orphelins (screenshots, review-screenshots, audit_report, .run, context-log, .playwright-mcp, .gradle-home)\" created"
+    },
+    {
+      "id": 138,
+      "timestamp": "2026-09-18T11:12:59.227Z",
+      "proposalId": 29,
+      "layer": "governance",
+      "action": "deliberation_started",
+      "actor": "system",
+      "details": "Deliberation on #29"
+    },
+    {
+      "id": 139,
+      "timestamp": "2026-09-18T11:16:36.490Z",
+      "proposalId": 29,
+      "layer": "intelligence",
+      "action": "deliberation_approved",
+      "actor": "system",
+      "details": "Approved: 100%"
+    },
+    {
+      "id": 140,
+      "timestamp": "2026-09-18T11:16:40.305Z",
+      "proposalId": 29,
+      "layer": "control",
+      "action": "gates_passed",
+      "actor": "system",
+      "details": "All gates passed"
+    },
+    {
+      "id": 141,
+      "timestamp": "2026-09-18T11:16:44.576Z",
+      "proposalId": 29,
+      "layer": "delivery",
+      "action": "proposal_executed",
+      "actor": "user",
+      "details": "Executed #29"
     }
   ],
-  "nextAuditId": 137,
-  "stateRevision": 5,
+  "nextAuditId": 142,
+  "stateRevision": 9,
   "controlResults": {
     "1": {
       "proposalId": 1,
@@ -9782,6 +10053,155 @@
           "autoChecked": true
         }
       ]
+    },
+    "29": {
+      "proposalId": 29,
+      "timestamp": "2026-09-18T11:16:40.304Z",
+      "allGatesPassed": true,
+      "blockerCount": 0,
+      "warningCount": 0,
+      "gates": [
+        {
+          "gateId": "quorum-quality",
+          "name": "Quorum Quality",
+          "passed": true,
+          "severity": "blocker",
+          "message": "Quorum met (100% weighted participation ≥ 60%)",
+          "details": {
+            "quorumPercent": 100,
+            "quorumRequired": 60,
+            "votingAgents": 8,
+            "totalAgents": 7,
+            "totalVotingWeight": 17
+          }
+        },
+        {
+          "gateId": "risk-threshold",
+          "name": "Risk Threshold",
+          "passed": true,
+          "severity": "warning",
+          "message": "Risk score 2.0 ≤ threshold 7",
+          "details": {
+            "avgRisk": 2,
+            "riskScores": [
+              2,
+              2,
+              2,
+              2,
+              2,
+              2,
+              2,
+              2
+            ]
+          }
+        },
+        {
+          "gateId": "vote-consensus",
+          "name": "Vote Consensus",
+          "passed": true,
+          "severity": "warning",
+          "message": "No high-weight agent voted against"
+        },
+        {
+          "gateId": "zone-compliance",
+          "name": "Zone Compliance",
+          "passed": true,
+          "severity": "info",
+          "message": "Risk zone classified: orange"
+        },
+        {
+          "gateId": "acceptance-criteria",
+          "name": "Acceptance Criteria",
+          "passed": true,
+          "severity": "warning",
+          "message": "6 acceptance criteria defined"
+        },
+        {
+          "gateId": "dependency-readiness",
+          "name": "Dependency Readiness",
+          "passed": true,
+          "severity": "info",
+          "message": "No inter-proposal dependencies"
+        },
+        {
+          "gateId": "dependency-conflict",
+          "name": "Dependency Conflict",
+          "passed": true,
+          "severity": "warning",
+          "message": "No overlapping affected paths with in-flight proposals"
+        },
+        {
+          "gateId": "mandatory-dry-run",
+          "name": "Mandatory Dry-Run",
+          "passed": true,
+          "severity": "blocker",
+          "message": "Dry-run not required"
+        },
+        {
+          "gateId": "type-specific-quality",
+          "name": "Type-Specific Quality",
+          "passed": true,
+          "severity": "blocker",
+          "message": "technical-change: approval 100% ≥ 55%, quorum 100% ≥ 60%",
+          "details": {
+            "approvalScore": 100,
+            "approvalRequired": 55,
+            "quorumPercent": 100,
+            "quorumRequired": 60
+          }
+        }
+      ],
+      "checklist": [
+        {
+          "id": "security-review",
+          "category": "security",
+          "label": "Security review completed",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "data-handling",
+          "category": "compliance",
+          "label": "Data handling reviewed",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "compliance-check",
+          "category": "compliance",
+          "label": "Compliance requirements met",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "specs-written",
+          "category": "quality",
+          "label": "Specifications written",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "architecture-reviewed",
+          "category": "quality",
+          "label": "Architecture reviewed",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "rollback-plan",
+          "category": "operational",
+          "label": "Rollback plan defined",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "monitoring-plan",
+          "category": "operational",
+          "label": "Monitoring plan defined",
+          "checked": true,
+          "autoChecked": true
+        }
+      ]
     }
   },
   "deliveryPlans": {
@@ -12472,6 +12892,134 @@
       "branchStrategy": "feature/dao-28-nettoyage-du-repo-suppression-",
       "rollbackPlan": "Revert the merge commit and redeploy previous version",
       "estimatedDuration": "5-9 days"
+    },
+    "29": {
+      "proposalId": 29,
+      "createdAt": "2026-09-18T11:16:40.305Z",
+      "phases": [
+        {
+          "number": 1,
+          "name": "Setup & Design",
+          "tasks": [
+            {
+              "id": "T1",
+              "title": "Review proposal and acceptance criteria",
+              "description": "Understand requirements and clarify ambiguities",
+              "effort": "xs",
+              "phase": 1,
+              "dependencies": [],
+              "status": "pending"
+            },
+            {
+              "id": "T2",
+              "title": "Design solution",
+              "description": "Create technical design document",
+              "effort": "s",
+              "phase": 1,
+              "dependencies": [
+                "T1"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T3",
+              "title": "Set up feature branch",
+              "description": "Create branch for implementation",
+              "effort": "xs",
+              "phase": 1,
+              "dependencies": [
+                "T2"
+              ],
+              "status": "pending"
+            }
+          ],
+          "duration": "1-2 days"
+        },
+        {
+          "number": 2,
+          "name": "Implementation",
+          "tasks": [
+            {
+              "id": "T4",
+              "title": "Core implementation",
+              "description": "Implement the main functionality",
+              "effort": "m",
+              "phase": 2,
+              "dependencies": [
+                "T3"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T5",
+              "title": "Add tests",
+              "description": "Unit and integration tests",
+              "effort": "m",
+              "phase": 2,
+              "dependencies": [
+                "T4"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T6",
+              "title": "Documentation",
+              "description": "Update docs and README",
+              "effort": "s",
+              "phase": 2,
+              "dependencies": [
+                "T4"
+              ],
+              "status": "pending"
+            }
+          ],
+          "duration": "3-5 days"
+        },
+        {
+          "number": 3,
+          "name": "Review & Release",
+          "tasks": [
+            {
+              "id": "T7",
+              "title": "Code review",
+              "description": "Self-review and peer review",
+              "effort": "s",
+              "phase": 3,
+              "dependencies": [
+                "T5",
+                "T6"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T8",
+              "title": "Quality gates",
+              "description": "Run control checks and verify acceptance criteria",
+              "effort": "s",
+              "phase": 3,
+              "dependencies": [
+                "T7"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T9",
+              "title": "Merge and deploy",
+              "description": "Merge to main and deploy",
+              "effort": "xs",
+              "phase": 3,
+              "dependencies": [
+                "T8"
+              ],
+              "status": "pending"
+            }
+          ],
+          "duration": "1-2 days"
+        }
+      ],
+      "branchStrategy": "feature/dao-29-nettoyage-repo-passe-2-capture",
+      "rollbackPlan": "Revert the merge commit and redeploy previous version",
+      "estimatedDuration": "5-9 days"
     }
   },
   "artefacts": {},
@@ -12842,6 +13390,14 @@
       "commitSha": "unknown",
       "filesChanged": [],
       "stateSnapshot": "{\"agents\":7,\"proposals\":28}"
+    },
+    "29": {
+      "proposalId": 29,
+      "timestamp": "2026-09-18T11:16:44.575Z",
+      "branch": "feature/dao-29-nettoyage-repo-passe-2-capture",
+      "commitSha": "unknown",
+      "filesChanged": [],
+      "stateSnapshot": "{\"agents\":7,\"proposals\":29}"
     }
   },
   "verifications": {},
