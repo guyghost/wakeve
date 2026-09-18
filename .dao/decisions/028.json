@@ -1,0 +1,9 @@
+{
+  "id": 28,
+  "title": "Nettoyage du repo : suppression des dossiers non essentiels et artefacts QA (qa-screenshots, .superpowers, audits, .local, openspec)",
+  "type": "technical-change",
+  "status": "executed",
+  "riskZone": "orange",
+  "createdAt": "2026-09-18T09:55:20.103Z",
+  "resolvedAt": "2026-09-18T10:01:15.136Z"
+}
