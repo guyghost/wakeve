@@ -35,6 +35,11 @@ fastlane/report.xml
 dist/
 .ralph/
 review-screenshots/
+.local/
+qa-screenshots/
+.superpowers/
+audits/
+openspec/
 
 # SvelteKit / Cloudflare adapter build artifacts
 .svelte-kit/
