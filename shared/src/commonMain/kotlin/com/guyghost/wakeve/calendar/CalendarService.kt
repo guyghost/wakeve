@@ -74,15 +74,24 @@ class CalendarService(
             appendLine("ORGANIZER;CN=${organizer?.name ?: "Wakeve"}:mailto:${organizer?.email ?: event.organizerId}")
 
             // Participants comme attendees
-            participantsWithUsers.forEach { participantWithUser ->
-                appendLine("ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;CN=${participantWithUser.user.name}:mailto:${participantWithUser.user.email}")
+            // Attendees: explicit invitee emails (server-validated route input) take
+            // precedence; fall back to the event participants when none supplied.
+            val explicitInvitees = invitees.map { it.trim() }.filter { it.isNotBlank() }.distinct()
+            if (explicitInvitees.isNotEmpty()) {
+                explicitInvitees.forEach { email ->
+                    appendLine("ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;CN=${email.substringBefore("@")}:mailto:$email")
+                }
+            } else {
+                participantsWithUsers.forEach { participantWithUser ->
+                    appendLine("ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;CN=${participantWithUser.user.name}:mailto:${participantWithUser.user.email}")
+                }
             }
 
             appendLine("END:VEVENT")
 
-            // Rappels
+            // Rappels — RFC 5545 duration form: [-]P[n]D[T[n]H[n]M[n]S].
             appendLine("BEGIN:VALARM")
-            appendLine("TRIGGER:-P1DT090000") // 1 jour avant à 9h
+            appendLine("TRIGGER:-P1D") // 1 jour avant
             appendLine("DESCRIPTION:Rappel: Événement dans 1 jour")
             appendLine("ACTION:DISPLAY")
             appendLine("END:VALARM")

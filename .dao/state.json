@@ -6007,7 +6007,7 @@
         "server/src/main/kotlin/com/guyghost/wakeve/models/CommentDTOs.kt"
       ],
       "proposedBy": "user",
-      "status": "controlled",
+      "status": "executed",
       "votes": [
         {
           "agentId": "strategist",
@@ -6197,7 +6197,9 @@
       },
       "synthesis": "## Synthesis — Proposal #35\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 8\n**For:** 8 | **Against:** 0 | **Abstain:** 0\n\n### Supporting Arguments\n- **Product Strategist:** All three defects are verifiable in source, not hypotheses. The first is silent data loss on the money artifact — the single most trust-corrosive bug class for a group-coordination product whose gate ...\n- **Research Agent:** All three claims are verified directly in source, not merely plausible — the first-PUT data-loss bug is real and silent (highest-severity class), the 500-on-bad-payload behavior follows from the gener...\n- **Solution Architect:** All three defects are real, reproduced by code reading, and are correctness bugs (silent data loss on first budget save being the most severe). The fixes are feasible entirely with the existing stack ...\n- **Critic / Risk Agent:** The three bugs are real, verified in code, and faithfully root-caused — including a genuine silent-data-loss defect (200 OK + zeroed budget). The fixes are small, well-scoped, test-prescribed, and tri...\n- **Prioritization Agent:** All three bugs are verified in source, not just reported. BUG-6 is silent data loss in a core organizer workflow (budget baseline in ORGANIZING) — the highest-value item here. BUG-8 degrades the socia...\n- **UX/UI Designer:** All three defects are real, verified in source, and each is a trust-breaking failure on an Operate-mode surface: a false-success that silently discards the organizer's budget, misleading 500s that ind...\n- **Delivery Agent:** All three defects are reproduced by direct source inspection, not just QA hearsay; each fix decomposes into small, independently testable, independently shippable slices using test seams that already ...\n- **Spec Writer:** Les trois défauts sont réels, vérifiés dans le code source (perte silencieuse de baseline confirmée ligne par ligne, DTO mort confirmé par grep, authorName ignoré confirmé). Les critères sont majorita...\n\n### Key Themes\n- Security concerns\n- Technical debt\n- Scalability\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n",
       "dryRunAt": "2026-09-18T19:39:42.622Z",
-      "dryRunCanProceed": false
+      "dryRunCanProceed": false,
+      "resolvedAt": "2026-09-18T20:10:10.565Z",
+      "executionResult": "Executed with delivery plan: feature/dao-35-fix-api-budget-baseline-perdue"
     },
     {
       "id": 36,
@@ -8034,10 +8036,19 @@
       "action": "proposal_executed",
       "actor": "user",
       "details": "Executed #33"
+    },
+    {
+      "id": 175,
+      "timestamp": "2026-09-18T20:10:10.566Z",
+      "proposalId": 35,
+      "layer": "delivery",
+      "action": "proposal_executed",
+      "actor": "user",
+      "details": "Executed #35"
     }
   ],
-  "nextAuditId": 175,
-  "stateRevision": 37,
+  "nextAuditId": 176,
+  "stateRevision": 38,
   "controlResults": {
     "1": {
       "proposalId": 1,
@@ -17236,6 +17247,14 @@
       "proposalId": 34,
       "timestamp": "2026-09-18T19:23:14.852Z",
       "branch": "feature/dao-34-fix-server-monter-les-routes-a",
+      "commitSha": "unknown",
+      "filesChanged": [],
+      "stateSnapshot": "{\"agents\":7,\"proposals\":36}"
+    },
+    "35": {
+      "proposalId": 35,
+      "timestamp": "2026-09-18T20:10:10.565Z",
+      "branch": "feature/dao-35-fix-api-budget-baseline-perdue",
       "commitSha": "unknown",
       "filesChanged": [],
       "stateSnapshot": "{\"agents\":7,\"proposals\":36}"

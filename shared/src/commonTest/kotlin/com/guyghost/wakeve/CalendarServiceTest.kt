@@ -32,12 +32,28 @@ class CalendarServiceTest {
     @Test
     fun `ICS document contains VALARM for reminders`() {
         val icsContent = buildTestICSContent()
-        
+
         assertTrue(icsContent.contains("BEGIN:VALARM"))
-        assertTrue(icsContent.contains("TRIGGER:-P1DT090000"))
+        assertTrue(icsContent.contains("TRIGGER:-P1D"))
         assertTrue(icsContent.contains("TRIGGER:-P1W"))
         assertTrue(icsContent.contains("ACTION:DISPLAY"))
         assertTrue(icsContent.contains("END:VALARM"))
+    }
+
+    @Test
+    fun `VALARM triggers use valid RFC 5545 durations`() {
+        val icsContent = buildTestICSContent()
+
+        // RFC 5545 duration form: [-]P[n]W / P[n]D[T[n]H[n]M[n]S]
+        val validDuration = Regex("TRIGGER:(-)?P([0-9]+W|[0-9]+D(T([0-9]+H([0-9]+M([0-9]+S)?)?)?)?)")
+        Regex("TRIGGER:([^\\r\\n]+)").findAll(icsContent).forEach { match ->
+            val value = match.groupValues[1].trim()
+            assertTrue(
+                validDuration.matches("TRIGGER:$value") || value.startsWith("VALUE=DATE-TIME") || value.contains("T"),
+                "TRIGGER must be an RFC 5545 duration or date-time: $value"
+            )
+            assertTrue(!value.contains(Regex("[0-9]{4,}")), "malformed compact duration rejected: $value")
+        }
     }
 
     @Test
@@ -131,7 +147,7 @@ class CalendarServiceTest {
         ORGANIZER;CN=Organizer:mailto:organizer@example.com
         END:VEVENT
         BEGIN:VALARM
-        TRIGGER:-P1DT090000
+        TRIGGER:-P1D
         DESCRIPTION:Rappel: Événement dans 1 jour
         ACTION:DISPLAY
         END:VALARM
