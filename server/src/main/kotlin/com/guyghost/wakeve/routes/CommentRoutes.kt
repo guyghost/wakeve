@@ -72,12 +72,10 @@ fun io.ktor.server.routing.Route.commentRoutes(
                         mapOf("error" to commentAuthorForbiddenMessage())
                     )
                 }
-                // Prefer the display name supplied by the client (trimmed, non-blank)
-                // so guest participants can label themselves; fall back to the
-                // authenticated account identity.
-                val providedAuthorName = request.authorName.trim().takeIf { it.isNotBlank() }
-                val authorName = providedAuthorName
-                    ?: resolveAuthenticatedCommentAuthorName(
+                // Security (see UgcModerationRoutesTest): the client-supplied
+                // authorName must NOT be trusted — the display name is always
+                // resolved from the authenticated identity to prevent impersonation.
+                val authorName = resolveAuthenticatedCommentAuthorName(
                         authenticatedUserName = principal?.payload?.getClaim("userName")?.asString(),
                         authenticatedEmail = principal?.payload?.getClaim("email")?.asString(),
                         authenticatedUserId = authorId

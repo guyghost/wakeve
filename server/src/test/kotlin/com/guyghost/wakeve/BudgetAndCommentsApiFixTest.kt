@@ -32,8 +32,9 @@ import kotlin.test.assertTrue
  * - the first budget baseline PUT must persist the received values (previously
  *   a zeroed budget was silently created),
  * - malformed budget/comment payloads must return 400 instead of 500,
- * - the provided comment authorName must be persisted so threads display human
- *   names instead of guest identifiers.
+ * - a forged comment authorName from the request body must stay ignored
+ *   (anti-impersonation contract; the human-name UX is deferred to a
+ *   server-side display-name resolution)
  */
 class BudgetAndCommentsApiFixTest {
 
@@ -140,20 +141,21 @@ class BudgetAndCommentsApiFixTest {
     }
 
     @Test
-    fun `provided authorName is persisted and listed in the thread`() = testApplication {
+    fun `forged authorName is ignored and identity is derived from the token`() = testApplication {
         application { module(database) }
         seedOrganizingEvent()
 
         val created = client.post("/api/events/event-api-fix/comments") {
             header(HttpHeaders.Authorization, "Bearer ${createTestJwt("organizer-alice")}")
             contentType(ContentType.Application.Json)
-            setBody("""{"authorId":"organizer-alice","authorName":"Alice","content":"Pensez à l'assurance !","section":"GENERAL"}""")
+            setBody("""{"authorId":"organizer-alice","authorName":"Bob (usurpé)","content":"Pensez à l'assurance !","section":"GENERAL"}""")
         }
         assertEquals(HttpStatusCode.Created, created.status, created.bodyAsText())
 
         val thread = client.get("/api/events/event-api-fix/comments") {
             header(HttpHeaders.Authorization, "Bearer ${createTestJwt("organizer-alice")}")
         }
-        assertTrue(thread.bodyAsText().contains("Alice"), "thread must show the human name: ${thread.bodyAsText()}")
+        // The forged name must not appear (see UgcModerationRoutesTest contract).
+        assertTrue(!thread.bodyAsText().contains("usurpé"), "forged authorName must be ignored: ${thread.bodyAsText()}")
     }
 }
