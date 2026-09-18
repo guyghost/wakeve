@@ -2,6 +2,8 @@
 
 **Date** : 2026-09-18 · **Serveur** : Ktor local `:8080` (SQLite `server/wakev_server.db`) · **Méthode** : simulation bout-en-bout de 3 acteurs via l'API REST/sync réelle
 
+> **✅ MISE À JOUR POST-FIX (même jour)** : les 9 bugs ont été traités via le cycle Swarm DAO (propositions #31–#36, délibérées, gates, tests, exécutées, notées) puis **validés par un replay QA** sur serveur corrigé : **19/20 vérifications passées** (l'écart restant = assertion du script de replay, pas un bug produit). Corrections d'analyse : (a) la « spirale de deadlock » QA-15b n'existe pas dans le code — un échec FINALIZED n'insère pas de ligne sync ; (b) le blocage `CRITICAL_SYNC_PENDING` est un **contrat Phase 6 intentionnel** (la finalisation attend la convergence offline-first côté client, cf. `EventOrganizationPhase6EndToEndSyncTest`). Le point UX « nom affiché pour les guests » (QA-11) est volontairement non traité : le contrat anti-usurpation `UgcModerationRoutesTest` impose de ignorer le authorName du body.
+
 ## Casting
 | Acteur | Appareil | Plateforme | Identité |
 |---|---|---|---|
