@@ -403,8 +403,9 @@
     "id": 46,
     "title": "feat(transport): provider local déterministe en fallback — génération et sélection de plans (révision de #44)",
     "type": "product-feature",
-    "status": "controlled",
+    "status": "executed",
     "riskZone": "orange",
-    "createdAt": "2026-09-19T12:01:18.583Z"
+    "createdAt": "2026-09-19T12:01:18.583Z",
+    "resolvedAt": "2026-09-19T12:19:13.394Z"
   }
 ]

@@ -70,3 +70,21 @@ Les vues consomment les mêmes routes que les tests backend (events/poll/scenari
 - **Durcissement tokens push** : longueur minimale 12 chars (garbage rejeté) ; le format strict par plateforme (64 hex APNs / ~140 FCM) reste à arbitrer avec les contrats legacy.
 - **google-services.json** : le build gère déjà l'absence via `onlyIf` (APK produit sans Firebase — vérifié : 36,7 MB) ; contournement config-cache documenté (`--no-configuration-cache`). Un `google-services.json.example` reste à ajouter pour l'onboarding.
 - **Contrat product language Android** : 4/4 réparés — les lignes de code avaient bougé (labels heures calmes/toasts auth), hash d'occurrences recalculés et re-allowlistés selon le workflow d'audit prévu. Suite composeApp : **538/538**.
+
+
+---
+
+## ✅ Complément (2026-09-19, suite) — promesse produit: gaps traités via DAO #44-#46
+
+Smoke test exhaustif de la promesse (PRODUCT.md: scénarios, budget, repas, hébergement, équipement, commentaires, notifications, transport, réunions, paiement):
+
+| Capacité | État avant | État après |
+|---|---|---|
+| Équipement (CRUD) | ✅ (#34) | ✅ validé live (201/200) |
+| Repas auto-générés | ❌ 500 (payload) / 403 (RSVP) | ✅ 400 explicite + 201 avec RSVP et payload complet (21 repas générés) |
+| Transport plans | ❌ 409 provider absent | ✅ #46: provider local déterministe → generate 201 → select 200 → readiness COMPLETE |
+| Réunions persistées | ❌ aucun endpoint (QA-13) | ✅ #45: POST/GET meetings/persisted → MEETING_REQUIRED satisfait |
+| Dashboard overview/events | ✅ (chemin /api/dashboard/overview) | ✅ |
+| Leaderboard | ✅ | ✅ |
+
+Note transport: la génération par le provider local (fallback) marque le contrat Phase4 à jour; un provider externe reste injectable en priorité.

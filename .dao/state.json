@@ -8366,7 +8366,7 @@
         "server/src/test/kotlin/com/guyghost/wakeve"
       ],
       "proposedBy": "user",
-      "status": "controlled",
+      "status": "executed",
       "votes": [
         {
           "agentId": "architect",
@@ -8554,7 +8554,9 @@
         "riskZone": "green",
         "breakdown": "7.1×0.3 + 6.5×0.2 + 6.9×0.15 + 8.1×0.2 + 7.5×0.15 = 7.2"
       },
-      "synthesis": "## Synthesis — Proposal #46\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 8\n**For:** 8 | **Against:** 0 | **Abstain:** 0\n\n### Supporting Arguments\n- **Solution Architect:** The proposal is architecturally clean: it uses an existing, correctly-inverted seam, requires no schema or guard changes, keeps policy testable without IO, and is fully reversible (Option A is one inj...\n- **Product Strategist:** The strategic case is unusually clean: a verified broken promise in the shipped core loop (409 on generate + a finalization blocker that forces dishonest not-needed declarations, corrupting readiness ...\n- **Critic / Risk Agent:** The proposal fixes a verified, reproducible blocker (409 on the only transport plan path, forcing a `not-needed` workaround that corrupts the product's decision record) through an existing seam with n...\n- **Research Agent:** The core problem claim is code-verified (tested 409 dead end in a shipped flow whose persistence, selection, readiness, and UI wiring already exist). The change is fallback-only at an existing injecti...\n- **Prioritization Agent:** High value-per-effort: a QA-confirmed dead end (409) in a shipped surface, fixed via an existing seam with persistence, selection, and readiness already implemented and tested. Small now beats large l...\n- **Delivery Agent:** The delivery case is unusually clean: the seam (`optionProvider`), persistence (`generatePlan`/`selectFinalPlan`), readiness computation, and guards all exist and are already tested; the only new logi...\n- **UX/UI Designer:** The current state forces users to falsify \"not needed\" to escape a permanently blocked task — a verified Operate-mode defect worse than any risk introduced here. The proposal fixes it through an exist...\n- **Spec Writer:** The problem is verified end-to-end in code (409 dead-end + finalization gate requiring a selected plan), and the scoping is genuinely refined: the seam, persistence, selection, and readiness plumbing ...\n\n### Key Themes\n- Security concerns\n- User experience\n- Alignment\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n"
+      "synthesis": "## Synthesis — Proposal #46\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 8\n**For:** 8 | **Against:** 0 | **Abstain:** 0\n\n### Supporting Arguments\n- **Solution Architect:** The proposal is architecturally clean: it uses an existing, correctly-inverted seam, requires no schema or guard changes, keeps policy testable without IO, and is fully reversible (Option A is one inj...\n- **Product Strategist:** The strategic case is unusually clean: a verified broken promise in the shipped core loop (409 on generate + a finalization blocker that forces dishonest not-needed declarations, corrupting readiness ...\n- **Critic / Risk Agent:** The proposal fixes a verified, reproducible blocker (409 on the only transport plan path, forcing a `not-needed` workaround that corrupts the product's decision record) through an existing seam with n...\n- **Research Agent:** The core problem claim is code-verified (tested 409 dead end in a shipped flow whose persistence, selection, readiness, and UI wiring already exist). The change is fallback-only at an existing injecti...\n- **Prioritization Agent:** High value-per-effort: a QA-confirmed dead end (409) in a shipped surface, fixed via an existing seam with persistence, selection, and readiness already implemented and tested. Small now beats large l...\n- **Delivery Agent:** The delivery case is unusually clean: the seam (`optionProvider`), persistence (`generatePlan`/`selectFinalPlan`), readiness computation, and guards all exist and are already tested; the only new logi...\n- **UX/UI Designer:** The current state forces users to falsify \"not needed\" to escape a permanently blocked task — a verified Operate-mode defect worse than any risk introduced here. The proposal fixes it through an exist...\n- **Spec Writer:** The problem is verified end-to-end in code (409 dead-end + finalization gate requiring a selected plan), and the scoping is genuinely refined: the seam, persistence, selection, and readiness plumbing ...\n\n### Key Themes\n- Security concerns\n- User experience\n- Alignment\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n",
+      "resolvedAt": "2026-09-19T12:19:13.394Z",
+      "executionResult": "Executed with delivery plan: feature/dao-46-feat-transport-provider-local-"
     }
   ],
   "config": {
@@ -10604,10 +10606,19 @@
       "action": "gates_passed",
       "actor": "system",
       "details": "All gates passed"
+    },
+    {
+      "id": 223,
+      "timestamp": "2026-09-19T12:19:13.395Z",
+      "proposalId": 46,
+      "layer": "delivery",
+      "action": "proposal_executed",
+      "actor": "user",
+      "details": "Executed #46"
     }
   ],
-  "nextAuditId": 223,
-  "stateRevision": 79,
+  "nextAuditId": 224,
+  "stateRevision": 81,
   "controlResults": {
     "1": {
       "proposalId": 1,
@@ -22328,6 +22339,23 @@
       "status": "pending",
       "createdAt": "2026-09-19T09:51:33.513Z",
       "updatedAt": "2026-09-19T09:51:33.513Z"
+    },
+    "46": {
+      "proposalId": 46,
+      "ratings": [
+        {
+          "proposalId": 46,
+          "rater": "user",
+          "score": 5,
+          "comment": "Provider local déterministe livré et validé en live: génération 201 avec options multi-modes (TRAIN sur Paris→Rio via distance pseudo-déterministe), sélection 200, readiness transport isComplete=True. Contrat Phase4 mis à jour (le 409 dead-end encodait l'absence de provider). Fallback uniquement: un provider externe reste injectable.",
+          "ratedAt": "2026-09-19T12:19:25.836Z"
+        }
+      ],
+      "metrics": [],
+      "overallScore": 5,
+      "status": "pending",
+      "createdAt": "2026-09-19T12:19:25.836Z",
+      "updatedAt": "2026-09-19T12:19:25.836Z"
     }
   },
   "snapshots": {
@@ -22594,6 +22622,14 @@
       "commitSha": "unknown",
       "filesChanged": [],
       "stateSnapshot": "{\"agents\":7,\"proposals\":43}"
+    },
+    "46": {
+      "proposalId": 46,
+      "timestamp": "2026-09-19T12:19:13.394Z",
+      "branch": "feature/dao-46-feat-transport-provider-local-",
+      "commitSha": "unknown",
+      "filesChanged": [],
+      "stateSnapshot": "{\"agents\":7,\"proposals\":46}"
     }
   },
   "verifications": {},
