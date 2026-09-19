@@ -177,5 +177,10 @@ class MeetingRoutesTest {
         val readiness = EventOrganizationReadinessRepository(database).getMeetingReadiness("event-meetings")
         assertTrue(readiness.complete, "MEETING_REQUIRED must be satisfied by the persisted meeting")
         assertEquals(1, readiness.meetingCount)
+        // Proposal #45: a default reminder is created with the meeting
+        val reminders = database.meetingReminderQueries.selectByMeetingId(
+            database.meetingQueries.selectByEventId("event-meetings").executeAsOne().id
+        ).executeAsList()
+        assertEquals(1, reminders.size, "a default ONE_DAY_BEFORE reminder must exist")
     }
 }

@@ -88,3 +88,23 @@ Smoke test exhaustif de la promesse (PRODUCT.md: scénarios, budget, repas, héb
 | Leaderboard | ✅ | ✅ |
 
 Note transport: la génération par le provider local (fallback) marque le contrat Phase4 à jour; un provider externe reste injectable en priorité.
+
+
+---
+
+## ✅ E2E cross-platform en conditions réelles (2026-09-19, suite)
+
+**Environnement réel** : serveur Ktor local (main, tous correctifs) + **simulateur iOS réel** (Wakeve-QA-iPhone-16-Pro, app Debug pointant vers localhost:8080) + **émulateur Android réel** (Wakeve_Audit_API_32, APK debug pointant vers 10.0.2.2:8080). Preuves: `docs/qa/evidence/{ios,android}-app-launch.png`, `{ios,android}-deeplink-event.png`.
+
+**Résultat: 17/17 vérifications passées** — parcours de groupe complet:
+
+1. Inscription 3 devices: auth invité + **refresh token 30j (#39)** + push enregistré par plateforme (**IOS: saga legacy converged via env configurées; ANDROID: direct**) — IOS 200 ✅
+2. Événement DRAFT→POLLING, invitation (maxUses), Bob+iOS et Carla+Android rejoignent ✅
+3. 6 votes, semaine 1 gagne (3×YES) ✅
+4. Confirmation date via sync modélisée + RSVP ×3 (date retenue) ✅
+5. ORGANIZING: scénario final sélectionné, **budget collaboratif (#37)** (item Carla 201), **24 repas auto-générés**, équipement Bob, **transport: génération + sélection (#46)** (readiness isComplete), **réunion persistée + rappel auto 24h (#45 complété)**
+6. Chat WebSocket 3 connexions simultanées: diffusion temps réel ×3, **usurpation bloquée (#38)**, historique persisté (#43)
+7. Inbox notifications: 3 rows par participant concerné (triggers EVENT_UPDATE ×3 transitions) — livraison push en attente de credentials réels (comportement attendu)
+8. **FINALIZED atteint via API seule, zéro workaround** (la checklist complète est satisfaisable par les capacités produit)
+
+**Deep links cross-platform**: `wakeve://event/<id>` routé vers les deux apps réelles (iOS Universal Link scheme + Android App Link), captures incluses.

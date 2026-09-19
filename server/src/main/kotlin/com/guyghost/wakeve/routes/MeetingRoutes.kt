@@ -140,6 +140,20 @@ fun io.ktor.server.routing.Route.meetingRoutes(database: WakeveDb) {
                 createdAt = now
             )
 
+            // Rappel par défaut (proposal #45): une réunion créée a un rappel
+            // 24h avant — satisfait NOTIFICATION_REMINDERS_REQUIRED et honore
+            // la promesse « rappels » de l'agent Réunions.
+            database.meetingReminderQueries.insertMeetingReminder(
+                id = "rem_${UUID.randomUUID()}",
+                meeting_id = meetingId,
+                participant_id = null,
+                timing = "ONE_DAY_BEFORE",
+                scheduled_for = java.time.Instant.parse(request.startTime)
+                    .minusSeconds(24 * 3600).toString(),
+                sent_at = null,
+                status = "SCHEDULED"
+            )
+
             call.respond(HttpStatusCode.Created, mapOf(
                 "id" to meetingId,
                 "eventId" to eventId,
