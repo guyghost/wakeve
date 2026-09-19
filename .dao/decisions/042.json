@@ -2,7 +2,8 @@
   "id": 42,
   "title": "chore(ids): hygiène des générateurs d'ids et de timestamps (P3 cosmétique)",
   "type": "technical-change",
-  "status": "controlled",
+  "status": "executed",
   "riskZone": "orange",
-  "createdAt": "2026-09-19T07:46:19.563Z"
+  "createdAt": "2026-09-19T07:46:19.563Z",
+  "resolvedAt": "2026-09-19T08:14:34.729Z"
 }

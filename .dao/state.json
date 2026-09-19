@@ -7557,7 +7557,7 @@
         "shared/src/commonMain/kotlin/com/guyghost/wakeve/repository/ScenarioRepository.kt"
       ],
       "proposedBy": "user",
-      "status": "controlled",
+      "status": "executed",
       "votes": [
         {
           "agentId": "strategist",
@@ -7745,7 +7745,9 @@
         "riskZone": "orange",
         "breakdown": "3.0×0.3 + 3.6×0.2 + 8.0×0.15 + 8.5×0.2 + 8.3×0.15 = 5.8"
       },
-      "synthesis": "## Synthesis — Proposal #42\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 8\n**For:** 8 | **Against:** 0 | **Abstain:** 0\n\n### Supporting Arguments\n- **Product Strategist:** All four factual claims verify in code; the change is precedented (#39 fixed the identical pattern for createToken), contract-free, testable as specified, and two of the four items (invitation row id,...\n- **Critic / Risk Agent:** All four claims verified in source; the change is small, additive-tested, contract-neutral for opaque-id clients, and cleanly reversible with no data migration. The residual risks I found (out-of-repo...\n- **Solution Architect:** Every claim in the proposal checks out against the code, including the subtle one (invitation code vs row id). The change is feasible with the existing stack, touches only IO-near code, changes no con...\n- **Research Agent:** Every factual claim in the proposal verified directly against the code, and the QA observation is documented in-repo (`docs/qa/RIO_QA_SESSION_2026-09-18.md`). The severity labeling (P3, cosmetic + fra...\n- **UX/UI Designer:** As a designer I'd normally score a pure backend change as neutral, but this one has a genuine, if small, user-facing payoff: it eliminates rare but flow-breaking failure states (invite creation and ac...\n- **Spec Writer:** Les défauts sont réels, vérifiés fichier:ligne, réversibles, sans changement de schéma ni de contrat — bloquer une hygiène P3 serait disproportionné. Mais mon vote est conditionné à la livraison des q...\n- **Prioritization Agent:** All claims are verified against source, not just plausible. Effort is near-minimal (four one-liners plus tests, established pattern from #39), risk-adjusted value is positive because one of the four i...\n- **Delivery Agent:** All four problem sites verified in code with exact line-level evidence; the fix family has a shipped in-repo precedent (#39 / commit 4164a19f) including the commonMain-safe generator; no schema, contr...\n\n### Key Themes\n- User experience\n- Technical debt\n- Scalability\n- Alignment\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n"
+      "synthesis": "## Synthesis — Proposal #42\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 8\n**For:** 8 | **Against:** 0 | **Abstain:** 0\n\n### Supporting Arguments\n- **Product Strategist:** All four factual claims verify in code; the change is precedented (#39 fixed the identical pattern for createToken), contract-free, testable as specified, and two of the four items (invitation row id,...\n- **Critic / Risk Agent:** All four claims verified in source; the change is small, additive-tested, contract-neutral for opaque-id clients, and cleanly reversible with no data migration. The residual risks I found (out-of-repo...\n- **Solution Architect:** Every claim in the proposal checks out against the code, including the subtle one (invitation code vs row id). The change is feasible with the existing stack, touches only IO-near code, changes no con...\n- **Research Agent:** Every factual claim in the proposal verified directly against the code, and the QA observation is documented in-repo (`docs/qa/RIO_QA_SESSION_2026-09-18.md`). The severity labeling (P3, cosmetic + fra...\n- **UX/UI Designer:** As a designer I'd normally score a pure backend change as neutral, but this one has a genuine, if small, user-facing payoff: it eliminates rare but flow-breaking failure states (invite creation and ac...\n- **Spec Writer:** Les défauts sont réels, vérifiés fichier:ligne, réversibles, sans changement de schéma ni de contrat — bloquer une hygiène P3 serait disproportionné. Mais mon vote est conditionné à la livraison des q...\n- **Prioritization Agent:** All claims are verified against source, not just plausible. Effort is near-minimal (four one-liners plus tests, established pattern from #39), risk-adjusted value is positive because one of the four i...\n- **Delivery Agent:** All four problem sites verified in code with exact line-level evidence; the fix family has a shipped in-repo precedent (#39 / commit 4164a19f) including the commonMain-safe generator; no schema, contr...\n\n### Key Themes\n- User experience\n- Technical debt\n- Scalability\n- Alignment\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n",
+      "resolvedAt": "2026-09-19T08:14:34.729Z",
+      "executionResult": "Executed with delivery plan: feature/dao-42-chore-ids-hygi-ne-des-g-n-rate"
     }
   ],
   "config": {
@@ -9642,10 +9644,19 @@
       "action": "proposal_executed",
       "actor": "user",
       "details": "Executed #41"
+    },
+    {
+      "id": 206,
+      "timestamp": "2026-09-19T08:14:34.730Z",
+      "proposalId": 42,
+      "layer": "delivery",
+      "action": "proposal_executed",
+      "actor": "user",
+      "details": "Executed #42"
     }
   ],
-  "nextAuditId": 206,
-  "stateRevision": 64,
+  "nextAuditId": 207,
+  "stateRevision": 66,
   "controlResults": {
     "1": {
       "proposalId": 1,
@@ -20493,6 +20504,23 @@
       "status": "pending",
       "createdAt": "2026-09-19T08:11:28.965Z",
       "updatedAt": "2026-09-19T08:11:28.965Z"
+    },
+    "42": {
+      "proposalId": 42,
+      "ratings": [
+        {
+          "proposalId": 42,
+          "rater": "user",
+          "score": 4,
+          "comment": "Hygiène IDs livrée (event/invitation/user en suffixes UUID opaques) ; le volet timestamps scenario a été volontairement dé-scopé après analyse : la précision nanoseconde est le mécanisme d'ordre strict des mutations (nextMutationTimestamp +1ns), la normaliser casserait une garantie fonctionnelle. Décision documentée dans le commit. 3 générateurs durcis, test d'unicité API vert.",
+          "ratedAt": "2026-09-19T08:14:42.767Z"
+        }
+      ],
+      "metrics": [],
+      "overallScore": 4,
+      "status": "pending",
+      "createdAt": "2026-09-19T08:14:42.767Z",
+      "updatedAt": "2026-09-19T08:14:42.767Z"
     }
   },
   "snapshots": {
@@ -20740,6 +20768,14 @@
       "proposalId": 41,
       "timestamp": "2026-09-19T08:11:21.735Z",
       "branch": "feature/dao-41-fix-readiness-l-outbox-sync-c-",
+      "commitSha": "unknown",
+      "filesChanged": [],
+      "stateSnapshot": "{\"agents\":7,\"proposals\":42}"
+    },
+    "42": {
+      "proposalId": 42,
+      "timestamp": "2026-09-19T08:14:34.729Z",
+      "branch": "feature/dao-42-chore-ids-hygi-ne-des-g-n-rate",
       "commitSha": "unknown",
       "filesChanged": [],
       "stateSnapshot": "{\"agents\":7,\"proposals\":42}"
