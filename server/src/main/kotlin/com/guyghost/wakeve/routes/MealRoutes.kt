@@ -355,7 +355,14 @@ fun io.ktor.server.routing.Route.mealRoutes(
                     return@post call.respond(HttpStatusCode.Forbidden, mealAccessDenied(eventId, userId, "auto_generate_meals"))
                 }
 
-                val request = call.receive<AutoMealPlanRequest>()
+                val request = try {
+                    call.receive<AutoMealPlanRequest>()
+                } catch (e: Exception) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Invalid meal plan payload: eventId, startDate, endDate, participantCount, includeMealTypes and estimatedCostPerMeal are required")
+                    )
+                }
                 
                 // Ensure eventId matches
                 if (request.eventId != eventId) {

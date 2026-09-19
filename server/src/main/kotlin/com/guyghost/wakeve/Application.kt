@@ -55,6 +55,7 @@ import com.guyghost.wakeve.routes.DirectInviteBackendDeliveryOwner
 import com.guyghost.wakeve.routes.HttpDirectInviteBackendDeliveryOwner
 import com.guyghost.wakeve.routes.mealRoutes
 import com.guyghost.wakeve.routes.meetingProxyRoutes
+import com.guyghost.wakeve.routes.meetingRoutes
 import com.guyghost.wakeve.routes.moderationRoutes
 import com.guyghost.wakeve.routes.notificationRoutes
 import com.guyghost.wakeve.routes.participantRoutes
@@ -72,6 +73,7 @@ import com.guyghost.wakeve.auth.SessionRepository
 import com.guyghost.wakeve.database.DatabaseProvider
 import com.guyghost.wakeve.repository.DatabaseEventRepository
 import com.guyghost.wakeve.repository.ScenarioRepository
+import com.guyghost.wakeve.transport.LocalTransportOptionProvider
 import com.guyghost.wakeve.transport.TransportRepository
 import com.guyghost.wakeve.payment.TricountHandoffRepository
 import io.ktor.http.HttpStatusCode
@@ -253,7 +255,10 @@ fun main() {
     val equipmentRepository = com.guyghost.wakeve.equipment.EquipmentRepository(database)
     val locationRepository = PotentialLocationRepository(eventRepository)
     val accommodationRepository = com.guyghost.wakeve.accommodation.AccommodationRepository(database)
-    val transportRepository = TransportRepository(database)
+    // Proposal #46: deterministic local fallback so the transport loop
+    // (generate -> select -> readiness COMPLETE) works without an external
+    // provider. Production can inject a real provider via composition.
+    val transportRepository = TransportRepository(database, LocalTransportOptionProvider::optionsFor)
     val tricountHandoffRepository = TricountHandoffRepository(database)
     
     // Initialize Calendar Service
@@ -358,7 +363,7 @@ fun Application.module(
     compatibilityMigrationClock: () -> Long = { System.currentTimeMillis() / 1_000L },
     eventNotificationTrigger: EventNotificationTrigger = EventNotificationTrigger(notificationService, eventRepository, moderationRepository),
     gamificationService: GamificationService = createGamificationService(),
-    transportRepository: TransportRepository = TransportRepository(database),
+    transportRepository: TransportRepository = TransportRepository(database, LocalTransportOptionProvider::optionsFor),
     directInviteDeliveryOwner: DirectInviteBackendDeliveryOwner =
         HttpDirectInviteBackendDeliveryOwner.fromEnvironment()
 ) {
@@ -603,6 +608,7 @@ fun Application.module(
                             sessionRoutes(sessionManager)
                             calendarRoutes(calendarService, database)
                             chatRoutes(chatService)
+                            meetingRoutes(database)
                             meetingProxyRoutes(database, eventRepository)
                             analyticsRoutes(analyticsDashboard)
                             notificationRoutes(

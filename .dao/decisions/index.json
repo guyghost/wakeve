@@ -381,5 +381,30 @@
     "riskZone": "red",
     "createdAt": "2026-09-19T09:23:03.756Z",
     "resolvedAt": "2026-09-19T09:51:22.821Z"
+  },
+  {
+    "id": 44,
+    "title": "feat(transport): provider local déterministe — génération et sélection de plans sans provider externe",
+    "type": "product-feature",
+    "status": "rejected",
+    "riskZone": "orange",
+    "createdAt": "2026-09-19T11:55:20.971Z",
+    "resolvedAt": "2026-09-19T12:00:17.567Z"
+  },
+  {
+    "id": 45,
+    "title": "feat(meetings): création et listage de réunions persistées côté serveur",
+    "type": "product-feature",
+    "status": "controlled",
+    "riskZone": "red",
+    "createdAt": "2026-09-19T11:55:20.972Z"
+  },
+  {
+    "id": 46,
+    "title": "feat(transport): provider local déterministe en fallback — génération et sélection de plans (révision de #44)",
+    "type": "product-feature",
+    "status": "controlled",
+    "riskZone": "orange",
+    "createdAt": "2026-09-19T12:01:18.583Z"
   }
 ]

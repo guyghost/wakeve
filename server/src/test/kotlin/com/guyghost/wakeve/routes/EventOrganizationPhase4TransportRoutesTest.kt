@@ -186,7 +186,9 @@ class EventOrganizationPhase4TransportRoutesTest {
     }
 
     @Test
-    fun `organizer gets explicit conflict when transport provider is not configured`() = testApplication {
+    // Proposal #46: the composition wires the deterministic local provider, so
+    // generation succeeds instead of the historical 409 dead end.
+    fun `organizer generates a transport plan with the local provider`() = testApplication {
         val fixture = createFixture("generate-select", EventStatus.ORGANIZING)
         val organizerToken = createTestJwt(fixture.organizerId)
         val client = createJsonClient()
@@ -203,9 +205,7 @@ class EventOrganizationPhase4TransportRoutesTest {
             setBody(generatePlanBody())
         }
 
-        assertEquals(HttpStatusCode.Conflict, generated.status)
-        val body = generated.bodyAsText()
-        assertTrue(body.contains("Transport option provider is not configured"), body)
+        assertEquals(HttpStatusCode.Created, generated.status, generated.bodyAsText())
     }
 
     @Test
