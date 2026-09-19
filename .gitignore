@@ -52,3 +52,5 @@ apps/landing/.svelte-kit/
 apps/landing/.vercel/
 apps/landing/build/
 .wrangler/
+server/wakev-device-registration/
+server/wakev_server.db
