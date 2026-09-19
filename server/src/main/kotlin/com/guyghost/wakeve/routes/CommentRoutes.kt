@@ -72,19 +72,23 @@ fun io.ktor.server.routing.Route.commentRoutes(
                         mapOf("error" to commentAuthorForbiddenMessage())
                     )
                 }
-                // Attribution resolves from the server-side user profile
-                // (proposal #38): users set their display name via
-                // PUT /user/display-name; the request-supplied authorName stays
-                // ignored (anti-impersonation contract, UgcModerationRoutesTest).
+                // Attribution chain (proposal #38): 1) JWT userName claim — a
+                // trusted identity assertion whose precedence keeps the
+                // UgcModerationRoutesTest contract; 2) server-side profile name
+                // (set via PUT /user/display-name) — fixes guests showing
+                // guest_<uuid>; 3) email prefix; 4) user id. The request-supplied
+                // authorName stays ignored at every step.
+                val jwtUserName = principal?.payload?.getClaim("userName")?.asString()
+                    ?.trim()?.takeIf { it.isNotBlank() }
                 val profileName = repository.getUserDisplayName(authorId)
                     ?.trim()
                     ?.takeIf { it.isNotBlank() && it != "Invité" }
-                val authorName = profileName
-                    ?: resolveAuthenticatedCommentAuthorName(
-                        authenticatedUserName = principal?.payload?.getClaim("userName")?.asString(),
-                        authenticatedEmail = principal?.payload?.getClaim("email")?.asString(),
-                        authenticatedUserId = authorId
-                    )
+                val emailPrefix = principal?.payload?.getClaim("email")?.asString()
+                    ?.trim()?.substringBefore("@")?.takeIf { it.isNotBlank() }
+                val authorName = jwtUserName
+                    ?: profileName
+                    ?: emailPrefix
+                    ?: authorId
 
                 val commentRequest = CommentRequest(
                     section = request.section,
