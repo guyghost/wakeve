@@ -124,9 +124,14 @@ class AuthenticationService(
         // Generate new JWT token
         val jwtToken = generateJwtToken(user)
 
-        // Update the token in database with new expiry
-        val newExpiry = calculateTokenExpiry(3600) // 1 hour
-        userRepository.updateTokenExpiry(userToken.id, newExpiry)
+        // Guest refresh tokens keep the validity issued at login (30 days);
+        // resetting to 1h here would cut multi-day guest planning after the
+        // first refresh (proposal #39). The 1h sliding expiry stays for the
+        // email/OAuth flows (existing contract).
+        if (user.provider != OAuthProvider.GUEST) {
+            val newExpiry = calculateTokenExpiry(3600) // 1 hour
+            userRepository.updateTokenExpiry(userToken.id, newExpiry)
+        }
 
         OAuthLoginResponse(
             user = com.guyghost.wakeve.models.UserResponse(
@@ -239,6 +244,21 @@ class AuthenticationService(
         // Générer le JWT avec rôle USER (permissions standard limitées)
         val jwtToken = generateJwtToken(user)
 
+        // Continuité de session invité (proposal #39) : un refresh token de
+        // 30 jours permet une planification multi-jours sans coupure à 1 h.
+        // Menace documentée : l'invité est une identité device-scoped non
+        // vérifiée ; le vol du refresh prolonge l'accès aux seules données
+        // guest (minimisation RGPD inchangée) et la suppression de compte
+        // cascade user_token (ON DELETE CASCADE).
+        val refreshExpiry = calculateTokenExpiry(GUEST_REFRESH_TOKEN_VALIDITY_SECONDS)
+        val refreshTokenValue = UUID.randomUUID().toString()
+        userRepository.createToken(
+            userId = user.id,
+            accessToken = jwtToken,
+            refreshToken = refreshTokenValue,
+            expiresAt = refreshExpiry
+        ).getOrThrow()
+
         AuthResponse(
             user = UserDTO(
                 id = user.id,
@@ -248,7 +268,7 @@ class AuthenticationService(
                 authMethod = "GUEST"
             ),
             accessToken = jwtToken,
-            refreshToken = null,  // Pas de refresh token pour les invités
+            refreshToken = refreshTokenValue,
             expiresInSeconds = 3600
         )
     }
@@ -387,3 +407,6 @@ class AuthenticationService(
 
 /** Maximum length for user display names (profile + comment attribution). */
 const val MAX_DISPLAY_NAME_LENGTH = 30
+
+/** Guest refresh token validity: 30 days (proposal #39). */
+const val GUEST_REFRESH_TOKEN_VALIDITY_SECONDS = 30L * 24 * 3600

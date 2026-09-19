@@ -6677,7 +6677,7 @@
         "server/src/test/kotlin/com/guyghost/wakeve"
       ],
       "proposedBy": "user",
-      "status": "controlled",
+      "status": "executed",
       "votes": [
         {
           "agentId": "strategist",
@@ -6867,7 +6867,9 @@
       },
       "synthesis": "## Synthesis — Proposal #38\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 8\n**For:** 8 | **Against:** 0 | **Abstain:** 0\n\n### Supporting Arguments\n- **Product Strategist:** Small, surgical, code-grounded fix for an observed QA defect in the core coordination loop (\"who said what\"), squarely inside the Product Excellence gate, preserving a hard-won security contract (forg...\n- **Research Agent:** Every causal claim in the problem statement is verified in code — this is a real, mechanically-confirmed defect on a first-class auth path, and the proposed fix is the exact alternative the codebase a...\n- **Solution Architect:** The proposal fixes the identity-resolution bug at its true source (the user record) rather than trusting client payloads, uses only existing stack pieces with zero schema migration, lands inside an al...\n- **Critic / Risk Agent:** The core direction is correct and verified: server-side resolution closes the identity gap without weakening the anti-forgery contract, requires no schema migration, inherits auth + rate limiting + to...\n- **UX/UI Designer:** The proposal fixes a verified, high-mental-load defect in the product's core loop (group coordination: who said what) with the correct trust model — identity resolved from the authenticated account, i...\n- **Prioritization Agent:** Small-now strongly beats large-later here: roughly a day of server work (~1 endpoint + validation, 1 SQL query, 1 resolution change, ~4 tests) permanently fixes identity display on a core coordination...\n- **Delivery Agent:** The proposal is well-scoped, accurately grounded in the codebase, and every slice is testable first with existing fixtures. It fixes a real, QA-reported user-facing failure (can't tell who said what i...\n- **Spec Writer:** Le design résout le vrai problème documenté (QA Rio, vérifié dans le code : ni les JWT invités ni les JWT OAuth n'ont de claim nom, la résolution tombe sur le préfixe email) du bon côté de la frontièr...\n\n### Key Themes\n- Security concerns\n- User experience\n- Scalability\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n",
       "dryRunAt": "2026-09-19T06:59:09.991Z",
-      "dryRunCanProceed": false
+      "dryRunCanProceed": false,
+      "resolvedAt": "2026-09-19T07:13:37.819Z",
+      "executionResult": "Executed with delivery plan: feature/dao-38-feat-profile-nom-affich-des-in"
     },
     {
       "id": 39,
@@ -8831,10 +8833,19 @@
       "action": "proposal_executed",
       "actor": "user",
       "details": "Executed #37"
+    },
+    {
+      "id": 190,
+      "timestamp": "2026-09-19T07:13:37.821Z",
+      "proposalId": 38,
+      "layer": "delivery",
+      "action": "proposal_executed",
+      "actor": "user",
+      "details": "Executed #38"
     }
   ],
-  "nextAuditId": 190,
-  "stateRevision": 50,
+  "nextAuditId": 191,
+  "stateRevision": 52,
   "controlResults": {
     "1": {
       "proposalId": 1,
@@ -18773,6 +18784,23 @@
       "status": "pending",
       "createdAt": "2026-09-19T07:06:16.117Z",
       "updatedAt": "2026-09-19T07:06:16.117Z"
+    },
+    "38": {
+      "proposalId": 38,
+      "ratings": [
+        {
+          "proposalId": 38,
+          "rater": "user",
+          "score": 4,
+          "comment": "Noms des invités résolus côté serveur : PUT /api/user/display-name validé (trim, 1-30, pas de contrôle), attribution commentaires = chaîne JWT claim → profil → préfixe email → id. Contrat Ugc (claim JWT prioritaire, authorName forgé ignoré) préservé et testé. Le Spec Writer et l'Ugc test ont corrigé la précédence en revue — exactement le rôle du swarm.",
+          "ratedAt": "2026-09-19T07:13:47.265Z"
+        }
+      ],
+      "metrics": [],
+      "overallScore": 4,
+      "status": "pending",
+      "createdAt": "2026-09-19T07:13:47.265Z",
+      "updatedAt": "2026-09-19T07:13:47.265Z"
     }
   },
   "snapshots": {
@@ -18988,6 +19016,14 @@
       "proposalId": 37,
       "timestamp": "2026-09-19T07:06:07.344Z",
       "branch": "feature/dao-37-feat-budget-cr-ation-d-items-d",
+      "commitSha": "unknown",
+      "filesChanged": [],
+      "stateSnapshot": "{\"agents\":7,\"proposals\":39}"
+    },
+    "38": {
+      "proposalId": 38,
+      "timestamp": "2026-09-19T07:13:37.819Z",
+      "branch": "feature/dao-38-feat-profile-nom-affich-des-in",
       "commitSha": "unknown",
       "filesChanged": [],
       "stateSnapshot": "{\"agents\":7,\"proposals\":39}"
