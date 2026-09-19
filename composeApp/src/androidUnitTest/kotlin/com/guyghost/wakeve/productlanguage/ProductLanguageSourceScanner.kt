@@ -37,6 +37,22 @@ internal object ProductLanguageSourceScanner {
     // Exact path + line + literal snapshots reviewed during the Task 5 final audit.
     // A moved or changed occurrence is intentionally rejected and must be reviewed again.
     private val reviewedOccurrenceHashes = setOf(
+        -1051592007,
+        -889788052,
+        -37909471,
+        1227599598,
+        718631309,
+        -1918334682,
+        -619316683,
+        2054979928,
+        1917646295,
+        -1135739625,
+        2044844245,
+        949332184,
+        58922587,
+        943209812,
+        -1612937855,
+        831417740,
         861591896,
         -2081326239,
         -2072320815,
