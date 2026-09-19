@@ -7748,6 +7748,231 @@
       "synthesis": "## Synthesis — Proposal #42\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 8\n**For:** 8 | **Against:** 0 | **Abstain:** 0\n\n### Supporting Arguments\n- **Product Strategist:** All four factual claims verify in code; the change is precedented (#39 fixed the identical pattern for createToken), contract-free, testable as specified, and two of the four items (invitation row id,...\n- **Critic / Risk Agent:** All four claims verified in source; the change is small, additive-tested, contract-neutral for opaque-id clients, and cleanly reversible with no data migration. The residual risks I found (out-of-repo...\n- **Solution Architect:** Every claim in the proposal checks out against the code, including the subtle one (invitation code vs row id). The change is feasible with the existing stack, touches only IO-near code, changes no con...\n- **Research Agent:** Every factual claim in the proposal verified directly against the code, and the QA observation is documented in-repo (`docs/qa/RIO_QA_SESSION_2026-09-18.md`). The severity labeling (P3, cosmetic + fra...\n- **UX/UI Designer:** As a designer I'd normally score a pure backend change as neutral, but this one has a genuine, if small, user-facing payoff: it eliminates rare but flow-breaking failure states (invite creation and ac...\n- **Spec Writer:** Les défauts sont réels, vérifiés fichier:ligne, réversibles, sans changement de schéma ni de contrat — bloquer une hygiène P3 serait disproportionné. Mais mon vote est conditionné à la livraison des q...\n- **Prioritization Agent:** All claims are verified against source, not just plausible. Effort is near-minimal (four one-liners plus tests, established pattern from #39), risk-adjusted value is positive because one of the four i...\n- **Delivery Agent:** All four problem sites verified in code with exact line-level evidence; the fix family has a shipped in-repo precedent (#39 / commit 4164a19f) including the commonMain-safe generator; no schema, contr...\n\n### Key Themes\n- User experience\n- Technical debt\n- Scalability\n- Alignment\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n",
       "resolvedAt": "2026-09-19T08:14:34.729Z",
       "executionResult": "Executed with delivery plan: feature/dao-42-chore-ids-hygi-ne-des-g-n-rate"
+    },
+    {
+      "id": 43,
+      "title": "feat(chat): persistance serveur de l'historique de chat temps réel + endpoint history",
+      "type": "product-feature",
+      "description": "Implémentation : (1) dans le handler WS (ChatWebSocket.kt), branche MESSAGE : persister via chatMessagesQueries.insertMessageMinimal (id = messageId généré déjà présent dans la réponse WS, sender = userId authentifié, timestamp serveur) avant le broadcast ; (2) nouvel endpoint authentifié GET /api/events/{eventId}/chat/messages?limit=50 (guard hasChatWebSocketAccess réutilisé) retournant selectRecentMessages depuis un horodatage passé (ex: epoch 0) limité aux N derniers, mappé en DTO MessageData/ChatWebSocketResponse réutilisés ; (3) test E2E via client WebSocket du testApplication : 2 messages envoyés → history GET retourne les 2 dans l'ordre avec userId authentifié.",
+      "context": "La table chat_message existe déjà dans le schéma partagé (ChatMessages.sq : insertMessage, insertMessageMinimal, selectRecentMessages) ainsi que les queries de lecture — seul le câblage serveur manque. Le client persiste déjà localement (ChatServicePersistenceContractTest). Produit : « rend clair ce qui est confirmé et qui doit agir » — un historique visible évite de reposer la question hors app.",
+      "problemStatement": "Les messages du chat temps réel sont broadcast-only : rien n'est persisté côté serveur. Un participant qui rejoint après le début des échanges (ou qui se déconnecte/reconnecte) ne voit aucun historique — la coordination « qui a dit quoi, quelle est la prochaine action » repose sur le scroll perdu. La QA UI/Chat/Push (2026-09-19, docs/qa/UI_CHAT_PUSH_AUDIT_2026-09-19.md) l'a identifié comme arbitrage produit restant : l'utilisateur a arbitré en faveur de la persistance.",
+      "acceptanceCriteria": [
+        "Un MESSAGE WS est persisté dans la table chat_message (id de la réponse WS = id persisté)",
+        "Nouvel endpoint GET /api/events/{id}/chat/messages (auth + accès événement) retournant les N derniers messages ordonnés chronologiquement",
+        "Un participant qui (re)joint le chat récupère l'historique persisté",
+        "Hors-groupe → 403 ; non authentifié → 401",
+        "La modération existante (isBlockedForEvent) n'est pas régressée à la diffusion",
+        "Test E2E : 2 messages via WS → GET history retourne les 2 messages ordonnés avec bonne attribution"
+      ],
+      "successMetrics": [
+        "Replay : late-joiner récupère les messages envoyés avant sa connexion",
+        "Test E2E WS+history vert",
+        "Suites serveur vertes"
+      ],
+      "rollbackConditions": [
+        "Régression sur la diffusion temps réel existante (latence/ordre)",
+        "Fuite d'historique vers des non-membres (403 exigé)",
+        "Échec des tests chat existants (persistance client, modération)"
+      ],
+      "affectedPaths": [
+        "server/src/main/kotlin/com/guyghost/wakeve/routing/ChatWebSocket.kt",
+        "server/src/main/kotlin/com/guyghost/wakeve/routes/NotificationRoutes.kt",
+        "server/src/test/kotlin/com/guyghost/wakeve"
+      ],
+      "proposedBy": "user",
+      "status": "executed",
+      "votes": [
+        {
+          "agentId": "strategist",
+          "agentName": "Product Strategist",
+          "position": "for",
+          "reasoning": "The strategic case is real and mechanism-backed: durable chat history directly serves the coordination gate (\"qui doit agir\") and the anti-drift mandate, the gap is verified in code, and effort is small since the persistence layer already exists. The defects I found — duplicate endpoint at an occupied path, wrong LIMIT semantics, WS-path moderation bypass, unverifiable QA citation, and the absent client wiring that gates all user impact — are planning/execution correctable, not strategic rejections. I vote for **conditionally**: the plan must (1) harden/reuse the existing GET endpoint instead of shadow-routing it, (2) route WS inserts through the same moderation applied to REST messages, and (3) explicitly name the follow-up client slice that delivers AC3 — otherwise this stays dead plumbing.",
+          "weight": 3
+        },
+        {
+          "agentId": "researcher",
+          "agentName": "Research Agent",
+          "position": "for",
+          "reasoning": "The core problem is fully evidenced in code: the WS send path — the one the mobile client actually uses — persists nothing, so server-side history is empty regardless of which endpoint reads it. The fix is small, the schema and queries exist, and the change directly serves the brief's coordination principle. I vote for **with required amendments**: (1) do not register a duplicate endpoint — reuse/harden the existing `GET /api/events/{id}/chat/messages` by adding the `hasChatWebSocketAccess` 403 guard; (2) use viewer-aware queries (or route WS sends through `ChatService.sendMessage`) so history doesn't regress block/moderation filtering; (3) treat client-side history fetch as an explicit follow-up, since user-visible replay is not delivered by this server-only scope; (4) restore the traceability of the cited QA arbitration. None of these overturn the proposal's direction; they correct its factual error about the endpoint being \"new\" and prevent a moderation-consistency regression during execution.",
+          "weight": 2
+        },
+        {
+          "agentId": "architect",
+          "agentName": "Solution Architect",
+          "position": "for",
+          "reasoning": "The capability gap is real, user-facing, and QA-motivated: WS-sent messages are broadcast-only while the mobile client sends via WS, so late-joiners lose coordination history — directly serving the \"qui a dit quoi, qui doit agir\" product gate. It's feasible entirely with existing stack pieces (SQLDelight queries, JWT guard, Ktor test client) at small effort. However, the specification as written contains three concrete defects — duplicate route at `/api/events/{eventId}/chat/messages` (the endpoint already exists), epoch-millis vs ISO-8601 timestamp collision breaking `selectRecentMessages` ordering, and a content-moderation bypass at persistence. All three are implementation-level and corrected by Option A (delegate WS persistence to `ChatService.sendMessage` + retrofit `hasChatWebSocketAccess` on the existing GET), which satisfies every acceptance criterion, including \"Hors-groupe → 403\" and non-regression of moderation, while *retiring* debt (dual write paths, existing 403 gap) instead of deepening it. I vote for the proposal on the strength of the problem and acceptance criteria, with the explicit condition that execution follows Option A; Option B as literally specified should not merge. The E2E test in the acceptance criteria would catch the timestamp-ordering defect, which raises my confidence that deviations surface during delivery.",
+          "weight": 3
+        },
+        {
+          "agentId": "critic",
+          "agentName": "Critic / Risk Agent",
+          "position": "against",
+          "reasoning": "The feature is needed and the direction is right — but the proposal as specified is built on a false premise (\"seul le câblage serveur manque\") and its concrete implementation plan conflicts with existing, tested code: a duplicate GET handler at an already-registered path, a weaker query that drops block filtering, raw `insertMessageMinimal` without the moderation policy that the parallel HTTP path enforces, and client-derived message IDs despite an in-repo collision-free generator. The right shape is small and adjacent: persist in the WS branch by delegating to the existing ChatService machinery (moderation, UUID IDs, ISO timestamps, server identity), and add the membership guard to the existing endpoint instead of creating a parallel one. That is a materially different technical plan than the one proposed, so I vote against as written — this should return to deliberation with the revised plan, not die.",
+          "weight": 3
+        },
+        {
+          "agentId": "prioritizer",
+          "agentName": "Prioritization Agent",
+          "position": "for",
+          "reasoning": "The core problem is verified, user-facing, flagged as product-arbitrated, and the fix is genuinely small because nearly all infrastructure already exists. However, the proposal should be **descoped at planning**: (a) drop the \"new endpoint\" (item 2) — reuse the existing `GET /api/events/{eventId}/chat/messages`, which is strictly better (block-aware, paginated); (b) route the WS MESSAGE branch through `ChatService.sendMessage` so WS sends gain both persistence and the same `ModerationPolicy` evaluation as REST sends, and server-side sender identity replaces the echoed client identity. Item (3), the E2E test, carries the verification value and should be kept as specified. Voting against would discard a cheap, high-leverage fix because of a misdiagnosis that is correctable at the planning stage — but the swarm should not execute the proposal as literally written.",
+          "weight": 2
+        },
+        {
+          "agentId": "delivery",
+          "agentName": "Delivery Agent",
+          "position": "for",
+          "reasoning": "The problem is real and verified (WS branch is broadcast-only; late joiners lose coordination context), the acceptance criteria are behavior-based and mostly sound (persisted ids, ordered history, 401/403, moderation non-regression, E2E), and delivery cost is small with zero migrations. The proposal's implementation sketch (new endpoint via `selectRecentMessages` + bare `insertMessageMinimal`) is materially wrong — it duplicates an existing, superior endpoint and would regress block-visibility and moderation consistency — but the criteria don't mandate that approach. I vote `for` on the behavior, with the delivery plan corrected to: persist via the existing `ChatService.sendMessage` semantics and add the 403 guard to the existing GET endpoint. I explicitly add a blocked-sender history test to slice D so the criterion \"moderation non-regression\" covers reads, not just broadcast.",
+          "weight": 1
+        },
+        {
+          "agentId": "spec-writer",
+          "agentName": "Spec Writer",
+          "position": "against",
+          "reasoning": "The underlying problem is real and product-aligned: WS messages must be persisted, and late-joiners deserve history — I want this solved. But the spec as written cannot be implemented as specified: (a) it mandates a new route at a path that already serves an equivalent, stronger endpoint — an immediate route conflict; (b) the \"N derniers\" acceptance criterion contradicts the prescribed query's actual behavior; (c) id authority, timestamp format, envelope, sender_name source, limit semantics, and failure behavior are all unresolved, guaranteeing implementer divergence and a weaker duplicate endpoint that regresses block-filtering already present in the existing path; (d) the cited audit document does not exist. The minimal viable revision is small — persist in the WS branch using a server-generated id and ISO timestamps from the authenticated principal, then reuse/amend the existing `GET /api/events/{eventId}/chat/messages` (adding the 403 membership guard it currently lacks) — so I vote against this version to force the resubmission, not to kill the feature.",
+          "weight": 1
+        },
+        {
+          "agentId": "designer",
+          "agentName": "UX/UI Designer",
+          "position": "against",
+          "reasoning": "The need is real and high-impact — I'd champion it — but I'm voting against the proposal *as specified*. Its item (2) creates a duplicate history API that regresses block filtering on history (a user-facing trust defect the AC doesn't cover), degrades replayed-message rendering versus live, and hard-caps history at 50 with no continuation. The chronology guarantee it accepts is also at risk from an unspecified timestamp format. The same user value ships with less risk and less surface by persisting WS messages correctly and wiring replay to the endpoint that already exists. Rescope is cheap; a re-proposal would likely get my enthusiastic yes.",
+          "weight": 2
+        }
+      ],
+      "agentOutputs": [
+        {
+          "agentId": "strategist",
+          "agentName": "Product Strategist",
+          "role": "Vision, objectives, hypotheses",
+          "content": "## Analysis\n\n**1. Restated outcome:** Persist real-time chat messages server-side and expose a history endpoint so that participants who join late or reconnect can see what was said, making the event chat durable coordination context rather than an ephemeral broadcast.\n\n**2. Strategic alignment (named mechanisms):** Strong, and provable from the brief rather than vision talk. The Product Excellence Gate (AGENTS.md) requires the product to \"rend clair ce qui est confirmé, en attente, qui doit agir et la prochaine action utile\" and \"réduit la charge mentale et les allers-retours hors de Wakeve.\" An ephemeral chat fails both: missed context forces re-asking \"what did I miss\" outside the app. The chat schema is explicitly coordination-oriented (sections TRANSPORT/ACCOMMODATION/FOOD/EQUIPMENT — ChatMessages.sq), so durable history serves the anti-drift mandate, not generic social chat. Timing is defensible: the client already has a `ReconnectionManager` (reconnects are an expected flow), local persistence exists (`ChatServicePersistenceContractTest`), and this was flagged as remaining product arbitration.\n\n**3. Code findings (verified, some contradict the proposal):**\n- ✅ WS MESSAGE branch is indeed broadcast-only (`ChatWebSocket.kt`); `insertMessageMinimal`/`selectRecentMessages` exist as claimed.\n- ⚠️ **A GET history endpoint already exists**: `GET /api/events/{eventId}/chat/messages` with limit/offset, JWT auth, block-aware visibility, moderation filtering, totalCount/hasMore (`ChatService.kt:946`, mounted `Application.kt:591`). The proposal's \"nouvel endpoint\" at the *same path* risks a shadow/duplicate route. The real gaps are narrower: (a) WS messages never reach that store, (b) the existing GET lacks the event-membership 403 guard the proposal would add.\n- ⚠️ `selectRecentMessages` orders ASC + LIMIT — it returns the *first* N after a timestamp, not the \"N derniers\" the AC demands; the already-wired `selectVisibleMessagesByEventPaginated` (DESC + OFFSET) is the right primitive.\n- ⚠️ **Moderation asymmetry**: the REST POST path runs UGC moderation (PENDING_REVIEW / rejection), but the proposed WS insert via `insertMessageMinimal` defaults `moderation_status='APPROVED'` — a bypass of the existing moderation gate on the persistence path, not just at broadcast.\n- ⚠️ **Client gap — the killable assumption**: the shared client never calls any history endpoint; `connectWebSocket` fetches no backlog. AC3 (\"un participant qui rejoint récupère l'historique\") is *asserted but not delivered* by this server-only scope. This proposal adds value; it does not add value *now* — user impact is zero until a client fetch-on-(re)join slice ships.\n- ⚠️ Evidence citation `docs/qa/UI_CHAT_PUSH_AUDIT_2026-09-19.md` is not findable in the repo (only `RIO_QA_SESSION_2026-09-18.md` in docs/qa). The claimed user arbitration is unverifiable, though the gap itself is independently verified in code.\n- ⚠️ `\"msg_${System.currentTimeMillis()}\"` ids can collide (same millisecond → PRIMARY KEY violation), and commit 98b1dfa4's collision-free generators did not cover chat ids.\n\n**4. Opportunity cost:** Low — schema, queries, and DTOs exist; this is wiring. Alternatives I'd deprioritize for it: none significant. But I'd argue the *client fetch-on-join* half is the higher-value half and should be sequenced immediately, not deferred indefinitely.\n\n## Vote\nfor\n\n## Reasoning\nThe strategic case is real and mechanism-backed: durable chat history directly serves the coordination gate (\"qui doit agir\") and the anti-drift mandate, the gap is verified in code, and effort is small since the persistence layer already exists. The defects I found — duplicate endpoint at an occupied path, wrong LIMIT semantics, WS-path moderation bypass, unverifiable QA citation, and the absent client wiring that gates all user impact — are planning/execution correctable, not strategic rejections. I vote for **conditionally**: the plan must (1) harden/reuse the existing GET endpoint instead of shadow-routing it, (2) route WS inserts through the same moderation applied to REST messages, and (3) explicitly name the follow-up client slice that delivers AC3 — otherwise this stays dead plumbing.\n\n## Composite Score Inputs (0-10)\n- userImpact: 6 (real pain, but zero user-visible value until client fetch-on-join ships)\n- businessImpact: 5 (strengthens the coordination core; resolves a standing QA arbitration; no growth lever)\n- effort: 3 (queries/DTOs exist; wiring + E2E; +1 for endpoint reconciliation work)\n- securityRisk: 4 (WS insert path bypasses UGC moderation that REST enforces; existing GET lacks 403 membership guard; both fixable in plan)\n- confidence: 8 (code-level verification done; residual uncertainty is late-joiner frequency — Research Agent territory)\n\n## Risk Score (1-10)\n4 — Moderate: route duplication, moderation asymmetry on the new insert path, and deferred client value could leave the feature inert; all are addressable at the dao_plan/dao_check stages if the conditions above are honored.",
+          "durationMs": 145675,
+          "vote": {
+            "agentId": "strategist",
+            "agentName": "Product Strategist",
+            "position": "for",
+            "reasoning": "The strategic case is real and mechanism-backed: durable chat history directly serves the coordination gate (\"qui doit agir\") and the anti-drift mandate, the gap is verified in code, and effort is small since the persistence layer already exists. The defects I found — duplicate endpoint at an occupied path, wrong LIMIT semantics, WS-path moderation bypass, unverifiable QA citation, and the absent client wiring that gates all user impact — are planning/execution correctable, not strategic rejections. I vote for **conditionally**: the plan must (1) harden/reuse the existing GET endpoint instead of shadow-routing it, (2) route WS inserts through the same moderation applied to REST messages, and (3) explicitly name the follow-up client slice that delivers AC3 — otherwise this stays dead plumbing.",
+            "weight": 3
+          }
+        },
+        {
+          "agentId": "researcher",
+          "agentName": "Research Agent",
+          "role": "Market, competition, user signals",
+          "content": "## Analysis\n\n**Claim-by-claim verification (against the repo):**\n\n| Claim in proposal | Verdict | Evidence |\n|---|---|---|\n| WS chat is broadcast-only, nothing persisted server-side | **Evidenced** | `ChatWebSocket.kt` MESSAGE branch: builds `ChatWebSocketResponse`, calls `connectionManager.broadcast(...)`, zero DB writes. Verified line by line. |\n| `chat_message` table + `insertMessageMinimal` + `selectRecentMessages` already exist | **Evidenced** | `shared/src/commonMain/sqldelight/com/guyghost/wakeve/ChatMessages.sq` — all three present, plus indexes on `(event_id, timestamp DESC)`. |\n| Client persists locally (`ChatServicePersistenceContractTest`) | **Evidenced** | Exists at `shared/src/jvmTest/.../chat/ChatServicePersistenceContractTest.kt`; shared `ChatService` calls `loadCachedMessages` (local SQLite) on connect — no server history fetch anywhere in the client. |\n| « Seul le câblage serveur manque » / « nouvel endpoint GET /api/events/{eventId}/chat/messages » | **Partially false** | `chatRoutes(chatService)` is already mounted under `/api` (Application.kt:591). `GET /api/events/{eventId}/chat/messages?limit&offset` **already exists** — paginated, moderation-aware, block-filtered (`selectVisibleMessagesByEventPaginated`). Registering the proposed \"new\" endpoint would duplicate the same route. The real gap is narrower: the **WS send path** bypasses persistence (the REST `POST` path via `ChatService.sendMessage` already persists + broadcasts). |\n| QA audit `docs/qa/UI_CHAT_PUSH_AUDIT_2026-09-19.md` identifies this, user arbitrated for persistence | **Unsupported (in-repo)** | That file does not exist. `docs/qa/` contains only `RIO_QA_SESSION_2026-09-18.md`, which doesn't mention chat persistence. The arbitration may have happened outside version control — as written, it is unverifiable. |\n| Guard `hasChatWebSocketAccess` exists and is reusable | **Evidenced** | `ChatWebSocket.kt` — organizer-or-participant check. Note: the *existing* REST GET messages endpoint checks JWT (401) but **not** event membership — no 403 today. The proposal's 403 AC is an improvement, but should be applied by fixing the existing endpoint, not adding a twin. |\n\n**Prior art / competitive scan:**\n- Every mainstream group-coordination chat (WhatsApp, Telegram, Slack, Discord) persists and replays history on join — this is table stakes for \"qui a dit quoi\".\n- **In-repo prior art**: the REST path (`POST /api/events/{id}/chat/messages` → `ChatService.sendMessage`) already does persist + moderate + broadcast. Cheapest correct implementation may be routing WS MESSAGE through `chatService.sendMessage` rather than a raw `insertMessageMinimal` — that would also inherit `ModerationPolicy.evaluate`, which the WS path currently lacks entirely (pre-existing gap, not introduced here).\n- **Do nothing**: chat stays ephemeral server-side; history survives only per-device in local SQLite — any reinstall or new device loses coordination context. Inconsistent with the product brief (« rend clair ce qui est confirmé et qui doit agir »).\n\n**Design inconsistencies to amend (evidence-based):**\n1. `selectRecentMessages` does **not** do per-viewer block filtering (`user_block`), unlike the existing endpoint's `selectVisibleMessagesByEvent*`. Using it for history would show late-joiners messages from users they blocked — the exact moderation regression the AC says to avoid, just relocated from broadcast to history.\n2. Broadcast carries client-provided `userId` (spoofable); proposal persists the *authenticated* `userId` — good, but live view and history could disagree on attribution.\n3. `timestamp` is TEXT ISO-8601; \"epoch 0\" must be an ISO string, not numeric — minor but shows spec needs care.\n4. Scope gap: the AC « un participant qui (re)joint le chat récupère l'historique » is user-level behavior; the proposal is server-only. Client wiring (fetch history on connect) is a separate follow-up — replay won't reach users without it.\n\n**Cheapest evidence for the biggest open question:** commit or link the QA audit / user arbitration decision (one file commit). The code-level problem is already proven; only the governance citation is missing.\n\n## Vote\nfor\n\n## Reasoning\nThe core problem is fully evidenced in code: the WS send path — the one the mobile client actually uses — persists nothing, so server-side history is empty regardless of which endpoint reads it. The fix is small, the schema and queries exist, and the change directly serves the brief's coordination principle. I vote for **with required amendments**: (1) do not register a duplicate endpoint — reuse/harden the existing `GET /api/events/{id}/chat/messages` by adding the `hasChatWebSocketAccess` 403 guard; (2) use viewer-aware queries (or route WS sends through `ChatService.sendMessage`) so history doesn't regress block/moderation filtering; (3) treat client-side history fetch as an explicit follow-up, since user-visible replay is not delivered by this server-only scope; (4) restore the traceability of the cited QA arbitration. None of these overturn the proposal's direction; they correct its factual error about the endpoint being \"new\" and prevent a moderation-consistency regression during execution.\n\n## Composite Score Inputs (0-10)\n- userImpact: 7\n- businessImpact: 5\n- effort: 3\n- securityRisk: 5\n- confidence: 7\n\n## Risk Score (1-10)\n4 — Low delivery risk (small diff, tests feasible via `testApplication` WS client), but three flagged hazards: duplicate-route implementation as literally specified, moderation/block-filter inconsistency in the history read path, and an unverifiable governance citation. All cheap to fix at plan stage.",
+          "durationMs": 148211,
+          "vote": {
+            "agentId": "researcher",
+            "agentName": "Research Agent",
+            "position": "for",
+            "reasoning": "The core problem is fully evidenced in code: the WS send path — the one the mobile client actually uses — persists nothing, so server-side history is empty regardless of which endpoint reads it. The fix is small, the schema and queries exist, and the change directly serves the brief's coordination principle. I vote for **with required amendments**: (1) do not register a duplicate endpoint — reuse/harden the existing `GET /api/events/{id}/chat/messages` by adding the `hasChatWebSocketAccess` 403 guard; (2) use viewer-aware queries (or route WS sends through `ChatService.sendMessage`) so history doesn't regress block/moderation filtering; (3) treat client-side history fetch as an explicit follow-up, since user-visible replay is not delivered by this server-only scope; (4) restore the traceability of the cited QA arbitration. None of these overturn the proposal's direction; they correct its factual error about the endpoint being \"new\" and prevent a moderation-consistency regression during execution.",
+            "weight": 2
+          }
+        },
+        {
+          "agentId": "architect",
+          "agentName": "Solution Architect",
+          "role": "Technical options, tradeoffs",
+          "content": "## Analysis\n\nI reviewed the actual server code the proposal touches before voting. Four evidence-based findings:\n\n**1. The proposed \"new\" endpoint already exists at the exact same path.** `chatRoutes(chatService)` is mounted under `route(\"/api\")` inside `authenticate(\"auth-jwt\")` + rate limiting + JWT-blacklist (Application.kt:576–593), and it already defines `GET /events/{eventId}/chat/messages` (ChatService.kt:953) with limit/offset pagination, moderation-aware visibility (`selectVisibleMessagesByEventPaginated`), and a `MessagesResponse` DTO. Implementing the proposal as written would register a duplicate route at `/api/events/{eventId}/chat/messages` with a divergent DTO (`MessageData`/`ChatWebSocketResponse`). The proposal's claim \"seul le câblage serveur manque\" is only half true: a full `ChatService.sendMessage` with persistence, content moderation, and broadcast already exists — it's just not wired to the WebSocket path.\n\n**2. The real gap is real and well-scoped.** The KMP client sends via WebSocket (`shared/.../chat/ChatService.kt` `sendViaWebSocket` → `webSocketClient.send`), and the WS MESSAGE branch (ChatWebSocket.kt) is broadcast-only. So live messages genuinely never reach `chat_message` server-side. `insertMessageMinimal` and `selectRecentMessages` exist in ChatMessages.sq; wiring is small and uses only stack pieces already present (Ktor routing, SQLDelight, JWT guard, `testApplication` WS client).\n\n**3. Two correctness traps in the proposed implementation:**\n- **Timestamp format collision:** `MessageData.timestamp` defaults to epoch-millis string; the DB column and the HTTP write path (`ChatService.getCurrentTimestamp` → `Instant.now().toString()`) use ISO-8601. `selectRecentMessages` does TEXT comparison (`timestamp > ?`, `ORDER BY timestamp ASC`). Persisting epoch-millis on the WS path would break chronological ordering across the two write paths and the \"epoch 0\" filter semantics. Persistence must normalize to ISO-8601.\n- **Moderation bypass at persistence:** the HTTP path runs `moderationPolicy.evaluate(content)` before persisting; the WS path doesn't. `insertMessageMinimal` defaults `moderation_status='APPROVED'`, so the WS path would durably store unmoderated content as APPROVED. The AC only protects `isBlockedForEvent` at broadcast — insufficient.\n\n**4. Authorization asymmetry surfaced by the AC \"Hors-groupe → 403\":** the *existing* GET messages endpoint has no event-access check — any valid JWT can read any event's history. Only the WS endpoint has `hasChatWebSocketAccess`. The right fix retrofits the guard onto the existing endpoint rather than shadowing it with a second, guarded twin.\n\n**Options considered:**\n\n- **Option A — Persist-on-WS via `ChatService`, reuse existing GET with guard retrofit (reversible; recommended).** WS MESSAGE branch delegates to `chatService.sendMessage(...)` (single write path: moderation, ISO timestamps, canonical IDs), broadcast unchanged; add `hasChatWebSocketAccess` to the existing GET. One write path, one read path, closes the 403 gap, retires dual-write-path debt. Cost: touches an existing endpoint (behavior change is a fix aligned with the AC).\n- **Option B — As proposed (needs rework before merge).** Duplicate route at same path, divergent DTO, epoch-vs-ISO bug, moderation bypass at persistence, leaves the existing endpoint's 403 gap open. Smaller diff to ChatWebSocket.kt, but strictly worse than A at near-equal effort.\n- **Option C — WS receive-only; send via existing HTTP POST (reversible, larger client churn).** Eliminates the dual-write-path class entirely; late-joiner uses existing GET. Biggest client-side change (shared ChatService), beyond this proposal's scope.\n\nBoundaries and dependency direction are sound in all options: routing/WS layer (IO-near) → `ChatService` (write policy) → SQLDelight; UI/framework stay out of core rules; the policy (`ChatService`) remains testable without WS via the existing `ChatRoutesValidationTest` pattern, and the E2E test covers the adapter. Note: the referenced QA doc `docs/qa/UI_CHAT_PUSH_AUDIT_2026-09-19.md` does not exist (only `RIO_QA_SESSION_2026-09-18.md`); the claimed user arbitration is unverified — stated as uncertainty, not a blocker.\n\n## Vote\nfor\n\n## Reasoning\nThe capability gap is real, user-facing, and QA-motivated: WS-sent messages are broadcast-only while the mobile client sends via WS, so late-joiners lose coordination history — directly serving the \"qui a dit quoi, qui doit agir\" product gate. It's feasible entirely with existing stack pieces (SQLDelight queries, JWT guard, Ktor test client) at small effort. However, the specification as written contains three concrete defects — duplicate route at `/api/events/{eventId}/chat/messages` (the endpoint already exists), epoch-millis vs ISO-8601 timestamp collision breaking `selectRecentMessages` ordering, and a content-moderation bypass at persistence. All three are implementation-level and corrected by Option A (delegate WS persistence to `ChatService.sendMessage` + retrofit `hasChatWebSocketAccess` on the existing GET), which satisfies every acceptance criterion, including \"Hors-groupe → 403\" and non-regression of moderation, while *retiring* debt (dual write paths, existing 403 gap) instead of deepening it. I vote for the proposal on the strength of the problem and acceptance criteria, with the explicit condition that execution follows Option A; Option B as literally specified should not merge. The E2E test in the acceptance criteria would catch the timestamp-ordering defect, which raises my confidence that deviations surface during delivery.\n\n## Composite Score Inputs (0-10)\n- userImpact: 8\n- businessImpact: 7\n- effort: 3\n- securityRisk: 3\n- confidence: 8\n\n## Risk Score (1-10)\n3 — low. Main risks are correctness pitfalls (duplicate route, timestamp format, moderation asymmetry on the WS write path) that are caught by the specified E2E test and corrected by routing WS persistence through the existing `ChatService`; residual exposure is the pre-existing 403 gap on the history read, which the recommended implementation closes.",
+          "durationMs": 161903,
+          "vote": {
+            "agentId": "architect",
+            "agentName": "Solution Architect",
+            "position": "for",
+            "reasoning": "The capability gap is real, user-facing, and QA-motivated: WS-sent messages are broadcast-only while the mobile client sends via WS, so late-joiners lose coordination history — directly serving the \"qui a dit quoi, qui doit agir\" product gate. It's feasible entirely with existing stack pieces (SQLDelight queries, JWT guard, Ktor test client) at small effort. However, the specification as written contains three concrete defects — duplicate route at `/api/events/{eventId}/chat/messages` (the endpoint already exists), epoch-millis vs ISO-8601 timestamp collision breaking `selectRecentMessages` ordering, and a content-moderation bypass at persistence. All three are implementation-level and corrected by Option A (delegate WS persistence to `ChatService.sendMessage` + retrofit `hasChatWebSocketAccess` on the existing GET), which satisfies every acceptance criterion, including \"Hors-groupe → 403\" and non-regression of moderation, while *retiring* debt (dual write paths, existing 403 gap) instead of deepening it. I vote for the proposal on the strength of the problem and acceptance criteria, with the explicit condition that execution follows Option A; Option B as literally specified should not merge. The E2E test in the acceptance criteria would catch the timestamp-ordering defect, which raises my confidence that deviations surface during delivery.",
+            "weight": 3
+          }
+        },
+        {
+          "agentId": "critic",
+          "agentName": "Critic / Risk Agent",
+          "role": "Risk scoring, objections, guardrails",
+          "content": "## Analysis\n\nI verified the proposal's claims directly against the code.\n\n**What is solid (conceded):**\n- The core gap is real: `ChatWebSocket.kt` MESSAGE branch (server/src/main/kotlin/com/guyghost/wakeve/routing/ChatWebSocket.kt) only broadcasts — no insert anywhere in the WS path. Late-joiners get nothing.\n- The `chat_message` table and queries exist (shared/.../ChatMessages.sq), server uses the shared `WakeveDb` (JVM driver), and reusing `hasChatWebSocketAccess` + authenticated `userId` as sender is the correct authorization/attribution model.\n- Rollback is trivial (redeploy; persisted rows are benign; no migration).\n\n**Finding 1 — The proposed endpoint already exists at the exact same path (most severe).**\n`GET /api/events/{eventId}/chat/messages` is already registered: `chatRoutes(chatService)` (ChatService.kt:946) is mounted under `route(\"/api\")` inside `authenticate(\"auth-jwt\")` (Application.kt:555, 591). The existing handler has JWT auth, bounded limit parsing (`coerceIn(1, 100)`), offset pagination, `hasMore`/`totalCount`, and — critically — **block-aware visibility** via `selectVisibleMessagesByEventPaginated(eventId, viewerUserId, ...)`. It is load-bearing: `UgcModerationRoutesTest` actively asserts its moderation-filtering and pagination contract (lines 81, 145–158, 198–206).\nScenario: the proposal registers a second GET at the identical path with different DTOs (`MessageData`/`ChatWebSocketResponse` vs `MessagesResponse`) and a weaker query (`selectRecentMessages`). Trigger: route registration. Blast radius: first-registered handler shadows the other — either the proposal's own E2E test fails (existing endpoint answers with `MessagesResponse`) or the existing moderation tests break. Detection: test suites — but only after implementation, not before. The claim \"seul le câblage serveur manque\" is false: the wiring exists; only the WS branch persistence is missing.\n\n**Finding 2 — Content-moderation bypass becomes durable and replayable.**\nHTTP POST `/chat/messages` runs `moderationPolicy.evaluate(content)` and stores `moderation_status` (REJECTED throws, PENDING_REVIEW → 202). The WS branch has no content moderation today, and `insertMessageMinimal` defaults `moderation_status='APPROVED'`. Scenario: member sends policy-violating content over WS → trigger: this change persists it as APPROVED before broadcast → blast radius: served by history (which filters on `moderation_status='APPROVED'`), replayable forever, contaminating both the new and existing GET endpoints. Detection: none — acceptance criteria only test `isBlockedForEvent` at broadcast, never moderation status of persisted WS rows.\n\n**Finding 3 — History leaks messages from blocked users.**\n`selectRecentMessages` filters moderation status but **not** `user_block`; live broadcast filters blocked senders per-recipient via `isBlockedForEvent`. Scenario: A blocks B → B messages over WS → A reconnects and fetches history → sees exactly what the live path suppressed. The correct queries (`selectVisibleMessagesByEvent*`) already exist and are used by the existing endpoint.\n\n**Finding 4 — Client-derived IDs and timestamp-format hazard.**\nPersisting the \"messageId déjà présent dans la réponse WS\" means client-supplied ID or fallback `\"msg_${System.currentTimeMillis()}\"` — a **global** PK. Two WS messages in the same millisecond (different events, no client ID) → PK violation → generic catch → sender gets misleading \"Invalid chat message format\", message dropped (insert precedes broadcast). Collision-free `generateMessageId()` (`msg_${UUID.randomUUID()}`) exists in ChatService but is not used — despite recent commit 98b1dfa4 doing exactly this cleanup for other entities. Also: existing rows store ISO 8601 timestamps (`Instant.now().toString()`); `MessageData.timestamp` defaults to an epoch-millis string — if `data.timestamp` is mapped into the row, text `ORDER BY timestamp` silently breaks for mixed rows. The proposal says \"timestamp serveur\" but doesn't pin the format.\n\n**Finding 5 — The real exposed surface is left unguarded.**\nThe **existing** GET endpoint has no event-membership check (only JWT) — any authenticated user can read any event's chat history today. The proposal's \"Hors-groupe → 403\" criterion is right, but implemented as a new parallel endpoint it leaves the existing unguarded handler registered. The fix belongs on the existing endpoint, not beside it.\n\n**Unknown I cannot resolve:** the cited audit `docs/qa/UI_CHAT_PUSH_AUDIT_2026-09-19.md` does not exist in the repo (chat docs live under `docs/testing/REALTIME_CHAT_*`), so the claimed product arbitration is unverifiable from evidence. Also unresolvable: how client-side replay merges server history with the device's local persistence (`ChatServicePersistenceContractTest`) — dedup key unstated — making acceptance criterion 3 (\"late-joiner récupère l'historique\") untestable server-side only.\n\n## Vote\nagainst\n\n## Reasoning\nThe feature is needed and the direction is right — but the proposal as specified is built on a false premise (\"seul le câblage serveur manque\") and its concrete implementation plan conflicts with existing, tested code: a duplicate GET handler at an already-registered path, a weaker query that drops block filtering, raw `insertMessageMinimal` without the moderation policy that the parallel HTTP path enforces, and client-derived message IDs despite an in-repo collision-free generator. The right shape is small and adjacent: persist in the WS branch by delegating to the existing ChatService machinery (moderation, UUID IDs, ISO timestamps, server identity), and add the membership guard to the existing endpoint instead of creating a parallel one. That is a materially different technical plan than the one proposed, so I vote against as written — this should return to deliberation with the revised plan, not die.\n\n## Composite Score Inputs (0-10)\n- userImpact: 7\n- businessImpact: 6\n- effort: 3\n- securityRisk: 6\n- confidence: 8\n\n## Risk Score (1-10)\n6",
+          "durationMs": 234974,
+          "vote": {
+            "agentId": "critic",
+            "agentName": "Critic / Risk Agent",
+            "position": "against",
+            "reasoning": "The feature is needed and the direction is right — but the proposal as specified is built on a false premise (\"seul le câblage serveur manque\") and its concrete implementation plan conflicts with existing, tested code: a duplicate GET handler at an already-registered path, a weaker query that drops block filtering, raw `insertMessageMinimal` without the moderation policy that the parallel HTTP path enforces, and client-derived message IDs despite an in-repo collision-free generator. The right shape is small and adjacent: persist in the WS branch by delegating to the existing ChatService machinery (moderation, UUID IDs, ISO timestamps, server identity), and add the membership guard to the existing endpoint instead of creating a parallel one. That is a materially different technical plan than the one proposed, so I vote against as written — this should return to deliberation with the revised plan, not die.",
+            "weight": 3
+          }
+        },
+        {
+          "agentId": "prioritizer",
+          "agentName": "Prioritization Agent",
+          "role": "Impact/cost/risk scoring, roadmap fit",
+          "content": "## Analysis\nI verified the codebase against the proposal's claims. The underlying user gap is real, but the proposal misdiagnoses the current state in one important way, and part of it duplicates existing work.\n\n**What's true (verified):**\n- The WS handler (`ChatWebSocket.kt`, MESSAGE branch) is broadcast-only: no persistence, and it echoes the client-supplied `userId`/`userName` (spoofable) rather than the authenticated identity.\n- The shared client (`shared/.../chat/ChatService.kt`) sends messages over WebSocket (`sendViaWebSocket`) and on connect only loads local cache (`loadCachedMessages`). No app code calls any server history endpoint — so a fresh install / new participant / cross-device joiner sees nothing. The pain is genuine for a coordination product whose gate is \"rend clair qui a dit quoi et qui doit agir.\"\n\n**What's inaccurate in the proposal:**\n- \"Rien n'est persisté côté serveur\" is false as stated. `ChatService.sendMessage` (REST `POST /api/events/{eventId}/chat/messages`) already persists via `insertMessage`, with `ModerationPolicy.evaluate` applied. Only the **WS branch** — which is what the client actually uses — skips persistence.\n- Item (2), a \"nouvel endpoint\" `GET /api/events/{eventId}/chat/messages?limit=50`, **already exists** (`chatRoutes` mounted under `/api` in `Application.kt`), with pagination, moderation filtering, and — better than the proposal's plan — block-aware per-viewer visibility (`selectVisibleMessagesByEventPaginated`). As written, item (2) would either conflict on route registration or regress block-visibility, since the proposed `selectRecentMessages` does not exclude blocked senders.\n- The QA doc cited (`docs/qa/UI_CHAT_PUSH_AUDIT_2026-09-19.md`) does not exist in the repo — only `RIO_QA_SESSION_2026-09-18.md` is present. The citation is unverifiable, though the gap itself is independently verified in code.\n\n**Missed opportunity the proposal touches but doesn't name:** the WS path also bypasses `ModerationPolicy.evaluate` entirely (REST path applies it). Persisting WS messages with default `APPROVED` status without evaluation would hard-code an existing moderation inconsistency into storage.\n\n**Prioritization judgment (comparative to the queue):** The value-carrying core is small and cheap: schema (`ChatMessages.sq`), queries (`insertMessageMinimal`, `selectRecentMessages`), and a battle-tested service (`ChatService.sendMessage`) all exist. Wiring the WS MESSAGE branch through the existing `ChatService.sendMessage` (or equivalent: authenticated sender + moderation evaluation + insert) plus an E2E test is a few dozen lines. \"Small now beats large later\" holds strongly here. Sequencing: it should go **now, alongside chat polish** — it completes a shipped feature (chat) rather than opening a new front; it displaces nothing in the current queue. One caveat: the acceptance criterion \"un participant qui (re)joint récupère l'historique\" is only achievable end-to-end with client-side fetch-on-join, which is out of this proposal's scope; server-side, the E2E test can still verify the capability.\n\n## Vote\nfor\n\n## Reasoning\nThe core problem is verified, user-facing, flagged as product-arbitrated, and the fix is genuinely small because nearly all infrastructure already exists. However, the proposal should be **descoped at planning**: (a) drop the \"new endpoint\" (item 2) — reuse the existing `GET /api/events/{eventId}/chat/messages`, which is strictly better (block-aware, paginated); (b) route the WS MESSAGE branch through `ChatService.sendMessage` so WS sends gain both persistence and the same `ModerationPolicy` evaluation as REST sends, and server-side sender identity replaces the echoed client identity. Item (3), the E2E test, carries the verification value and should be kept as specified. Voting against would discard a cheap, high-leverage fix because of a misdiagnosis that is correctable at the planning stage — but the swarm should not execute the proposal as literally written.\n\n## Composite Score Inputs (0-10)\n- userImpact: 7\n- businessImpact: 5\n- effort: 3\n- securityRisk: 3\n- confidence: 7\n\n## Risk Score (1-10)\n4 — Low-to-moderate. Main risks are scope-level and fixable in delivery planning: duplicate route registration, a weaker parallel history path (`selectRecentMessages` ignoring blocks), persisting unmoderated WS content as APPROVED, and an acceptance criterion that implicitly depends on out-of-scope client work. Residual uncertainty: the cited QA audit document is absent from the repo.",
+          "durationMs": 117757,
+          "vote": {
+            "agentId": "prioritizer",
+            "agentName": "Prioritization Agent",
+            "position": "for",
+            "reasoning": "The core problem is verified, user-facing, flagged as product-arbitrated, and the fix is genuinely small because nearly all infrastructure already exists. However, the proposal should be **descoped at planning**: (a) drop the \"new endpoint\" (item 2) — reuse the existing `GET /api/events/{eventId}/chat/messages`, which is strictly better (block-aware, paginated); (b) route the WS MESSAGE branch through `ChatService.sendMessage` so WS sends gain both persistence and the same `ModerationPolicy` evaluation as REST sends, and server-side sender identity replaces the echoed client identity. Item (3), the E2E test, carries the verification value and should be kept as specified. Voting against would discard a cheap, high-leverage fix because of a misdiagnosis that is correctable at the planning stage — but the swarm should not execute the proposal as literally written.",
+            "weight": 2
+          }
+        },
+        {
+          "agentId": "delivery",
+          "agentName": "Delivery Agent",
+          "role": "Implementation plan, tasks, CI/CD",
+          "content": "## Analysis\n\nI verified the proposal's claims against the codebase. The problem is real, but the proposal's implementation map is partially inaccurate and contains two design traps. Evidence first:\n\n**What's true:**\n- `ChatWebSocket.kt` MESSAGE branch is broadcast-only — no persistence (verified lines ~180-200).\n- `chat_message` table + `insertMessageMinimal` + `selectRecentMessages` exist in `ChatMessages.sq`.\n- `hasChatWebSocketAccess` exists and is the right guard to reuse.\n- Client persists locally (`ChatServicePersistenceContractTest` in `shared/src/jvmTest`).\n\n**What's inaccurate or dangerous:**\n1. **The \"nouvel endpoint\" already exists.** `chatRoutes(chatService)` (`server/.../routing/ChatService.kt`, mounted in `Application.kt:580`) already serves `GET /api/events/{eventId}/chat/messages` with `limit`/`offset`, 401 auth, moderation-block-aware visibility (`selectVisibleMessagesByEventPaginated`), and `totalCount`/`hasMore` — tested in `UgcModerationRoutesTest`. What's actually missing on that endpoint is the **event-membership 403 guard** (currently any authenticated user can read any event's chat — a pre-existing gap the proposal's criteria would incidentally close). Building a second parallel endpoint as described would be duplication.\n2. **`selectRecentMessages` regresses visibility.** It filters `moderation_status='APPROVED'` but does **not** apply the `user_block` NOT EXISTS filter that the existing endpoint applies. A literal implementation leaks blocked senders' messages in history — a moderation regression the acceptance criteria (which only check `isBlockedForEvent` at broadcast, not at read) would not catch.\n3. **Moderation split-brain.** REST `ChatService.sendMessage` runs `moderationPolicy.evaluate` and stores PENDING_REVIEW/REJECTED; `insertMessageMinimal` defaults `moderation_status='APPROVED'`, so WS-sent content enters the shared table unmoderated and approved — two write paths with inconsistent semantics on the same data.\n4. **\"N derniers\" is mis-specified.** `selectRecentMessages` is `ORDER BY timestamp ASC LIMIT ?` → returns the **oldest** N after the since-timestamp, not the last N chronologically. Also `MessageData.timestamp` defaults to epoch-millis while the REST path stores ISO-8601 strings; mixing formats in the TEXT timestamp column breaks ordering.\n5. **Sender name spoofing.** `insertMessageMinimal` requires `sender_name`; the WS payload's `userName` is client-supplied. Recent commits (f50b88f3, 62234c41) specifically fixed attribution spoofing by resolving names server-side (`chatDisplayName(userId)`). The proposal doesn't specify this.\n6. **Cited evidence unverifiable:** `docs/qa/UI_CHAT_PUSH_AUDIT_2026-09-19.md` does not exist in the repo (only `RIO_QA_SESSION_2026-09-18.md`, which mentions the chat WS but not this arbitration).\n\n**Delivery plan (behavior-first, corrected):**\n\n*Slices:*\n- **A — WS MESSAGE persistence** (S): route the WS MESSAGE branch through the existing `ChatService.sendMessage` (it already does moderation, server display name, ISO timestamp, broadcast) — requires a small refactor so the WS response reuses the persisted `message.id` (acceptance: \"id réponse WS = id persisté\"). Alternative if coupling is rejected: replicate all four semantics in the WS branch — flagged as the weaker option due to risks #2–#5. Test-first: send 2 WS messages via `testApplication` WS client → assert rows with sender = JWT userId, server-side name, ISO timestamp; fails for an impl persisting client-supplied userId/name.\n- **B — 403 guard on existing GET endpoint** (S): add `hasChatWebSocketAccess` to the existing history route instead of creating a new one. Tests: outsider → 403, unauthenticated → 401, member → 200 ordered. This slice is independently shippable.\n- **C — Ordering/limit semantics** (S): assert \"last N in chronological order\" (DESC + reverse, existing paginated pattern already does lookahead `take(limit)`); fails for the `selectRecentMessages` ASC-LIMIT trap.\n- **D — E2E replay** (S): 2 WS messages → GET returns both ordered with correct attribution; then blocked-sender history visibility non-regression (this test would fail under the proposal's literal `selectRecentMessages` design — that's the point of writing it).\n\n*Dependencies:* none external — no migration (table exists), no new libraries. `chatService` is already constructed in `Application.kt`; wiring the WS route to it is trivial. All slices sequential-safe; B and A can run in parallel.\n\n*Uncertainty:* Ktor test-client WS timing in CI (medium — mitigated by timeout-safe assertions); whether \"participant qui rejoint récupère l'historique\" implies client-side wiring (out of this proposal's server scope — the criterion is only verifiable as \"endpoint returns persisted messages\"; flagging the ambiguity rather than expanding scope).\n\n*Delivery impact:* server-only, no pipeline/deploy/flag changes, fully reversible.\n\n## Vote\nfor\n\n## Reasoning\nThe problem is real and verified (WS branch is broadcast-only; late joiners lose coordination context), the acceptance criteria are behavior-based and mostly sound (persisted ids, ordered history, 401/403, moderation non-regression, E2E), and delivery cost is small with zero migrations. The proposal's implementation sketch (new endpoint via `selectRecentMessages` + bare `insertMessageMinimal`) is materially wrong — it duplicates an existing, superior endpoint and would regress block-visibility and moderation consistency — but the criteria don't mandate that approach. I vote `for` on the behavior, with the delivery plan corrected to: persist via the existing `ChatService.sendMessage` semantics and add the 403 guard to the existing GET endpoint. I explicitly add a blocked-sender history test to slice D so the criterion \"moderation non-regression\" covers reads, not just broadcast.\n\n## Composite Score Inputs (0-10)\n- userImpact: 7\n- businessImpact: 6\n- effort: 3\n- securityRisk: 4\n- confidence: 7\n\n## Risk Score (1-10)\n4 — No data migration and fully reversible, but a literal implementation of the described approach would create a moderation/visibility split-brain (unmoderated APPROVED rows, blocked-sender leakage, spoofable sender names, wrong \"last N\" semantics). All traps are catchable by the slice D/C tests specified above and are avoided entirely by routing through the existing ChatService path.",
+          "durationMs": 138146,
+          "vote": {
+            "agentId": "delivery",
+            "agentName": "Delivery Agent",
+            "position": "for",
+            "reasoning": "The problem is real and verified (WS branch is broadcast-only; late joiners lose coordination context), the acceptance criteria are behavior-based and mostly sound (persisted ids, ordered history, 401/403, moderation non-regression, E2E), and delivery cost is small with zero migrations. The proposal's implementation sketch (new endpoint via `selectRecentMessages` + bare `insertMessageMinimal`) is materially wrong — it duplicates an existing, superior endpoint and would regress block-visibility and moderation consistency — but the criteria don't mandate that approach. I vote `for` on the behavior, with the delivery plan corrected to: persist via the existing `ChatService.sendMessage` semantics and add the 403 guard to the existing GET endpoint. I explicitly add a blocked-sender history test to slice D so the criterion \"moderation non-regression\" covers reads, not just broadcast.",
+            "weight": 1
+          }
+        },
+        {
+          "agentId": "spec-writer",
+          "agentName": "Spec Writer",
+          "role": "PRD, user stories, acceptance criteria",
+          "content": "## Analysis\n\nI grounded this review in the actual code before judging the spec.\n\n**Verified claims (proposal is right about these):**\n- `ChatMessages.sq` exists with `insertMessageMinimal` and `selectRecentMessages` — only server wiring is missing for WS persistence.\n- `ChatWebSocket.kt` MESSAGE branch is broadcast-only; `hasChatWebSocketAccess` exists and checks organizer/participant.\n- Client-side persistence contract test exists (`ChatServicePersistenceContractTest`).\n\n**Critical finding — the proposed endpoint already exists:** `chatRoutes(chatService)` is mounted under `authenticate(\"auth-jwt\")` + `/api` (Application.kt:591), and already serves `GET /api/events/{eventId}/chat/messages` (ChatService.kt:951) with JWT auth, `limit`/`offset` pagination, a `MessagesResponse(messages, totalCount, hasMore)` envelope, and **block-aware** filtering (`selectVisibleMessagesByEventPaginated`). Deliverable (2) \"nouvel endpoint GET /api/events/{id}/chat/messages\" would register a duplicate route at a path that is already taken — a route conflict, not a feature. The real gap is deliverable (1) only: once the WS MESSAGE branch persists, the existing endpoint already provides history.\n\n**Ambiguity sweep (each is a question to settle):**\n1. **Id authority:** \"id = messageId généré\" is misleading — code uses `chatMessage.data.messageId ?: \"msg_...\"`, i.e. **client-supplied** when present. Client-controlled PK across all events invites collisions (retries, malicious reuse). Which id is authoritative, and what happens on PK collision?\n2. **Timestamp format:** DB column documents ISO 8601; WS `MessageData.timestamp` is epoch-millis string; `selectRecentMessages` compares `timestamp > ?` as TEXT. Mixing formats breaks ordering silently. The \"epoch 0\" example contradicts the column contract. Which format is persisted, and what format is the `since` parameter?\n3. **\"N derniers\" vs named query:** `selectRecentMessages` is `ORDER BY timestamp ASC LIMIT ?` — it returns the **oldest** N after the cutoff, not the last N. The acceptance criterion contradicts the prescribed implementation; one must change.\n4. **Response envelope:** \"mappé en DTO MessageData/ChatWebSocketResponse réutilisés\" — array of responses? Single wrapper? `MessagesResponse` already exists. Which shape is the contract?\n5. **sender_name source:** `sender_name` is NOT NULL; client `data.userName` is spoofable. Recent commits (f50b88d3, 62234c41) established server-side display-name precedence for comments — same rule needed here, unspecified.\n6. **Nonexistent eventId** on GET: 404 or 403? Unspecified.\n7. **limit param:** default, bounds, invalid values (`0`, `-1`, `\"abc\"`): 400 or clamp? Unspecified.\n8. **Null content:** `MessageData.content` is nullable; `chat_message.content` is NOT NULL. Current handler broadcasts null content happily; with insert-first this becomes a crash/error path. Reject or coerce?\n9. **Persistence failure:** if the insert throws (FK/PK), is the message still broadcast? Error to sender only? Unspecified failure behavior.\n\n**Completeness gaps:**\n- History via `selectRecentMessages` does **not** filter blocked users (unlike the existing REST path). A viewer would see blocked senders' messages in history but never live. Which is contract?\n- AC3 \"un participant qui (re)joint récupère l'historique\" is not verifiable from server-only deliverables — no client wiring is specified (who fetches on join, how server rows merge with the local cache, client-id vs server-id reconciliation). Either descope the AC or add client deliverables.\n- TYPING/REACTION/READ_RECEIPT remain broadcast-only — reactions sent via WS will diverge between live and replay views. Acceptable cut, but must be an explicit non-goal.\n- Cited evidence `docs/qa/UI_CHAT_PUSH_AUDIT_2026-09-19.md` **does not exist** in the repo (`docs/qa/` contains only `RIO_QA_SESSION_2026-09-18.md`). The problem statement's audit trail is unverifiable.\n- AC list contains literal duplicated text (\"X: X\") — cosmetic, but signals unreviewed criteria.\n\n**Testability:** AC1/AC4 are testable as written; AC2 is untestable until ambiguities 2–4 are settled (an implementer following the named query fails the stated criterion); AC3 is untestable from the deliverables; the E2E test has a flakiness hazard — two messages in the same millisecond tie on timestamp with no deterministic tie-break.\n\n**Scope:** The spec over-prescribes implementation (query names, insert-before-broadcast) while leaving the externally observable contract (envelope, ordering semantics, id authority, name source, failure behavior) vague. Inverted spec.\n\n## Vote\nagainst\n\n## Reasoning\nThe underlying problem is real and product-aligned: WS messages must be persisted, and late-joiners deserve history — I want this solved. But the spec as written cannot be implemented as specified: (a) it mandates a new route at a path that already serves an equivalent, stronger endpoint — an immediate route conflict; (b) the \"N derniers\" acceptance criterion contradicts the prescribed query's actual behavior; (c) id authority, timestamp format, envelope, sender_name source, limit semantics, and failure behavior are all unresolved, guaranteeing implementer divergence and a weaker duplicate endpoint that regresses block-filtering already present in the existing path; (d) the cited audit document does not exist. The minimal viable revision is small — persist in the WS branch using a server-generated id and ISO timestamps from the authenticated principal, then reuse/amend the existing `GET /api/events/{eventId}/chat/messages` (adding the 403 membership guard it currently lacks) — so I vote against this version to force the resubmission, not to kill the feature.\n\n## Composite Score Inputs (0-10)\n- userImpact: 7\n- businessImpact: 6\n- effort: 3\n- securityRisk: 5\n- confidence: 9\n\n## Risk Score (1-10)\n6",
+          "durationMs": 143505,
+          "vote": {
+            "agentId": "spec-writer",
+            "agentName": "Spec Writer",
+            "position": "against",
+            "reasoning": "The underlying problem is real and product-aligned: WS messages must be persisted, and late-joiners deserve history — I want this solved. But the spec as written cannot be implemented as specified: (a) it mandates a new route at a path that already serves an equivalent, stronger endpoint — an immediate route conflict; (b) the \"N derniers\" acceptance criterion contradicts the prescribed query's actual behavior; (c) id authority, timestamp format, envelope, sender_name source, limit semantics, and failure behavior are all unresolved, guaranteeing implementer divergence and a weaker duplicate endpoint that regresses block-filtering already present in the existing path; (d) the cited audit document does not exist. The minimal viable revision is small — persist in the WS branch using a server-generated id and ISO timestamps from the authenticated principal, then reuse/amend the existing `GET /api/events/{eventId}/chat/messages` (adding the 403 membership guard it currently lacks) — so I vote against this version to force the resubmission, not to kill the feature.",
+            "weight": 1
+          }
+        },
+        {
+          "agentId": "designer",
+          "agentName": "UX/UI Designer",
+          "role": "UX/UI critique, design directions, accessibility",
+          "content": "## Analysis\n\n**Mode:** The chat surface is *Operate* (coordinate with the group) with a *Read* sub-surface (catch up on what was said). For the Read part, success = fast, chronologically correct, trustworthy history that renders identically to live messages.\n\n**The user problem is real and verified.** In `ChatWebSocket.kt`, the MESSAGE branch broadcasts only — no persistence call exists — so any participant joining or reconnecting mid-conversation gets zero context. This directly undermines the brief's promise (\"rend clair qui a dit quoi, quelle est la prochaine action\"). Server-side persistence is the right product call, and the client is already half-ready (local persistence via `ChatServicePersistenceContractTest`, connection-status banner in `ChatViewModel` for reconnect re-fetch).\n\n**But the proposal as specified has a design flaw at its center: item (2) builds a second, weaker history channel when a superior one already exists.**\n\nEvidence from the codebase:\n\n1. **The \"new\" endpoint already exists.** `Application.kt` mounts `chatRoutes` under `authenticate(\"auth-jwt\")` + `/api`: `GET /api/events/{eventId}/chat/messages` today returns JWT-gated (401), block-aware (`selectVisibleMessagesByEventPaginated` filters `user_block`), moderation-filtered (`APPROVED`), paginated (`limit`/`offset`/`hasMore`/`totalCount`) messages with the full `ChatMessage` DTO (reactions, read state, avatar, sections, threads).\n\n2. **The proposed replacement is strictly worse for users:**\n   - `selectRecentMessages` filters only `moderation_status='APPROVED'` — it does **not** filter blocked senders. A late-joiner would see history from people they blocked, while live participants never receive those broadcasts. The acceptance criterion checks moderation \"à la diffusion\" only — the history blind spot is baked into the AC.\n   - Mapping to `MessageData`/`ChatWebSocketResponse` drops reactions, read receipts, avatars, sections, and thread refs → replayed messages would render degraded next to identical live ones. Late-joiners get a visibly second-class chat.\n   - Fixed `?limit=50` from epoch 0 with no `hasMore`/cursor → message #51+ silently vanishes with no way to load more. Dead end.\n\n3. **Chronology risk:** WS `MessageData.timestamp` defaults to epoch-millis-as-string, while the table convention and REST path use ISO 8601 (`Instant.now().toString()`). The proposal says \"timestamp serveur\" without a format. Mixed formats break `ORDER BY timestamp` on TEXT — silently scrambling the exact \"ordre chronologique\" the AC demands.\n\n4. **Trust-model divergence:** persisting with the authenticated `userId` (good) while broadcast still carries client-supplied `userName`/`userId` means live and replayed attribution can disagree — \"qui a dit quoi\" becomes path-dependent. Also `insertMessageMinimal` defaults `moderation_status='APPROVED'`, bypassing the UGC `PENDING_REVIEW` flow that REST `sendMessage` applies. Two send paths, two trust levels.\n\n5. **Evidence note:** the cited audit `docs/qa/UI_CHAT_PUSH_AUDIT_2026-09-19.md` does not exist in the repo (only `RIO_QA_SESSION_2026-09-18.md`). The user-arbitration claim is plausible but unverifiable here — stating that uncertainty explicitly.\n\n**Directions (a designer would hand these over):** keep items (1) and (3) — persist in the WS MESSAGE branch using authenticated identity, ISO 8601 server timestamp, and the same moderation path as REST `sendMessage` — then reuse the existing `GET /chat/messages` endpoint for replay (it already returns ordered, block-filtered, rich-DTO history) instead of adding a parallel one. Derive broadcast identity from the JWT in the same pass so live and replay render identically.\n\n## Vote\nagainst\n\n## Reasoning\nThe need is real and high-impact — I'd champion it — but I'm voting against the proposal *as specified*. Its item (2) creates a duplicate history API that regresses block filtering on history (a user-facing trust defect the AC doesn't cover), degrades replayed-message rendering versus live, and hard-caps history at 50 with no continuation. The chronology guarantee it accepts is also at risk from an unspecified timestamp format. The same user value ships with less risk and less surface by persisting WS messages correctly and wiring replay to the endpoint that already exists. Rescope is cheap; a re-proposal would likely get my enthusiastic yes.\n\n## Composite Score Inputs (0-10)\n- userImpact: 8\n- businessImpact: 6\n- effort: 3\n- securityRisk: 6\n- confidence: 8\n\n## Risk Score (1-10)\n6 — Low if rescoped to \"persist + reuse existing endpoint\"; moderate as written due to the moderation/block-filter hole in history, duplicate API surface, and timestamp-format ambiguity that could silently break ordering.",
+          "durationMs": 145926,
+          "vote": {
+            "agentId": "designer",
+            "agentName": "UX/UI Designer",
+            "position": "against",
+            "reasoning": "The need is real and high-impact — I'd champion it — but I'm voting against the proposal *as specified*. Its item (2) creates a duplicate history API that regresses block filtering on history (a user-facing trust defect the AC doesn't cover), degrades replayed-message rendering versus live, and hard-caps history at 50 with no continuation. The chronology guarantee it accepts is also at risk from an unspecified timestamp format. The same user value ships with less risk and less surface by persisting WS messages correctly and wiring replay to the endpoint that already exists. Rescope is cheap; a re-proposal would likely get my enthusiastic yes.",
+            "weight": 2
+          }
+        }
+      ],
+      "createdAt": "2026-09-19T09:23:03.756Z",
+      "riskZone": "red",
+      "deliberationStartedAt": "2026-09-19T09:23:12.268Z",
+      "compositeScore": {
+        "axes": {
+          "userImpact": 7.125,
+          "businessImpact": 5.75,
+          "effort": 3,
+          "securityRisk": 4.5,
+          "confidence": 7.75
+        },
+        "weighted": 6.6,
+        "riskZone": "orange",
+        "breakdown": "7.1×0.3 + 5.8×0.2 + 7.0×0.15 + 5.5×0.2 + 7.8×0.15 = 6.6"
+      },
+      "synthesis": "## Synthesis — Proposal #43\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 8\n**For:** 5 | **Against:** 3 | **Abstain:** 0\n\n### Supporting Arguments\n- **Product Strategist:** The strategic case is real and mechanism-backed: durable chat history directly serves the coordination gate (\"qui doit agir\") and the anti-drift mandate, the gap is verified in code, and effort is sma...\n- **Research Agent:** The core problem is fully evidenced in code: the WS send path — the one the mobile client actually uses — persists nothing, so server-side history is empty regardless of which endpoint reads it. The f...\n- **Solution Architect:** The capability gap is real, user-facing, and QA-motivated: WS-sent messages are broadcast-only while the mobile client sends via WS, so late-joiners lose coordination history — directly serving the \"q...\n- **Prioritization Agent:** The core problem is verified, user-facing, flagged as product-arbitrated, and the fix is genuinely small because nearly all infrastructure already exists. However, the proposal should be **descoped at...\n- **Delivery Agent:** The problem is real and verified (WS branch is broadcast-only; late joiners lose coordination context), the acceptance criteria are behavior-based and mostly sound (persisted ids, ordered history, 401...\n\n### Opposing Arguments\n- **Critic / Risk Agent:** The feature is needed and the direction is right — but the proposal as specified is built on a false premise (\"seul le câblage serveur manque\") and its concrete implementation plan conflicts with exis...\n- **Spec Writer:** The underlying problem is real and product-aligned: WS messages must be persisted, and late-joiners deserve history — I want this solved. But the spec as written cannot be implemented as specified: (a...\n- **UX/UI Designer:** The need is real and high-impact — I'd champion it — but I'm voting against the proposal *as specified*. Its item (2) creates a duplicate history API that regresses block filtering on history (a user-...\n\n### Key Themes\n- User experience\n- Technical debt\n- Alignment\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n",
+      "dryRunAt": "2026-09-19T09:31:50.439Z",
+      "dryRunCanProceed": false,
+      "resolvedAt": "2026-09-19T09:51:22.821Z",
+      "executionResult": "Executed with delivery plan: feature/dao-43-feat-chat-persistance-serveur-"
     }
   ],
   "config": {
@@ -7797,7 +8022,7 @@
     "quorumFloor": 60,
     "staleThresholdHours": 24
   },
-  "nextProposalId": 43,
+  "nextProposalId": 44,
   "initialized": true,
   "auditLog": [
     {
@@ -9653,10 +9878,55 @@
       "action": "proposal_executed",
       "actor": "user",
       "details": "Executed #42"
+    },
+    {
+      "id": 207,
+      "timestamp": "2026-09-19T09:23:03.757Z",
+      "proposalId": 43,
+      "layer": "governance",
+      "action": "proposal_created",
+      "actor": "user",
+      "details": "Proposal \"feat(chat): persistance serveur de l'historique de chat temps réel + endpoint history\" created"
+    },
+    {
+      "id": 208,
+      "timestamp": "2026-09-19T09:23:12.269Z",
+      "proposalId": 43,
+      "layer": "governance",
+      "action": "deliberation_started",
+      "actor": "system",
+      "details": "Deliberation on #43"
+    },
+    {
+      "id": 209,
+      "timestamp": "2026-09-19T09:29:33.191Z",
+      "proposalId": 43,
+      "layer": "intelligence",
+      "action": "deliberation_approved",
+      "actor": "system",
+      "details": "Approved: 65%"
+    },
+    {
+      "id": 210,
+      "timestamp": "2026-09-19T09:31:58.128Z",
+      "proposalId": 43,
+      "layer": "control",
+      "action": "gates_passed",
+      "actor": "system",
+      "details": "All gates passed"
+    },
+    {
+      "id": 211,
+      "timestamp": "2026-09-19T09:51:22.824Z",
+      "proposalId": 43,
+      "layer": "delivery",
+      "action": "proposal_executed",
+      "actor": "user",
+      "details": "Executed #43"
     }
   ],
-  "nextAuditId": 207,
-  "stateRevision": 66,
+  "nextAuditId": 212,
+  "stateRevision": 72,
   "controlResults": {
     "1": {
       "proposalId": 1,
@@ -15594,6 +15864,155 @@
           "autoChecked": true
         }
       ]
+    },
+    "43": {
+      "proposalId": 43,
+      "timestamp": "2026-09-19T09:31:58.126Z",
+      "allGatesPassed": true,
+      "blockerCount": 0,
+      "warningCount": 1,
+      "gates": [
+        {
+          "gateId": "quorum-quality",
+          "name": "Quorum Quality",
+          "passed": true,
+          "severity": "blocker",
+          "message": "Quorum met (100% weighted participation ≥ 60%)",
+          "details": {
+            "quorumPercent": 100,
+            "quorumRequired": 60,
+            "votingAgents": 8,
+            "totalAgents": 7,
+            "totalVotingWeight": 17
+          }
+        },
+        {
+          "gateId": "risk-threshold",
+          "name": "Risk Threshold",
+          "passed": true,
+          "severity": "warning",
+          "message": "Risk score 4.6 ≤ threshold 7",
+          "details": {
+            "avgRisk": 4.625,
+            "riskScores": [
+              4,
+              4,
+              3,
+              6,
+              4,
+              4,
+              6,
+              6
+            ]
+          }
+        },
+        {
+          "gateId": "vote-consensus",
+          "name": "Vote Consensus",
+          "passed": false,
+          "severity": "warning",
+          "message": "1 high-weight agent(s) voted against"
+        },
+        {
+          "gateId": "zone-compliance",
+          "name": "Zone Compliance",
+          "passed": true,
+          "severity": "info",
+          "message": "Risk zone classified: red"
+        },
+        {
+          "gateId": "acceptance-criteria",
+          "name": "Acceptance Criteria",
+          "passed": true,
+          "severity": "warning",
+          "message": "6 acceptance criteria defined"
+        },
+        {
+          "gateId": "dependency-readiness",
+          "name": "Dependency Readiness",
+          "passed": true,
+          "severity": "info",
+          "message": "No inter-proposal dependencies"
+        },
+        {
+          "gateId": "dependency-conflict",
+          "name": "Dependency Conflict",
+          "passed": true,
+          "severity": "warning",
+          "message": "No overlapping affected paths with in-flight proposals"
+        },
+        {
+          "gateId": "mandatory-dry-run",
+          "name": "Mandatory Dry-Run",
+          "passed": true,
+          "severity": "blocker",
+          "message": "Dry-run completed at 2026-09-19T09:31:50.439Z"
+        },
+        {
+          "gateId": "type-specific-quality",
+          "name": "Type-Specific Quality",
+          "passed": true,
+          "severity": "blocker",
+          "message": "product-feature: approval 65% ≥ 55%, quorum 100% ≥ 60%",
+          "details": {
+            "approvalScore": 65,
+            "approvalRequired": 55,
+            "quorumPercent": 100,
+            "quorumRequired": 60
+          }
+        }
+      ],
+      "checklist": [
+        {
+          "id": "security-review",
+          "category": "security",
+          "label": "Security review completed",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "data-handling",
+          "category": "compliance",
+          "label": "Data handling reviewed",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "compliance-check",
+          "category": "compliance",
+          "label": "Compliance requirements met",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "specs-written",
+          "category": "quality",
+          "label": "Specifications written",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "architecture-reviewed",
+          "category": "quality",
+          "label": "Architecture reviewed",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "rollback-plan",
+          "category": "operational",
+          "label": "Rollback plan defined",
+          "checked": true,
+          "autoChecked": true
+        },
+        {
+          "id": "monitoring-plan",
+          "category": "operational",
+          "label": "Monitoring plan defined",
+          "checked": true,
+          "autoChecked": true
+        }
+      ]
     }
   },
   "deliveryPlans": {
@@ -20076,6 +20495,134 @@
       "branchStrategy": "feature/dao-42-chore-ids-hygi-ne-des-g-n-rate",
       "rollbackPlan": "Revert the merge commit and redeploy previous version",
       "estimatedDuration": "5-9 days"
+    },
+    "43": {
+      "proposalId": 43,
+      "createdAt": "2026-09-19T09:31:58.128Z",
+      "phases": [
+        {
+          "number": 1,
+          "name": "Setup & Design",
+          "tasks": [
+            {
+              "id": "T1",
+              "title": "Review proposal and acceptance criteria",
+              "description": "Understand requirements and clarify ambiguities",
+              "effort": "xs",
+              "phase": 1,
+              "dependencies": [],
+              "status": "pending"
+            },
+            {
+              "id": "T2",
+              "title": "Design solution",
+              "description": "Create technical design document",
+              "effort": "s",
+              "phase": 1,
+              "dependencies": [
+                "T1"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T3",
+              "title": "Set up feature branch",
+              "description": "Create branch for implementation",
+              "effort": "xs",
+              "phase": 1,
+              "dependencies": [
+                "T2"
+              ],
+              "status": "pending"
+            }
+          ],
+          "duration": "1-2 days"
+        },
+        {
+          "number": 2,
+          "name": "Implementation",
+          "tasks": [
+            {
+              "id": "T4",
+              "title": "Core implementation",
+              "description": "Implement the main functionality",
+              "effort": "m",
+              "phase": 2,
+              "dependencies": [
+                "T3"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T5",
+              "title": "Add tests",
+              "description": "Unit and integration tests",
+              "effort": "m",
+              "phase": 2,
+              "dependencies": [
+                "T4"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T6",
+              "title": "Documentation",
+              "description": "Update docs and README",
+              "effort": "s",
+              "phase": 2,
+              "dependencies": [
+                "T4"
+              ],
+              "status": "pending"
+            }
+          ],
+          "duration": "3-5 days"
+        },
+        {
+          "number": 3,
+          "name": "Review & Release",
+          "tasks": [
+            {
+              "id": "T7",
+              "title": "Code review",
+              "description": "Self-review and peer review",
+              "effort": "s",
+              "phase": 3,
+              "dependencies": [
+                "T5",
+                "T6"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T8",
+              "title": "Quality gates",
+              "description": "Run control checks and verify acceptance criteria",
+              "effort": "s",
+              "phase": 3,
+              "dependencies": [
+                "T7"
+              ],
+              "status": "pending"
+            },
+            {
+              "id": "T9",
+              "title": "Merge and deploy",
+              "description": "Merge to main and deploy",
+              "effort": "xs",
+              "phase": 3,
+              "dependencies": [
+                "T8"
+              ],
+              "status": "pending"
+            }
+          ],
+          "duration": "1-2 days"
+        }
+      ],
+      "branchStrategy": "feature/dao-43-feat-chat-persistance-serveur-",
+      "rollbackPlan": "Revert the merge commit and redeploy previous version",
+      "estimatedDuration": "5-9 days"
     }
   },
   "artefacts": {},
@@ -20521,6 +21068,23 @@
       "status": "pending",
       "createdAt": "2026-09-19T08:14:42.767Z",
       "updatedAt": "2026-09-19T08:14:42.767Z"
+    },
+    "43": {
+      "proposalId": 43,
+      "ratings": [
+        {
+          "proposalId": 43,
+          "rater": "user",
+          "score": 5,
+          "comment": "Persistance chat livrée avec le design corrigé demandé par le swarm : WS MESSAGE → ChatService.sendMessage partagé (modération + broadcast unifiés), zéro API dupliquée, historique via GET /chat/messages existant (filtrage modération conservé). Test E2E WS→persistance→history vert. Les 3 votes contre ont directement amélioré l'implémentation.",
+          "ratedAt": "2026-09-19T09:51:33.513Z"
+        }
+      ],
+      "metrics": [],
+      "overallScore": 5,
+      "status": "pending",
+      "createdAt": "2026-09-19T09:51:33.513Z",
+      "updatedAt": "2026-09-19T09:51:33.513Z"
     }
   },
   "snapshots": {
@@ -20779,6 +21343,14 @@
       "commitSha": "unknown",
       "filesChanged": [],
       "stateSnapshot": "{\"agents\":7,\"proposals\":42}"
+    },
+    "43": {
+      "proposalId": 43,
+      "timestamp": "2026-09-19T09:51:22.821Z",
+      "branch": "feature/dao-43-feat-chat-persistance-serveur-",
+      "commitSha": "unknown",
+      "filesChanged": [],
+      "stateSnapshot": "{\"agents\":7,\"proposals\":43}"
     }
   },
   "verifications": {},

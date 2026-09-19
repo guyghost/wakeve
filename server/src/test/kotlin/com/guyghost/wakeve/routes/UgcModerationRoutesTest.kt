@@ -854,7 +854,7 @@ class UgcModerationRoutesTest {
         assertTrue(websocketSource.contains("hasChatWebSocketAccess(database, eventId, userId)"), "WebSocket route must require event membership before connecting.")
         assertTrue(websocketSource.contains("ConcurrentHashMap<String, ConcurrentHashMap<String, EventChatConnection>>"), "Connections must be tracked per event and per user connection.")
         assertTrue(websocketSource.contains("moderationRepository?.isBlockedForEvent(connection.userId, senderId, eventId)"), "WebSocket broadcast must suppress blocked senders per recipient within the current event.")
-        assertTrue(applicationSource.contains("chatWebSocketRoute(database, moderationRepository)"), "Application wiring must pass database and moderation repository to WebSocket route.")
+        assertTrue(applicationSource.contains("chatWebSocketRoute(database, moderationRepository, chatService)"), "Application wiring must pass database, moderation repository and the shared chat service (persistence + moderation + broadcast) to WebSocket route.")
         assertTrue(chatServiceSource.contains("eventConnections.broadcast(eventId, response, moderationRepository)"), "Chat service broadcasts must use moderation-aware delivery.")
     }
 
