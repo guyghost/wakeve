@@ -929,16 +929,29 @@ class EventOrganizationPhase5RoutesTest {
             itemId = seededItem.id
         )
 
+        // Proposal #37 (collaborative budget): confirmed participants record their
+        // own items while ORGANIZING.
+        val createResponse = client.post("/api/events/${fixture.eventId}/budget/items") {
+            header(HttpHeaders.Authorization, "Bearer $participantToken")
+            contentType(ContentType.Application.Json)
+            setBody(createBudgetItemBody())
+        }
+        assertEquals(
+            HttpStatusCode.Created,
+            createResponse.status,
+            "Confirmed participants should be able to create their own budget items while ORGANIZING."
+        )
+
         val budgetAfterDeniedMutations = fixture.budgetRepository.getBudgetByEventId(fixture.eventId)!!
         val itemAfterDeniedMutations = fixture.budgetRepository.getBudgetItemById(seededItem.id)
-        val itemsAfterDeniedMutations = fixture.budgetRepository.getBudgetItems(baselineBudget.id)
-        assertEquals(baselineBudget, budgetAfterDeniedMutations, "Denied participant baseline updates must not persist.")
-        assertEquals(seededItem, itemAfterDeniedMutations, "Denied participant item updates/deletes must not persist.")
-        assertEquals(
-            baselineItems.map { it.id }.toSet(),
-            itemsAfterDeniedMutations.map { it.id }.toSet(),
-            "Denied participant item creation must not persist."
+        // The forbidden baseline PUT would have set totalEstimated to 1200.0; item
+        // creation legitimately recalculates totals from items, so assert the
+        // denied PUT payload was never applied instead of strict equality.
+        assertTrue(
+            budgetAfterDeniedMutations.totalEstimated != 1200.0,
+            "Denied participant baseline updates must not persist."
         )
+        assertEquals(seededItem, itemAfterDeniedMutations, "Denied participant item updates/deletes must not persist.")
 
         val readResponse = client.get("/api/events/${fixture.eventId}/budget") {
             header(HttpHeaders.Authorization, "Bearer $participantToken")
@@ -1557,16 +1570,13 @@ class EventOrganizationPhase5RoutesTest {
         token: String,
         itemId: String
     ) {
+        // Proposal #37: item CREATION is now allowed for confirmed participants;
+        // baseline mutation and item update/delete remain organizer-only.
         val responses = listOf(
             "PUT budget baseline" to client.put("/api/events/${fixture.eventId}/budget") {
                 header(HttpHeaders.Authorization, "Bearer $token")
                 contentType(ContentType.Application.Json)
                 setBody(budgetBaselineBody(fixture))
-            },
-            "POST budget item" to client.post("/api/events/${fixture.eventId}/budget/items") {
-                header(HttpHeaders.Authorization, "Bearer $token")
-                contentType(ContentType.Application.Json)
-                setBody(createBudgetItemBody())
             },
             "PUT budget item" to client.put("/api/events/${fixture.eventId}/budget/items/$itemId") {
                 header(HttpHeaders.Authorization, "Bearer $token")
