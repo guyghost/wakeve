@@ -818,8 +818,28 @@ class TransportOfflineRepositoryPhase4Test {
     }
 
     @Test
-    fun `local mark transport not needed is organizer only and denied actors queue no sync`() = runBlocking {
-        listOf("participant-alice", "participant-pending", "non-member-zoe").forEach { actorId ->
+    fun `local mark transport not needed is organizer or confirmed participant - denied actors queue no sync`() = runBlocking {
+        // Proposal #40: a confirmed participant may record the group-level decision.
+        val confirmedEventId = "event-transport-not-needed-actor-participant-alice"
+        createEventWithParticipantAccessStates(confirmedEventId, EventStatus.ORGANIZING)
+        val confirmedResult = transportRepository.markTransportNotNeeded(
+            eventId = confirmedEventId,
+            updatedByUserId = "participant-alice"
+        )
+        assertTrue(
+            confirmedResult.isSuccess,
+            "Confirmed participant-alice must be able to mark transport not needed"
+        )
+        assertNotNull(
+            db.transportQueries.selectTransportEventStatus(confirmedEventId).executeAsOneOrNull(),
+            "Confirmed participant decision must persist local transport status"
+        )
+        assertTrue(
+            hasPendingTransportSync(confirmedEventId),
+            "Allowed mark-not-needed must queue replay sync metadata"
+        )
+
+        listOf("participant-pending", "non-member-zoe").forEach { actorId ->
             val eventId = "event-transport-not-needed-actor-$actorId"
             createEventWithParticipantAccessStates(eventId, EventStatus.ORGANIZING)
 
@@ -830,7 +850,7 @@ class TransportOfflineRepositoryPhase4Test {
 
             assertTrue(
                 result.isFailure,
-                "Only the event organizer may mark transport not needed; actor $actorId must be denied"
+                "Only the event organizer or a confirmed participant may mark transport not needed; actor $actorId must be denied"
             )
             assertNull(
                 db.transportQueries.selectTransportEventStatus(eventId).executeAsOneOrNull(),
