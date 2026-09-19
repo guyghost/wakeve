@@ -64,8 +64,9 @@ Les vues consomment les mêmes routes que les tests backend (events/poll/scenari
 1. `fix(chat)` : identité WS imposée serveur (userId JWT, userName profil, fallback « Invité »)
 2. `fix(notifications)` : câblage durable registration config + codes d'erreur explicites (503/502/400)
 
-## Reste à arbitrer (produit)
-- Persistance de l'historique chat serveur (aujourd'hui éphémère)
-- Durcissement `validatePushToken` par plateforme
-- `google-services.json` example + fallback build sans Firebase
-- 4 tests `AndroidProductLanguageContractTest` pré-existants en échec
+## Reste à arbitrer — ✅ TOUS TRAITÉS (suite du 2026-09-19)
+
+- **Chat persistant (#43, DAO)** : les MESSAGE WS passent désormais par le service partagé REST (modération + persistance `chat_message` + broadcast unifiés). Late joiners → `GET /chat/messages` (contrat DESC newest-first). Test E2E WS→persistance→history vert, validé en live.
+- **Durcissement tokens push** : longueur minimale 12 chars (garbage rejeté) ; le format strict par plateforme (64 hex APNs / ~140 FCM) reste à arbitrer avec les contrats legacy.
+- **google-services.json** : le build gère déjà l'absence via `onlyIf` (APK produit sans Firebase — vérifié : 36,7 MB) ; contournement config-cache documenté (`--no-configuration-cache`). Un `google-services.json.example` reste à ajouter pour l'onboarding.
+- **Contrat product language Android** : 4/4 réparés — les lignes de code avaient bougé (labels heures calmes/toasts auth), hash d'occurrences recalculés et re-allowlistés selon le workflow d'audit prévu. Suite composeApp : **538/538**.
