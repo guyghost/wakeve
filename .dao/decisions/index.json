@@ -377,8 +377,9 @@
     "id": 43,
     "title": "feat(chat): persistance serveur de l'historique de chat temps réel + endpoint history",
     "type": "product-feature",
-    "status": "controlled",
+    "status": "executed",
     "riskZone": "red",
-    "createdAt": "2026-09-19T09:23:03.756Z"
+    "createdAt": "2026-09-19T09:23:03.756Z",
+    "resolvedAt": "2026-09-19T09:51:22.821Z"
   }
 ]

@@ -7780,7 +7780,7 @@
         "server/src/test/kotlin/com/guyghost/wakeve"
       ],
       "proposedBy": "user",
-      "status": "controlled",
+      "status": "executed",
       "votes": [
         {
           "agentId": "strategist",
@@ -7970,7 +7970,9 @@
       },
       "synthesis": "## Synthesis — Proposal #43\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 8\n**For:** 5 | **Against:** 3 | **Abstain:** 0\n\n### Supporting Arguments\n- **Product Strategist:** The strategic case is real and mechanism-backed: durable chat history directly serves the coordination gate (\"qui doit agir\") and the anti-drift mandate, the gap is verified in code, and effort is sma...\n- **Research Agent:** The core problem is fully evidenced in code: the WS send path — the one the mobile client actually uses — persists nothing, so server-side history is empty regardless of which endpoint reads it. The f...\n- **Solution Architect:** The capability gap is real, user-facing, and QA-motivated: WS-sent messages are broadcast-only while the mobile client sends via WS, so late-joiners lose coordination history — directly serving the \"q...\n- **Prioritization Agent:** The core problem is verified, user-facing, flagged as product-arbitrated, and the fix is genuinely small because nearly all infrastructure already exists. However, the proposal should be **descoped at...\n- **Delivery Agent:** The problem is real and verified (WS branch is broadcast-only; late joiners lose coordination context), the acceptance criteria are behavior-based and mostly sound (persisted ids, ordered history, 401...\n\n### Opposing Arguments\n- **Critic / Risk Agent:** The feature is needed and the direction is right — but the proposal as specified is built on a false premise (\"seul le câblage serveur manque\") and its concrete implementation plan conflicts with exis...\n- **Spec Writer:** The underlying problem is real and product-aligned: WS messages must be persisted, and late-joiners deserve history — I want this solved. But the spec as written cannot be implemented as specified: (a...\n- **UX/UI Designer:** The need is real and high-impact — I'd champion it — but I'm voting against the proposal *as specified*. Its item (2) creates a duplicate history API that regresses block filtering on history (a user-...\n\n### Key Themes\n- User experience\n- Technical debt\n- Alignment\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n",
       "dryRunAt": "2026-09-19T09:31:50.439Z",
-      "dryRunCanProceed": false
+      "dryRunCanProceed": false,
+      "resolvedAt": "2026-09-19T09:51:22.821Z",
+      "executionResult": "Executed with delivery plan: feature/dao-43-feat-chat-persistance-serveur-"
     }
   ],
   "config": {
@@ -9912,10 +9914,19 @@
       "action": "gates_passed",
       "actor": "system",
       "details": "All gates passed"
+    },
+    {
+      "id": 211,
+      "timestamp": "2026-09-19T09:51:22.824Z",
+      "proposalId": 43,
+      "layer": "delivery",
+      "action": "proposal_executed",
+      "actor": "user",
+      "details": "Executed #43"
     }
   ],
-  "nextAuditId": 211,
-  "stateRevision": 70,
+  "nextAuditId": 212,
+  "stateRevision": 72,
   "controlResults": {
     "1": {
       "proposalId": 1,
@@ -21057,6 +21068,23 @@
       "status": "pending",
       "createdAt": "2026-09-19T08:14:42.767Z",
       "updatedAt": "2026-09-19T08:14:42.767Z"
+    },
+    "43": {
+      "proposalId": 43,
+      "ratings": [
+        {
+          "proposalId": 43,
+          "rater": "user",
+          "score": 5,
+          "comment": "Persistance chat livrée avec le design corrigé demandé par le swarm : WS MESSAGE → ChatService.sendMessage partagé (modération + broadcast unifiés), zéro API dupliquée, historique via GET /chat/messages existant (filtrage modération conservé). Test E2E WS→persistance→history vert. Les 3 votes contre ont directement amélioré l'implémentation.",
+          "ratedAt": "2026-09-19T09:51:33.513Z"
+        }
+      ],
+      "metrics": [],
+      "overallScore": 5,
+      "status": "pending",
+      "createdAt": "2026-09-19T09:51:33.513Z",
+      "updatedAt": "2026-09-19T09:51:33.513Z"
     }
   },
   "snapshots": {
@@ -21315,6 +21343,14 @@
       "commitSha": "unknown",
       "filesChanged": [],
       "stateSnapshot": "{\"agents\":7,\"proposals\":42}"
+    },
+    "43": {
+      "proposalId": 43,
+      "timestamp": "2026-09-19T09:51:22.821Z",
+      "branch": "feature/dao-43-feat-chat-persistance-serveur-",
+      "commitSha": "unknown",
+      "filesChanged": [],
+      "stateSnapshot": "{\"agents\":7,\"proposals\":43}"
     }
   },
   "verifications": {},
