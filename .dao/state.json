@@ -7113,7 +7113,7 @@
         "server/src/test/kotlin/com/guyghost/wakeve"
       ],
       "proposedBy": "user",
-      "status": "controlled",
+      "status": "executed",
       "votes": [
         {
           "agentId": "strategist",
@@ -7301,7 +7301,9 @@
         "riskZone": "green",
         "breakdown": "6.9×0.3 + 6.0×0.2 + 7.5×0.15 + 7.5×0.2 + 8.5×0.15 = 7.2"
       },
-      "synthesis": "## Synthesis — Proposal #40\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 8\n**For:** 6 | **Against:** 2 | **Abstain:** 0\n\n### Supporting Arguments\n- **Product Strategist:** Strategic alignment is proven by mechanism, not aspiration: the exact helper and precedent (#37, same predicate, same file family) already exist; the change is minimal, attribution-preserving, phase-g...\n- **Solution Architect:** The policy direction is sound and consistent with #37: a confirmed participant unblocking the finalization checklist when the organizer is unavailable, with attribution preserved and phase guard intac...\n- **Research Agent:** The problem is real, documented in QA, and consistent with the participant self-service direction the swarm already shipped in #37 — with in-repo precedent both in BudgetRoutes and in TransportRoutes ...\n- **Prioritization Agent:** Excellent value density: a verified user-facing blocker, direct lineage from an approved 100% precedent (#37), closure of QA observation 10's second half, and near-trivial effort reusing existing help...\n- **Delivery Agent:** The change is small, consistent with the approved #37 pattern, closes a real QA blocker, and every acceptance criterion is testable first with existing fixtures. The one gap — the second organizer gua...\n- **UX/UI Designer:** The direction is correct, evidence-grounded, and consistent with shipped precedent: it removes a real dead end (verified in code and QA) on a checklist-blocking action, for exactly the actor group tha...\n\n### Opposing Arguments\n- **Critic / Risk Agent:** The direction is sound and consistent with the shipped #37 precedent, and the route-level change itself is fine. I vote against **as scoped**, for two evidenced reasons: (1) the proposal's central imp...\n- **Spec Writer:** The intent is sound and consistent with #37's approved philosophy, and the problem is real QA evidence. But as specified, the change cannot deliver its own headline acceptance criterion: the organizer...\n\n### Key Themes\n- Security concerns\n- User experience\n- Maintenance burden\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n"
+      "synthesis": "## Synthesis — Proposal #40\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 8\n**For:** 6 | **Against:** 2 | **Abstain:** 0\n\n### Supporting Arguments\n- **Product Strategist:** Strategic alignment is proven by mechanism, not aspiration: the exact helper and precedent (#37, same predicate, same file family) already exist; the change is minimal, attribution-preserving, phase-g...\n- **Solution Architect:** The policy direction is sound and consistent with #37: a confirmed participant unblocking the finalization checklist when the organizer is unavailable, with attribution preserved and phase guard intac...\n- **Research Agent:** The problem is real, documented in QA, and consistent with the participant self-service direction the swarm already shipped in #37 — with in-repo precedent both in BudgetRoutes and in TransportRoutes ...\n- **Prioritization Agent:** Excellent value density: a verified user-facing blocker, direct lineage from an approved 100% precedent (#37), closure of QA observation 10's second half, and near-trivial effort reusing existing help...\n- **Delivery Agent:** The change is small, consistent with the approved #37 pattern, closes a real QA blocker, and every acceptance criterion is testable first with existing fixtures. The one gap — the second organizer gua...\n- **UX/UI Designer:** The direction is correct, evidence-grounded, and consistent with shipped precedent: it removes a real dead end (verified in code and QA) on a checklist-blocking action, for exactly the actor group tha...\n\n### Opposing Arguments\n- **Critic / Risk Agent:** The direction is sound and consistent with the shipped #37 precedent, and the route-level change itself is fine. I vote against **as scoped**, for two evidenced reasons: (1) the proposal's central imp...\n- **Spec Writer:** The intent is sound and consistent with #37's approved philosophy, and the problem is real QA evidence. But as specified, the change cannot deliver its own headline acceptance criterion: the organizer...\n\n### Key Themes\n- Security concerns\n- User experience\n- Maintenance burden\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n",
+      "resolvedAt": "2026-09-19T08:01:27.034Z",
+      "executionResult": "Executed with delivery plan: feature/dao-40-feat-transport-not-needed-acce"
     },
     {
       "id": 41,
@@ -9620,10 +9622,19 @@
       "action": "gates_passed",
       "actor": "system",
       "details": "All gates passed"
+    },
+    {
+      "id": 204,
+      "timestamp": "2026-09-19T08:01:27.036Z",
+      "proposalId": 40,
+      "layer": "delivery",
+      "action": "proposal_executed",
+      "actor": "user",
+      "details": "Executed #40"
     }
   ],
-  "nextAuditId": 204,
-  "stateRevision": 60,
+  "nextAuditId": 205,
+  "stateRevision": 62,
   "controlResults": {
     "1": {
       "proposalId": 1,
@@ -20437,6 +20448,23 @@
       "status": "pending",
       "createdAt": "2026-09-19T07:20:26.319Z",
       "updatedAt": "2026-09-19T07:20:26.319Z"
+    },
+    "40": {
+      "proposalId": 40,
+      "ratings": [
+        {
+          "proposalId": 40,
+          "rater": "user",
+          "score": 5,
+          "comment": "Transport not-needed ouvert aux participants confirmés, les deux couches (route + repository requireOrganizer — le « second organizer gate » signalé par le swarm) modifiées. Contrat Phase8 des tests vérifié. Steve toujours 403, organisateur inchangé. Suite serveur verte.",
+          "ratedAt": "2026-09-19T08:01:36.400Z"
+        }
+      ],
+      "metrics": [],
+      "overallScore": 5,
+      "status": "pending",
+      "createdAt": "2026-09-19T08:01:36.400Z",
+      "updatedAt": "2026-09-19T08:01:36.400Z"
     }
   },
   "snapshots": {
@@ -20671,6 +20699,14 @@
       "commitSha": "unknown",
       "filesChanged": [],
       "stateSnapshot": "{\"agents\":7,\"proposals\":39}"
+    },
+    "40": {
+      "proposalId": 40,
+      "timestamp": "2026-09-19T08:01:27.034Z",
+      "branch": "feature/dao-40-feat-transport-not-needed-acce",
+      "commitSha": "unknown",
+      "filesChanged": [],
+      "stateSnapshot": "{\"agents\":7,\"proposals\":42}"
     }
   },
   "verifications": {},

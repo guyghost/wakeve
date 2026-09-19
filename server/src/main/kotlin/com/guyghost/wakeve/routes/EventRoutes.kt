@@ -484,7 +484,11 @@ fun io.ktor.server.routing.Route.eventRoutes(
                 }
 
                 val notificationFinalDate = request.finalDate
-                val result = repository.updateEventStatus(eventId, status, request.finalDate)
+                val result = if (status == EventStatus.FINALIZED) {
+                    repository.updateEventStatusForServer(eventId, status, request.finalDate)
+                } else {
+                    repository.updateEventStatus(eventId, status, request.finalDate)
+                }
 
                 if (result.isSuccess) {
                     // Trigger notification for status change (async, non-blocking)
@@ -532,7 +536,10 @@ fun io.ktor.server.routing.Route.eventRoutes(
                     // surface the exact blockers so the organizer can act on them
                     // (QA BUG-3/BUG-5: previously a generic "try again" message).
                     if (status == EventStatus.FINALIZED && database != null) {
-                        val readiness = EventOrganizationReadinessRepository(database).getReadiness(eventId)
+                        val readiness = EventOrganizationReadinessRepository(
+                            database,
+                            pendingOutboxBlocksFinalization = false
+                        ).getReadiness(eventId)
                         if (!readiness.complete) {
                             call.respond(
                                 HttpStatusCode.Conflict,
@@ -582,7 +589,13 @@ fun io.ktor.server.routing.Route.eventRoutes(
                     HttpStatusCode.InternalServerError,
                     mapOf("error" to "Database not available")
                 )
-                call.respond(HttpStatusCode.OK, EventOrganizationReadinessRepository(db).getReadiness(eventId))
+                call.respond(
+                    HttpStatusCode.OK,
+                    EventOrganizationReadinessRepository(
+                        db,
+                        pendingOutboxBlocksFinalization = false
+                    ).getReadiness(eventId)
+                )
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,

@@ -1020,7 +1020,23 @@ class DatabaseEventRepository private constructor(
         }
     }
 
-    override suspend fun updateEventStatus(id: String, status: EventStatus, finalDate: String?): Result<Boolean> {
+    override suspend fun updateEventStatus(id: String, status: EventStatus, finalDate: String?): Result<Boolean> =
+        updateEventStatusInternal(id, status, finalDate, pendingOutboxBlocksFinalization = true)
+
+    /**
+     * Server-side variant (proposal #41): outbox rows written by the server's own
+     * REST processing are converged by definition, so the FINALIZED readiness gate
+     * ignores CRITICAL_SYNC_PENDING. FAILED rows and critical conflicts still block.
+     */
+    suspend fun updateEventStatusForServer(id: String, status: EventStatus, finalDate: String?): Result<Boolean> =
+        updateEventStatusInternal(id, status, finalDate, pendingOutboxBlocksFinalization = false)
+
+    private suspend fun updateEventStatusInternal(
+        id: String,
+        status: EventStatus,
+        finalDate: String?,
+        pendingOutboxBlocksFinalization: Boolean
+    ): Result<Boolean> {
         val event = getEvent(id) ?: return Result.failure(IllegalArgumentException("Event not found"))
         val aggregate = eventQueries.selectById(id).executeAsOneOrNull()
             ?: return Result.failure(IllegalArgumentException("Event not found"))
@@ -1060,7 +1076,10 @@ class DatabaseEventRepository private constructor(
                         IllegalStateException("Finalization blocked by EVENT_NOT_ORGANIZING")
                     )
                 }
-                val readiness = EventOrganizationReadinessRepository(db).getReadiness(id)
+                val readiness = EventOrganizationReadinessRepository(
+                    db,
+                    pendingOutboxBlocksFinalization = pendingOutboxBlocksFinalization
+                ).getReadiness(id)
                 if (!readiness.complete) {
                     return Result.failure(
                         IllegalStateException("Finalization blocked by ${readiness.blockers.joinToString(",")}")

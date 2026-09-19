@@ -2,7 +2,8 @@
   "id": 40,
   "title": "feat(transport): not-needed accessible aux participants confirmés (cohérence #37)",
   "type": "product-feature",
-  "status": "controlled",
+  "status": "executed",
   "riskZone": "orange",
-  "createdAt": "2026-09-19T07:46:19.563Z"
+  "createdAt": "2026-09-19T07:46:19.563Z",
+  "resolvedAt": "2026-09-19T08:01:27.034Z"
 }

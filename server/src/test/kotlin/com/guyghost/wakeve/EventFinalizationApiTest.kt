@@ -160,6 +160,47 @@ class EventFinalizationApiTest {
     }
 
     @Test
+    fun `a failed critical sync row still blocks finalization`() = testApplication {
+        application { module(database) }
+        seedOrganizingEvent()
+        val auth = "Bearer ${createTestJwt("organizer-alice")}"
+
+        // Walk to ORGANIZING.
+        listOf("COMPARING", "ORGANIZING").forEach { target ->
+            val response = client.put("/api/events/event-finalize/status") {
+                header(HttpHeaders.Authorization, auth)
+                contentType(ContentType.Application.Json)
+                setBody("""{"eventId":"event-finalize","status":"$target"}""")
+            }
+            assertEquals(HttpStatusCode.OK, response.status, response.bodyAsText())
+        }
+
+        // A FAILED critical sync row is a genuine failure: it must block.
+        database.syncMetadataQueries.insertSyncMetadataWithPayload(
+            id = "sync_qa_failed_row",
+            entityType = "meeting",
+            entityId = "event-finalize",
+            operation = "UPDATE",
+            payload = "{}",
+            timestamp = "2026-09-19T08:00:00Z",
+            retryState = "PERMANENT_FAILURE",
+            retryCount = 3,
+            synced = 0
+        )
+
+        val response = client.put("/api/events/event-finalize/status") {
+            header(HttpHeaders.Authorization, auth)
+            contentType(ContentType.Application.Json)
+            setBody("""{"eventId":"event-finalize","status":"FINALIZED"}""")
+        }
+        val body = response.bodyAsText()
+        assertTrue(
+            body.contains("CRITICAL_SYNC_FAILED"),
+            "a failed critical sync row must block finalization: $body"
+        )
+    }
+
+    @Test
     fun `full finalization journey succeeds through the API`() = testApplication {
         application { module(database) }
         seedOrganizingEvent()
@@ -269,12 +310,6 @@ class EventFinalizationApiTest {
             setBody("""{"reason":"Chacun réserve son vol"}""")
         }
         assertEquals(HttpStatusCode.OK, transport.status, transport.bodyAsText())
-
-        // Simulate offline-first sync convergence (the client marks its queued
-        // writes synced after the server ACK, cf. Phase 6 E2E contract) — required
-        // because several API writes above queued critical sync metadata.
-        database.syncMetadataQueries.selectPending().executeAsList()
-            .forEach { database.syncMetadataQueries.markSynced(it.id) }
 
         val finalized = client.put("/api/events/event-finalize/status") {
             header(HttpHeaders.Authorization, auth)

@@ -53,7 +53,16 @@ class EventOrganizationReadinessRepository(
     private val db: WakeveDb,
     private val budgetRepository: BudgetRepository = BudgetRepository(db),
     private val paymentPotRepository: PaymentPotRepository = PaymentPotRepository(db),
-    private val tricountHandoffRepository: TricountHandoffRepository = TricountHandoffRepository(db)
+    private val tricountHandoffRepository: TricountHandoffRepository = TricountHandoffRepository(db),
+    /**
+     * Client side (default): pending outbox rows block finalization until the
+     * offline sync converges (Phase 6 contract). On the server, outbox rows
+     * written by its own REST processing are converged by definition — the
+     * server is their destination and no pull channel consumes them — so the
+     * server composition passes false (proposal #41). FAILED rows and critical
+     * conflicts always block.
+     */
+    private val pendingOutboxBlocksFinalization: Boolean = true
 ) {
     fun getMeetingReadiness(eventId: String): MeetingReadiness {
         val meetings = db.meetingQueries.selectByEventId(eventId).executeAsList()
@@ -255,8 +264,14 @@ class EventOrganizationReadinessRepository(
             .executeAsList()
             .filter { it.event_id == eventId }
         val blockers = buildList {
-            if (pendingCritical.any { it.retryState == "FAILED" }) add("CRITICAL_SYNC_FAILED")
-            if (pendingCritical.any { it.retryState != "FAILED" }) add("CRITICAL_SYNC_PENDING")
+            // Both failure markers block: legacy 'FAILED' and the
+            // 'PERMANENT_FAILURE' state written by markStudioSyncPermanentFailure.
+            if (pendingCritical.any { it.retryState == "FAILED" || it.retryState == "PERMANENT_FAILURE" }) {
+                add("CRITICAL_SYNC_FAILED")
+            }
+            if (pendingOutboxBlocksFinalization &&
+                pendingCritical.any { it.retryState != "FAILED" && it.retryState != "PERMANENT_FAILURE" }
+            ) add("CRITICAL_SYNC_PENDING")
             if (pendingConflicts.isNotEmpty()) add("CRITICAL_CONFLICT_PENDING")
         }
         return section(eventId, blockers, count = pendingCritical.size + pendingConflicts.size)
