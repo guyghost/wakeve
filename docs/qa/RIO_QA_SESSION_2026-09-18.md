@@ -63,13 +63,15 @@ Le vrai DTO (local à `CommentRoutes.kt:834`) exige `authorId`/`authorName`/`sec
 
 ---
 
-## 🟡 Mineurs / produit (P2-P3)
+## 🟡 Mineurs / produit (P2-P3) — ✅ TOUS TRAITÉS (cycles DAO #37-#42, 2026-09-19)
 
-- **10 (prod)** : seuls les organisateurs peuvent créer des items de budget (403 pour participants) et déclarer « transport not needed » — à valider vs vision Tricount collaborative.
-- **11 (UX)** : `authorName` fourni non conservé → fil affiche `guest_82383fd4…` au lieu des prénoms.
-- **13 (produit)** : guests sans refresh token (voulu) mais session 1 h : une planification guest est coupée sans reconnect.
-- **15 (design sync)** : toute mutation serveur crée des `syncMetadata synced=0` qui bloquent la readiness (`CRITICAL_SYNC_PENDING`) — deadlock auto-infligé dès qu'un client ne « tire » pas la sync.
-- Cosmétique : IDs d'événements `event_<ms>_<float>` ; `updatedAt` en nanosecondes (`…575971001Z`) ; erreurs commentaires ICS.
+- **10** : ✅ #37 — items de budget collaboratifs (participants confirmés). ✅ #40 — transport not-needed ouvert aux participants confirmés (les 2 couches, route + repository).
+- **11** : ✅ #38 — noms des invités résolus côté serveur (`PUT /api/user/display-name` + chaîne d'attribution claim JWT → profil → email → id). Le authorName du body reste ignoré (anti-usurpation, Ugc test).
+- **13** : ✅ #39 — refresh token invité de 30 jours, cascade de révocation à la suppression de compte ; bonus BUG-17 : re-login même device ne crash plus (500 → reprise de profil).
+- **15** : ✅ #41 — l'outbox sync côté serveur est convergée par définition (`pendingOutboxBlocksFinalization=false` côté composition serveur) ; le contrat client Phase 6 est inchangé et `PERMANENT_FAILURE` compte désormais comme CRITICAL_SYNC_FAILED (miss corrigé).
+- **Cosmétique** : ✅ #42 — ids event/invitation/user opaques et sans collision (suffixes UUID/Random) ; ⚠️ les timestamps scenario en nanosecondes sont **intentionnels** (ordre strict des mutations via nextMutationTimestamp +1ns) — non modifiés, décision documentée.
+
+**Replay final (API seule) : événement DRAFT → FINALIZED complet sans aucun workaround DB, 6/6 vérifications passées.**
 
 ---
 
