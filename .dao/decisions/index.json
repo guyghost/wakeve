@@ -359,9 +359,10 @@
     "id": 41,
     "title": "fix(readiness): l'outbox sync côté serveur est convergée par définition — ne bloque plus la finalisation REST",
     "type": "technical-change",
-    "status": "controlled",
+    "status": "executed",
     "riskZone": "orange",
-    "createdAt": "2026-09-19T07:46:19.563Z"
+    "createdAt": "2026-09-19T07:46:19.563Z",
+    "resolvedAt": "2026-09-19T08:11:21.735Z"
   },
   {
     "id": 42,

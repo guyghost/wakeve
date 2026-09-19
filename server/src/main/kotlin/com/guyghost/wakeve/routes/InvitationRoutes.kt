@@ -86,7 +86,7 @@ fun Route.invitationRoutes(
                 val now = java.time.Instant.now().toString()
 
                 val invitation = Invitation(
-                    id = "inv_${System.currentTimeMillis()}_${(Math.random() * 10000).toInt()}",
+                    id = "inv_${System.currentTimeMillis()}_${java.util.UUID.randomUUID().toString().substring(0, 8)}",
                     code = code,
                     eventId = eventId,
                     createdBy = userId,

@@ -7334,7 +7334,7 @@
         "server/src/test/kotlin/com/guyghost/wakeve/EventFinalizationApiTest.kt"
       ],
       "proposedBy": "user",
-      "status": "controlled",
+      "status": "executed",
       "votes": [
         {
           "agentId": "researcher",
@@ -7522,7 +7522,9 @@
         "riskZone": "orange",
         "breakdown": "5.9×0.3 + 5.9×0.2 + 7.5×0.15 + 8.1×0.2 + 7.8×0.15 = 6.8"
       },
-      "synthesis": "## Synthesis — Proposal #41\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 8\n**For:** 8 | **Against:** 0 | **Abstain:** 0\n\n### Supporting Arguments\n- **Research Agent:** Every factual claim in the proposal checks out in the source: server-written outbox rows are inserted `synced = 0`, have no consumer, no pull channel, and permanently block REST finalization — confirm...\n- **Solution Architect:** The defect is verified in code: a 100% REST finalization flow is permanently blocked by rows that are converged by definition, and the current test masks this with a manual convergence step. The fix d...\n- **Product Strategist:** The bug is verified in code, blocks the product's terminal workflow state in any API-driven flow (exactly what the QA replay and release evidence require), and the fix preserves the Phase 6 client con...\n- **Critic / Risk Agent:** The problem is real, verified in source, and is the residual blocker of the #33 QA family: the terminal workflow state remains unreachable via a 100% API flow because server-written outbox rows have n...\n- **UX/UI Designer:** This removes a permanent, unsatisfiable dead end from the organizer's finalization journey — the exact failure class (unactionable blocker, checklist that can never turn green) that the QA session alr...\n- **Delivery Agent:** The problem is real and verified in code — the current test's manual `markSynced` workaround is the bug report itself. The semantic argument is sound: the server is the destination of its own writes; ...\n- **Spec Writer:** The behavioral contract is sound, deterministic, and verified against the code: the server-side `CRITICAL_SYNC_PENDING` blockage is a real artifact with no delivery channel, the client Phase 6 contrac...\n- **Prioritization Agent:** Every factual claim verified directly in code; the defect permanently blocks the product's terminal workflow state for API-only flows and is currently papered over by a manual DB step inside the E2E t...\n\n### Key Themes\n- User experience\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n"
+      "synthesis": "## Synthesis — Proposal #41\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 8\n**For:** 8 | **Against:** 0 | **Abstain:** 0\n\n### Supporting Arguments\n- **Research Agent:** Every factual claim in the proposal checks out in the source: server-written outbox rows are inserted `synced = 0`, have no consumer, no pull channel, and permanently block REST finalization — confirm...\n- **Solution Architect:** The defect is verified in code: a 100% REST finalization flow is permanently blocked by rows that are converged by definition, and the current test masks this with a manual convergence step. The fix d...\n- **Product Strategist:** The bug is verified in code, blocks the product's terminal workflow state in any API-driven flow (exactly what the QA replay and release evidence require), and the fix preserves the Phase 6 client con...\n- **Critic / Risk Agent:** The problem is real, verified in source, and is the residual blocker of the #33 QA family: the terminal workflow state remains unreachable via a 100% API flow because server-written outbox rows have n...\n- **UX/UI Designer:** This removes a permanent, unsatisfiable dead end from the organizer's finalization journey — the exact failure class (unactionable blocker, checklist that can never turn green) that the QA session alr...\n- **Delivery Agent:** The problem is real and verified in code — the current test's manual `markSynced` workaround is the bug report itself. The semantic argument is sound: the server is the destination of its own writes; ...\n- **Spec Writer:** The behavioral contract is sound, deterministic, and verified against the code: the server-side `CRITICAL_SYNC_PENDING` blockage is a real artifact with no delivery channel, the client Phase 6 contrac...\n- **Prioritization Agent:** Every factual claim verified directly in code; the defect permanently blocks the product's terminal workflow state for API-only flows and is currently papered over by a manual DB step inside the E2E t...\n\n### Key Themes\n- User experience\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n",
+      "resolvedAt": "2026-09-19T08:11:21.735Z",
+      "executionResult": "Executed with delivery plan: feature/dao-41-fix-readiness-l-outbox-sync-c-"
     },
     {
       "id": 42,
@@ -9631,10 +9633,19 @@
       "action": "proposal_executed",
       "actor": "user",
       "details": "Executed #40"
+    },
+    {
+      "id": 205,
+      "timestamp": "2026-09-19T08:11:21.736Z",
+      "proposalId": 41,
+      "layer": "delivery",
+      "action": "proposal_executed",
+      "actor": "user",
+      "details": "Executed #41"
     }
   ],
-  "nextAuditId": 205,
-  "stateRevision": 62,
+  "nextAuditId": 206,
+  "stateRevision": 64,
   "controlResults": {
     "1": {
       "proposalId": 1,
@@ -20465,6 +20476,23 @@
       "status": "pending",
       "createdAt": "2026-09-19T08:01:36.400Z",
       "updatedAt": "2026-09-19T08:01:36.400Z"
+    },
+    "41": {
+      "proposalId": 41,
+      "ratings": [
+        {
+          "proposalId": 41,
+          "rater": "user",
+          "score": 5,
+          "comment": "Outbox sync côté serveur traitée proprement : paramètre pendingOutboxBlocksFinalization (défaut true = contrat client Phase 6 intact, E2E vert sans modification), variante updateEventStatusForServer, PERMANENT_FAILURE désormais compté comme CRITICAL_SYNC_FAILED (miss silencieux découvert en écrivant le test). EventFinalizationApiTest finalise sans l'étape de convergence manuelle — le workaround était bien le signalement du bug.",
+          "ratedAt": "2026-09-19T08:11:28.965Z"
+        }
+      ],
+      "metrics": [],
+      "overallScore": 5,
+      "status": "pending",
+      "createdAt": "2026-09-19T08:11:28.965Z",
+      "updatedAt": "2026-09-19T08:11:28.965Z"
     }
   },
   "snapshots": {
@@ -20704,6 +20732,14 @@
       "proposalId": 40,
       "timestamp": "2026-09-19T08:01:27.034Z",
       "branch": "feature/dao-40-feat-transport-not-needed-acce",
+      "commitSha": "unknown",
+      "filesChanged": [],
+      "stateSnapshot": "{\"agents\":7,\"proposals\":42}"
+    },
+    "41": {
+      "proposalId": 41,
+      "timestamp": "2026-09-19T08:11:21.735Z",
+      "branch": "feature/dao-41-fix-readiness-l-outbox-sync-c-",
       "commitSha": "unknown",
       "filesChanged": [],
       "stateSnapshot": "{\"agents\":7,\"proposals\":42}"

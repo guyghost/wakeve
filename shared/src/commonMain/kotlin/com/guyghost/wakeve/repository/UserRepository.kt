@@ -26,7 +26,7 @@ class UserRepository(private val db: WakeveDb) {
         provider: OAuthProvider
     ): Result<User> = runCatching {
         val now = getCurrentUtcIsoString()
-        val userId = "user_${providerId.hashCode()}_${now.hashCode()}"
+        val userId = "user_${providerId.hashCode()}_${kotlin.random.Random.nextLong().toString(16)}"
 
         userQueries.insertUser(
             id = userId,

@@ -186,7 +186,7 @@ fun io.ktor.server.routing.Route.eventRoutes(
 
                 val now = java.time.Instant.now().toString()
                 val event = Event(
-                    id = "event_${System.currentTimeMillis()}_${Math.random()}",
+                    id = "event_${System.currentTimeMillis()}_${java.util.UUID.randomUUID().toString().substring(0, 8)}",
                     title = request.title,
                     description = request.description,
                     organizerId = organizerId,
