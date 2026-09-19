@@ -46,6 +46,7 @@ fun io.ktor.server.routing.Route.budgetRoutes(
 ) {
     val expenseRepository = ExpenseRepository(database)
     val settlementRepository = SettlementRepository(database)
+    val auditLogger = com.guyghost.wakeve.security.AuditLogger()
 
     authenticate("auth-jwt") {
         route("/events/{eventId}/budget") {
@@ -258,7 +259,10 @@ fun io.ktor.server.routing.Route.budgetRoutes(
                     HttpStatusCode.NotFound,
                     mapOf("error" to "Event not found")
                 )
-                if (event.organizerId != userId) {
+                // Collaborative budget: confirmed attendees may record their own
+                // expenses (Tricount model); the organizer keeps full rights.
+                // Non-members and unconfirmed participants stay denied (QA #37).
+                if (!hasConfirmedAttendeeBudgetAccess(eventRepository, database, eventId, userId)) {
                     return@post call.respond(
                         HttpStatusCode.Forbidden,
                         budgetAuditDenial(eventId, userId, "create_budget_item")
@@ -348,6 +352,18 @@ fun io.ktor.server.routing.Route.budgetRoutes(
                     category = category,
                     estimatedCost = request.estimatedCost,
                     sharedBy = sharedBy
+                )
+
+                // Audit trail: record the real author of the item, whether the
+                // organizer or a confirmed participant (QA #37).
+                auditLogger.logSensitiveOperation(
+                    userId = userId,
+                    operation = "BUDGET_ITEM_CREATED",
+                    details = mapOf(
+                        "eventId" to eventId,
+                        "budgetItemId" to item.id,
+                        "category" to category.name
+                    )
                 )
 
                 call.respond(HttpStatusCode.Created, item)
