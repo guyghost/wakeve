@@ -200,6 +200,29 @@ class AuthenticationService(
      * @param deviceId Identifiant optionnel de l'appareil
      * @return AuthResponse contenant le token invité
      */
+    /**
+     * Met à jour le nom affiché du compte de l'appelant (invité ou authentifié).
+     * Le nom est résolu côté serveur pour l'affichage (fils de commentaires,
+     * ORGANIZER ICS) — le client ne peut jamais usurper l'identité d'un autre.
+     */
+    suspend fun updateDisplayName(userId: String, displayName: String): Result<Unit> = runCatching {
+        val normalized = displayName.trim()
+        require(normalized.isNotEmpty()) { "Display name cannot be empty" }
+        require(normalized.length <= MAX_DISPLAY_NAME_LENGTH) {
+            "Display name cannot exceed $MAX_DISPLAY_NAME_LENGTH characters"
+        }
+        require(normalized.all { !it.isISOControl() }) { "Display name contains invalid characters" }
+
+        val user = userRepository.getUserById(userId)
+            ?: throw IllegalStateException("User not found")
+        userRepository.updateUser(
+            userId = userId,
+            name = normalized,
+            avatarUrl = user.avatarUrl
+        ).getOrThrow()
+        Unit
+    }
+
     suspend fun loginAsGuest(deviceId: String?): Result<AuthResponse> = runCatching {
         val guestId = "guest_${UUID.randomUUID()}"
         val effectiveDeviceId = deviceId ?: "device_${UUID.randomUUID()}"
@@ -361,3 +384,6 @@ class AuthenticationService(
         }
     }
 }
+
+/** Maximum length for user display names (profile + comment attribution). */
+const val MAX_DISPLAY_NAME_LENGTH = 30

@@ -2,7 +2,8 @@
   "id": 37,
   "title": "feat(budget): création d'items de budget par les participants confirmés (budget collaboratif)",
   "type": "product-feature",
-  "status": "controlled",
+  "status": "executed",
   "riskZone": "orange",
-  "createdAt": "2026-09-19T06:44:36.789Z"
+  "createdAt": "2026-09-19T06:44:36.789Z",
+  "resolvedAt": "2026-09-19T07:06:07.344Z"
 }

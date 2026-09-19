@@ -6452,7 +6452,7 @@
         "server/src/test/kotlin/com/guyghost/wakeve"
       ],
       "proposedBy": "user",
-      "status": "controlled",
+      "status": "executed",
       "votes": [
         {
           "agentId": "critic",
@@ -6640,7 +6640,9 @@
         "riskZone": "green",
         "breakdown": "7.5×0.3 + 6.3×0.2 + 7.4×0.15 + 7.4×0.2 + 7.9×0.15 = 7.3"
       },
-      "synthesis": "## Synthesis — Proposal #37\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 8\n**For:** 8 | **Against:** 0 | **Abstain:** 0\n\n### Supporting Arguments\n- **Critic / Risk Agent:** The core change is evidence-grounded, minimal-scope, and replicates an authorization pattern already shipped for `/expenses` — the trust boundary it opens is narrower than the existing one. All findin...\n- **Product Strategist:** Strategically this is a coherence repair backed by observed failure: the product already trusts confirmed participants for expense writes and computes their shares, yet blocks them from the item write...\n- **Solution Architect:** The proposal is feasible with the existing stack, has a direct precedent in the same module (expenses route uses the identical helper for participant writes), and retires an authorization inconsistenc...\n- **Research Agent:** The core factual claims check out in source: the guard exists, read access and share calculation are already participant-aware, the sharedBy validation the proposal asks for is already implemented, an...\n- **UX/UI Designer:** This is the rare authorization change that is also a UX correction. The current state violates the surface's Operate-mode success criterion — the primary task (record one's own expense) dead-ends for ...\n- **Prioritization Agent:** Highest value-per-effort ratio in the current queue: a QA-verified product gap in the differentiating ORGANIZING phase, fixed by reusing two guards that already exist in the same file, with organizer ...\n- **Delivery Agent:** The core change is a one-line guard swap to a helper already used six times in the same file — including for participant expense creation, which makes this an alignment fix rather than a new authoriza...\n- **Spec Writer:** The core behavioral change is crisp, deterministic, evidence-grounded, and mirrors an authorization pattern already shipped for expenses; it fixes a real product gap documented in QA. The spec defects...\n\n### Key Themes\n- Performance impact\n- User experience\n- Technical debt\n- Scalability\n- Maintenance burden\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n"
+      "synthesis": "## Synthesis — Proposal #37\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 8\n**For:** 8 | **Against:** 0 | **Abstain:** 0\n\n### Supporting Arguments\n- **Critic / Risk Agent:** The core change is evidence-grounded, minimal-scope, and replicates an authorization pattern already shipped for `/expenses` — the trust boundary it opens is narrower than the existing one. All findin...\n- **Product Strategist:** Strategically this is a coherence repair backed by observed failure: the product already trusts confirmed participants for expense writes and computes their shares, yet blocks them from the item write...\n- **Solution Architect:** The proposal is feasible with the existing stack, has a direct precedent in the same module (expenses route uses the identical helper for participant writes), and retires an authorization inconsistenc...\n- **Research Agent:** The core factual claims check out in source: the guard exists, read access and share calculation are already participant-aware, the sharedBy validation the proposal asks for is already implemented, an...\n- **UX/UI Designer:** This is the rare authorization change that is also a UX correction. The current state violates the surface's Operate-mode success criterion — the primary task (record one's own expense) dead-ends for ...\n- **Prioritization Agent:** Highest value-per-effort ratio in the current queue: a QA-verified product gap in the differentiating ORGANIZING phase, fixed by reusing two guards that already exist in the same file, with organizer ...\n- **Delivery Agent:** The core change is a one-line guard swap to a helper already used six times in the same file — including for participant expense creation, which makes this an alignment fix rather than a new authoriza...\n- **Spec Writer:** The core behavioral change is crisp, deterministic, evidence-grounded, and mirrors an authorization pattern already shipped for expenses; it fixes a real product gap documented in QA. The spec defects...\n\n### Key Themes\n- Performance impact\n- User experience\n- Technical debt\n- Scalability\n- Maintenance burden\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n",
+      "resolvedAt": "2026-09-19T07:06:07.344Z",
+      "executionResult": "Executed with delivery plan: feature/dao-37-feat-budget-cr-ation-d-items-d"
     },
     {
       "id": 38,
@@ -8820,10 +8822,19 @@
       "action": "gates_passed",
       "actor": "system",
       "details": "All gates passed"
+    },
+    {
+      "id": 189,
+      "timestamp": "2026-09-19T07:06:07.345Z",
+      "proposalId": 37,
+      "layer": "delivery",
+      "action": "proposal_executed",
+      "actor": "user",
+      "details": "Executed #37"
     }
   ],
-  "nextAuditId": 189,
-  "stateRevision": 48,
+  "nextAuditId": 190,
+  "stateRevision": 50,
   "controlResults": {
     "1": {
       "proposalId": 1,
@@ -18745,6 +18756,23 @@
       "status": "pending",
       "createdAt": "2026-09-18T20:16:01.867Z",
       "updatedAt": "2026-09-18T20:16:01.867Z"
+    },
+    "37": {
+      "proposalId": 37,
+      "ratings": [
+        {
+          "proposalId": 37,
+          "rater": "user",
+          "score": 5,
+          "comment": "Budget collaboratif livré : participants confirmés créent leurs items (audit BUDGET_ITEM_CREATED avec acteur réel via AuditLogger), Steve toujours 403, organisateur inchangé. Le swarm avait raison : le pattern existait déjà pour /expenses — simple alignement. Contrat Phase8 mis à jour (baseline/update/delete toujours organisateur-only). Suite serveur verte.",
+          "ratedAt": "2026-09-19T07:06:16.117Z"
+        }
+      ],
+      "metrics": [],
+      "overallScore": 5,
+      "status": "pending",
+      "createdAt": "2026-09-19T07:06:16.117Z",
+      "updatedAt": "2026-09-19T07:06:16.117Z"
     }
   },
   "snapshots": {
@@ -18955,6 +18983,14 @@
       "commitSha": "unknown",
       "filesChanged": [],
       "stateSnapshot": "{\"agents\":7,\"proposals\":36}"
+    },
+    "37": {
+      "proposalId": 37,
+      "timestamp": "2026-09-19T07:06:07.344Z",
+      "branch": "feature/dao-37-feat-budget-cr-ation-d-items-d",
+      "commitSha": "unknown",
+      "filesChanged": [],
+      "stateSnapshot": "{\"agents\":7,\"proposals\":39}"
     }
   },
   "verifications": {},

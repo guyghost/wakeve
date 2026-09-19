@@ -51,6 +51,14 @@ class CommentRepository(
 ) {
     
     private val commentQueries = db.commentQueries
+
+    /**
+     * Display name stored on the user record (proposal #38). Returns null when
+     * the account has no custom name; callers fall back to the authenticated
+     * identity chain. The client-supplied comment authorName is never trusted.
+     */
+    fun getUserDisplayName(userId: String): String? =
+        db.userQueries.selectUserById(userId).executeAsOneOrNull()?.name
     
     // ==================== Comment Operations ====================
     
