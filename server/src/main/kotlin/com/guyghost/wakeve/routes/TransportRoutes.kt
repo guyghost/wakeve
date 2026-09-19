@@ -212,8 +212,12 @@ fun Route.transportRoutes(repository: TransportRepository, database: WakeveDb) {
             val principal = call.principal<JWTPrincipal>()
                 ?: return@post call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
 
-            if (!isOrganizer(database, eventId, principal.userId)) {
-                return@post call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Only the organizer can mark transport as not needed"))
+            // Proposal #40: organizer or confirmed participant (consistent with
+            // the collaborative budget #37); the repository re-validates.
+            if (!isOrganizer(database, eventId, principal.userId) &&
+                !isConfirmedParticipant(database, eventId, principal.userId)
+            ) {
+                return@post call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Only the organizer or a confirmed participant can mark transport as not needed"))
             }
             if (!call.ensureTransportPhaseAllowed(database, eventId, mutation = true)) return@post
 

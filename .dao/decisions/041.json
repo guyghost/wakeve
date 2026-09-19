@@ -1,0 +1,8 @@
+{
+  "id": 41,
+  "title": "fix(readiness): l'outbox sync côté serveur est convergée par définition — ne bloque plus la finalisation REST",
+  "type": "technical-change",
+  "status": "controlled",
+  "riskZone": "orange",
+  "createdAt": "2026-09-19T07:46:19.563Z"
+}

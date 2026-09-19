@@ -102,7 +102,12 @@ class TransportRepository(
 
     fun markTransportNotNeeded(eventId: String, updatedByUserId: String): Result<Unit> = runCatching {
         requireMutableTransportWorkflow(eventId)
-        requireOrganizer(eventId, updatedByUserId)
+        // Proposal #40: confirmed participants may record this decision too —
+        // the finalization checklist requires it and the organizer should not
+        // be a single point of failure for a group-level call.
+        require(isOrganizer(eventId, updatedByUserId) || isConfirmedParticipant(eventId, updatedByUserId)) {
+            "Only the event organizer or a confirmed participant may mark transport as not needed"
+        }
         val now = now()
         transportQueries.upsertTransportEventStatus(
             event_id = eventId,

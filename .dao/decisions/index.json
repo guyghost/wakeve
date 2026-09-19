@@ -345,5 +345,29 @@
     "riskZone": "red",
     "createdAt": "2026-09-19T06:44:36.790Z",
     "resolvedAt": "2026-09-19T07:20:16.952Z"
+  },
+  {
+    "id": 40,
+    "title": "feat(transport): not-needed accessible aux participants confirmés (cohérence #37)",
+    "type": "product-feature",
+    "status": "controlled",
+    "riskZone": "orange",
+    "createdAt": "2026-09-19T07:46:19.563Z"
+  },
+  {
+    "id": 41,
+    "title": "fix(readiness): l'outbox sync côté serveur est convergée par définition — ne bloque plus la finalisation REST",
+    "type": "technical-change",
+    "status": "controlled",
+    "riskZone": "orange",
+    "createdAt": "2026-09-19T07:46:19.563Z"
+  },
+  {
+    "id": 42,
+    "title": "chore(ids): hygiène des générateurs d'ids et de timestamps (P3 cosmétique)",
+    "type": "technical-change",
+    "status": "controlled",
+    "riskZone": "orange",
+    "createdAt": "2026-09-19T07:46:19.563Z"
   }
 ]
