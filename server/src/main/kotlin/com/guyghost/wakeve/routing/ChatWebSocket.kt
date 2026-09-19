@@ -6,6 +6,8 @@ import com.guyghost.wakeve.models.ChatWebSocketMessage
 import com.guyghost.wakeve.models.ChatWebSocketResponse
 import com.guyghost.wakeve.models.MessageData
 import com.guyghost.wakeve.moderation.ModerationRepository
+import com.guyghost.wakeve.moderation.ModerationRejectedException
+import com.guyghost.wakeve.moderation.ModerationStatus
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
 import io.ktor.server.routing.Route
@@ -110,9 +112,16 @@ val eventChatConnections = EventChatConnections()
  */
 fun Route.chatWebSocketRoute(
     database: WakeveDb,
-    moderationRepository: ModerationRepository? = null
+    moderationRepository: ModerationRepository? = null,
+    chatService: ChatService? = null
 ) {
     val connectionManager = eventChatConnections
+    // Proposal #43: WS-sent messages go through the same service as the REST
+    // route — persistence, moderation and broadcast stay unified.
+    val persistenceService = chatService ?: ChatService(
+        database,
+        moderationRepository = moderationRepository
+    )
 
     webSocket("/ws/events/{eventId}/chat") {
         val eventId: String = call.parameters["eventId"] ?: run {
@@ -142,18 +151,71 @@ fun Route.chatWebSocketRoute(
                             // Désérialiser le message entrant
                             val chatMessage = json.decodeFromString<ChatWebSocketMessage>(text)
 
+                            // Identité: le userId authentifié prime toujours sur la
+                            // charge du client (anti-usurpation, même contrat que les
+                            // commentaires #38). Le nom affiché est résolu depuis le
+                            // profil; le nom fourni n'est pas cru.
+                            val trustedUserName = database.userQueries
+                                .selectUserById(userId)
+                                .executeAsOneOrNull()
+                                ?.name
+                                ?.takeIf { it.isNotBlank() && it != "Invité" }
+                                ?: "Invité"
+                            val trustedData = chatMessage.data.copy(
+                                userId = userId,
+                                userName = trustedUserName,
+                                eventId = eventId
+                            )
+
                             // Traiter le message selon son type
                             when (chatMessage.type) {
                                 ChatMessageType.MESSAGE -> {
-                                    // Créer une réponse de type MESSAGE
-                                    val response = ChatWebSocketResponse(
-                                        type = ChatMessageType.MESSAGE,
-                                        data = chatMessage.data.copy(
-                                            messageId = chatMessage.data.messageId ?: "msg_${System.currentTimeMillis()}"
+                                    // Persister via le service partagé (modération +
+                                    // broadcast) : un message WS et un message REST
+                                    // convergent vers le même historique (#43).
+                                    val content = trustedData.content.orEmpty()
+                                    if (content.isBlank()) {
+                                        val errorResponse = ChatWebSocketResponse(
+                                            type = ChatMessageType.MESSAGE,
+                                            data = trustedData.copy(messageId = null),
+                                            success = false,
+                                            errorMessage = "Message content must not be empty"
                                         )
-                                    )
-                                    // Diffuser à tous les participants de l'événement
-                                    connectionManager.broadcast(eventId, response, moderationRepository)
+                                        outgoing.send(Frame.Text(json.encodeToString(errorResponse)))
+                                    } else {
+                                        try {
+                                            val persisted = persistenceService.sendMessage(
+                                                eventId = eventId,
+                                                userId = userId,
+                                                userName = trustedUserName,
+                                                content = content
+                                            )
+                                            if (persisted != null &&
+                                                persisted.moderationStatus != ModerationStatus.APPROVED
+                                            ) {
+                                                // Non diffusé (modération en attente) :
+                                                // accuser réception à l'expéditeur seul.
+                                                val pendingResponse = ChatWebSocketResponse(
+                                                    type = ChatMessageType.MESSAGE,
+                                                    data = trustedData.copy(
+                                                        messageId = persisted.id,
+                                                        content = persisted.content
+                                                    ),
+                                                    success = true,
+                                                    errorMessage = "Message en attente de modération"
+                                                )
+                                                outgoing.send(Frame.Text(json.encodeToString(pendingResponse)))
+                                            }
+                                        } catch (e: ModerationRejectedException) {
+                                            val errorResponse = ChatWebSocketResponse(
+                                                type = ChatMessageType.MESSAGE,
+                                                data = trustedData.copy(messageId = null),
+                                                success = false,
+                                                errorMessage = e.result.userMessage
+                                            )
+                                            outgoing.send(Frame.Text(json.encodeToString(errorResponse)))
+                                        }
+                                    }
                                 }
 
                                 ChatMessageType.TYPING -> {

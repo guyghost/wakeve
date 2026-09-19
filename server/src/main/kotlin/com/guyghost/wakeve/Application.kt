@@ -560,7 +560,7 @@ fun Application.module(
                 authenticate("auth-jwt") {
                     // WebSocket endpoint for real-time chat. Authentication is required so
                     // moderation block filters can be applied per recipient.
-                    chatWebSocketRoute(database, moderationRepository)
+                    chatWebSocketRoute(database, moderationRepository, chatService)
 
                     rateLimit(RateLimitName("api")) {
                         route("/api") {
