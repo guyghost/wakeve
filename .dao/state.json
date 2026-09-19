@@ -6903,7 +6903,7 @@
         "server/src/test/kotlin/com/guyghost/wakeve"
       ],
       "proposedBy": "user",
-      "status": "controlled",
+      "status": "executed",
       "votes": [
         {
           "agentId": "strategist",
@@ -7080,7 +7080,9 @@
       },
       "synthesis": "## Synthesis — Proposal #39\n\n**Result:** ✅ APPROVED\n**Agents Participated:** 8\n**For:** 7 | **Against:** 0 | **Abstain:** 1 | **Errors:** 1\n\n### Supporting Arguments\n- **Product Strategist:** The problem is real (verified in code and by QA Rio), strategically central (guests are the entry tier for the core multi-day polling loop), and the timing is pre-launch where it matters most. Securit...\n- **Research Agent:** Nearly every factual claim in the proposal verifies directly against the code: the 1h-no-refresh behavior is real and documented, the generic refresh machinery exists, and the fix surface is genuinely...\n- **Solution Architect:** Faisable avec la stack existante, périmètre confiné au module auth serveur, révocation déjà structurellement couverte, harnais de tests en place : les fondations de la proposition sont solides et véri...\n- **UX/UI Designer:** This is a UX defect fix delivered as a security change: it removes a hard session cutoff on the product's primary no-signup path during the core multi-day task, with QA evidence behind it. The design ...\n- **Delivery Agent:** The problem is real (QA-documented hard cutoff of guest planning sessions, contradicting the product's multi-day group-planning core), the mechanics already exist (generic refresh path, generic token ...\n- **Prioritization Agent:** High user value at low cost with strong roadmap fit: the bug breaks the core multi-day planning loop in the product's primary entry mode (guest), it's QA-documented as known debt #13, the fix reuses e...\n- **Spec Writer:** The problem is real and verified in code; the mechanism is broadly sound; revocation happy-path coverage already exists and is testable. The defects I found — Q1 (refresh resets expiry to 1h, breaking...\n\n### Agent Errors\n- **Critic / Risk Agent:** Pi subprocess timed out after 240000ms\n\n### Key Themes\n- Security concerns\n- User experience\n- Technical debt\n- Alignment\n\n### Recommendation\nThe swarm recommends approving this proposal. Proceed to quality control gates.\n",
       "dryRunAt": "2026-09-19T06:59:09.991Z",
-      "dryRunCanProceed": false
+      "dryRunCanProceed": false,
+      "resolvedAt": "2026-09-19T07:20:16.952Z",
+      "executionResult": "Executed with delivery plan: feature/dao-39-feat-auth-continuit-de-session"
     }
   ],
   "config": {
@@ -8842,10 +8844,19 @@
       "action": "proposal_executed",
       "actor": "user",
       "details": "Executed #38"
+    },
+    {
+      "id": 191,
+      "timestamp": "2026-09-19T07:20:16.953Z",
+      "proposalId": 39,
+      "layer": "delivery",
+      "action": "proposal_executed",
+      "actor": "user",
+      "details": "Executed #39"
     }
   ],
-  "nextAuditId": 191,
-  "stateRevision": 52,
+  "nextAuditId": 192,
+  "stateRevision": 54,
   "controlResults": {
     "1": {
       "proposalId": 1,
@@ -18801,6 +18812,23 @@
       "status": "pending",
       "createdAt": "2026-09-19T07:13:47.265Z",
       "updatedAt": "2026-09-19T07:13:47.265Z"
+    },
+    "39": {
+      "proposalId": 39,
+      "ratings": [
+        {
+          "proposalId": 39,
+          "rater": "user",
+          "score": 5,
+          "comment": "Refresh token invité livré : émission 30j au login guest, /auth/refresh fonctionnel (provider=guest conservé), cascade de révocation à la suppression de compte vérifiée par test. Le piège « reset expiry 1h » signalé par le Spec Writer en délibération a été traité (guests exclus du sliding 1h). Menace documentée dans le code.",
+          "ratedAt": "2026-09-19T07:20:26.319Z"
+        }
+      ],
+      "metrics": [],
+      "overallScore": 5,
+      "status": "pending",
+      "createdAt": "2026-09-19T07:20:26.319Z",
+      "updatedAt": "2026-09-19T07:20:26.319Z"
     }
   },
   "snapshots": {
@@ -19024,6 +19052,14 @@
       "proposalId": 38,
       "timestamp": "2026-09-19T07:13:37.819Z",
       "branch": "feature/dao-38-feat-profile-nom-affich-des-in",
+      "commitSha": "unknown",
+      "filesChanged": [],
+      "stateSnapshot": "{\"agents\":7,\"proposals\":39}"
+    },
+    "39": {
+      "proposalId": 39,
+      "timestamp": "2026-09-19T07:20:16.952Z",
+      "branch": "feature/dao-39-feat-auth-continuit-de-session",
       "commitSha": "unknown",
       "filesChanged": [],
       "stateSnapshot": "{\"agents\":7,\"proposals\":39}"

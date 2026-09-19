@@ -232,14 +232,18 @@ class AuthenticationService(
         val guestId = "guest_${UUID.randomUUID()}"
         val effectiveDeviceId = deviceId ?: "device_${UUID.randomUUID()}"
 
-        // Créer un utilisateur invité en base
-        val user = userRepository.createUser(
-            providerId = effectiveDeviceId,
-            email = "$guestId@guest.wakeve.local",
-            name = "Invité",
-            avatarUrl = null,
-            provider = OAuthProvider.GUEST
-        ).getOrThrow()
+        // Resume the guest profile when the device already has one (app reinstall,
+        // cleared local storage). A fresh device creates a new guest. Logging in
+        // twice with the same deviceId must not crash on the provider_id UNIQUE
+        // constraint (QA BUG-17).
+        val user = userRepository.getUserByProviderId(effectiveDeviceId, OAuthProvider.GUEST)
+            ?: userRepository.createUser(
+                providerId = effectiveDeviceId,
+                email = "$guestId@guest.wakeve.local",
+                name = "Invité",
+                avatarUrl = null,
+                provider = OAuthProvider.GUEST
+            ).getOrThrow()
 
         // Générer le JWT avec rôle USER (permissions standard limitées)
         val jwtToken = generateJwtToken(user)

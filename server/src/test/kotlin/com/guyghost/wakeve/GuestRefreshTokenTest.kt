@@ -116,6 +116,30 @@ class GuestRefreshTokenTest {
     }
 
     @Test
+    fun `re-login with the same device resumes the guest profile`() = testApplication {
+        application { module(database) }
+
+        val first = client.post("/auth/guest") {
+            contentType(ContentType.Application.Json)
+            setBody("""{"deviceId":"same-device"}""")
+        }
+        val second = client.post("/auth/guest") {
+            contentType(ContentType.Application.Json)
+            setBody("""{"deviceId":"same-device"}""")
+        }
+        assertEquals(HttpStatusCode.OK, first.status, first.bodyAsText())
+        assertEquals(HttpStatusCode.OK, second.status, "same-device re-login must resume, not crash: ${second.bodyAsText()}")
+
+        val firstJson = kotlinx.serialization.json.Json.parseToJsonElement(first.bodyAsText()).jsonObject
+        val secondJson = kotlinx.serialization.json.Json.parseToJsonElement(second.bodyAsText()).jsonObject
+        assertEquals(
+            firstJson["user"]!!.jsonObject["id"],
+            secondJson["user"]!!.jsonObject["id"],
+            "same device must resume the same guest profile"
+        )
+    }
+
+    @Test
     fun `account deletion invalidates the guest refresh token`() = testApplication {
         application { module(database) }
 

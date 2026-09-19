@@ -2,7 +2,8 @@
   "id": 39,
   "title": "feat(auth): continuité de session invité — refresh token émis pour les guests",
   "type": "security-change",
-  "status": "controlled",
+  "status": "executed",
   "riskZone": "red",
-  "createdAt": "2026-09-19T06:44:36.790Z"
+  "createdAt": "2026-09-19T06:44:36.790Z",
+  "resolvedAt": "2026-09-19T07:20:16.952Z"
 }

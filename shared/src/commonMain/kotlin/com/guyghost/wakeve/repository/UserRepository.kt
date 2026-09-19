@@ -169,7 +169,9 @@ class UserRepository(private val db: WakeveDb) {
         scope: String? = null
     ): Result<UserToken> = runCatching {
         val now = getCurrentUtcIsoString()
-        val tokenId = "token_${userId.hashCode()}_${now.hashCode()}"
+        // Opaque unique id: the previous timestamp-hash form collided when two
+        // tokens were created within the same second (e.g. guest re-login).
+        val tokenId = "token_${userId.hashCode()}_${kotlin.random.Random.nextLong().toString(16)}"
 
         userQueries.insertToken(
             id = tokenId,
