@@ -142,14 +142,30 @@ fun Route.chatWebSocketRoute(
                             // Désérialiser le message entrant
                             val chatMessage = json.decodeFromString<ChatWebSocketMessage>(text)
 
+                            // Identité: le userId authentifié prime toujours sur la
+                            // charge du client (anti-usurpation, même contrat que les
+                            // commentaires #38). Le nom affiché est résolu depuis le
+                            // profil; le authorName fourni n'est pas cru.
+                            val trustedUserName = database.userQueries
+                                .selectUserById(userId)
+                                .executeAsOneOrNull()
+                                ?.name
+                                ?.takeIf { it.isNotBlank() && it != "Invité" }
+                                ?: "Invité"
+                            val trustedData = chatMessage.data.copy(
+                                userId = userId,
+                                userName = trustedUserName,
+                                eventId = eventId
+                            )
+
                             // Traiter le message selon son type
                             when (chatMessage.type) {
                                 ChatMessageType.MESSAGE -> {
                                     // Créer une réponse de type MESSAGE
                                     val response = ChatWebSocketResponse(
                                         type = ChatMessageType.MESSAGE,
-                                        data = chatMessage.data.copy(
-                                            messageId = chatMessage.data.messageId ?: "msg_${System.currentTimeMillis()}"
+                                        data = trustedData.copy(
+                                            messageId = trustedData.messageId ?: "msg_${System.currentTimeMillis()}"
                                         )
                                     )
                                     // Diffuser à tous les participants de l'événement
@@ -160,7 +176,7 @@ fun Route.chatWebSocketRoute(
                                     // Diffuser l'indicateur de frappe
                                     val response = ChatWebSocketResponse(
                                         type = ChatMessageType.TYPING,
-                                        data = chatMessage.data
+                                        data = trustedData
                                     )
                                     connectionManager.broadcast(eventId, response, moderationRepository)
                                 }
@@ -169,7 +185,7 @@ fun Route.chatWebSocketRoute(
                                     // Diffuser la réaction
                                     val response = ChatWebSocketResponse(
                                         type = ChatMessageType.REACTION,
-                                        data = chatMessage.data
+                                        data = trustedData
                                     )
                                     connectionManager.broadcast(eventId, response, moderationRepository)
                                 }
@@ -178,7 +194,7 @@ fun Route.chatWebSocketRoute(
                                     // Diffuser le reçu de lecture
                                     val response = ChatWebSocketResponse(
                                         type = ChatMessageType.READ_RECEIPT,
-                                        data = chatMessage.data
+                                        data = trustedData
                                     )
                                     connectionManager.broadcast(eventId, response, moderationRepository)
                                 }

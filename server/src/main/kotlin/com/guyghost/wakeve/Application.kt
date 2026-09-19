@@ -340,7 +340,21 @@ fun Application.module(
         apnsSender = createApplicationAPNsSender()
     ),
     deviceRegistrationStoreFactory: BackendDeviceRegistrationStoreFactory =
-        SqliteBackendDeviceRegistrationStoreFactory(),
+        com.guyghost.wakeve.notification.DeviceRegistrationStoreConfiguration.resolve().fold(
+            onSuccess = { configuration ->
+                // iOS legacy registration (and durable device registration storage)
+                // requires this configuration; silently running unconfigured made
+                // every IOS token registration fail with 500 (QA pass 2026-09-19).
+                SqliteBackendDeviceRegistrationStoreFactory(configuration)
+            },
+            onFailure = { error ->
+                println(
+                    "[Wakeve] device registration storage not configured " +
+                        "(${error.message}) — iOS token registration will be unavailable"
+                )
+                SqliteBackendDeviceRegistrationStoreFactory()
+            }
+        ),
     compatibilityMigrationClock: () -> Long = { System.currentTimeMillis() / 1_000L },
     eventNotificationTrigger: EventNotificationTrigger = EventNotificationTrigger(notificationService, eventRepository, moderationRepository),
     gamificationService: GamificationService = createGamificationService(),

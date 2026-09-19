@@ -304,7 +304,14 @@ fun Route.notificationRoutes(
                         mapOf("error" to "Missing userId in token")
                     )
 
-                val request = call.receive<NotificationRequest>()
+                val request = try {
+                    call.receive<NotificationRequest>()
+                } catch (e: Exception) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Invalid notification payload: userId, type, title and body are required")
+                    )
+                }
                 val authorization = authorizeNotificationSend(
                     senderUserId = senderUserId,
                     targetUserId = request.userId,
@@ -321,10 +328,26 @@ fun Route.notificationRoutes(
 
                 val notificationId = notificationService.sendNotification(request.withDeepLink())
                     .getOrElse { error ->
-                        return@post call.respond(
-                            HttpStatusCode.BadRequest,
-                            mapOf("error" to notificationSendFailureMessage())
-                        )
+                        when {
+                            // Provider credentials missing is an environment issue,
+                            // not a client error (QA pass 2026-09-19).
+                            error.message?.contains("not configured", ignoreCase = true) == true ->
+                                return@post call.respond(
+                                    HttpStatusCode.ServiceUnavailable,
+                                    mapOf("error" to "Notification provider is not configured")
+                                )
+                            // Upstream transport (FCM/APNs) rejected the delivery:
+                            // report 502 instead of a misleading 500/400.
+                            error.message?.contains("transport delivery failed", ignoreCase = true) == true ->
+                                return@post call.respond(
+                                    HttpStatusCode.BadGateway,
+                                    mapOf("error" to "Notification transport delivery failed")
+                                )
+                            else -> return@post call.respond(
+                                HttpStatusCode.BadRequest,
+                                mapOf("error" to notificationSendFailureMessage())
+                            )
+                        }
                     }
 
                 call.respond(
