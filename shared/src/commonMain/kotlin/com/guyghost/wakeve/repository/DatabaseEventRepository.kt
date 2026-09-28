@@ -1070,6 +1070,9 @@ class DatabaseEventRepository private constructor(
         }
 
         return try {
+            if (status == EventStatus.POLLING && event.proposedSlots.isEmpty()) {
+                return Result.failure(IllegalStateException(POLL_REQUIRES_TIME_SLOT_MESSAGE))
+            }
             if (status == EventStatus.FINALIZED) {
                 if (event.status != EventStatus.ORGANIZING) {
                     return Result.failure(
@@ -1089,46 +1092,59 @@ class DatabaseEventRepository private constructor(
 
             val now = getCurrentUtcIsoString()
             val authorizationId = "event-status:$id:${aggregate.aggregateRevision}:${status.name}"
-            if (!authorizeAggregateWrite(id, aggregate.aggregateRevision, authorizationId, now)) {
-                return Result.failure(
-                    IllegalStateException("Event aggregate writer is incompatible or stale")
+            // All writes below are atomic: a failure must not leave a half-applied
+            // status nor a dangling authorization, which would fence every later write.
+            db.transactionWithResult {
+                clearStaleStatusAuthorization(id, aggregate.aggregateRevision)
+                if (!authorizeAggregateWrite(id, aggregate.aggregateRevision, authorizationId, now)) {
+                    rollback(
+                        Result.failure(IllegalStateException("Event aggregate writer is incompatible or stale"))
+                    )
+                }
+                eventQueries.updateEventStatus(
+                    status = status.name,
+                    updatedAt = now,
+                    id = id
                 )
+
+                // If confirming for the first time, also create the confirmedDate record.
+                // A date already confirmed by the poll (e.g. COMPARING -> CONFIRMED after
+                // selecting a final scenario) is the decision of record and is kept.
+                val alreadyConfirmed = confirmedDateQueries.selectByEventId(id).executeAsOneOrNull() != null
+                if (status == EventStatus.CONFIRMED && finalDate != null && !alreadyConfirmed) {
+                    val firstTimeSlot = event.proposedSlots.firstOrNull()?.id
+                        ?: rollback(Result.failure(IllegalStateException("No time slots to confirm")))
+                    confirmedDateQueries.insertConfirmedDate(
+                        id = "confirmed_${id}",
+                        eventId = id,
+                        timeslotId = physicalSlotId(id, firstTimeSlot),
+                        confirmedByOrganizerId = event.organizerId,
+                        confirmedAt = finalDate,
+                        updatedAt = now
+                    )
+                }
+
+                // Use unique timestamp by appending status to avoid conflicts. A status
+                // can be reached more than once (CONFIRMED -> COMPARING -> CONFIRMED).
+                val uniqueTimestamp = "${now}_${status.name}"
+                val baseSyncId = "sync_status_${id}_${status.name}"
+                val syncId = if (syncMetadataQueries.selectById(baseSyncId).executeAsOneOrNull() == null) {
+                    baseSyncId
+                } else {
+                    "${baseSyncId}_r${aggregate.aggregateRevision}"
+                }
+                syncMetadataQueries.insertSyncMetadata(
+                    id = syncId,
+                    entityType = "event",
+                    entityId = id,
+                    operation = "UPDATE",
+                    timestamp = uniqueTimestamp,
+                    synced = 0
+                )
+                invitationExperienceQueries.clearAggregateWriteAuthorization(id, authorizationId)
+
+                Result.success(true)
             }
-            eventQueries.updateEventStatus(
-                status = status.name,
-                updatedAt = now,
-                id = id
-            )
-
-            // If confirming, also create confirmedDate record
-            if (status == EventStatus.CONFIRMED && finalDate != null) {
-                val confirmedId = "confirmed_${id}"
-                val firstTimeSlot = getEvent(id)?.proposedSlots?.firstOrNull()?.id ?: return Result.failure(
-                    IllegalStateException("No time slots to confirm")
-                )
-                confirmedDateQueries.insertConfirmedDate(
-                    id = confirmedId,
-                    eventId = id,
-                    timeslotId = physicalSlotId(id, firstTimeSlot),
-                    confirmedByOrganizerId = event.organizerId,
-                    confirmedAt = finalDate,
-                    updatedAt = now
-                )
-            }
-
-            // Use unique timestamp by appending status to avoid conflicts
-            val uniqueTimestamp = "${now}_${status.name}"
-            syncMetadataQueries.insertSyncMetadata(
-                id = "sync_status_${id}_${status.name}",
-                entityType = "event",
-                entityId = id,
-                operation = "UPDATE",
-                timestamp = uniqueTimestamp,
-                synced = 0
-            )
-            invitationExperienceQueries.clearAggregateWriteAuthorization(id, authorizationId)
-
-            Result.success(true)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -2244,6 +2260,23 @@ class DatabaseEventRepository private constructor(
         )
     }
 
+    /**
+     * Before the status writer became transactional, a failure after the status UPDATE
+     * left its own authorization behind, fencing every later lifecycle write of the
+     * event. Such a row belongs to this synchronous writer and targets an older
+     * revision, so it can never be in use: drop it so affected events recover.
+     */
+    private fun clearStaleStatusAuthorization(eventId: String, currentRevision: Long) {
+        val existing = invitationExperienceQueries
+            .selectAggregateWriteAuthorization(eventId)
+            .executeAsOneOrNull() ?: return
+        if (existing.operation_id.startsWith("event-status:$eventId:") &&
+            existing.expected_revision < currentRevision
+        ) {
+            invitationExperienceQueries.clearAggregateWriteAuthorization(eventId, existing.operation_id)
+        }
+    }
+
     private fun authorizeAggregateWrite(
         eventId: String,
         expectedRevision: Long,
@@ -2296,6 +2329,9 @@ internal fun databaseEventRepositoryPaginatedEventsFailureLogMessage(): String =
     "Failed to load paginated events"
 
 private const val SUPPORTED_AGGREGATE_SCHEMA_VERSION = 1L
+
+/** Failure message when a DRAFT without any date is asked to start its poll. */
+const val POLL_REQUIRES_TIME_SLOT_MESSAGE = "Poll requires at least one time slot"
 
 private fun com.guyghost.wakeve.Event_artwork.validatedRemoteArtworkUrl(): String? {
     val candidate = when {

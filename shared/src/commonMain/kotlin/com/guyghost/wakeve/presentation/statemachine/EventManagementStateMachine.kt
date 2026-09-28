@@ -761,6 +761,14 @@ class EventManagementStateMachine(
             return
         }
 
+        // A DRAFT created with "date à décider" needs at least one date to vote on.
+        if (event.proposedSlots.isEmpty()) {
+            val errorMsg = com.guyghost.wakeve.repository.POLL_REQUIRES_TIME_SLOT_MESSAGE
+            updateState { it.copy(isLoading = false, error = errorMsg) }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMsg))
+            return
+        }
+
         // Update event status to POLLING
         val result = eventRepository.updateEventStatus(
             id = eventId,

@@ -2,6 +2,7 @@ package com.guyghost.wakeve.presentation.usecase
 
 import com.guyghost.wakeve.repository.EventRepositoryInterface
 import com.guyghost.wakeve.models.Event
+import com.guyghost.wakeve.models.EventStatus
 
 /**
  * Use case for creating a new event in the repository.
@@ -14,7 +15,8 @@ import com.guyghost.wakeve.models.Event
  * - Event ID must not be empty
  * - Event title must not be empty
  * - Organizer ID must not be empty
- * - At least one proposed slot is required
+ * - At least one proposed slot is required, except for a DRAFT whose date is still
+ *   to be decided with the group (the poll cannot start before a date is added)
  * - Deadline must not be empty
  *
  * ## Usage
@@ -70,7 +72,8 @@ class CreateEventUseCase(
             event.id.isBlank() -> "Event ID cannot be empty"
             event.title.isBlank() -> "Event title cannot be empty"
             event.organizerId.isBlank() -> "Organizer ID cannot be empty"
-            event.proposedSlots.isEmpty() -> "At least one time slot is required"
+            event.proposedSlots.isEmpty() && event.status != EventStatus.DRAFT ->
+                "At least one time slot is required"
             event.deadline.isBlank() -> "Deadline cannot be empty"
             else -> null
         }

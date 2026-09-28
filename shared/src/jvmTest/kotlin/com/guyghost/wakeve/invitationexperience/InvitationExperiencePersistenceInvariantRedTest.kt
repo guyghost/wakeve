@@ -410,6 +410,13 @@ class InvitationExperiencePersistenceInvariantRedTest {
         val database = WakeveDb(driver)
         seedEvent(driver, "event-1")
         execute(driver, "UPDATE event SET aggregateRevision = 4, aggregateSchemaVersion = 1 WHERE id = 'event-1'")
+        // A poll needs at least one date to vote on (QA 2026-09-27, IOS-3).
+        execute(
+            driver,
+            "INSERT INTO timeSlot(id, eventId, startTime, endTime, timezone, createdAt, updatedAt) " +
+                "VALUES ('slot-1', 'event-1', '2099-01-01T10:00:00Z', " +
+                "'2099-01-01T12:00:00Z', 'UTC', '2030-01-01T00:00:00Z', '2030-01-01T00:00:00Z')"
+        )
 
         val result = DatabaseEventRepository(database)
             .updateEventStatus("event-1", EventStatus.POLLING, null)
