@@ -198,6 +198,8 @@ struct AuthenticatedView: View {
     @State private var invitationLandingEventId: String?
     @State private var pendingInformationDeleteEvent: Event?
     @State private var informationDeleteOwner: EventDetailViewModel?
+    /// Rechargement de l'accueil de la refonte (couche 3, #47).
+    @State private var eventsHomeReloadToken = 0
 #if DEBUG
     @State private var invitationQALibraryReloadGeneration = 0
     @State private var invitationQALibraryIsSeedReady =
@@ -496,6 +498,7 @@ struct AuthenticatedView: View {
         .onChange(of: redesignRouter.zone) { _, zone in
             // Les deux zones restent montées : recharger l'Activité à chaque entrée.
             if zone == .activity { activityReloadToken += 1 }
+            if zone == .events { eventsHomeReloadToken += 1 }
         }
         .sheet(item: $redesignRouter.presentation) { presentation in
             // Une seule feuille possédée par le routeur : changer de présentation
@@ -533,6 +536,83 @@ struct AuthenticatedView: View {
         } else {
             showEventCreationSheet = true
         }
+    }
+
+    // MARK: - Accueil de la refonte (couche 3, #47)
+
+    /// Ouvre un événement comme la racine active : bibliothèque si le rollout invitation est actif,
+    /// sinon comme `EventListView.onEventSelected`.
+    private func openEventFromHome(_ id: String) {
+        guard let event = repository.getEvent(id: id) else {
+            eventsHomeReloadToken += 1
+            return
+        }
+        if invitationExperienceRolloutEnabled {
+            routeInvitationExperience(
+                InvitationExperienceRouteRequestCanvasAction(action: .showDetails),
+                for: event
+            )
+        } else {
+            selectedEvent = event
+            currentView = .eventDetail
+        }
+    }
+
+    /// Même aiguillage que les liens profonds `.event(.pollVoting/.pollResults)` (gardes d'accès incluses),
+    /// sans toucher à l'état du service de liens profonds.
+    private func handleHomeNextStep(_ step: HomeNextStep) {
+        switch step.action {
+        case .vote:
+            navigateInvitationDeepLink(eventId: step.eventId, route: .poll, intent: .mutate)
+        case .pollResults:
+            navigateInvitationDeepLink(eventId: step.eventId, route: .poll, intent: .read)
+        case .open:
+            openEventFromHome(step.eventId)
+        }
+    }
+
+    /// Même règle que `EventDetailViewModel.canDelete`.
+    private func canDeleteFromHome(_ id: String) -> Bool {
+        guard let event = repository.getEvent(id: id) else { return false }
+        return event.organizerId == userId && event.status != .finalized
+    }
+
+    /// Reprend le chemin « modifier un brouillon » de la bibliothèque ; sans rollout invitation, ouvre le détail.
+    private func editDraftFromHome(_ id: String) {
+        guard invitationExperienceRolloutEnabled, let event = repository.getEvent(id: id) else {
+            openEventFromHome(id)
+            return
+        }
+        Task {
+            selectedCreationArtwork = await homeDraftArtwork(for: id)
+            routeInvitationExperience(
+                InvitationExperienceRouteRequestCanvasAction(action: .editDraft),
+                for: event
+            )
+        }
+    }
+
+    /// Réutilise la confirmation de suppression existante (`pendingInformationDeleteEvent`).
+    private func requestDeleteFromHome(_ id: String) {
+        guard let event = repository.getEvent(id: id) else { return }
+        pendingInformationDeleteEvent = event
+    }
+
+    private func homeDraftArtwork(for eventId: String) async -> (any Artwork)? {
+        let now = Kotlinx_datetimeInstant.companion.fromEpochMilliseconds(
+            epochMilliseconds: Int64(Date().timeIntervalSince1970 * 1_000)
+        )
+        guard let state = try? await invitationExperienceProjectionRepository.library(
+            viewerId: userId,
+            projection: .drafts,
+            now: now
+        ),
+        let ready = state as? LibraryLoadStateReady<NSArray>,
+        let cards = ready.snapshot as? [LibraryCardProjection]
+        else {
+            return nil
+        }
+        return cards.first(where: { $0.event.id == eventId })?.artwork
     }
     
     // MARK: - Home Tab
@@ -1348,7 +1428,18 @@ struct AuthenticatedView: View {
 
     @ViewBuilder
     private var invitationExperienceRootContent: some View {
-        if invitationExperienceRolloutEnabled {
+        if iosRedesign2026 {
+            EventsHomeContainer(
+                userId: userId,
+                reloadToken: eventsHomeReloadToken,
+                onOpenEvent: { id in openEventFromHome(id) },
+                onNextStep: { step in handleHomeNextStep(step) },
+                onCreate: { beginRedesignEventCreation() },
+                canDelete: { id in canDeleteFromHome(id) },
+                onEditDraft: { id in editDraftFromHome(id) },
+                onDelete: { id in requestDeleteFromHome(id) }
+            )
+        } else if invitationExperienceRolloutEnabled {
             eventLibraryContent
         } else {
             EventListView(
@@ -1512,6 +1603,7 @@ struct AuthenticatedView: View {
             selectedEvent = nil
             currentView = .eventList
             informationDeleteOwner = nil
+            eventsHomeReloadToken += 1
         }
     }
 

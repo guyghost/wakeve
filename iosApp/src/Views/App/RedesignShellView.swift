@@ -79,6 +79,13 @@ struct RedesignShellView<Events: View, Activity: View>: View {
 
             Spacer()
 
+            Text(String(localized: "wk.wordmark"))
+                .font(WK.Typo.headline)
+                .foregroundStyle(WK.Colors.textTertiary)
+                .accessibilityHidden(true)
+
+            Spacer()
+
             WKCircleButton(
                 systemImage: "gearshape",
                 accessibilityLabel: String(localized: "wk.nav.settings"),

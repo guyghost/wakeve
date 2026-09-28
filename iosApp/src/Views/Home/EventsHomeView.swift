@@ -174,3 +174,53 @@ struct EventsHomeView: View {
         }
     }
 }
+
+/// Possède le modèle de vue de l'accueil (créé une seule fois par montage) et le recharge
+/// quand `reloadToken` change (retour dans la zone Événements, suppression).
+struct EventsHomeContainer: View {
+    @StateObject private var viewModel: EventsHomeViewModel
+    let reloadToken: Int
+    let onOpenEvent: (String) -> Void
+    let onNextStep: (HomeNextStep) -> Void
+    let onCreate: () -> Void
+    let canDelete: (String) -> Bool
+    let onEditDraft: (String) -> Void
+    let onDelete: (String) -> Void
+
+    init(
+        userId: String,
+        reloadToken: Int,
+        onOpenEvent: @escaping (String) -> Void,
+        onNextStep: @escaping (HomeNextStep) -> Void,
+        onCreate: @escaping () -> Void,
+        canDelete: @escaping (String) -> Bool,
+        onEditDraft: @escaping (String) -> Void,
+        onDelete: @escaping (String) -> Void
+    ) {
+        _viewModel = StateObject(
+            wrappedValue: EventsHomeViewModel(viewerId: userId, source: SharedEventsHomeSource())
+        )
+        self.reloadToken = reloadToken
+        self.onOpenEvent = onOpenEvent
+        self.onNextStep = onNextStep
+        self.onCreate = onCreate
+        self.canDelete = canDelete
+        self.onEditDraft = onEditDraft
+        self.onDelete = onDelete
+    }
+
+    var body: some View {
+        EventsHomeView(
+            viewModel: viewModel,
+            onOpenEvent: onOpenEvent,
+            onNextStep: onNextStep,
+            onCreate: onCreate,
+            canDelete: canDelete,
+            onEditDraft: onEditDraft,
+            onDelete: onDelete
+        )
+        .onChange(of: reloadToken) { _, _ in
+            Task { await viewModel.reload() }
+        }
+    }
+}

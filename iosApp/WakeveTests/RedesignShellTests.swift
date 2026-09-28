@@ -133,4 +133,21 @@ final class RedesignShellTests: XCTestCase {
         let source = try contentViewSource()
         XCTAssertTrue(source.contains(".onChange(of: iosRedesign2026) { _, _ in redesignRouter = AppRouter() }"))
     }
+
+    func testRedesignRootInstallsTheNewHome() throws {
+        let source = try contentViewSource()
+        guard let start = source.range(of: "private var invitationExperienceRootContent") else { return XCTFail() }
+        let slice = String(source[start.lowerBound...].prefix(1500))
+        XCTAssertTrue(slice.contains("if iosRedesign2026"), "La nouvelle racine est prioritaire sous le flag.")
+        // Conteneur propriétaire du modèle de vue, qui rend `EventsHomeView`.
+        XCTAssertTrue(slice.contains("EventsHomeContainer("))
+        XCTAssertTrue(slice.contains("invitationExperienceRolloutEnabled"), "Le chemin legacy reste en place.")
+    }
+
+    func testShellHeaderShowsTheWordmark() throws {
+        let source = try String(contentsOf: URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("src/Views/App/RedesignShellView.swift"), encoding: .utf8)
+        XCTAssertTrue(source.contains("\"wk.wordmark\""))
+    }
 }
