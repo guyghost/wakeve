@@ -2292,4 +2292,8 @@
 "wk.nav.events" = "Événements";
 "wk.nav.create" = "Créer un événement";
 "wk.nav.activity" = "Activité";
-"wk.nav.activity.badge_format" = "%d à traiter";
+"wk.status.confirmed" = "Confirmé";
+"wk.status.pending" = "En attente";
+"wk.status.action_needed" = "À toi d'agir";
+"wk.status.draft" = "Brouillon";
+"wk.module.highlight" = "Prochaine étape";

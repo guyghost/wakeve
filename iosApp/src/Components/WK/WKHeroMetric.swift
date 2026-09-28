@@ -18,7 +18,7 @@ struct WKHeroMetric: View {
             VStack(spacing: WK.Space.xxs) {
                 Text(caption)
                     .font(WK.Typo.caption)
-                    .foregroundStyle(WK.Colors.textSecondary)
+                    .foregroundStyle(WK.Colors.textMuted)
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
                     Text(value)
                         .font(WK.Typo.display)
@@ -26,7 +26,7 @@ struct WKHeroMetric: View {
                     if let unit {
                         Text(unit)
                             .font(WK.Typo.title)
-                            .foregroundStyle(WK.Colors.textTertiary)
+                            .foregroundStyle(WK.Colors.textMuted)
                     }
                 }
                 .monospacedDigit()
@@ -41,7 +41,7 @@ struct WKHeroMetric: View {
             .accessibilityLabel(Self.accessibilitySummary(caption: caption, value: value, unit: unit, subtitle: subtitle))
 
             if let actionTitle, let action {
-                WKChip(title: actionTitle, isSelected: true, action: action)
+                WKChip(title: actionTitle, style: .prominent, action: action)
                     .frame(maxWidth: .infinity)
                     .padding(.top, WK.Space.xs)
             }

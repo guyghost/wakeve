@@ -2270,4 +2270,8 @@
 "wk.nav.events" = "Eventi";
 "wk.nav.create" = "Crea evento";
 "wk.nav.activity" = "Attività";
-"wk.nav.activity.badge_format" = "%d da fare";
+"wk.status.confirmed" = "Confermato";
+"wk.status.pending" = "In attesa";
+"wk.status.action_needed" = "Azione richiesta";
+"wk.status.draft" = "Bozza";
+"wk.module.highlight" = "Prossimo passo";

@@ -92,7 +92,18 @@ final class WKTokensTests: XCTestCase {
         }
     }
 
-    func testStatusColorOnCardIsAtLeastThreeToOne() {
+    func testTextMutedMeetsWCAGAAOnCardsAndCanvas() {
+        for surface in [("card", WK.Colors.card), ("cardInset", WK.Colors.cardInset), ("canvas", WK.Colors.canvas)] {
+            for style in [UIUserInterfaceStyle.light, .dark] {
+                let ratio = contrast(WK.Colors.textMuted, surface.1, style)
+                XCTAssertGreaterThanOrEqual(ratio, 4.5, "textMuted vs \(surface.0) en \(style == .dark ? "sombre" : "clair") : \(ratio)")
+            }
+        }
+    }
+
+    /// `status.color` n'atteint que 3:1 : il ne sert qu'aux indices non textuels (pastille,
+    /// icône) et ne doit JAMAIS être utilisé comme couleur de texte.
+    func testStatusColorAsNonTextCueOnCardIsAtLeastThreeToOne() {
         for status in WK.Status.allCases {
             for style in [UIUserInterfaceStyle.light, .dark] {
                 XCTAssertGreaterThanOrEqual(contrast(status.color, WK.Colors.card, style), 3, "\(status)")

@@ -26,10 +26,16 @@ struct WKPrimaryButton: View {
 
 /// Suggestion ou filtre.
 struct WKChip: View {
+    /// `prominent` = action mise en avant (sans sémantique de sélection).
+    enum Style { case standard, prominent }
+
     let title: String
     var systemImage: String? = nil
+    var style: Style = .standard
     var isSelected: Bool = false
     let action: () -> Void
+
+    private var isFilled: Bool { style == .prominent || isSelected }
 
     var body: some View {
         Button(action: action) {
@@ -38,10 +44,10 @@ struct WKChip: View {
                 Text(title)
             }
             .font(WK.Typo.caption.weight(.medium))
-            .foregroundStyle(isSelected ? WK.Colors.onPrimaryButton : WK.Colors.textPrimary)
+            .foregroundStyle(isFilled ? WK.Colors.onPrimaryButton : WK.Colors.textPrimary)
             .padding(.horizontal, WK.Space.sm)
             .frame(minHeight: WK.Size.minTapTarget)
-            .background(isSelected ? WK.Colors.primaryButton : WK.Colors.card, in: Capsule())
+            .background(isFilled ? WK.Colors.primaryButton : WK.Colors.cardInset, in: Capsule())
             .contentShape(Capsule())
         }
         .buttonStyle(.plain)

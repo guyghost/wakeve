@@ -37,6 +37,8 @@ enum WK {
         static let textPrimary = Color(uiColor: .label)
         static let textSecondary = Color(uiColor: .secondaryLabel)
         static let textTertiary = Color(uiColor: .tertiaryLabel)
+        /// Texte secondaire opaque garantissant 4.5:1 sur card, cardInset et canvas (clair et sombre).
+        static let textMuted = WK.dynamic(light: 0x6C6C70, dark: 0xAEAEB2)
 
         static let accent = WK.dynamic(light: 0x5B54D6, dark: 0x8B85F0)
         static let accentFill = WK.dynamic(light: 0xE7E5FB, dark: 0x2A2750)
@@ -52,6 +54,16 @@ enum WK {
     /// Couleur = signal d'état et d'action requise, jamais décoration.
     enum Status: CaseIterable {
         case confirmed, pending, actionNeeded, draft
+
+        /// Nom localisé du statut : l'état n'est jamais porté par la couleur seule.
+        var localizedName: String {
+            switch self {
+            case .confirmed: return String(localized: "wk.status.confirmed")
+            case .pending: return String(localized: "wk.status.pending")
+            case .actionNeeded: return String(localized: "wk.status.action_needed")
+            case .draft: return String(localized: "wk.status.draft")
+            }
+        }
 
         var color: Color {
             switch self {

@@ -2270,4 +2270,8 @@
 "wk.nav.events" = "Eventos";
 "wk.nav.create" = "Crear evento";
 "wk.nav.activity" = "Actividad";
-"wk.nav.activity.badge_format" = "%d pendientes";
+"wk.status.confirmed" = "Confirmado";
+"wk.status.pending" = "Pendiente";
+"wk.status.action_needed" = "Requiere acción";
+"wk.status.draft" = "Borrador";
+"wk.module.highlight" = "Próximo paso";

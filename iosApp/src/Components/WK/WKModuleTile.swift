@@ -9,8 +9,16 @@ struct WKModuleTile: View {
     var isHighlighted: Bool = false
     let action: () -> Void
 
-    static func accessibilityLabel(title: String, summary: String) -> String {
-        "\(title), \(summary)"
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    /// "Transport, 2 sans place, En attente" — le statut est toujours nommé, jamais porté par la couleur seule.
+    static func accessibilityLabel(title: String, summary: String, status: WK.Status?) -> String {
+        [title, summary, status?.localizedName].compactMap { $0 }.joined(separator: ", ")
+    }
+
+    /// Le surlignage signale la prochaine étape ; ce n'est pas une sélection.
+    static func accessibilityValue(isHighlighted: Bool) -> String {
+        isHighlighted ? String(localized: "wk.module.highlight") : ""
     }
 
     var body: some View {
@@ -23,19 +31,27 @@ struct WKModuleTile: View {
                     Text(title)
                         .font(WK.Typo.headline)
                         .foregroundStyle(WK.Colors.textPrimary)
-                    Text(summary)
-                        .font(WK.Typo.caption)
-                        .foregroundStyle(status?.color ?? WK.Colors.textSecondary)
-                        .lineLimit(2)
+                    HStack(alignment: .firstTextBaseline, spacing: WK.Space.xxs) {
+                        if let status {
+                            // Indice non textuel (3:1) ; le nom du statut est lu par VoiceOver.
+                            Image(systemName: "circle.fill")
+                                .font(WK.Typo.micro)
+                                .imageScale(.small)
+                                .foregroundStyle(status.color)
+                                .accessibilityHidden(true)
+                        }
+                        Text(summary)
+                            .font(WK.Typo.caption)
+                            .foregroundStyle(WK.Colors.textMuted)
+                            .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
+                    }
                 }
                 .frame(maxWidth: .infinity, minHeight: WK.Size.minTapTarget * 2, alignment: .topLeading)
             }
             .contentShape(WK.shape(WK.Radius.md))
         }
         .buttonStyle(.plain)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Self.accessibilityLabel(title: title, summary: summary))
-        .accessibilityAddTraits(.isButton)
-        .accessibilityAddTraits(isHighlighted ? .isSelected : [])
+        .accessibilityLabel(Self.accessibilityLabel(title: title, summary: summary, status: status))
+        .accessibilityValue(Self.accessibilityValue(isHighlighted: isHighlighted))
     }
 }

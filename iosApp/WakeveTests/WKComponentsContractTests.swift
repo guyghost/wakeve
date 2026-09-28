@@ -8,6 +8,15 @@ final class WKComponentsContractTests: XCTestCase {
         "wk.nav.events",
         "wk.nav.create",
         "wk.nav.activity",
+        "wk.status.confirmed",
+        "wk.status.pending",
+        "wk.status.action_needed",
+        "wk.status.draft",
+        "wk.module.highlight"
+    ]
+
+    /// Clés pluralisées : vivent uniquement dans Localizable.stringsdict.
+    static let requiredPluralKeys = [
         "wk.nav.activity.badge_format"
     ]
 
@@ -17,6 +26,42 @@ final class WKComponentsContractTests: XCTestCase {
             for key in Self.requiredKeys {
                 XCTAssertTrue(strings.contains("\"\(key)\""), "Clé \(key) manquante pour \(locale).")
             }
+            let dict = try readProjectFile("iosApp/src/Resources/\(locale).lproj/Localizable.stringsdict")
+            for key in Self.requiredPluralKeys {
+                XCTAssertTrue(dict.contains("<key>\(key)</key>"), "Clé pluralisée \(key) manquante pour \(locale).")
+                XCTAssertFalse(strings.contains("\"\(key)\""), "Clé \(key) morte dans Localizable.strings (\(locale)).")
+            }
+        }
+    }
+
+    private func localized(_ key: String, _ language: String) -> String {
+        let bundle = Bundle.main.path(forResource: language, ofType: "lproj").flatMap(Bundle.init(path:)) ?? .main
+        return bundle.localizedString(forKey: key, value: nil, table: nil)
+    }
+
+    func testStatusNamesAreTranslatedPerLocale() {
+        let expected: [String: [String]] = [
+            "en": ["Confirmed", "Pending", "Action needed", "Draft"],
+            "fr": ["Confirmé", "En attente", "À toi d'agir", "Brouillon"],
+            "es": ["Confirmado", "Pendiente", "Requiere acción", "Borrador"],
+            "it": ["Confermato", "In attesa", "Azione richiesta", "Bozza"],
+            "pt": ["Confirmado", "Pendente", "Ação necessária", "Rascunho"]
+        ]
+        let keys = ["wk.status.confirmed", "wk.status.pending", "wk.status.action_needed", "wk.status.draft"]
+        for (language, names) in expected {
+            XCTAssertEqual(keys.map { localized($0, language) }, names, language)
+        }
+        let highlight = ["en": "Next step", "fr": "Prochaine étape", "es": "Próximo paso", "it": "Prossimo passo", "pt": "Próximo passo"]
+        for (language, value) in highlight {
+            XCTAssertEqual(localized("wk.module.highlight", language), value, language)
+        }
+    }
+
+    func testEveryStatusHasADistinctLocalizedName() {
+        let names = WK.Status.allCases.map(\.localizedName)
+        XCTAssertEqual(Set(names).count, WK.Status.allCases.count)
+        for name in names {
+            XCTAssertFalse(name.hasPrefix("wk."), "Nom de statut non traduit : \(name)")
         }
     }
 
@@ -71,13 +116,37 @@ final class WKComponentsContractTests: XCTestCase {
         XCTAssertTrue(source.contains("WK.Size.minTapTarget"))
     }
 
-    func testModuleTileSummaryIsReadWithTitleAndHighlightIsAnnounced() {
+    func testModuleTileSummaryIsReadWithTitleAndStatusName() {
         XCTAssertEqual(
-            WKModuleTile.accessibilityLabel(title: "Transport", summary: "2 sans place"),
+            WKModuleTile.accessibilityLabel(title: "Transport", summary: "2 sans place", status: nil),
             "Transport, 2 sans place"
         )
-        let source = (try? readProjectFile("iosApp/src/Components/WK/WKModuleTile.swift")) ?? ""
-        XCTAssertTrue(source.contains(".accessibilityAddTraits(isHighlighted ? .isSelected : [])"))
+        XCTAssertEqual(
+            WKModuleTile.accessibilityLabel(title: "Transport", summary: "2 sans place", status: .pending),
+            "Transport, 2 sans place, \(WK.Status.pending.localizedName)"
+        )
+    }
+
+    func testModuleTileHighlightIsAnnouncedAsValueNotSelection() throws {
+        XCTAssertEqual(WKModuleTile.accessibilityValue(isHighlighted: false), "")
+        XCTAssertEqual(WKModuleTile.accessibilityValue(isHighlighted: true), String(localized: "wk.module.highlight"))
+        XCTAssertFalse(WKModuleTile.accessibilityValue(isHighlighted: true).isEmpty)
+        let source = try readProjectFile("iosApp/src/Components/WK/WKModuleTile.swift")
+        XCTAssertFalse(source.contains(".isSelected"), "Le surlignage n'est pas une sélection.")
+        XCTAssertFalse(source.contains("children: .ignore"), "Le Button doit garder son trait natif.")
+    }
+
+    func testModuleTileNeverUsesStatusColorForText() throws {
+        let source = try readProjectFile("iosApp/src/Components/WK/WKModuleTile.swift")
+        XCTAssertFalse(source.contains("status?.color ??"), "status.color est réservé aux indices non textuels.")
+        XCTAssertTrue(source.contains("circle.fill"))
+    }
+
+    func testHeroMetricActionUsesProminentChipNotSelection() throws {
+        let source = try readProjectFile("iosApp/src/Components/WK/WKHeroMetric.swift")
+        XCTAssertTrue(source.contains("style: .prominent"))
+        XCTAssertFalse(source.contains("isSelected: true"))
+        XCTAssertEqual(WKChip(title: "x", action: {}).style, .standard)
     }
 
     func testAppZoneHasExactlyEventsAndActivity() {

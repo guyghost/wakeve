@@ -2268,4 +2268,8 @@
 "wk.nav.events" = "Events";
 "wk.nav.create" = "Create event";
 "wk.nav.activity" = "Activity";
-"wk.nav.activity.badge_format" = "%d to do";
+"wk.status.confirmed" = "Confirmed";
+"wk.status.pending" = "Pending";
+"wk.status.action_needed" = "Action needed";
+"wk.status.draft" = "Draft";
+"wk.module.highlight" = "Next step";
