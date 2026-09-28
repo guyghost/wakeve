@@ -20,6 +20,17 @@ final class WKComponentsContractTests: XCTestCase {
         }
     }
 
+    func testCardUsesContinuousTokenRadii() throws {
+        let source = try readProjectFile("iosApp/src/Components/WK/WKCard.swift")
+        XCTAssertTrue(source.contains("WK.shape("), "WKCard doit utiliser WK.shape (coins continus).")
+        XCTAssertTrue(source.contains("case standard, inset, selected"))
+    }
+
+    func testStatusPillExposesTextToVoiceOver() throws {
+        let source = try readProjectFile("iosApp/src/Components/WK/WKStatusPill.swift")
+        XCTAssertTrue(source.contains(".accessibilityLabel(text)"), "Le statut ne doit jamais être porté par la couleur seule.")
+    }
+
     func readProjectFile(_ relativePath: String) throws -> String {
         let projectRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()   // WakeveTests
