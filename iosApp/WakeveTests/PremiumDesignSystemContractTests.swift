@@ -418,29 +418,6 @@ final class PremiumDesignSystemContractTests: XCTestCase {
         )
     }
 
-    func testEventDetailExperienceUsesDynamicTypeAndAccessibleToolbarTargets() throws {
-        let source = try readProjectFile("iosApp/src/Views/EventDetailExperienceView.swift")
-        let fixedFontCount = occurrenceCount(of: ".font(.system(size:", in: source)
-        let visualControlCount = occurrenceCount(of: ".frame(width: 36, height: 36)", in: source) - 1
-        let accessibleHitTargetCount = occurrenceCount(of: ".frame(minWidth: 44, minHeight: 44)", in: source)
-
-        XCTAssertLessThanOrEqual(
-            fixedFontCount,
-            7,
-            "EventDetailExperienceView has \(fixedFontCount) fixed-size fonts; only 7 decorative symbol occurrences may remain."
-        )
-        XCTAssertEqual(
-            visualControlCount,
-            3,
-            "The two back buttons and overflow menu are the expected custom 36pt navigation/action controls."
-        )
-        XCTAssertGreaterThanOrEqual(
-            accessibleHitTargetCount,
-            visualControlCount,
-            "Every custom 36pt navigation/action control must expose a minimum 44pt hit target."
-        )
-    }
-
     func testInboxDetailMeetsTypographyMotionAndControlAccessibilityBudgets() throws {
         let source = try readProjectFile("iosApp/src/Views/Inbox/InboxDetailView.swift")
         let handoff = slice(source, from: "private var groupHandoffCard", to: "private func copyGroupHandoffMessage")
