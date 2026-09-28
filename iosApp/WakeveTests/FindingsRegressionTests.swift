@@ -353,8 +353,8 @@ final class FindingsRegressionTests: XCTestCase {
     }
 
     func testEventNextActionDoesNotBlockInvitationFirstPollsOnParticipants() throws {
-        let source = try readProjectFile("iosApp/src/Views/Events/HomeView.swift")
-        let nextAction = slice(source, from: "struct EventNextAction", to: "// MARK: - Event Theme")
+        let source = try readProjectFile("iosApp/src/Models/EventNextAction.swift")
+        let nextAction = slice(source, from: "struct EventNextAction", to: "// END EventNextAction")
 
         XCTAssertTrue(
             nextAction.contains("let hasSlots = !event.proposedSlots.isEmpty"),
