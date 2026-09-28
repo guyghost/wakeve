@@ -6,9 +6,51 @@ import SwiftUI
 final class RedesignShellTests: XCTestCase {
 
     func testNavBarShowsOnlyAtZoneRoots() {
-        XCTAssertTrue(RedesignShellView<EmptyView, EmptyView>.showsNavBar(zone: .events, eventsAtRoot: true))
-        XCTAssertFalse(RedesignShellView<EmptyView, EmptyView>.showsNavBar(zone: .events, eventsAtRoot: false))
-        XCTAssertTrue(RedesignShellView<EmptyView, EmptyView>.showsNavBar(zone: .activity, eventsAtRoot: false))
+        typealias Shell = RedesignShellView<EmptyView, EmptyView>
+        XCTAssertTrue(Shell.showsNavBar(zone: .events, eventsAtRoot: true, activityAtRoot: false))
+        XCTAssertFalse(Shell.showsNavBar(zone: .events, eventsAtRoot: false, activityAtRoot: true))
+        XCTAssertTrue(Shell.showsNavBar(zone: .activity, eventsAtRoot: false, activityAtRoot: true))
+        XCTAssertFalse(
+            Shell.showsNavBar(zone: .activity, eventsAtRoot: true, activityAtRoot: false),
+            "Activité hors racine (détail poussé ou mode sélection) : la barre se retire."
+        )
+    }
+
+    func testNavBarAnimationIsScopedToTheBar() throws {
+        let source = try String(
+            contentsOf: URL(fileURLWithPath: #filePath)
+                .deletingLastPathComponent().deletingLastPathComponent()
+                .appendingPathComponent("src/Views/App/RedesignShellView.swift"),
+            encoding: .utf8
+        )
+        guard let inset = source.range(of: ".safeAreaInset(edge: .bottom") else {
+            return XCTFail("Inset de la barre introuvable")
+        }
+        let beforeInset = String(source[..<inset.lowerBound])
+        XCTAssertFalse(beforeInset.contains(".animation("), "Le basculement de zone ne doit pas être animé.")
+        let insetBody = String(source[inset.lowerBound...].prefix(900))
+        XCTAssertTrue(insetBody.contains(".animation("), "Seule la barre anime son apparition.")
+    }
+
+    func testActivityZoneReloadsAndReportsItsRootState() throws {
+        let source = try contentViewSource()
+        guard let start = source.range(of: "private var redesignChrome: some View") else {
+            return XCTFail("redesignChrome introuvable")
+        }
+        let body = String(source[start.lowerBound...].prefix(2500))
+        XCTAssertTrue(body.contains("activityAtRoot: activityAtRoot"))
+        XCTAssertTrue(body.contains("reloadToken: activityReloadToken"))
+        XCTAssertTrue(body.contains("activityReloadToken += 1"))
+
+        let inbox = try String(
+            contentsOf: URL(fileURLWithPath: #filePath)
+                .deletingLastPathComponent().deletingLastPathComponent()
+                .appendingPathComponent("src/Views/Inbox/InboxView.swift"),
+            encoding: .utf8
+        )
+        XCTAssertTrue(inbox.contains("var reloadToken: Int = 0"))
+        XCTAssertTrue(inbox.contains("var onRootStateChange: ((Bool) -> Void)? = nil"))
+        XCTAssertTrue(inbox.contains(".onChange(of: reloadToken)"))
     }
 
     func testHeaderShowsOnlyAtEventsRoot() {
@@ -22,6 +64,7 @@ final class RedesignShellTests: XCTestCase {
         let shell = RedesignShellView(
             router: router,
             eventsAtRoot: true,
+            activityAtRoot: true,
             activityBadge: 2,
             userId: "u1",
             userName: "Léa Martin",

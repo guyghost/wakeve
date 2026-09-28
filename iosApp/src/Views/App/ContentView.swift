@@ -187,6 +187,8 @@ struct AuthenticatedView: View {
     @AppStorage("iosInvitationExperienceV1") private var iosInvitationExperienceV1 = false
     @AppStorage(FeatureFlags.redesign2026Key) private var iosRedesign2026 = false
     @State private var redesignRouter = AppRouter()
+    @State private var activityAtRoot = true
+    @State private var activityReloadToken = 0
     @State private var selectedTab: WakeveTab = .home
     @State private var currentView: AppView = .eventList
     @State private var selectedEvent: Event?
@@ -474,6 +476,7 @@ struct AuthenticatedView: View {
         RedesignShellView(
             router: redesignRouter,
             eventsAtRoot: currentView == .eventList,
+            activityAtRoot: activityAtRoot,
             activityBadge: unreadInboxCount,
             userId: userId,
             userName: authStateManager.currentUser?.name,
@@ -483,10 +486,16 @@ struct AuthenticatedView: View {
                 InboxView(
                     userId: userId,
                     onBack: { /* Activity is a shell zone, no back action needed */ },
-                    unreadCount: $unreadInboxCount
+                    unreadCount: $unreadInboxCount,
+                    reloadToken: activityReloadToken,
+                    onRootStateChange: { activityAtRoot = $0 }
                 )
             }
         )
+        .onChange(of: redesignRouter.zone) { _, zone in
+            // Les deux zones restent montées : recharger l'Activité à chaque entrée.
+            if zone == .activity { activityReloadToken += 1 }
+        }
         .sheet(item: $redesignRouter.presentation) { presentation in
             // Une seule feuille possédée par le routeur : changer de présentation
             // pendant qu'une feuille est ouverte la ferme puis présente l'autre.

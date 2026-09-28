@@ -20,6 +20,14 @@ struct InboxView: View {
     /// Optional override for initial items (used by previews).
     var initialItems: [InboxItemModel]? = nil
 
+    /// Incrémenté par un hôte qui garde la vue montée (zone Activité du shell
+    /// 2026) pour recharger les éléments à chaque retour dans la zone.
+    var reloadToken: Int = 0
+
+    /// Rapporte si la vue est à sa racine (aucun détail poussé) et hors mode
+    /// sélection, pour que l'hôte masque sa propre barre sinon.
+    var onRootStateChange: ((Bool) -> Void)? = nil
+
     @StateObject private var viewModel: InboxViewModel
     @State private var selectedFilter: InboxFilter = .inbox
     @State private var showNotificationBanner = true
@@ -29,13 +37,23 @@ struct InboxView: View {
     @State private var selectedItemIds: Set<String> = []
     @State private var showActionBar = false
     @State private var searchText = ""
+    @State private var isRootVisible = true
     @Environment(\.colorScheme) private var colorScheme
 
-    init(userId: String, onBack: @escaping () -> Void, unreadCount: Binding<Int>, initialItems: [InboxItemModel]? = nil) {
+    init(
+        userId: String,
+        onBack: @escaping () -> Void,
+        unreadCount: Binding<Int>,
+        initialItems: [InboxItemModel]? = nil,
+        reloadToken: Int = 0,
+        onRootStateChange: ((Bool) -> Void)? = nil
+    ) {
         self.userId = userId
         self.onBack = onBack
         self._unreadCount = unreadCount
         self.initialItems = initialItems
+        self.reloadToken = reloadToken
+        self.onRootStateChange = onRootStateChange
         self._viewModel = StateObject(wrappedValue: InboxViewModel(userId: userId))
     }
 
@@ -73,6 +91,10 @@ struct InboxView: View {
                     .padding(.bottom, WakeveTheme.Spacing.xxl)
                 }
             }
+            // La racine disparaît quand un détail est poussé (y compris en
+            // profondeur) et réapparaît au retour.
+            .onAppear { isRootVisible = true }
+            .onDisappear { isRootVisible = false }
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             #if os(iOS)
@@ -131,6 +153,10 @@ struct InboxView: View {
             }
         }
         .onAppear(perform: loadItems)
+        .onAppear(perform: reportRootState)
+        .onChange(of: reloadToken) { _, _ in loadItems() }
+        .onChange(of: isRootVisible) { _, _ in reportRootState() }
+        .onChange(of: isSelectionMode) { _, _ in reportRootState() }
         .onChange(of: viewModel.items) { _, newItems in
             unreadCount = newItems.filter { !$0.isRead }.count
             if newItems.isEmpty {
@@ -469,6 +495,10 @@ struct InboxView: View {
     }
     
     // MARK: - Actions
+
+    private func reportRootState() {
+        onRootStateChange?(isRootVisible && !isSelectionMode)
+    }
 
     private func loadItems() {
         if let override = initialItems {

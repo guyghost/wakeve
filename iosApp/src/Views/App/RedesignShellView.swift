@@ -6,6 +6,8 @@ import SwiftUI
 struct RedesignShellView<Events: View, Activity: View>: View {
     @Bindable var router: AppRouter
     let eventsAtRoot: Bool
+    /// Activité à sa racine (aucun détail poussé, pas de mode sélection).
+    let activityAtRoot: Bool
     let activityBadge: Int
     let userId: String
     let userName: String?
@@ -15,8 +17,11 @@ struct RedesignShellView<Events: View, Activity: View>: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    static func showsNavBar(zone: AppZone, eventsAtRoot: Bool) -> Bool {
-        zone == .activity || eventsAtRoot
+    static func showsNavBar(zone: AppZone, eventsAtRoot: Bool, activityAtRoot: Bool) -> Bool {
+        switch zone {
+        case .events: return eventsAtRoot
+        case .activity: return activityAtRoot
+        }
     }
 
     static func showsHeader(zone: AppZone, eventsAtRoot: Bool) -> Bool {
@@ -40,16 +45,21 @@ struct RedesignShellView<Events: View, Activity: View>: View {
                 .accessibilityHidden(router.zone != .activity)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if Self.showsNavBar(zone: router.zone, eventsAtRoot: eventsAtRoot) {
-                WKFloatingNavBar(selection: $router.zone, activityBadge: activityBadge, onCreate: onCreate)
-                    .padding(.bottom, WK.Space.xs)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            // L'animation est portée par ce conteneur : seule la barre anime
+            // son apparition, le basculement de zone reste instantané.
+            VStack(spacing: 0) {
+                if isNavBarVisible {
+                    WKFloatingNavBar(selection: $router.zone, activityBadge: activityBadge, onCreate: onCreate)
+                        .padding(.bottom, WK.Space.xs)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
             }
+            .animation(WK.Motion.smooth(reduceMotion: reduceMotion), value: isNavBarVisible)
         }
-        .animation(
-            WK.Motion.smooth(reduceMotion: reduceMotion),
-            value: Self.showsNavBar(zone: router.zone, eventsAtRoot: eventsAtRoot)
-        )
+    }
+
+    private var isNavBarVisible: Bool {
+        Self.showsNavBar(zone: router.zone, eventsAtRoot: eventsAtRoot, activityAtRoot: activityAtRoot)
     }
 
     private var header: some View {
