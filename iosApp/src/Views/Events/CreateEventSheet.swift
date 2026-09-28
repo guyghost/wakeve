@@ -195,6 +195,14 @@ struct CreateEventSheet: View {
         .onAppear {
             applyInitialScenarioIfNeeded()
         }
+        .onChange(of: viewModel.creationErrorMessage) { _, message in
+            guard let message else { return }
+            showingPreview = false
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) {
+                showValidationError = true
+                validationMessage = message
+            }
+        }
     }
 
     // MARK: - Gradient Background
