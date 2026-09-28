@@ -600,7 +600,7 @@ fun Application.module(
                             mealRoutes(mealRepository, eventRepository, database, moderationPolicy)
                             commentRoutes(commentRepository, eventNotificationTrigger, eventRepository, moderationRepository, database)
                             activityRoutes(activityRepository, eventRepository, database)
-                            equipmentRoutes(equipmentRepository)
+                            equipmentRoutes(equipmentRepository, eventRepository, database)
                             moderationRoutes(moderationRepository, database)
                             potentialLocationRoutes(locationRepository, eventRepository, database, moderationPolicy)
                             syncRoutes(syncService)

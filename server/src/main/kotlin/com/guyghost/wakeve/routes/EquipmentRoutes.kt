@@ -1,15 +1,22 @@
 package com.guyghost.wakeve.routes
 
+import com.guyghost.wakeve.auth.userId
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.equipment.EquipmentManager
 import com.guyghost.wakeve.equipment.EquipmentRepository
 import com.guyghost.wakeve.models.AssignEquipmentItemRequest
 import com.guyghost.wakeve.models.AutoGenerateEquipmentRequest
 import com.guyghost.wakeve.models.CreateEquipmentItemRequest
 import com.guyghost.wakeve.models.EquipmentCategory
+import com.guyghost.wakeve.models.EquipmentItem
 import com.guyghost.wakeve.models.ItemStatus
 import com.guyghost.wakeve.models.UpdateEquipmentItemRequest
 import com.guyghost.wakeve.models.UpdateEquipmentStatusRequest
+import com.guyghost.wakeve.repository.EventRepositoryInterface
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.ApplicationCall
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.delete
@@ -20,7 +27,7 @@ import io.ktor.server.routing.route
 
 /**
  * Equipment API Routes
- * 
+ *
  * Provides RESTful endpoints for equipment checklist management including:
  * - Equipment item CRUD operations
  * - Category-based organization
@@ -28,19 +35,51 @@ import io.ktor.server.routing.route
  * - Assignment to participants
  * - Auto-generation of checklists based on event type
  * - Cost calculations and statistics
+ *
+ * Authorization (QA BUG-B, API multi-user QA 2026-09-27):
+ * - reads and item creation: event organizer or participants ([hasEventMemberAccess]);
+ * - item edit, delete and checklist auto-generation: organizer only (as for meals);
+ * - assignment: the organizer assigns any member; a participant may only take an
+ *   unassigned item for themselves or release their own item;
+ * - status updates: organizer or the current assignee;
+ * - an item is only reachable through the event it belongs to.
+ * Missing dependencies fail closed (403).
  */
 fun io.ktor.server.routing.Route.equipmentRoutes(
     repository: EquipmentRepository,
+    eventRepository: EventRepositoryInterface? = null,
+    database: WakeveDb? = null,
     manager: EquipmentManager = EquipmentManager
 ) {
+    /** Returns the caller's id if they are a member of [eventId]; null otherwise. */
+    fun ApplicationCall.memberId(eventId: String): String? {
+        val userId = principal<JWTPrincipal>()?.userId ?: return null
+        if (eventRepository == null || database == null) return null
+        return userId.takeIf { hasEventMemberAccess(eventRepository, database, eventId, userId) }
+    }
+
+    fun isOrganizer(eventId: String, userId: String): Boolean =
+        eventRepository != null && isEventOrganizerOf(eventRepository, eventId, userId)
+
+    fun isMember(eventId: String, userId: String): Boolean =
+        eventRepository != null && database != null &&
+            hasEventMemberAccess(eventRepository, database, eventId, userId)
+
+    fun itemInEvent(eventId: String, itemId: String): EquipmentItem? =
+        repository.getEquipmentItemById(itemId)?.takeIf { it.eventId == eventId }
+
     route("/events/{eventId}/equipment") {
-        
+
         // GET /api/events/{eventId}/equipment - Get all equipment items for event
         get {
             try {
                 val eventId = call.parameters["eventId"] ?: return@get call.respond(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
+                )
+                call.memberId(eventId) ?: return@get call.respond(
+                    HttpStatusCode.Forbidden,
+                    mapOf("error" to equipmentAccessDeniedMessage())
                 )
 
                 val items = repository.getEquipmentItemsByEventId(eventId)
@@ -52,7 +91,7 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
                 )
             }
         }
-        
+
         // GET /api/events/{eventId}/equipment/category/{category} - Get items by category
         get("/category/{category}") {
             try {
@@ -60,12 +99,16 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
-                
+                call.memberId(eventId) ?: return@get call.respond(
+                    HttpStatusCode.Forbidden,
+                    mapOf("error" to equipmentAccessDeniedMessage())
+                )
+
                 val categoryStr = call.parameters["category"] ?: return@get call.respond(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Category required")
                 )
-                
+
                 val category = try {
                     EquipmentCategory.valueOf(categoryStr.uppercase())
                 } catch (e: IllegalArgumentException) {
@@ -84,7 +127,7 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
                 )
             }
         }
-        
+
         // GET /api/events/{eventId}/equipment/status/{status} - Get items by status
         get("/status/{status}") {
             try {
@@ -92,12 +135,16 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
-                
+                call.memberId(eventId) ?: return@get call.respond(
+                    HttpStatusCode.Forbidden,
+                    mapOf("error" to equipmentAccessDeniedMessage())
+                )
+
                 val statusStr = call.parameters["status"] ?: return@get call.respond(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Status required")
                 )
-                
+
                 val status = try {
                     ItemStatus.valueOf(statusStr.uppercase())
                 } catch (e: IllegalArgumentException) {
@@ -116,7 +163,7 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
                 )
             }
         }
-        
+
         // GET /api/events/{eventId}/equipment/participant/{participantId} - Get items assigned to participant
         get("/participant/{participantId}") {
             try {
@@ -124,7 +171,11 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
-                
+                call.memberId(eventId) ?: return@get call.respond(
+                    HttpStatusCode.Forbidden,
+                    mapOf("error" to equipmentAccessDeniedMessage())
+                )
+
                 val participantId = call.parameters["participantId"] ?: return@get call.respond(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Participant ID required")
@@ -139,7 +190,7 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
                 )
             }
         }
-        
+
         // GET /api/events/{eventId}/equipment/statistics - Get equipment statistics
         get("/statistics") {
             try {
@@ -147,11 +198,14 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                call.memberId(eventId) ?: return@get call.respond(
+                    HttpStatusCode.Forbidden,
+                    mapOf("error" to equipmentAccessDeniedMessage())
+                )
 
                 val items = repository.getEquipmentItemsByEventId(eventId)
                 val stats = manager.calculateEquipmentStats(items)
                 call.respond(HttpStatusCode.OK, stats)
-
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
@@ -159,7 +213,7 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
                 )
             }
         }
-        
+
         // POST /api/events/{eventId}/equipment - Create an equipment item
         post {
             try {
@@ -167,9 +221,20 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                val userId = call.memberId(eventId) ?: return@post call.respond(
+                    HttpStatusCode.Forbidden,
+                    mapOf("error" to equipmentAccessDeniedMessage())
+                )
 
-                val request = call.receive<CreateEquipmentItemRequest>()
-                
+                val request = try {
+                    call.receive<CreateEquipmentItemRequest>()
+                } catch (e: Exception) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to equipmentInvalidPayloadMessage())
+                    )
+                }
+
                 // Validate request
                 if (request.name.isBlank()) {
                     return@post call.respond(
@@ -177,7 +242,7 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
                         mapOf("error" to "Equipment name is required")
                     )
                 }
-                
+
                 if (request.quantity <= 0) {
                     return@post call.respond(
                         HttpStatusCode.BadRequest,
@@ -185,8 +250,31 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
                     )
                 }
 
-                val item = repository.createEquipmentItem(request.toEquipmentItem(eventId))
+                val assignee = request.assignedTo?.trim()?.takeIf { it.isNotEmpty() }
+                if (assignee != null) {
+                    if (assignee != userId && !isOrganizer(eventId, userId)) {
+                        return@post call.respond(
+                            HttpStatusCode.Forbidden,
+                            mapOf("error" to "Only the organizer can assign items to other participants")
+                        )
+                    }
+                    if (!isMember(eventId, assignee)) {
+                        return@post call.respond(
+                            HttpStatusCode.BadRequest,
+                            mapOf("error" to "Assignee must be a participant of this event")
+                        )
+                    }
+                }
+
+                val item = repository.createEquipmentItem(
+                    request.copy(assignedTo = assignee).toEquipmentItem(eventId)
+                )
                 call.respond(HttpStatusCode.Created, item)
+            } catch (e: IllegalArgumentException) {
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to equipmentInvalidPayloadMessage())
+                )
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
@@ -194,7 +282,7 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
                 )
             }
         }
-        
+
         // POST /api/events/{eventId}/equipment/auto-generate - Auto-generate equipment checklist
         post("/auto-generate") {
             try {
@@ -202,9 +290,23 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                val userId = call.memberId(eventId)
+                if (userId == null || !isOrganizer(eventId, userId)) {
+                    return@post call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to equipmentAccessDeniedMessage())
+                    )
+                }
 
-                val request = call.receive<AutoGenerateEquipmentRequest>()
-                
+                val request = try {
+                    call.receive<AutoGenerateEquipmentRequest>()
+                } catch (e: Exception) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to equipmentInvalidPayloadMessage())
+                    )
+                }
+
                 if (request.participantCount <= 0) {
                     return@post call.respond(
                         HttpStatusCode.BadRequest,
@@ -217,12 +319,12 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
                     eventType = request.eventType,
                     participantCount = request.participantCount
                 )
-                
+
                 // Save all generated items
                 val savedItems = items.map { item ->
                     repository.createEquipmentItem(item)
                 }
-                
+
                 call.respond(HttpStatusCode.Created, savedItems)
             } catch (e: Exception) {
                 call.respond(
@@ -231,33 +333,40 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
                 )
             }
         }
-        
-        // PUT /api/events/{eventId}/equipment/{itemId} - Update an equipment item
+
+        // PUT /api/events/{eventId}/equipment/{itemId} - Update an equipment item (organizer only)
         put("/{itemId}") {
             try {
                 val eventId = call.parameters["eventId"] ?: return@put call.respond(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
-                
+                val userId = call.memberId(eventId)
+                if (userId == null || !isOrganizer(eventId, userId)) {
+                    return@put call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to equipmentAccessDeniedMessage())
+                    )
+                }
+
                 val itemId = call.parameters["itemId"] ?: return@put call.respond(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Item ID required")
                 )
 
-                val request = call.receive<UpdateEquipmentItemRequest>()
-                val existingItem = repository.getEquipmentItemById(itemId)
-                    ?: return@put call.respond(
-                        HttpStatusCode.NotFound,
-                        mapOf("error" to "Equipment item not found")
-                    )
-                if (existingItem.eventId != eventId) {
+                val request = try {
+                    call.receive<UpdateEquipmentItemRequest>()
+                } catch (e: Exception) {
                     return@put call.respond(
-                        HttpStatusCode.NotFound,
-                        mapOf("error" to "Equipment item not found")
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to equipmentInvalidPayloadMessage())
                     )
                 }
-                
+                val existingItem = itemInEvent(eventId, itemId) ?: return@put call.respond(
+                    HttpStatusCode.NotFound,
+                    mapOf("error" to "Equipment item not found")
+                )
+
                 // Validate request
                 if (request.name != null && request.name.isBlank()) {
                     return@put call.respond(
@@ -265,7 +374,7 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
                         mapOf("error" to "Equipment name cannot be empty")
                     )
                 }
-                
+
                 if (request.quantity != null && request.quantity <= 0) {
                     return@put call.respond(
                         HttpStatusCode.BadRequest,
@@ -273,8 +382,20 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
                     )
                 }
 
+                if (request.assignedTo != null && !isMember(eventId, request.assignedTo)) {
+                    return@put call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Assignee must be a participant of this event")
+                    )
+                }
+
                 val updatedItem = repository.updateEquipmentItem(request.applyTo(existingItem))
                 call.respond(HttpStatusCode.OK, updatedItem)
+            } catch (e: IllegalArgumentException) {
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to equipmentInvalidPayloadMessage())
+                )
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
@@ -282,7 +403,7 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
                 )
             }
         }
-        
+
         // PUT /api/events/{eventId}/equipment/{itemId}/assign - Assign item to participant
         put("/{itemId}/assign") {
             try {
@@ -290,27 +411,55 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
-                
+                val userId = call.memberId(eventId) ?: return@put call.respond(
+                    HttpStatusCode.Forbidden,
+                    mapOf("error" to equipmentAccessDeniedMessage())
+                )
+
                 val itemId = call.parameters["itemId"] ?: return@put call.respond(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Item ID required")
                 )
 
-                val request = call.receive<AssignEquipmentItemRequest>()
-                
-                val item = repository.getEquipmentItemById(itemId)
-                if (item == null) {
+                val request = try {
+                    call.receive<AssignEquipmentItemRequest>()
+                } catch (e: Exception) {
                     return@put call.respond(
-                        HttpStatusCode.NotFound,
-                        mapOf("error" to "Equipment item not found")
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to equipmentInvalidPayloadMessage())
                     )
                 }
-                
-                val updatedItem = item.copy(
-                    assignedTo = request.participantId,
-                    status = if (request.participantId != null) ItemStatus.ASSIGNED else ItemStatus.NEEDED
+
+                val item = itemInEvent(eventId, itemId) ?: return@put call.respond(
+                    HttpStatusCode.NotFound,
+                    mapOf("error" to "Equipment item not found")
                 )
-                
+
+                val newAssignee = request.participantId?.trim()?.takeIf { it.isNotEmpty() }
+                val allowed = isOrganizer(eventId, userId) || when (newAssignee) {
+                    // Release: only your own item.
+                    null -> item.assignedTo == userId
+                    // Take: only for yourself, and only if nobody else already brings it.
+                    else -> newAssignee == userId && (item.assignedTo == null || item.assignedTo == userId)
+                }
+                if (!allowed) {
+                    return@put call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You cannot change who brings this item")
+                    )
+                }
+                if (newAssignee != null && !isMember(eventId, newAssignee)) {
+                    return@put call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Assignee must be a participant of this event")
+                    )
+                }
+
+                val updatedItem = item.copy(
+                    assignedTo = newAssignee,
+                    status = if (newAssignee != null) ItemStatus.ASSIGNED else ItemStatus.NEEDED
+                )
+
                 repository.updateEquipmentItem(updatedItem)
                 call.respond(HttpStatusCode.OK, updatedItem)
             } catch (e: Exception) {
@@ -320,7 +469,7 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
                 )
             }
         }
-        
+
         // PUT /api/events/{eventId}/equipment/{itemId}/status - Update item status
         put("/{itemId}/status") {
             try {
@@ -328,22 +477,37 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
-                
+                val userId = call.memberId(eventId) ?: return@put call.respond(
+                    HttpStatusCode.Forbidden,
+                    mapOf("error" to equipmentAccessDeniedMessage())
+                )
+
                 val itemId = call.parameters["itemId"] ?: return@put call.respond(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Item ID required")
                 )
 
-                val request = call.receive<UpdateEquipmentStatusRequest>()
-                
-                val item = repository.getEquipmentItemById(itemId)
-                if (item == null) {
+                val request = try {
+                    call.receive<UpdateEquipmentStatusRequest>()
+                } catch (e: Exception) {
                     return@put call.respond(
-                        HttpStatusCode.NotFound,
-                        mapOf("error" to "Equipment item not found")
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to equipmentInvalidPayloadMessage())
                     )
                 }
-                
+
+                val item = itemInEvent(eventId, itemId) ?: return@put call.respond(
+                    HttpStatusCode.NotFound,
+                    mapOf("error" to "Equipment item not found")
+                )
+
+                if (!isOrganizer(eventId, userId) && item.assignedTo != userId) {
+                    return@put call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only the organizer or the assignee can update this item's status")
+                    )
+                }
+
                 // Validate status transition
                 if (!manager.isValidStatusTransition(item.status, request.newStatus)) {
                     return@put call.respond(
@@ -351,7 +515,7 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
                         mapOf("error" to "Invalid status transition from ${item.status} to ${request.newStatus}")
                     )
                 }
-                
+
                 val updatedItem = item.copy(status = request.newStatus)
                 repository.updateEquipmentItem(updatedItem)
                 call.respond(HttpStatusCode.OK, updatedItem)
@@ -362,18 +526,30 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
                 )
             }
         }
-        
-        // DELETE /api/events/{eventId}/equipment/{itemId} - Delete an equipment item
+
+        // DELETE /api/events/{eventId}/equipment/{itemId} - Delete an equipment item (organizer only)
         delete("/{itemId}") {
             try {
                 val eventId = call.parameters["eventId"] ?: return@delete call.respond(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
-                
+                val userId = call.memberId(eventId)
+                if (userId == null || !isOrganizer(eventId, userId)) {
+                    return@delete call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to equipmentAccessDeniedMessage())
+                    )
+                }
+
                 val itemId = call.parameters["itemId"] ?: return@delete call.respond(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Item ID required")
+                )
+
+                itemInEvent(eventId, itemId) ?: return@delete call.respond(
+                    HttpStatusCode.NotFound,
+                    mapOf("error" to "Equipment item not found")
                 )
 
                 repository.deleteEquipmentItem(itemId)
@@ -387,6 +563,12 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
         }
     }
 }
+
+internal fun equipmentAccessDeniedMessage(): String =
+    "You do not have access to this event"
+
+internal fun equipmentInvalidPayloadMessage(): String =
+    "Invalid equipment request. Please check the fields and try again."
 
 internal fun equipmentListFailureMessage(): String =
     "Failed to fetch equipment items. Please try again."
