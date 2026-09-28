@@ -35,14 +35,14 @@ final class HomeEventSummaryTests: XCTestCase {
     }
 
     func testParticipantWhoHasNotVotedMustAct() {
-        let s = HomeEventSummary(facts: facts(), now: now)
+        let s = HomeEventSummary(facts: facts())
         XCTAssertEqual(s.status, .actionNeeded)
         XCTAssertEqual(s.label, .key("home.v2.status.vote_required"))
         XCTAssertEqual(s.sortRank, 0)
     }
 
     func testParticipantWhoVotedWaits() {
-        let s = HomeEventSummary(facts: facts(userBallotComplete: true), now: now)
+        let s = HomeEventSummary(facts: facts(userBallotComplete: true))
         XCTAssertEqual(s.status, .pending)
         XCTAssertEqual(s.label, .key("home.v2.status.polling"))
         XCTAssertEqual(s.sortRank, 1)
@@ -51,35 +51,34 @@ final class HomeEventSummaryTests: XCTestCase {
     func testOrganizerIsToldWhenEveryoneVoted() {
         let s = HomeEventSummary(
             facts: facts(role: .organizer, userBallotComplete: true, votersWithCompleteBallot: 8, eligibleVoters: 8,
-                         otherVotersComplete: 7, otherEligibleVoters: 7),
-            now: now
+                         otherVotersComplete: 7, otherEligibleVoters: 7)
         )
         XCTAssertEqual(s.status, .actionNeeded)
         XCTAssertEqual(s.label, .key("home.v2.status.ready_to_confirm"))
     }
 
     func testDraftIsNeutralAndLast() {
-        let s = HomeEventSummary(facts: facts(phase: .draft, role: .organizer), now: now)
+        let s = HomeEventSummary(facts: facts(phase: .draft, role: .organizer))
         XCTAssertEqual(s.status, .draft)
         XCTAssertEqual(s.sortRank, 3)
     }
 
     func testConfirmedUpcomingShowsItsDate() {
         let date = ISO8601DateFormatter().date(from: "2026-10-12T18:00:00Z")!
-        let s = HomeEventSummary(facts: facts(phase: .confirmed, role: .participant, eventDate: date), now: now)
+        let s = HomeEventSummary(facts: facts(phase: .confirmed, role: .participant, eventDate: date))
         XCTAssertEqual(s.status, .confirmed)
         XCTAssertEqual(s.label, .date(date))
         XCTAssertEqual(s.sortRank, 2)
     }
 
     func testOrganizerOrganizingIsPending() {
-        let s = HomeEventSummary(facts: facts(phase: .organizing, role: .organizer), now: now)
+        let s = HomeEventSummary(facts: facts(phase: .organizing, role: .organizer))
         XCTAssertEqual(s.status, .pending)
         XCTAssertEqual(s.label, .key("home.v2.status.organizing"))
     }
 
     func testPastEventsGoToThePastSection() {
-        let s = HomeEventSummary(facts: facts(phase: .finalized, isPast: true), now: now)
+        let s = HomeEventSummary(facts: facts(phase: .finalized, isPast: true))
         XCTAssertTrue(s.isPast)
         XCTAssertEqual(s.sortRank, 4)
     }
@@ -88,10 +87,10 @@ final class HomeEventSummaryTests: XCTestCase {
         let soon = now.addingTimeInterval(86_400)
         let later = now.addingTimeInterval(5 * 86_400)
         let items = [
-            HomeEventSummary(facts: facts(id: "draft", phase: .draft, role: .organizer), now: now),
-            HomeEventSummary(facts: facts(id: "voteLater", deadline: later), now: now),
-            HomeEventSummary(facts: facts(id: "waiting", userBallotComplete: true), now: now),
-            HomeEventSummary(facts: facts(id: "voteSoon", deadline: soon), now: now)
+            HomeEventSummary(facts: facts(id: "draft", phase: .draft, role: .organizer)),
+            HomeEventSummary(facts: facts(id: "voteLater", deadline: later)),
+            HomeEventSummary(facts: facts(id: "waiting", userBallotComplete: true)),
+            HomeEventSummary(facts: facts(id: "voteSoon", deadline: soon))
         ]
         XCTAssertEqual(HomeEventSummary.sorted(items).map(\.id), ["voteSoon", "voteLater", "waiting", "draft"])
     }
@@ -128,7 +127,7 @@ final class HomeEventSummaryTests: XCTestCase {
     // MARK: - Qui doit agir (revue couche 3)
 
     func testClosedPollIsPendingNotAnAction() {
-        let s = HomeEventSummary(facts: facts(pollOpen: false), now: now)
+        let s = HomeEventSummary(facts: facts(pollOpen: false))
         XCTAssertFalse(s.facts.voteRequired)
         XCTAssertEqual(s.status, .pending)
         XCTAssertEqual(s.label, .key("home.v2.status.polling"))
@@ -136,7 +135,7 @@ final class HomeEventSummaryTests: XCTestCase {
     }
 
     func testDeclinedOrPendingInviteeIsNotAskedToVote() {
-        let s = HomeEventSummary(facts: facts(viewerAccepted: false), now: now)
+        let s = HomeEventSummary(facts: facts(viewerAccepted: false))
         XCTAssertFalse(s.facts.voteRequired)
         XCTAssertEqual(s.status, .pending)
         XCTAssertNil(HomeNextStep.pick(from: [facts(viewerAccepted: false)], now: now))
@@ -145,7 +144,7 @@ final class HomeEventSummaryTests: XCTestCase {
     func testReadOnlyEventNeverAsksForAnAction() {
         XCTAssertFalse(facts(readOnly: true).voteRequired)
         XCTAssertFalse(facts(role: .organizer, readOnly: true, otherVotersComplete: 7, otherEligibleVoters: 7).readyToConfirm)
-        XCTAssertNotEqual(HomeEventSummary(facts: facts(readOnly: true), now: now).status, .actionNeeded)
+        XCTAssertNotEqual(HomeEventSummary(facts: facts(readOnly: true)).status, .actionNeeded)
     }
 
     func testOrganizerAloneIsNeverReadyButMustStillVote() {
@@ -164,7 +163,7 @@ final class HomeEventSummaryTests: XCTestCase {
                       otherVotersComplete: 3, otherEligibleVoters: 3)
         XCTAssertTrue(f.readyToConfirm)
         XCTAssertFalse(f.voteRequired, "« Prêt à confirmer » l'emporte sur le vote de l'organisateur.")
-        let s = HomeEventSummary(facts: f, now: now)
+        let s = HomeEventSummary(facts: f)
         XCTAssertEqual(s.label, .key("home.v2.status.ready_to_confirm"))
         let step = HomeNextStep.pick(from: [f], now: now)
         XCTAssertEqual(step?.kind, .readyToConfirm)
@@ -175,7 +174,7 @@ final class HomeEventSummaryTests: XCTestCase {
     func testOrganizerNotReadyWhileAnotherVoterIsIncomplete() {
         let f = facts(role: .organizer, userBallotComplete: true, otherVotersComplete: 2, otherEligibleVoters: 3)
         XCTAssertFalse(f.readyToConfirm)
-        XCTAssertEqual(HomeEventSummary(facts: f, now: now).status, .pending)
+        XCTAssertEqual(HomeEventSummary(facts: f).status, .pending)
     }
 
     func testClosedPollHeroHasNoDeadlineCountdown() {
@@ -184,5 +183,12 @@ final class HomeEventSummaryTests: XCTestCase {
         let step = HomeNextStep.pick(from: [f], now: now)
         XCTAssertEqual(step?.kind, .pollInProgress)
         XCTAssertNil(step?.daysLeft)
+    }
+
+    func testOnlyTheOwnerCanDeleteAndNeverAFinalizedEvent() {
+        XCTAssertTrue(HomeEventSummary(facts: facts(phase: .draft, role: .organizer)).canDelete)
+        XCTAssertTrue(HomeEventSummary(facts: facts(phase: .confirmed, role: .organizer)).canDelete)
+        XCTAssertFalse(HomeEventSummary(facts: facts(phase: .finalized, role: .organizer)).canDelete)
+        XCTAssertFalse(HomeEventSummary(facts: facts(phase: .polling, role: .participant)).canDelete)
     }
 }

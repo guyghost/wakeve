@@ -35,6 +35,8 @@ final class EventsHomeViewModel: ObservableObject {
     private let viewerId: String
     private let source: EventsHomeSource
     private let now: () -> Date
+    /// Seul le dernier chargement lancé publie son résultat.
+    private var generation = 0
 
     init(viewerId: String, source: EventsHomeSource, now: @escaping () -> Date = Date.init) {
         self.viewerId = viewerId
@@ -43,17 +45,21 @@ final class EventsHomeViewModel: ObservableObject {
     }
 
     func reload() async {
+        generation += 1
+        let token = generation
         do {
             let raw = try await source.loadEvents(viewerId: viewerId)
+            guard token == generation else { return }
             let current = now()
             let facts = raw.map { Self.facts(from: $0, now: current) }
-            let summaries = HomeEventSummary.sorted(facts.map { HomeEventSummary(facts: $0, now: current) })
+            let summaries = HomeEventSummary.sorted(facts.map { HomeEventSummary(facts: $0) })
             active = summaries.filter { !$0.isPast }
             past = summaries.filter(\.isPast)
             nextStep = HomeNextStep.pick(from: facts, now: current)
             pendingSyncCount = raw.filter(\.hasPendingSync).count
             state = raw.isEmpty ? .empty : .loaded
         } catch {
+            guard token == generation else { return }
             state = active.isEmpty && past.isEmpty ? .failed : .loaded
         }
     }

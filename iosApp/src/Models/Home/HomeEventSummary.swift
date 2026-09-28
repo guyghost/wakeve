@@ -69,8 +69,11 @@ struct HomeEventSummary: Identifiable, Equatable {
 
     var id: String { facts.id }
     var isPast: Bool { facts.isPast }
+    /// Seul le propriétaire peut supprimer, jamais un événement finalisé
+    /// (même règle que `EventDetailViewModel.canDelete`).
+    var canDelete: Bool { facts.isOwner && facts.phase != .finalized }
 
-    init(facts: HomeEventFacts, now: Date) {
+    init(facts: HomeEventFacts) {
         self.facts = facts
         if facts.isPast {
             status = .draft

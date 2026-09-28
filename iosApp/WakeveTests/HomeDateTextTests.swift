@@ -21,6 +21,14 @@ final class HomeDateTextTests: XCTestCase {
         XCTAssertTrue(fr.lowercased().contains("oct"), fr)
     }
 
+    func testCachedShortFormatterStillHonoursEachLocale() {
+        let date = ISO8601DateFormatter().date(from: "2026-10-10T12:00:00Z")!
+        let fr = HomeDateText.short(date, locale: Locale(identifier: "fr_FR"), calendar: utc)
+        let en = HomeDateText.short(date, locale: Locale(identifier: "en_US"), calendar: utc)
+        XCTAssertNotEqual(fr, en)
+        XCTAssertEqual(fr, HomeDateText.short(date, locale: Locale(identifier: "fr_FR"), calendar: utc))
+    }
+
     func testParsesKotlinIsoStrings() {
         XCTAssertNotNil(HomeDateText.parseISO("2026-10-10T12:00:00Z"))
         XCTAssertNotNil(HomeDateText.parseISO("2026-10-10T12:00:00.123Z"))

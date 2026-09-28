@@ -580,12 +580,6 @@ struct AuthenticatedView: View {
         }
     }
 
-    /// Même règle que `EventDetailViewModel.canDelete`.
-    private func canDeleteFromHome(_ id: String) -> Bool {
-        guard let event = repository.getEvent(id: id) else { return false }
-        return event.organizerId == userId && event.status != .finalized
-    }
-
     /// Reprend le chemin « modifier un brouillon » de la bibliothèque ; sans rollout invitation, ouvre le détail.
     private func editDraftFromHome(_ id: String) {
         guard invitationExperienceRolloutEnabled, let event = repository.getEvent(id: id) else {
@@ -1444,7 +1438,6 @@ struct AuthenticatedView: View {
                 onOpenEvent: { id in openEventFromHome(id) },
                 onNextStep: { step in handleHomeNextStep(step) },
                 onCreate: { beginRedesignEventCreation() },
-                canDelete: { id in canDeleteFromHome(id) },
                 onEditDraft: { id in editDraftFromHome(id) },
                 onDelete: { id in requestDeleteFromHome(id) }
             )

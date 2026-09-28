@@ -7,7 +7,6 @@ struct EventsHomeView: View {
     let onOpenEvent: (String) -> Void
     let onNextStep: (HomeNextStep) -> Void
     let onCreate: () -> Void
-    let canDelete: (String) -> Bool
     let onEditDraft: (String) -> Void
     let onDelete: (String) -> Void
 
@@ -165,7 +164,7 @@ struct EventsHomeView: View {
                 Label(String(localized: "home.v2.menu.edit"), systemImage: "pencil")
             }
         }
-        if canDelete(summary.id) {
+        if summary.canDelete {
             Button(role: .destructive) {
                 onDelete(summary.id)
             } label: {
@@ -183,7 +182,6 @@ struct EventsHomeContainer: View {
     let onOpenEvent: (String) -> Void
     let onNextStep: (HomeNextStep) -> Void
     let onCreate: () -> Void
-    let canDelete: (String) -> Bool
     let onEditDraft: (String) -> Void
     let onDelete: (String) -> Void
 
@@ -193,7 +191,6 @@ struct EventsHomeContainer: View {
         onOpenEvent: @escaping (String) -> Void,
         onNextStep: @escaping (HomeNextStep) -> Void,
         onCreate: @escaping () -> Void,
-        canDelete: @escaping (String) -> Bool,
         onEditDraft: @escaping (String) -> Void,
         onDelete: @escaping (String) -> Void
     ) {
@@ -204,7 +201,6 @@ struct EventsHomeContainer: View {
         self.onOpenEvent = onOpenEvent
         self.onNextStep = onNextStep
         self.onCreate = onCreate
-        self.canDelete = canDelete
         self.onEditDraft = onEditDraft
         self.onDelete = onDelete
     }
@@ -215,7 +211,6 @@ struct EventsHomeContainer: View {
             onOpenEvent: onOpenEvent,
             onNextStep: onNextStep,
             onCreate: onCreate,
-            canDelete: canDelete,
             onEditDraft: onEditDraft,
             onDelete: onDelete
         )

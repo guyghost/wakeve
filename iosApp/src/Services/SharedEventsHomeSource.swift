@@ -3,7 +3,10 @@ import Shared
 
 /// Source réelle de l'accueil (couche 3, #47) : lit les projections de la bibliothèque et le dépôt
 /// d'événements du module Kotlin `Shared`. Tout l'accès Kotlin de l'accueil reste ici.
-/// Non testée unitairement (dépend de la base) ; vérifiée sur simulateur.
+/// Seuls les appels suspendus `library(...)` restent sur le fil principal ; les lectures SQLite
+/// synchrones (sondage, participants, noms) tournent hors du fil principal (modèle mémoire
+/// Kotlin/Native moderne : objets partageables entre fils, pilote SQLDelight natif à pool).
+/// Les règles pures sont testées unitairement ; l'accès base est vérifié sur simulateur.
 struct SharedEventsHomeSource: EventsHomeSource {
     struct LoadFailed: Error {}
 
@@ -23,12 +26,16 @@ struct SharedEventsHomeSource: EventsHomeSource {
     }
 
     func loadEvents(viewerId: String) async throws -> [HomeRawEvent] {
-        try await load(viewerId: viewerId)
+        let cards = try await loadCards(viewerId: viewerId)
+        let reader = self
+        return await Task.detached(priority: .userInitiated) {
+            reader.rawEvents(from: cards, viewerId: viewerId)
+        }.value
     }
 
     /// Les fonctions suspendues Kotlin sont appelées depuis le fil principal.
     @MainActor
-    private func load(viewerId: String) async throws -> [HomeRawEvent] {
+    private func loadCards(viewerId: String) async throws -> [LibraryCardProjection] {
         let now = Kotlinx_datetimeInstant.companion.fromEpochMilliseconds(
             epochMilliseconds: Int64(Date().timeIntervalSince1970 * 1_000)
         )
@@ -48,11 +55,21 @@ struct SharedEventsHomeSource: EventsHomeSource {
             }
         }
         if failures == projections.count { throw LoadFailed() }
-        return cards.map { raw(from: $0, viewerId: viewerId) }
+        return cards
     }
 
-    @MainActor
-    private func raw(from card: LibraryCardProjection, viewerId: String) -> HomeRawEvent {
+    /// Lectures synchrones : une requête de sondage et une de participants par sondage,
+    /// noms mis en cache pour tout le chargement.
+    private func rawEvents(from cards: [LibraryCardProjection], viewerId: String) -> [HomeRawEvent] {
+        var names: [String: String] = [:]
+        return cards.map { raw(from: $0, viewerId: viewerId, names: &names) }
+    }
+
+    private func raw(
+        from card: LibraryCardProjection,
+        viewerId: String,
+        names: inout [String: String]
+    ) -> HomeRawEvent {
         let event = card.event
         let statusName = event.status.name
         let isOwner = event.organizerId == viewerId
@@ -93,7 +110,12 @@ struct SharedEventsHomeSource: EventsHomeSource {
             finalDateISO: event.finalDate,
             earliestSlotStartISO: Self.earliestStartISO(event.proposedSlots.compactMap(\.start)),
             ballots: ballots,
-            participantNames: event.participants.prefix(5).map(displayName),
+            participantNames: event.participants.prefix(5).map { userId in
+                if let cached = names[userId] { return cached }
+                let name = displayName(userId)
+                names[userId] = name
+                return name
+            },
             hasPendingSync: !(card.syncState is LibrarySyncStateSynced)
         )
     }
@@ -143,7 +165,6 @@ struct SharedEventsHomeSource: EventsHomeSource {
             .0
     }
 
-    @MainActor
     private func displayName(_ userId: String) -> String {
         let name = database.userQueries
             .selectUserById(id: userId)

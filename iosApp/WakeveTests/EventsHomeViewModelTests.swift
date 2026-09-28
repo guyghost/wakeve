@@ -10,6 +10,15 @@ final class EventsHomeViewModelTests: XCTestCase {
     }
     private struct Boom: Error {}
 
+    /// Source dont chaque appel reste suspendu jusqu'à ce que le test le termine.
+    @MainActor
+    private final class ControlledSource: EventsHomeSource {
+        var pending: [CheckedContinuation<[HomeRawEvent], Error>] = []
+        func loadEvents(viewerId: String) async throws -> [HomeRawEvent] {
+            try await withCheckedThrowingContinuation { pending.append($0) }
+        }
+    }
+
     private func raw(_ id: String, status: String = "POLLING", organizer: Bool = false, past: Bool = false,
                      voted: Bool = false, pending: Bool = false, accepted: Bool = true,
                      deadline: String = "2026-10-05T10:00:00Z", finalDate: String? = nil,
@@ -137,5 +146,37 @@ final class EventsHomeViewModelTests: XCTestCase {
         XCTAssertFalse(stats.userBallotComplete)
         XCTAssertEqual(stats.eligibleVoters, 1)
         XCTAssertEqual(stats.otherEligibleVoters, 0)
+    }
+
+    func testStaleReloadResultIsIgnored() async {
+        let source = ControlledSource()
+        let vm = EventsHomeViewModel(viewerId: "u", source: source, now: { self.fixedNow })
+        let first = Task { await vm.reload() }
+        while source.pending.count < 1 { await Task.yield() }
+        let second = Task { await vm.reload() }
+        while source.pending.count < 2 { await Task.yield() }
+
+        source.pending[1].resume(returning: [raw("fresh")])
+        await second.value
+        source.pending[0].resume(returning: [raw("stale")])
+        await first.value
+
+        XCTAssertEqual(vm.active.map(\.id), ["fresh"])
+    }
+
+    func testStaleFailureDoesNotOverrideFreshResult() async {
+        let source = ControlledSource()
+        let vm = EventsHomeViewModel(viewerId: "u", source: source, now: { self.fixedNow })
+        let first = Task { await vm.reload() }
+        while source.pending.count < 1 { await Task.yield() }
+        let second = Task { await vm.reload() }
+        while source.pending.count < 2 { await Task.yield() }
+
+        source.pending[1].resume(returning: [])
+        await second.value
+        source.pending[0].resume(throwing: Boom())
+        await first.value
+
+        XCTAssertEqual(vm.state, .empty)
     }
 }

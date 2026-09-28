@@ -13,7 +13,7 @@ final class EventsHomeViewTests: XCTestCase {
             ballots: HomeBallotStats(userBallotComplete: voted, votersWithCompleteBallot: 2, eligibleVoters: 4,
                                      otherVotersComplete: 1, otherEligibleVoters: 3),
             deadline: nil, eventDate: nil, participantNames: ["Léa", "Tom"]
-        ), now: now)
+        ))
     }
 
     func testCardAccessibilityLabelReadsTitleStatusAndPeople() {
@@ -40,6 +40,16 @@ final class EventsHomeViewTests: XCTestCase {
         XCTAssertTrue(source.contains("DisclosureGroup"), "La section Passés est repliée par défaut.")
         XCTAssertTrue(source.contains(".contextMenu"))
         XCTAssertTrue(source.contains(".refreshable"))
+    }
+
+    func testDeletionRightComesFromTheSummaryNotAnExtraRepositoryRead() throws {
+        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        let home = try String(contentsOf: root.appendingPathComponent("src/Views/Home/EventsHomeView.swift"), encoding: .utf8)
+        XCTAssertFalse(home.contains("canDelete: (String) -> Bool"))
+        XCTAssertTrue(home.contains("summary.canDelete"))
+        let content = try String(contentsOf: root.appendingPathComponent("src/Views/App/ContentView.swift"), encoding: .utf8)
+        XCTAssertFalse(content.contains("canDeleteFromHome"))
+        XCTAssertTrue(content.contains("requestDeleteFromHome"), "Le chemin de suppression reste en place.")
     }
 
     func testGridUsesOneColumnAtAccessibilitySizes() {
