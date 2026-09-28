@@ -8,7 +8,6 @@ final class PremiumDesignSystemContractTests: XCTestCase {
             "struct LiquidGlassCard",
             "struct LiquidGlassButton",
             "struct LiquidGlassToolbar",
-            "struct LiquidGlassTabBar",
             "struct EventHeroCard",
             "struct EventListRow",
             "struct ParticipantAvatarStack",
@@ -21,6 +20,7 @@ final class PremiumDesignSystemContractTests: XCTestCase {
         for component in requiredComponents {
             XCTAssertTrue(source.contains(component), "Missing premium component: \(component)")
         }
+        XCTAssertFalse(source.contains("struct LiquidGlassTabBar"), "LiquidGlassTabBar est remplacée par WKFloatingNavBar (#47).")
     }
 
     func testPremiumTokensCoverSemanticVisualSystem() throws {

@@ -224,63 +224,6 @@ struct LiquidGlassToolbar<Leading: View, Trailing: View>: View {
     }
 }
 
-struct LiquidGlassTabItem: Identifiable, Hashable {
-    let id: String
-    let title: String
-    let systemImage: String
-}
-
-struct LiquidGlassTabBar: View {
-    @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    let items: [LiquidGlassTabItem]
-    @Binding var selection: String
-
-    var body: some View {
-        HStack(spacing: WakeveTheme.Spacing.xs) {
-            ForEach(items) { item in
-                Button {
-                    selection = item.id
-                } label: {
-                    VStack(spacing: WakeveTheme.Spacing.xxs) {
-                        Image(systemName: item.systemImage)
-                            .font(.system(size: 19, weight: .semibold))
-                        Text(item.title)
-                            .font(WakeveTheme.Typography.tiny)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.78)
-                    }
-                    .foregroundColor(selection == item.id ? selectedColor : secondaryColor)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 54)
-                    .background(selection == item.id ? selectedFill : Color.clear)
-                    .clipShape(Capsule())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(item.title)
-            }
-        }
-        .padding(WakeveTheme.Spacing.xs)
-        .background(WakeveTheme.ColorToken.glassTint(for: colorScheme))
-        .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Glass.tabBarRadius, style: .continuous))
-        .liquidGlass(cornerRadius: WakeveTheme.Glass.tabBarRadius)
-        .animation(reduceMotion ? nil : WakeveTheme.Motion.standardSpring, value: selection)
-    }
-
-    private var selectedColor: Color {
-        colorScheme == .dark ? WakeveTheme.ColorToken.midnight : .white
-    }
-
-    private var secondaryColor: Color {
-        WakeveTheme.ColorToken.secondaryText(for: colorScheme)
-    }
-
-    private var selectedFill: Color {
-        colorScheme == .dark ? Color.white.opacity(0.9) : WakeveTheme.ColorToken.accent(for: colorScheme)
-    }
-}
-
 struct EventHeroCard<Content: View>: View {
     @Environment(\.colorScheme) private var colorScheme
 
