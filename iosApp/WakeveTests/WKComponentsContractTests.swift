@@ -80,6 +80,45 @@ final class WKComponentsContractTests: XCTestCase {
         XCTAssertTrue(source.contains(".accessibilityAddTraits(isHighlighted ? .isSelected : [])"))
     }
 
+    func testAppZoneHasExactlyEventsAndActivity() {
+        XCTAssertEqual(AppZone.allCases, [.events, .activity])
+        XCTAssertEqual(AppZone.events.systemImage, "calendar")
+        XCTAssertEqual(AppZone.activity.systemImage, "bell")
+    }
+
+    func testActivityBadgeLabelIsHiddenWhenZero() {
+        XCTAssertNil(WKFloatingNavBar.badgeText(for: 0))
+        XCTAssertEqual(WKFloatingNavBar.badgeText(for: 3), "3")
+        XCTAssertEqual(WKFloatingNavBar.badgeText(for: 120), "99+")
+    }
+
+    func testFloatingNavBarUsesGlassWithFallbacks() throws {
+        let source = try readProjectFile("iosApp/src/Components/WK/WKFloatingNavBar.swift")
+        XCTAssertTrue(source.contains("#available(iOS 26.0, *)"))
+        XCTAssertTrue(source.contains(".regularMaterial"))
+        XCTAssertTrue(source.contains("accessibilityReduceTransparency"))
+        XCTAssertTrue(source.contains("String(localized: \"wk.nav.create\")"))
+    }
+
+    func testActivityBadgeAccessibilityValueUsesPluralsPerLocale() {
+        XCTAssertEqual(
+            WKFloatingNavBar.badgeAccessibilityValue(for: 1, locale: Locale(identifier: "es")),
+            "1 pendiente"
+        )
+        XCTAssertEqual(
+            WKFloatingNavBar.badgeAccessibilityValue(for: 3, locale: Locale(identifier: "es")),
+            "3 pendientes"
+        )
+        XCTAssertEqual(
+            WKFloatingNavBar.badgeAccessibilityValue(for: 1, locale: Locale(identifier: "pt")),
+            "1 pendente"
+        )
+        XCTAssertEqual(
+            WKFloatingNavBar.badgeAccessibilityValue(for: 0, locale: Locale(identifier: "en")),
+            ""
+        )
+    }
+
     func readProjectFile(_ relativePath: String) throws -> String {
         let projectRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()   // WakeveTests
