@@ -37,6 +37,11 @@ internal object ProductLanguageSourceScanner {
     // Exact path + line + literal snapshots reviewed during the Task 5 final audit.
     // A moved or changed occurrence is intentionally rejected and must be reviewed again.
     private val reviewedOccurrenceHashes = setOf(
+        // WakeveNavHost next-action/status texts shifted by the lifecycle card wiring (unchanged copy).
+        106902340,
+        12420067,
+        -57417948,
+        -1077657109,
         -1051592007,
         -889788052,
         -37909471,
