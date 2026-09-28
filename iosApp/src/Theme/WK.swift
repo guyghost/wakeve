@@ -69,6 +69,12 @@ enum WK {
 
         static let primaryButton = WK.dynamic(light: 0x1C1C1E, dark: 0xFFFFFF)
         static let onPrimaryButton = WK.dynamic(light: 0xFFFFFF, dark: 0x1C1C1E)
+
+        /// Teintes pastel d'avatar, identiques en clair et en sombre (même personne = même couleur partout).
+        static let avatarTints: [Color] = [0xDCD6F7, 0xBDE8CF, 0xF7C9C4, 0xFBE3B8, 0xCFE3F7, 0xF3D1E6]
+            .map { Color(uiColor: WK.uiColor($0)) }
+        /// Initiales sur `avatarTints` : sombre dans les deux modes, les teintes restant claires.
+        static let onAvatar = Color(uiColor: WK.uiColor(0x1C1C1E))
     }
 
     // MARK: - Statuts

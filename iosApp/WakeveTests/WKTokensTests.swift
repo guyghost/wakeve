@@ -111,6 +111,29 @@ final class WKTokensTests: XCTestCase {
         }
     }
 
+    func testAvatarTintsMatchSpecAndAreOpaque() {
+        let expected: [(Int, Int, Int)] = [
+            (0xDC, 0xD6, 0xF7), (0xBD, 0xE8, 0xCF), (0xF7, 0xC9, 0xC4),
+            (0xFB, 0xE3, 0xB8), (0xCF, 0xE3, 0xF7), (0xF3, 0xD1, 0xE6)
+        ]
+        XCTAssertEqual(WK.Colors.avatarTints.count, expected.count)
+        for (tint, value) in zip(WK.Colors.avatarTints, expected) {
+            for style in [UIUserInterfaceStyle.light, .dark] {
+                XCTAssertTrue(rgb(tint, style) == value)
+            }
+        }
+    }
+
+    func testOnAvatarMeetsWCAGAAOnEveryAvatarTint() {
+        for style in [UIUserInterfaceStyle.light, .dark] {
+            XCTAssertTrue(rgb(WK.Colors.onAvatar, style) == (0x1C, 0x1C, 0x1E))
+            for (index, tint) in WK.Colors.avatarTints.enumerated() {
+                let ratio = contrast(WK.Colors.onAvatar, tint, style)
+                XCTAssertGreaterThanOrEqual(ratio, 4.5, "onAvatar vs avatarTints[\(index)] en \(style == .dark ? "sombre" : "clair") : \(ratio)")
+            }
+        }
+    }
+
     func testImmersiveMoodTextIsReadableOnItsBackground() {
         for mood in EventMoodPalette.Mood.allCases {
             let m = WK.Mood(palette: .palette(for: mood))

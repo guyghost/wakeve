@@ -12,14 +12,24 @@ final class WKStyleGuardTests: XCTestCase {
     private let rules: [Rule] = [
         Rule(name: "Color(hex:", regex: try! NSRegularExpression(pattern: #"Color\(hex:"#)),
         Rule(name: ".font(.system(size:", regex: try! NSRegularExpression(pattern: #"\.font\(\.system\(size:"#)),
-        Rule(name: "cornerRadius littéral", regex: try! NSRegularExpression(pattern: #"cornerRadius: ?[0-9]"#))
+        Rule(name: "cornerRadius littéral", regex: try! NSRegularExpression(pattern: #"cornerRadius: ?[0-9]"#)),
+        Rule(name: ".cornerRadius(", regex: try! NSRegularExpression(pattern: #"\.cornerRadius\("#)),
+        Rule(name: "Color(red:", regex: try! NSRegularExpression(pattern: #"Color\(red:"#))
     ]
 
-    /// Baseline mesurée après la couche 0 (2026-09-28). Baisser ces valeurs quand un écran est migré.
+    /// Règles propres aux composants WK (les couleurs brutes vivent dans WK.swift).
+    private let wkOnlyRules: [Rule] = [
+        Rule(name: "littéral hexadécimal 0xRRGGBB", regex: try! NSRegularExpression(pattern: #"0x[0-9A-Fa-f]{6}"#))
+    ]
+
+    /// Baseline mesurée après la couche 0 (2026-09-28), complétée à la revue finale de la couche 1.
+    /// Baisser ces valeurs quand un écran est migré.
     private let viewsBaseline: [String: Int] = [
         "Color(hex:": 65,
         ".font(.system(size:": 87,
-        "cornerRadius littéral": 68
+        "cornerRadius littéral": 68,
+        ".cornerRadius(": 13,
+        "Color(red:": 6
     ]
 
     private var srcRoot: URL {
@@ -44,7 +54,7 @@ final class WKStyleGuardTests: XCTestCase {
     }
 
     func testWKComponentsHaveNoHardCodedStyles() throws {
-        for rule in rules {
+        for rule in rules + wkOnlyRules {
             XCTAssertEqual(try count(rule, under: "Components/WK"), 0, "Style en dur interdit dans Components/WK : \(rule.name)")
         }
     }

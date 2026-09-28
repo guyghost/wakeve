@@ -14,8 +14,6 @@ struct WKAvatar: Identifiable, Equatable {
         return letters.isEmpty ? "?" : letters
     }
 
-    private static let tintPalette: [UInt32] = [0xDCD6F7, 0xBDE8CF, 0xF7C9C4, 0xFBE3B8, 0xCFE3F7, 0xF3D1E6]
-
     /// Index de palette stable et sans risque de dépassement, dérivé de l'identifiant.
     static func tintIndex(for id: String, paletteCount: Int) -> Int {
         let sum = id.unicodeScalars.reduce(UInt(0)) { $0 &+ UInt($1.value) }
@@ -24,8 +22,8 @@ struct WKAvatar: Identifiable, Equatable {
 
     /// Teinte stable dérivée de l'identifiant (même personne = même couleur partout).
     var tint: Color {
-        let index = Self.tintIndex(for: id, paletteCount: Self.tintPalette.count)
-        return Color(uiColor: WK.uiColor(Self.tintPalette[index]))
+        let tints = WK.Colors.avatarTints
+        return tints[Self.tintIndex(for: id, paletteCount: tints.count)]
     }
 }
 
@@ -112,7 +110,7 @@ struct WKAvatarStack: View {
     private func initialsView(_ avatar: WKAvatar) -> some View {
         Text(avatar.initials)
             .font(WK.Typo.micro.weight(.semibold))
-            .foregroundStyle(Color(uiColor: WK.uiColor(0x1C1C1E)))
+            .foregroundStyle(WK.Colors.onAvatar)
             .lineLimit(1)
             .minimumScaleFactor(0.6)
             // Les initiales restent dans la partie visible, hors du chevauchement.
