@@ -43,4 +43,24 @@ final class WKAvatarStackTests: XCTestCase {
         let label = WKAvatarStack.accessibilityLabel(for: avatars(["Léa", "Tom", "Max"]), locale: Locale(identifier: "en"))
         XCTAssertEqual(label, "Léa, Tom, and Max")
     }
+
+    func testAccessibilityLabelIsFullyFrenchForFrenchLocale() {
+        let label = WKAvatarStack.accessibilityLabel(for: avatars(["Léa", "Tom", "Max", "Sam", "Zoé", "Ana"]), locale: Locale(identifier: "fr"))
+        XCTAssertEqual(label, "Léa, Tom et 4 autres")
+    }
+
+    func testAccessibilityLabelSkipsBlankNames() {
+        let label = WKAvatarStack.accessibilityLabel(for: avatars(["Léa", "  ", "Tom"]), locale: Locale(identifier: "en"))
+        XCTAssertEqual(label, "Léa and Tom")
+    }
+
+    func testTintIndexIsDeterministicAndInRange() {
+        let ids = ["", "a", "uuid-123", String(repeating: "x", count: 500)]
+        for id in ids {
+            let first = WKAvatar.tintIndex(for: id, paletteCount: 6)
+            let second = WKAvatar.tintIndex(for: id, paletteCount: 6)
+            XCTAssertEqual(first, second, "id=\(id)")
+            XCTAssertTrue((0..<6).contains(first), "id=\(id) index=\(first)")
+        }
+    }
 }

@@ -9,6 +9,7 @@ final class WKTokensTests: XCTestCase {
         let resolved = UIColor(color).resolvedColor(with: UITraitCollection(userInterfaceStyle: style))
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
         resolved.getRed(&r, green: &g, blue: &b, alpha: &a)
+        XCTAssertEqual(a, 1, accuracy: 0.001, "Le contraste exige des couleurs opaques")
         return (Int(round(r * 255)), Int(round(g * 255)), Int(round(b * 255)))
     }
 
@@ -82,6 +83,13 @@ final class WKTokensTests: XCTestCase {
         XCTAssertEqual(WK.Motion.smooth(reduceMotion: true), WK.Motion.reducedFade)
         XCTAssertEqual(WK.Motion.bouncy(reduceMotion: true), WK.Motion.reducedFade)
         XCTAssertNotEqual(WK.Motion.bouncy(reduceMotion: false), WK.Motion.reducedFade)
+    }
+
+    func testTextOnCardInsetMeetsWCAGAA() {
+        for style in [UIUserInterfaceStyle.light, .dark] {
+            let ratio = contrast(WK.Colors.onCardInset, WK.Colors.cardInset, style)
+            XCTAssertGreaterThanOrEqual(ratio, 4.5, "onCardInset vs cardInset en \(style == .dark ? "sombre" : "clair") : \(ratio)")
+        }
     }
 
     func testImmersiveMoodTextIsReadableOnItsBackground() {

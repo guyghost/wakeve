@@ -32,6 +32,7 @@ enum WK {
         static let canvas = WK.dynamic(light: 0xF2F2F4, dark: 0x000000)
         static let card = WK.dynamic(light: 0xFFFFFF, dark: 0x1C1C1E)
         static let cardInset = WK.dynamic(light: 0xF6F6F8, dark: 0x2C2C2E)
+        static let onCardInset = WK.dynamic(light: 0x5A5A5F, dark: 0xAEAEB2)
 
         static let textPrimary = Color(uiColor: .label)
         static let textSecondary = Color(uiColor: .secondaryLabel)
