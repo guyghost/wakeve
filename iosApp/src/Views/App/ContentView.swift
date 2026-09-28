@@ -561,6 +561,15 @@ struct AuthenticatedView: View {
     /// Même aiguillage que les liens profonds `.event(.pollVoting/.pollResults)` (gardes d'accès incluses),
     /// sans toucher à l'état du service de liens profonds.
     private func handleHomeNextStep(_ step: HomeNextStep) {
+        // Sans rollout invitation, le routeur retombe sur le détail : ouvrir directement l'écran de sondage.
+        guard invitationExperienceRolloutEnabled else {
+            switch step.action {
+            case .vote: navigateInvitationDeepLink(eventId: step.eventId, destination: .pollVoting)
+            case .pollResults: navigateInvitationDeepLink(eventId: step.eventId, destination: .pollResults)
+            case .open: openEventFromHome(step.eventId)
+            }
+            return
+        }
         switch step.action {
         case .vote:
             navigateInvitationDeepLink(eventId: step.eventId, route: .poll, intent: .mutate)

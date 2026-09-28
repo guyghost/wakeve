@@ -150,4 +150,16 @@ final class RedesignShellTests: XCTestCase {
             .appendingPathComponent("src/Views/App/RedesignShellView.swift"), encoding: .utf8)
         XCTAssertTrue(source.contains("\"wk.wordmark\""))
     }
+
+    func testHomeNextStepOpensPollScreensWithoutInvitationRollout() throws {
+        let source = try contentViewSource()
+        guard let start = source.range(of: "private func handleHomeNextStep(_ step: HomeNextStep)") else {
+            return XCTFail()
+        }
+        let slice = String(source[start.lowerBound...].prefix(1200))
+        // Sans rollout invitation, le routeur retombe sur le détail : « Voter » doit ouvrir le vote.
+        XCTAssertTrue(slice.contains("guard invitationExperienceRolloutEnabled else"))
+        XCTAssertTrue(slice.contains("destination: .pollVoting"))
+        XCTAssertTrue(slice.contains("destination: .pollResults"))
+    }
 }
