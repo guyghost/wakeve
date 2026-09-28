@@ -272,11 +272,14 @@ Consignés après les couches 0-1 (proposition #47) ; ils font désormais partie
 - **`WKCard`** n'a pas d'ombre (fond blanc sur canvas gris suffit) ; à réévaluer en couche 3.
 - **Pluriels** : `wk.nav.activity.badge_format` vit dans `Localizable.stringsdict` (5 langues).
 - **Avatars** : le compteur « +N » est numérique ; le libellé VoiceOver nomme jusqu'à 3 personnes, sinon « A, B et N autres ».
-- **Barre flottante** : Dynamic Type plafonné à AX1 ; aux tailles d'accessibilité, la zone sélectionnée n'affiche que son icône (titre via VoiceOver et Large Content Viewer) — à valider avec @designer.
+- **Barre flottante** : Dynamic Type plafonné à AX1 ; aux tailles d'accessibilité, la zone sélectionnée n'affiche que son icône (titre via VoiceOver et Large Content Viewer) — validé (2026-09-28).
+
+### Décisions
+
+- **Registre du français : tutoiement** (décidé le 2026-09-28). Toute nouvelle chaîne `fr` tutoie ; les chaînes existantes qui vouvoient (`fr.lproj/Localizable.strings`) sont à convertir.
 
 ### Points ouverts
 
 - **Increase Contrast** : `textMuted` n'a pas encore de variante haut contraste.
-- **Registre du français** : la spec et `wk.status.action_needed` (« À toi d'agir ») tutoient, le reste de l'app vouvoie. Décision produit à prendre avant la couche 3.
 - **Mood immersif** : le fond (palette sombre assombrie de 72 %) est presque noir ; facteur à revoir en couche 8.
 - **Clés orphelines** : ~32 clés `home.*` laissées par la suppression de `HomeView` ; nettoyage en couche 9.
