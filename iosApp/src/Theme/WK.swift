@@ -26,8 +26,9 @@ enum WK {
         RoundedRectangle(cornerRadius: radius, style: .continuous)
     }
 
-    /// Forme des boutons texte : capsule sur une ligne (le rayon est plafonné à la demi-hauteur),
-    /// rectangle arrondi quand le titre passe à la ligne (tailles d'accessibilité) pour ne pas rogner le texte.
+    /// Forme des boutons texte : rectangle continu de rayon `Radius.lg` (28 pt). C'est une capsule tant que
+    /// la hauteur reste ≤ 56 pt (le rayon est plafonné à la demi-hauteur ; ≈ AX1 sur une ligne), puis un
+    /// rectangle arrondi continu au-delà (grandes tailles, titre sur plusieurs lignes) pour ne pas rogner le texte.
     static var pill: RoundedRectangle { shape(Radius.lg) }
 
     // MARK: - Localisation
@@ -142,6 +143,8 @@ enum WK {
         static let minTapTarget: CGFloat = 44
         static let avatar: CGFloat = 28
         static let primaryButtonHeight: CGFloat = 52
+        /// Hauteur minimale de la pastille de compteur (badge de la barre flottante).
+        static let badge: CGFloat = 16
     }
 
     // MARK: - Typographie (toujours indexée sur Dynamic Type)

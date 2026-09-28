@@ -80,8 +80,8 @@ struct WKAvatarStack: View {
                     .foregroundStyle(WK.Colors.onCardInset)
                     .padding(.horizontal, WK.Space.xs)
                     .frame(minWidth: side, minHeight: side)
-                    .background(WK.Colors.cardInset, in: Capsule())
-                    .overlay(Capsule().stroke(WK.Colors.card, lineWidth: WK.Stroke.emphasis))
+                    .background(WK.Colors.cardInset, in: Capsule(style: .continuous))
+                    .overlay(Capsule(style: .continuous).stroke(WK.Colors.card, lineWidth: WK.Stroke.emphasis))
             }
         }
         .dynamicTypeSize(...DynamicTypeSize.accessibility1)

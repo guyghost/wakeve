@@ -73,7 +73,7 @@ struct WKFloatingNavBar: View {
             .padding(.horizontal, WK.Space.sm)
             .frame(minWidth: WK.Size.minTapTarget, minHeight: WK.Size.minTapTarget)
             .background {
-                if isSelected { Capsule().fill(WK.Colors.accentFill) }
+                if isSelected { Capsule(style: .continuous).fill(WK.Colors.accentFill) }
             }
             .overlay(alignment: .topTrailing) {
                 if let badge {
@@ -84,13 +84,13 @@ struct WKFloatingNavBar: View {
                         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                         .foregroundStyle(WK.Status.actionNeeded.fill)
                         .padding(.horizontal, WK.Space.xxs)
-                        .frame(minHeight: WK.Space.md)
-                        .background(WK.Status.actionNeeded.onFill, in: Capsule())
+                        .frame(minHeight: WK.Size.badge)
+                        .background(WK.Status.actionNeeded.onFill, in: Capsule(style: .continuous))
                         .offset(x: WK.Space.xxs, y: WK.Space.xxxs)
                         .accessibilityHidden(true)
                 }
             }
-            .contentShape(Capsule())
+            .contentShape(Capsule(style: .continuous))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(zone.title)
@@ -107,16 +107,16 @@ struct WKFloatingNavBar: View {
 
         func body(content: Content) -> some View {
             if #available(iOS 26.0, *), !reduceTransparency {
-                content.glassEffect(.regular, in: Capsule())
+                content.glassEffect(.regular, in: Capsule(style: .continuous))
             } else if reduceTransparency {
                 // Contour sous le contenu : la pastille du badge reste au-dessus.
                 content.background {
-                    Capsule()
+                    Capsule(style: .continuous)
                         .fill(WK.Colors.card)
-                        .overlay(Capsule().stroke(Color(uiColor: .opaqueSeparator), lineWidth: WK.Stroke.hairline))
+                        .overlay(Capsule(style: .continuous).stroke(Color(uiColor: .opaqueSeparator), lineWidth: WK.Stroke.hairline))
                 }
             } else {
-                content.background(.regularMaterial, in: Capsule())
+                content.background(.regularMaterial, in: Capsule(style: .continuous))
             }
         }
     }

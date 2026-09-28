@@ -122,9 +122,45 @@ final class WKComponentsContractTests: XCTestCase {
 
     func testActionBarItemIdentityIsStable() {
         let a = WKActionBar.Item(systemImage: "trash", label: "Supprimer") {}
-        let b = WKActionBar.Item(systemImage: "trash", label: "Supprimer") {}
-        XCTAssertEqual(a.id, "trash|Supprimer")
+        let b = WKActionBar.Item(systemImage: "trash", label: "Delete") {}
+        // L'identité ne dépend pas du libellé (donc pas de la langue).
+        XCTAssertEqual(a.id, "trash")
         XCTAssertEqual(a.id, b.id)
+        let c = WKActionBar.Item(systemImage: "trash", label: "Supprimer", accessibilityID: "wk.test.delete") {}
+        let d = WKActionBar.Item(systemImage: "trash", label: "Eliminar", accessibilityID: "wk.test.delete") {}
+        XCTAssertEqual(c.id, "wk.test.delete")
+        XCTAssertEqual(c.id, d.id)
+    }
+
+    func testActionBarAppliesStableAccessibilityIdentifiers() throws {
+        _ = WKActionBar(primaryTitle: "OK", primaryAction: {}, secondary: [], primaryAccessibilityID: "wk.test.bar.primary")
+        let source = try readProjectFile("iosApp/src/Components/WK/WKActionBar.swift")
+        XCTAssertTrue(source.contains(".wkAccessibilityID(item.accessibilityID)"))
+        XCTAssertTrue(source.contains(".wkAccessibilityID(primaryAccessibilityID)"))
+        XCTAssertFalse(source.contains("+ label"), "L'identité ne doit pas inclure le libellé.")
+    }
+
+    func testComponentsUseContinuousCapsules() throws {
+        for name in Self.wkComponentFiles + ["WKGallery"] {
+            let source = try readProjectFile("iosApp/src/Components/WK/\(name).swift")
+            XCTAssertFalse(source.contains("Capsule()"), "\(name) : utiliser Capsule(style: .continuous).")
+        }
+    }
+
+    func testNavBarBadgeUsesBadgeSizeToken() throws {
+        XCTAssertEqual(WK.Size.badge, 16)
+        let source = try readProjectFile("iosApp/src/Components/WK/WKFloatingNavBar.swift")
+        XCTAssertTrue(source.contains(".frame(minHeight: WK.Size.badge)"))
+        XCTAssertFalse(source.contains(".frame(minHeight: WK.Space.md)"))
+    }
+
+    func testWrappingButtonTitlesAreCentered() throws {
+        let buttons = try readProjectFile("iosApp/src/Components/WK/WKButtons.swift")
+        let chip = buttons.components(separatedBy: "struct WKChip").last?
+            .components(separatedBy: "struct WKCircleButton").first ?? ""
+        XCTAssertTrue(chip.contains(".multilineTextAlignment(.center)"), "WKChip")
+        let bar = try readProjectFile("iosApp/src/Components/WK/WKActionBar.swift")
+        XCTAssertTrue(bar.contains(".multilineTextAlignment(.center)"), "WKActionBar")
     }
 
     func testComponentsAcceptStableAccessibilityIdentifiers() {

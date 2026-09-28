@@ -52,6 +52,7 @@ struct WKChip: View {
                 Text(title)
             }
             .font(WK.Typo.caption.weight(.medium))
+            .multilineTextAlignment(.center)
             .foregroundStyle(isFilled ? WK.Colors.onPrimaryButton : WK.Colors.textPrimary)
             .padding(.horizontal, WK.Space.sm)
             .padding(.vertical, WK.Space.xs)

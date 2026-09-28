@@ -5,21 +5,26 @@ struct WKActionBar: View {
     struct Item: Identifiable {
         let systemImage: String
         let label: String
+        /// Identifiant d'accessibilité stable, indépendant de la langue (spec §7).
+        var accessibilityID: String? = nil
         let action: () -> Void
 
-        /// Identité stable entre rendus ; sert aussi d'identifiant d'accessibilité.
-        var id: String { systemImage + "|" + label }
+        /// Identité stable entre rendus et indépendante du libellé localisé.
+        /// Deux items partageant la même icône DOIVENT recevoir des `accessibilityID` distincts.
+        var id: String { accessibilityID ?? systemImage }
     }
 
     let primaryTitle: String
     let primaryAction: () -> Void
     var secondary: [Item] = []
+    var primaryAccessibilityID: String? = nil
 
     var body: some View {
         HStack(spacing: WK.Space.xs) {
             Button(action: primaryAction) {
                 Text(primaryTitle)
                     .font(WK.Typo.headline)
+                    .multilineTextAlignment(.center)
                     .foregroundStyle(WK.Colors.onAccent)
                     .padding(.horizontal, WK.Space.md)
                     .padding(.vertical, WK.Space.xs)
@@ -28,6 +33,7 @@ struct WKActionBar: View {
                     .contentShape(WK.pill)
             }
             .buttonStyle(.plain)
+            .wkAccessibilityID(primaryAccessibilityID)
 
             if !secondary.isEmpty {
                 HStack(spacing: 0) {
@@ -45,11 +51,11 @@ struct WKActionBar: View {
                         .accessibilityShowsLargeContentViewer {
                             Label(item.label, systemImage: item.systemImage)
                         }
-                        .accessibilityIdentifier(item.id)
+                        .wkAccessibilityID(item.accessibilityID)
                     }
                 }
                 .padding(.horizontal, WK.Space.xxs)
-                .background(WK.Colors.cardInset, in: Capsule())
+                .background(WK.Colors.cardInset, in: Capsule(style: .continuous))
             }
         }
     }

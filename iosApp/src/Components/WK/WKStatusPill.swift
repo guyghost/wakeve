@@ -10,7 +10,7 @@ struct WKStatusPill: View {
             .foregroundStyle(status.onFill)
             .padding(.horizontal, WK.Space.xs)
             .padding(.vertical, WK.Space.xxs)
-            .background(status.fill, in: Capsule())
+            .background(status.fill, in: Capsule(style: .continuous))
             .accessibilityLabel(text)
     }
 }
