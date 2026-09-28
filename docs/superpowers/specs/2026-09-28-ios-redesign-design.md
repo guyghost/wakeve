@@ -211,7 +211,7 @@ Tout est derrière un flag `redesign2026` lu via un `FeatureFlags` unique (rempl
 |---|---|---|
 | 0 | Nettoyage | Suppression du code mort (`HomeView`, `EventDetailExperienceView`, `LiquidGlassTabBar`) |
 | 1 | Socle | `WK` tokens + composants + previews + garde-fou `WKStyleGuardTests` (cliquet) |
-| 2 | Shell | `AppRouter`, `NavigationStack` sur `IosRoute`, `WKFloatingNavBar` ; écrans existants branchés tels quels |
+| 2 | Shell | Shell progressif : `AppRouter` (plan de routage + présentation unique profil/réglages), `RedesignShellView` + `WKFloatingNavBar`, zones Événements (aiguillage `AppView` existant) et Activité (`InboxView`), derrière `iosRedesign2026` |
 | 3 | Accueil | `EventsHomeView` |
 | 4 | Hub | `EventHubView` + `WKModuleTile` (modules ouvrent encore les anciens écrans) |
 | 5 | Modules | Conversion en `WKModuleSheet`, un module par PR : Transport → Repas → Matériel → Activités → Hébergement → Budget → Paiement → Photos → Commentaires → Invités → Réunions |
@@ -273,6 +273,16 @@ Consignés après les couches 0-1 (proposition #47) ; ils font désormais partie
 - **Pluriels** : `wk.nav.activity.badge_format` vit dans `Localizable.stringsdict` (5 langues).
 - **Avatars** : le compteur « +N » est numérique ; le libellé VoiceOver nomme jusqu'à 3 personnes, sinon « A, B et N autres ».
 - **Barre flottante** : Dynamic Type plafonné à AX1 ; aux tailles d'accessibilité, la zone sélectionnée n'affiche que son icône (titre via VoiceOver et Large Content Viewer) — validé (2026-09-28).
+
+### Couche 2 (shell progressif, décidé le 2026-09-28)
+
+- Pas de `NavigationStack(path:)` en couche 2 : la zone Événements héberge l'aiguillage `AppView` existant ; la migration vers une pile native se fait écran par écran quand chacun est refondu (couches 3-5) ; `AppView` disparaît en couche 9.
+- `presentedModule` / `EventModule` reportés à la couche 5.
+- Le flag `iosInvitationExperienceV1` reste tel quel ; `FeatureFlags` ne porte que `iosRedesign2026` (activable en debug via `-iosRedesign2026 YES`) ; fusion en couche 9.
+- Réglages : le bouton rond ouvre les préférences de notification ; profil et réglages sont une présentation unique (`AppRouter.presentation`, `.sheet(item:)`).
+- Création depuis la barre : `beginRedesignEventCreation()` reprend la logique du deep link `.eventCreate`.
+- Correctif inclus : les taps de notification portant un `deepLink` sont désormais ouverts (`NotificationDeepLink`).
+- Limites visibles connues (résolues par la couche 3) : l'en-tête avatar/réglages s'empile au-dessus du titre de l'ancien accueil ; la zone Activité affiche le titre « Messages » d'`InboxView`.
 
 ### Décisions
 
