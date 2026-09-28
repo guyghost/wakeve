@@ -177,7 +177,7 @@ final class WakeveAIContractTests: XCTestCase {
         XCTAssertTrue(source.contains("event.detail.ai.priority.low"))
         XCTAssertTrue(source.contains("common.edit"))
         XCTAssertTrue(source.contains("common.apply"))
-        XCTAssertFalse(source.contains("Préparez les prochaines actions"))
+        XCTAssertFalse(source.contains("Prépare les prochaines actions"))
         XCTAssertFalse(source.contains("Sondages proposés"))
         XCTAssertFalse(source.contains("La suggestion n'est pas disponible pour le moment."))
         XCTAssertFalse(source.contains("Text(\"\\(item.category.rawValue) · \\(item.priority.rawValue)\")"))

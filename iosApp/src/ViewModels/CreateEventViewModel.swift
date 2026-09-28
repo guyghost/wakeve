@@ -231,11 +231,11 @@ class CreateEventViewModel: StateMachineViewModel<
                 }
             } catch WakeveAIError.timedOut {
                 await MainActor.run {
-                    self.smartEventDraftState.phase = .failed("La suggestion prend trop de temps. Continuez manuellement.")
+                    self.smartEventDraftState.phase = .failed("La suggestion prend trop de temps. Continue manuellement.")
                 }
             } catch {
                 await MainActor.run {
-                    self.smartEventDraftState.phase = .failed("Suggestion indisponible. Continuez manuellement.")
+                    self.smartEventDraftState.phase = .failed("Suggestion indisponible. Continue manuellement.")
                 }
             }
         }

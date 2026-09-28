@@ -120,7 +120,7 @@ final class PremiumMessagesContractTests: XCTestCase {
         XCTAssertTrue(content.contains("InboxTimelineMessageRow("))
         XCTAssertFalse(content.contains("ForEach(sampleComments)"), "Message detail should render the actual event conversation, not fixed sample comments.")
         XCTAssertFalse(content.contains("Relancer le groupe"))
-        XCTAssertFalse(content.contains("Envoyez un message prêt à coller"))
+        XCTAssertFalse(content.contains("Envoie un message prêt à coller"))
         XCTAssertFalse(content.contains("Poll Trends"))
         XCTAssertFalse(content.contains("You're Invited"))
         XCTAssertFalse(content.contains("Event Progress"))

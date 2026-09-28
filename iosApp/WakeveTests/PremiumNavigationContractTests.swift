@@ -59,8 +59,8 @@ final class PremiumNavigationContractTests: XCTestCase {
         XCTAssertTrue(routing.contains("organization.access.confirm_before_budget"))
         XCTAssertTrue(routing.contains("organization.access.confirm_before_transport"))
         XCTAssertTrue(source.contains("safe_link.verified"))
-        XCTAssertFalse(routing.contains("Sélectionnez un événement pour voir les options"))
-        XCTAssertFalse(routing.contains("Confirmez votre présence avant d'ouvrir le budget."))
+        XCTAssertFalse(routing.contains("Sélectionne un événement pour voir les options"))
+        XCTAssertFalse(routing.contains("Confirme ta présence avant d'ouvrir le budget."))
         XCTAssertFalse(source.contains("verificationStatus: \"vérifié\""))
     }
 

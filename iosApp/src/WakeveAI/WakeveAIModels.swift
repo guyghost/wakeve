@@ -20,7 +20,7 @@ enum WakeveAIAvailability: Equatable, Sendable {
         case .available:
             return "Suggestion disponible"
         case .appleIntelligenceDisabled:
-            return "Apple Intelligence est desactive. Vous pouvez continuer sans suggestion."
+            return "Apple Intelligence est desactive. Tu peux continuer sans suggestion."
         case .notReady:
             return "La suggestion n'est pas prete pour le moment."
         case .unsupportedDevice:

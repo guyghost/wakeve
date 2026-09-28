@@ -230,7 +230,7 @@ final class PremiumDesignSystemContractTests: XCTestCase {
         XCTAssertTrue(addSheet.contains("budget.add_sheet.title"))
         XCTAssertTrue(addSheet.contains("budget.add_sheet.validation.amount_required"))
         XCTAssertFalse(addSheet.contains("Nouvelle dépense"), "Add expense copy should be localized.")
-        XCTAssertFalse(addSheet.contains("Ajoutez un coût clair"), "Add expense explanatory copy should be localized.")
+        XCTAssertFalse(addSheet.contains("Ajoute un coût clair"), "Add expense explanatory copy should be localized.")
         XCTAssertFalse(addSheet.contains("Form {"), "Add expense should avoid native Form chrome.")
         XCTAssertFalse(addSheet.contains("NavigationView"), "Add expense should use modern NavigationStack.")
         XCTAssertTrue(source.contains("budget.expenses_title"))
