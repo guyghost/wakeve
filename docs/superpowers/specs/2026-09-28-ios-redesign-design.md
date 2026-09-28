@@ -286,6 +286,16 @@ Consignés après les couches 0-1 (proposition #47) ; ils font désormais partie
 - Correctif inclus : les taps de notification portant un `deepLink` sont désormais ouverts (`NotificationDeepLink`).
 - Limites visibles connues (résolues par la couche 3) : l'en-tête avatar/réglages s'empile au-dessus du titre de l'ancien accueil ; la zone Activité affiche le titre « Messages » d'`InboxView`.
 
+### Couche 3 (nouvel accueil, 2026-09-28)
+
+- Source de l'accueil : projections de la bibliothèque d'invitations (filtrage par utilisateur, rôle, passé/à venir, état de synchro) + dépôt d'événements (votes reçus, bulletin de l'utilisateur, noms), via `SharedEventsHomeSource` → `EventsHomeViewModel` → règles pures `HomeEventSummary` / `HomeNextStep`.
+- Les sondages et brouillons sans créneau daté restent actifs même si le classifieur de la bibliothèque les range en « passé ».
+- L'organisateur compte parmi les votants (il peut voter) : tant qu'il n'a pas voté, l'accueil lui affiche « À toi de voter ».
+- Pas d'action « Relancer » (aucune API) : l'action de « Prochaine étape » ouvre le vote, les résultats ou l'organisation.
+- Menu contextuel : Ouvrir, Modifier le brouillon, Supprimer (organisateur, non finalisé). Pas de Dupliquer ni Archiver (aucune API).
+- En-tête du shell : mot-symbole « wakeve » au centre et fond opaque (le contenu défile dessous).
+- Défauts repérés hors couche, à traiter plus tard : « Invités et invitations » sans bouton retour ; « Terminé » de l'aperçu du studio ferme tout le studio ; message « Date enregistrée sur cet appareil » après un vote ; en-tête du shell très grand en AX5.
+
 ### Décisions
 
 - **Registre du français : tutoiement** (décidé le 2026-09-28). Toute nouvelle chaîne `fr` tutoie ; les chaînes existantes qui vouvoient (`fr.lproj/Localizable.strings`) sont à convertir.
