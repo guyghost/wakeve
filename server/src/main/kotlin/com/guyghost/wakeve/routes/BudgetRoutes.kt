@@ -230,10 +230,10 @@ fun io.ktor.server.routing.Route.budgetRoutes(
                     }
                 }
 
-                call.respond(HttpStatusCode.OK, mapOf(
-                    "items" to items,
-                    "count" to items.size
-                ))
+                call.respond(
+                    HttpStatusCode.OK,
+                    BudgetItemsResponse(items = items, count = items.size)
+                )
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
@@ -290,7 +290,14 @@ fun io.ktor.server.routing.Route.budgetRoutes(
                     val sharedBy: List<String> = emptyList()
                 )
 
-                val request = call.receive<CreateItemRequest>()
+                val request = try {
+                    call.receive<CreateItemRequest>()
+                } catch (e: Exception) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to budgetInvalidPayloadMessage())
+                    )
+                }
                 val normalizedName = request.name.trim()
                 val normalizedDescription = request.description.trim()
                 if (call.rejectRejectedModeratedText(
@@ -415,7 +422,14 @@ fun io.ktor.server.routing.Route.budgetRoutes(
                     val clientSyncState: String? = null
                 )
 
-                val request = call.receive<CreateExpenseRequest>()
+                val request = try {
+                    call.receive<CreateExpenseRequest>()
+                } catch (e: Exception) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to budgetInvalidPayloadMessage())
+                    )
+                }
                 val normalizedPayerId = request.payerId.trim()
                 val normalizedSplitParticipantIds = request.splitParticipantIds.map { it.trim() }
                 if (normalizedPayerId != userId) {
@@ -601,7 +615,14 @@ fun io.ktor.server.routing.Route.budgetRoutes(
                     )
                 }
 
-                val item = call.receive<BudgetItem>()
+                val item = try {
+                    call.receive<BudgetItem>()
+                } catch (e: Exception) {
+                    return@put call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to budgetInvalidPayloadMessage())
+                    )
+                }
 
                 // Validate item
                 val validation = BudgetCalculator.validateBudgetItem(item)
@@ -741,11 +762,10 @@ fun io.ktor.server.routing.Route.budgetRoutes(
                     participantCount = participantCount
                 )
 
-                call.respond(HttpStatusCode.OK, mapOf(
-                    "budget" to budget,
-                    "summary" to summary,
-                    "itemCount" to items.size
-                ))
+                call.respond(
+                    HttpStatusCode.OK,
+                    BudgetSummaryResponse(budget = budget, summary = summary, itemCount = items.size)
+                )
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
@@ -923,20 +943,23 @@ fun io.ktor.server.routing.Route.budgetRoutes(
 
                 val categoryStats = BudgetCategory.values().map { category ->
                     val categoryItems = repository.getBudgetItemsByCategory(budget.id, category)
-                    mapOf(
-                        "category" to category.name,
-                        "count" to categoryItems.size,
-                        "estimatedTotal" to categoryItems.sumOf { it.estimatedCost },
-                        "actualTotal" to categoryItems.sumOf { it.actualCost }
+                    BudgetCategoryStatisticsResponse(
+                        category = category.name,
+                        count = categoryItems.size,
+                        estimatedTotal = categoryItems.sumOf { it.estimatedCost },
+                        actualTotal = categoryItems.sumOf { it.actualCost }
                     )
-                }.filter { (it["count"] as Int) > 0 }
+                }.filter { it.count > 0 }
 
-                call.respond(HttpStatusCode.OK, mapOf(
-                    "totalItems" to totalItems,
-                    "paidItems" to paidItems,
-                    "unpaidItems" to unpaidItems,
-                    "categoryStatistics" to categoryStats
-                ))
+                call.respond(
+                    HttpStatusCode.OK,
+                    BudgetStatisticsResponse(
+                        totalItems = totalItems,
+                        paidItems = paidItems,
+                        unpaidItems = unpaidItems,
+                        categoryStatistics = categoryStats
+                    )
+                )
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
@@ -954,6 +977,39 @@ fun io.ktor.server.routing.Route.budgetRoutes(
 private fun getCurrentIsoTimestamp(): String {
     return java.time.Instant.now().toString()
 }
+
+// Typed response bodies: heterogeneous `mapOf(...)` bodies (e.g. a list next to an
+// Int) cannot be serialized by kotlinx.serialization and made these routes
+// answer 500 (QA BUG-D, API multi-user QA 2026-09-27).
+
+@Serializable
+private data class BudgetItemsResponse(
+    val items: List<BudgetItem>,
+    val count: Int
+)
+
+@Serializable
+private data class BudgetSummaryResponse(
+    val budget: Budget,
+    val summary: String,
+    val itemCount: Int
+)
+
+@Serializable
+private data class BudgetStatisticsResponse(
+    val totalItems: Long,
+    val paidItems: Long,
+    val unpaidItems: Long,
+    val categoryStatistics: List<BudgetCategoryStatisticsResponse>
+)
+
+@Serializable
+private data class BudgetCategoryStatisticsResponse(
+    val category: String,
+    val count: Int,
+    val estimatedTotal: Double,
+    val actualTotal: Double
+)
 
 @Serializable
 private data class BudgetSettlementsResponse(
@@ -987,6 +1043,9 @@ private fun budgetAuditDenial(eventId: String, userId: String, action: String): 
         "auditAction" to action
     )
 }
+
+internal fun budgetInvalidPayloadMessage(): String =
+    "Invalid budget request: required fields are missing or malformed."
 
 internal fun budgetReadFailureMessage(): String =
     "Failed to fetch the budget. Please try again."
