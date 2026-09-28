@@ -96,5 +96,7 @@ struct RedesignShellView<Events: View, Activity: View>: View {
         }
         .padding(.horizontal, WK.Space.screen)
         .padding(.vertical, WK.Space.xxs)
+        // Le contenu défile sous l'en-tête (safeAreaInset) : un fond opaque évite la superposition.
+        .background(WK.Colors.canvas.ignoresSafeArea(edges: .top))
     }
 }

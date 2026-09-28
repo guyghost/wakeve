@@ -162,4 +162,14 @@ final class RedesignShellTests: XCTestCase {
         XCTAssertTrue(slice.contains("destination: .pollVoting"))
         XCTAssertTrue(slice.contains("destination: .pollResults"))
     }
+
+    func testShellHeaderIsOpaqueOverScrolledContent() throws {
+        let source = try String(contentsOf: URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("src/Views/App/RedesignShellView.swift"), encoding: .utf8)
+        guard let start = source.range(of: "private var header: some View") else { return XCTFail() }
+        let slice = String(source[start.lowerBound...])
+        // Le contenu de l'accueil défile sous l'en-tête : sans fond, il se superpose au logotype.
+        XCTAssertTrue(slice.contains(".background(WK.Colors.canvas.ignoresSafeArea(edges: .top))"))
+    }
 }
