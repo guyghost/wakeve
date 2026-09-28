@@ -280,6 +280,8 @@ Consignés après les couches 0-1 (proposition #47) ; ils font désormais partie
 - `presentedModule` / `EventModule` reportés à la couche 5.
 - Le flag `iosInvitationExperienceV1` reste tel quel ; `FeatureFlags` ne porte que `iosRedesign2026` (activable en debug via `-iosRedesign2026 YES`) ; fusion en couche 9.
 - Réglages : le bouton rond ouvre les préférences de notification ; profil et réglages sont une présentation unique (`AppRouter.presentation`, `.sheet(item:)`).
+- Sémantique changée sous flag : le deep link `wakeve://settings` ouvre les préférences de notification (en legacy, il ouvrait `ProfileTabView`) ; le profil reste accessible via `wakeve://profile` et l'avatar.
+- Zone Activité : `InboxView` reçoit `reloadToken` (rechargement à chaque entrée dans la zone) et `onRootStateChange` (la barre flottante se masque dans le détail et en mode sélection).
 - Création depuis la barre : `beginRedesignEventCreation()` reprend la logique du deep link `.eventCreate`.
 - Correctif inclus : les taps de notification portant un `deepLink` sont désormais ouverts (`NotificationDeepLink`).
 - Limites visibles connues (résolues par la couche 3) : l'en-tête avatar/réglages s'empile au-dessus du titre de l'ancien accueil ; la zone Activité affiche le titre « Messages » d'`InboxView`.
