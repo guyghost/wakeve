@@ -12,7 +12,9 @@ final class WKComponentsContractTests: XCTestCase {
         "wk.status.pending",
         "wk.status.action_needed",
         "wk.status.draft",
-        "wk.module.highlight"
+        "wk.module.highlight",
+        "wk.nav.profile",
+        "wk.nav.settings"
     ]
 
     /// Clés pluralisées : vivent uniquement dans Localizable.stringsdict.

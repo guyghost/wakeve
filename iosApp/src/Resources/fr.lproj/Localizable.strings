@@ -2297,3 +2297,5 @@
 "wk.status.action_needed" = "À toi d'agir";
 "wk.status.draft" = "Brouillon";
 "wk.module.highlight" = "Prochaine étape";
+"wk.nav.profile" = "Profil";
+"wk.nav.settings" = "Réglages";

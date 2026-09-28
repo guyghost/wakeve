@@ -2273,3 +2273,5 @@
 "wk.status.action_needed" = "Action needed";
 "wk.status.draft" = "Draft";
 "wk.module.highlight" = "Next step";
+"wk.nav.profile" = "Profile";
+"wk.nav.settings" = "Settings";
