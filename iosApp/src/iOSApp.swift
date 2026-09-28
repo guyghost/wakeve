@@ -70,8 +70,7 @@ struct iOSApp: App {
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NavigateToEvent"))) { notification in
                 // Handle notification tap deep link
-                if let eventId = notification.userInfo?["eventId"] as? String {
-                    let url = URL(string: "wakeve://event/\(eventId)")!
+                if let url = NotificationDeepLink.url(from: notification.userInfo ?? [:]) {
                     handleDeepLink(url)
                 }
             }
