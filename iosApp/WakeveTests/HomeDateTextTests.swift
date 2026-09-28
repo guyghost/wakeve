@@ -55,7 +55,7 @@ final class HomeDateTextTests: XCTestCase {
             "home.v2.next_step.caption_format", "home.v2.next_step.vote.subtitle", "home.v2.next_step.ready.subtitle",
             "home.v2.next_step.polling.subtitle", "home.v2.next_step.organizing.subtitle",
             "home.v2.next_step.action.vote", "home.v2.next_step.action.results", "home.v2.next_step.action.organize",
-            "home.v2.next_step.action.choose_date", "home.v2.closes_today", "home.v2.a11y.votes_format",
+            "home.v2.next_step.action.choose_date", "home.v2.closes_today", "home.v2.today", "home.v2.a11y.votes_format",
             "home.v2.section.past", "home.v2.empty.title", "home.v2.empty.body", "home.v2.empty.action",
             "home.v2.menu.open", "home.v2.menu.edit", "home.v2.menu.delete", "home.v2.sync.pending", "wk.wordmark"
         ]

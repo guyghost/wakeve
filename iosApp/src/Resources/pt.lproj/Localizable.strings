@@ -2304,5 +2304,6 @@
 "home.v2.menu.delete" = "Excluir";
 "home.v2.sync.pending" = "Alterações aguardando sincronização";
 "home.v2.closes_today" = "fecha hoje";
+"home.v2.today" = "hoje";
 "home.v2.a11y.votes_format" = "%1$d de %2$d votos";
 "wk.wordmark" = "wakeve";

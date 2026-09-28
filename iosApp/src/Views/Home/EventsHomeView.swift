@@ -30,21 +30,30 @@ struct EventsHomeView: View {
         }
     }
 
-    /// Unité affichée à côté du grand chiffre : « /8 » ou « jours » accordé.
+    /// Grand chiffre : « aujourd'hui » le jour de l'événement plutôt que « 0 jours ».
+    static func heroValue(for step: HomeNextStep, locale: Locale = WK.appLocale) -> String {
+        if case .days(0) = step.metric { return WK.localizedFormat("home.v2.today", locale: locale) }
+        return step.value
+    }
+
+    /// Unité affichée à côté du grand chiffre : « /8 » ou « jours » accordé (aucune le jour J).
     static func heroUnit(for step: HomeNextStep, locale: Locale = WK.appLocale) -> String? {
         switch step.metric {
         case .votes: return step.unit
+        case .days(0): return nil
         case .days(let days): return " " + HomeDateText.daysUnit(days, locale: locale)
         case .unknown: return nil
         }
     }
 
-    /// Valeur lue par VoiceOver : « 5 votes sur 8 », « 5 jours ».
+    /// Valeur lue par VoiceOver : « 5 votes sur 8 », « 5 jours », « aujourd'hui ».
     static func heroAccessibilityValue(for step: HomeNextStep, locale: Locale = WK.appLocale) -> String? {
         switch step.metric {
         case .votes(let complete, let eligible):
             return String(format: WK.localizedFormat("home.v2.a11y.votes_format", locale: locale),
                           locale: locale, complete, eligible)
+        case .days(0):
+            return WK.localizedFormat("home.v2.today", locale: locale)
         case .days(let days):
             return "\(days) " + HomeDateText.daysUnit(days, locale: locale)
         case .unknown:
@@ -91,7 +100,7 @@ struct EventsHomeView: View {
                             format: String(localized: "home.v2.next_step.caption_format"),
                             step.title
                         ),
-                        value: step.value,
+                        value: Self.heroValue(for: step),
                         unit: Self.heroUnit(for: step),
                         subtitle: Self.subtitle(for: step),
                         accessibilityValue: Self.heroAccessibilityValue(for: step),

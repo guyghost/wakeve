@@ -90,6 +90,27 @@ final class EventsHomeViewTests: XCTestCase {
         XCTAssertEqual(EventsHomeView.heroAccessibilityValue(for: oneDay, locale: en), "1 day")
     }
 
+    func testOrganizingHeroSaysTodayOnTheEventDay() {
+        let today = HomeNextStep(eventId: "e", title: "Raclette", kind: .organizing, action: .open,
+                                 metric: .days(0), daysLeft: 0)
+        let fr = Locale(identifier: "fr")
+        let en = Locale(identifier: "en")
+        XCTAssertEqual(EventsHomeView.heroValue(for: today, locale: fr), "aujourd'hui")
+        XCTAssertEqual(EventsHomeView.heroValue(for: today, locale: en), "today")
+        XCTAssertNil(EventsHomeView.heroUnit(for: today, locale: fr), "Pas de « 0 jours ».")
+        XCTAssertEqual(EventsHomeView.heroAccessibilityValue(for: today, locale: fr), "aujourd'hui")
+        XCTAssertEqual(EventsHomeView.heroAccessibilityValue(for: today, locale: en), "today")
+        let later = HomeNextStep(eventId: "e", title: "Raclette", kind: .organizing, action: .open,
+                                 metric: .days(3), daysLeft: 3)
+        XCTAssertEqual(EventsHomeView.heroValue(for: later, locale: fr), "3")
+        let votes = HomeNextStep(eventId: "e", title: "Raclette", kind: .voteRequired, action: .vote,
+                                 metric: .votes(complete: 0, eligible: 4), daysLeft: 0)
+        XCTAssertEqual(EventsHomeView.heroValue(for: votes, locale: fr), "0")
+        let home = try? String(contentsOf: URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .deletingLastPathComponent().appendingPathComponent("src/Views/Home/EventsHomeView.swift"), encoding: .utf8)
+        XCTAssertTrue(home?.contains("value: Self.heroValue(for: step)") == true)
+    }
+
     func testHeroMetricPrefersExplicitVoiceOverValue() {
         XCTAssertEqual(
             WKHeroMetric.accessibilitySummary(caption: "Raclette", value: "5", unit: "/8", subtitle: "votes reçus",
