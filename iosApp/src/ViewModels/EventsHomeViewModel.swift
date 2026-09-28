@@ -8,7 +8,7 @@ struct HomeRawEvent: Equatable {
     let isOrganizer: Bool
     let isOwner: Bool               // `event.organizerId == viewerId`
     let isPast: Bool                // depuis LibraryCardProjection.temporalClass (voir `keepsActive`)
-    let readOnly: Bool              // LibraryCardProjection.interactionPolicy == READ_ONLY
+    let readOnly: Bool              // `SharedEventsHomeSource.isReadOnly` (finalisé ou passé non actif)
     let viewerAccepted: Bool        // RSVP accepté (toujours vrai pour l'organisateur)
     let deadlineISO: String
     let finalDateISO: String?

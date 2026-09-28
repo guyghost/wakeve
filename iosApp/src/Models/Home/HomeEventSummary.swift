@@ -9,10 +9,18 @@ struct HomeBallotStats: Equatable {
     let eligibleVoters: Int
     let otherVotersComplete: Int
     let otherEligibleVoters: Int
+    /// Faux si le sondage n'a pas pu être lu : ni appel à voter, ni « prêt à confirmer ».
+    var ballotsKnown: Bool = true
 
     static let none = HomeBallotStats(
         userBallotComplete: false, votersWithCompleteBallot: 0, eligibleVoters: 0,
         otherVotersComplete: 0, otherEligibleVoters: 0
+    )
+
+    /// Bulletins inconnus : l'utilisateur est traité comme ayant voté (aucun appel à voter).
+    static let unknown = HomeBallotStats(
+        userBallotComplete: true, votersWithCompleteBallot: 0, eligibleVoters: 0,
+        otherVotersComplete: 0, otherEligibleVoters: 0, ballotsKnown: false
     )
 }
 
@@ -27,9 +35,9 @@ struct HomeEventFacts: Equatable {
     let role: Role
     let isOwner: Bool
     let isPast: Bool
-    /// Politique d'interaction « lecture seule » de la projection (passé, finalisé, archivé).
+    /// Lecture seule : finalisé, ou passé sans être gardé actif (voir `SharedEventsHomeSource.isReadOnly`).
     let readOnly: Bool
-    /// Échéance future, ou absente.
+    /// Échéance strictement future, ou absente.
     let pollOpen: Bool
     /// Invitation acceptée (toujours vrai pour l'organisateur).
     let viewerAccepted: Bool
@@ -44,11 +52,14 @@ struct HomeEventFacts: Equatable {
 
     private var pollActionable: Bool { phase == .polling && !isPast && !readOnly }
 
-    /// Organisateur : tous les autres votants éligibles (au moins un) ont un bulletin complet,
-    /// que l'organisateur ait voté ou non.
+    /// Organisateur, bulletins connus :
+    /// - sondage ouvert : tous les autres votants éligibles (au moins un) ont un bulletin complet,
+    ///   que l'organisateur ait voté ou non ;
+    /// - échéance passée : au moins un bulletin complet (choisir la date est la seule action utile).
     var readyToConfirm: Bool {
-        pollActionable && role == .organizer
-            && ballots.otherEligibleVoters > 0
+        guard pollActionable, role == .organizer, ballots.ballotsKnown else { return false }
+        if !pollOpen { return ballots.votersWithCompleteBallot > 0 }
+        return ballots.otherEligibleVoters > 0
             && ballots.otherVotersComplete >= ballots.otherEligibleVoters
     }
 
@@ -152,10 +163,13 @@ struct HomeNextStep: Equatable {
             return votes(f, kind: .voteRequired, action: .vote, now: now)
         }
         if let f = soonest(active.filter(\.readyToConfirm), by: \.deadline) {
+            // Sondage ouvert : bulletins des autres votants ; échéance passée : tous les bulletins.
+            let metric: Metric = f.pollOpen
+                ? .votes(complete: f.ballots.otherVotersComplete, eligible: f.ballots.otherEligibleVoters)
+                : .votes(complete: f.votersWithCompleteBallot, eligible: f.eligibleVoters)
             return HomeNextStep(
                 eventId: f.id, title: f.title, kind: .readyToConfirm, action: .pollResults,
-                metric: .votes(complete: f.ballots.otherVotersComplete, eligible: f.ballots.otherEligibleVoters),
-                daysLeft: nil
+                metric: metric, daysLeft: nil
             )
         }
         if let f = soonest(active.filter { $0.phase == .polling && $0.role == .organizer && !$0.readOnly }, by: \.deadline) {
@@ -177,7 +191,9 @@ struct HomeNextStep: Equatable {
     private static func votes(_ f: HomeEventFacts, kind: Kind, action: Action, now: Date) -> HomeNextStep {
         HomeNextStep(
             eventId: f.id, title: f.title, kind: kind, action: action,
-            metric: .votes(complete: f.votersWithCompleteBallot, eligible: f.eligibleVoters),
+            metric: f.ballots.ballotsKnown
+                ? .votes(complete: f.votersWithCompleteBallot, eligible: f.eligibleVoters)
+                : .unknown,
             daysLeft: f.pollOpen ? f.deadline.map { HomeDateText.daysBetween(now, $0) } : nil
         )
     }

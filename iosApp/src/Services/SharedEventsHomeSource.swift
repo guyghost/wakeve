@@ -74,21 +74,23 @@ struct SharedEventsHomeSource: EventsHomeSource {
         let statusName = event.status.name
         let isOwner = event.organizerId == viewerId
         let isOrganizer = card.memberships.contains(.hosting) || isOwner
+        let isTemporallyPast = card.temporalClass == .past
         let isActive = Self.keepsActive(
             statusName: statusName,
-            isTemporallyPast: card.temporalClass == .past,
+            isTemporallyPast: isTemporallyPast,
             hasStructuredEndBound: EventTemporalClassifier.shared.structuredEndBound(event: event) != nil
         )
         let ballots: HomeBallotStats
         if event.status == .polling {
-            let votes = repository.getPoll(eventId: event.id)?.votes ?? [:]
+            // Sondage illisible : bulletins inconnus (ni « à voter » ni « prêt »).
+            let votes = repository.getPoll(eventId: event.id)?.votes
             let accepted = (repository.getParticipantRecords(eventId: event.id) ?? [])
                 .map { ParticipantAccessMapper.shared.fromRepositoryRecord(record: $0) }
                 .filter { $0.role == .member && $0.rsvp == .accepted }
                 .map(\.userId)
             ballots = Self.ballotStats(
                 slotIds: Set(event.proposedSlots.map(\.id)),
-                ballots: votes.mapValues { Set($0.keys) },
+                ballots: votes?.mapValues { Set($0.keys) },
                 organizerId: event.organizerId,
                 acceptedParticipantIds: Set(accepted),
                 viewerId: viewerId
@@ -103,7 +105,7 @@ struct SharedEventsHomeSource: EventsHomeSource {
             isOrganizer: isOrganizer,
             isOwner: isOwner,
             isPast: !isActive,
-            readOnly: card.interactionPolicy == .readOnly,
+            readOnly: Self.isReadOnly(statusName: statusName, keepsActive: isActive, temporallyPast: isTemporallyPast),
             // `ATTENDING` = membre actif avec RSVP accepté (projection de la bibliothèque).
             viewerAccepted: isOrganizer || card.memberships.contains(.attending),
             deadlineISO: event.deadline,
@@ -134,15 +136,23 @@ struct SharedEventsHomeSource: EventsHomeSource {
         }
     }
 
+    /// Lecture seule : finalisé, ou passé sans être gardé actif. Contrairement à la politique
+    /// d'interaction de la projection, un sondage sans créneau daté (classé « passé ») reste actionnable.
+    static func isReadOnly(statusName: String, keepsActive: Bool, temporallyPast: Bool) -> Bool {
+        statusName == "FINALIZED" || (temporallyPast && !keepsActive)
+    }
+
     /// Bulletins complets des votants éligibles (participants acceptés + organisateur).
-    /// `ballots` : identifiants de créneaux votés, par identifiant d'utilisateur.
+    /// `ballots` : identifiants de créneaux votés, par identifiant d'utilisateur ; `nil` si le
+    /// sondage n'a pas pu être lu (bulletins inconnus).
     static func ballotStats(
         slotIds: Set<String>,
-        ballots: [String: Set<String>],
+        ballots: [String: Set<String>]?,
         organizerId: String,
         acceptedParticipantIds: Set<String>,
         viewerId: String
     ) -> HomeBallotStats {
+        guard let ballots else { return .unknown }
         func isComplete(_ userId: String) -> Bool {
             !slotIds.isEmpty && slotIds.isSubset(of: ballots[userId] ?? [])
         }

@@ -179,10 +179,53 @@ final class HomeEventSummaryTests: XCTestCase {
 
     func testClosedPollHeroHasNoDeadlineCountdown() {
         let past = now.addingTimeInterval(-86_400)
-        let f = facts(role: .organizer, pollOpen: false, userBallotComplete: true, deadline: past)
+        let f = facts(role: .organizer, pollOpen: false, votersWithCompleteBallot: 0, eligibleVoters: 3,
+                      otherVotersComplete: 0, otherEligibleVoters: 2, deadline: past)
         let step = HomeNextStep.pick(from: [f], now: now)
         XCTAssertEqual(step?.kind, .pollInProgress)
         XCTAssertNil(step?.daysLeft)
+    }
+
+    // MARK: - Échéance passée et bulletins inconnus (revue finale couche 3)
+
+    func testOrganizerCanConfirmAfterTheDeadlineWithOneBallot() {
+        let f = facts(role: .organizer, pollOpen: false, userBallotComplete: true,
+                      votersWithCompleteBallot: 1, eligibleVoters: 3, otherVotersComplete: 0, otherEligibleVoters: 2,
+                      deadline: now.addingTimeInterval(-86_400))
+        XCTAssertTrue(f.readyToConfirm)
+        XCTAssertEqual(HomeEventSummary(facts: f).label, .key("home.v2.status.ready_to_confirm"))
+        let step = HomeNextStep.pick(from: [f], now: now)
+        XCTAssertEqual(step?.kind, .readyToConfirm)
+        XCTAssertEqual(step?.metric, .votes(complete: 1, eligible: 3))
+    }
+
+    func testOrganizerAfterTheDeadlineWithoutBallotsIsPending() {
+        let f = facts(role: .organizer, pollOpen: false, votersWithCompleteBallot: 0, eligibleVoters: 3,
+                      otherVotersComplete: 0, otherEligibleVoters: 2)
+        XCTAssertFalse(f.readyToConfirm)
+        XCTAssertFalse(f.voteRequired)
+        let s = HomeEventSummary(facts: f)
+        XCTAssertEqual(s.status, .pending)
+        XCTAssertEqual(s.label, .key("home.v2.status.polling"))
+    }
+
+    func testParticipantAfterTheDeadlineIsNeverReady() {
+        XCTAssertFalse(facts(role: .participant, pollOpen: false, votersWithCompleteBallot: 3).readyToConfirm)
+    }
+
+    func testUnknownBallotsNeverAskToVoteNorClaimReady() {
+        let base = facts(role: .organizer)
+        let unknown = HomeEventFacts(
+            id: base.id, title: base.title, phase: .polling, role: .organizer, isOwner: true,
+            isPast: false, readOnly: false, pollOpen: false, viewerAccepted: true, ballots: .unknown,
+            deadline: nil, eventDate: nil, participantNames: []
+        )
+        XCTAssertFalse(unknown.voteRequired)
+        XCTAssertFalse(unknown.readyToConfirm)
+        XCTAssertEqual(HomeEventSummary(facts: unknown).status, .pending)
+        let step = HomeNextStep.pick(from: [unknown], now: now)
+        XCTAssertEqual(step?.kind, .pollInProgress)
+        XCTAssertEqual(step?.metric, .unknown, "Pas de « 0/0 » quand les bulletins sont inconnus.")
     }
 
     func testOnlyTheOwnerCanDeleteAndNeverAFinalizedEvent() {

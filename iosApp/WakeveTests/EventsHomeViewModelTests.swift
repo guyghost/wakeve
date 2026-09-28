@@ -139,6 +139,51 @@ final class EventsHomeViewModelTests: XCTestCase {
         ))
     }
 
+    func testDeadlineEqualToNowClosesThePoll() {
+        let f = EventsHomeViewModel.facts(from: raw("p", deadline: "2026-10-01T10:00:00Z"), now: fixedNow)
+        XCTAssertFalse(f.pollOpen)
+        XCTAssertFalse(f.voteRequired)
+    }
+
+    func testReadOnlyOnlyForFinalizedOrPastEventsNotKeptActive() {
+        XCTAssertFalse(SharedEventsHomeSource.isReadOnly(statusName: "POLLING", keepsActive: true, temporallyPast: true),
+                       "Un sondage à créneaux flexibles (sans borne de fin) reste actionnable.")
+        XCTAssertTrue(SharedEventsHomeSource.isReadOnly(statusName: "FINALIZED", keepsActive: true, temporallyPast: false))
+        XCTAssertTrue(SharedEventsHomeSource.isReadOnly(statusName: "CONFIRMED", keepsActive: false, temporallyPast: true))
+        XCTAssertFalse(SharedEventsHomeSource.isReadOnly(statusName: "CONFIRMED", keepsActive: true, temporallyPast: false))
+        XCTAssertFalse(SharedEventsHomeSource.isReadOnly(statusName: "DRAFT", keepsActive: true, temporallyPast: true))
+    }
+
+    func testFlexibleSlotPollStillAsksAcceptedParticipantToVote() {
+        let keeps = SharedEventsHomeSource.keepsActive(statusName: "POLLING", isTemporallyPast: true, hasStructuredEndBound: false)
+        let readOnly = SharedEventsHomeSource.isReadOnly(statusName: "POLLING", keepsActive: keeps, temporallyPast: true)
+        let r = raw("flex")
+        let flexible = HomeRawEvent(
+            id: r.id, title: r.title, statusName: r.statusName, isOrganizer: false, isOwner: false,
+            isPast: !keeps, readOnly: readOnly, viewerAccepted: true, deadlineISO: r.deadlineISO,
+            finalDateISO: nil, earliestSlotStartISO: nil, ballots: r.ballots, participantNames: [], hasPendingSync: false
+        )
+        XCTAssertTrue(EventsHomeViewModel.facts(from: flexible, now: fixedNow).voteRequired)
+    }
+
+    func testUnreadablePollMarksBallotsUnknown() {
+        let stats = SharedEventsHomeSource.ballotStats(
+            slotIds: ["s1"], ballots: nil, organizerId: "org", acceptedParticipantIds: ["lea"], viewerId: "lea"
+        )
+        XCTAssertEqual(stats, .unknown)
+        XCTAssertFalse(stats.ballotsKnown)
+        XCTAssertTrue(stats.userBallotComplete, "Pas d'appel à voter quand le sondage est illisible.")
+        XCTAssertEqual(stats.votersWithCompleteBallot, 0)
+        XCTAssertEqual(stats.eligibleVoters, 0)
+        let r = raw("p")
+        let unreadable = HomeRawEvent(
+            id: r.id, title: r.title, statusName: "POLLING", isOrganizer: false, isOwner: false,
+            isPast: false, readOnly: false, viewerAccepted: true, deadlineISO: r.deadlineISO,
+            finalDateISO: nil, earliestSlotStartISO: nil, ballots: stats, participantNames: [], hasPendingSync: false
+        )
+        XCTAssertFalse(EventsHomeViewModel.facts(from: unreadable, now: fixedNow).voteRequired)
+    }
+
     func testBallotStatsWithoutSlotsHasNoCompleteBallot() {
         let stats = SharedEventsHomeSource.ballotStats(
             slotIds: [], ballots: ["org": []], organizerId: "org", acceptedParticipantIds: [], viewerId: "org"
