@@ -72,4 +72,14 @@ final class RedesignShellTests: XCTestCase {
         let body = String(source[start.lowerBound...].prefix(1200))
         XCTAssertTrue(body.contains("AppRouter.plan(for: route)"), "Toute route passe d'abord par le plan du routeur.")
     }
+
+    func testShellPresentsProfileAndSettingsFromOneRouterOwnedSheet() throws {
+        let source = try contentViewSource()
+        guard let start = source.range(of: "private var redesignChrome: some View") else {
+            return XCTFail("redesignChrome introuvable")
+        }
+        let body = String(source[start.lowerBound...].prefix(2000))
+        XCTAssertTrue(body.contains(".sheet(item: $redesignRouter.presentation)"), "Une seule feuille pilotée par le routeur.")
+        XCTAssertFalse(body.contains("showNotificationPreferencesSheet"), "Plus de relais vers la feuille legacy.")
+    }
 }

@@ -16,9 +16,15 @@ final class AppRouter {
         case delegateToEvents(IosRoute)
     }
 
+    /// Surface présentée par le shell. Une seule à la fois : la feuille
+    /// `.sheet(item:)` bascule d'elle-même quand la valeur change.
+    enum Presentation: String, Identifiable {
+        case profile, settings
+        var id: String { rawValue }
+    }
+
     var zone: AppZone = .events
-    var isProfilePresented = false
-    var isSettingsPresented = false
+    var presentation: Presentation?
 
     nonisolated static func plan(for route: IosRoute) -> Plan {
         switch route {
@@ -45,12 +51,10 @@ final class AppRouter {
             zone = .activity
             return nil
         case .presentProfile:
-            isSettingsPresented = false
-            isProfilePresented = true
+            presentation = .profile
             return nil
         case .presentSettings:
-            isProfilePresented = false
-            isSettingsPresented = true
+            presentation = .settings
             return nil
         case .showEventsRoot:
             dismissPresentations()
@@ -64,7 +68,6 @@ final class AppRouter {
     }
 
     private func dismissPresentations() {
-        isProfilePresented = false
-        isSettingsPresented = false
+        presentation = nil
     }
 }

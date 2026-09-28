@@ -487,22 +487,24 @@ struct AuthenticatedView: View {
                 )
             }
         )
-        .sheet(isPresented: $redesignRouter.isProfilePresented) {
-            ProfileTabView(
-                userId: userId,
-                userName: authStateManager.currentUser?.name,
-                userEmail: authStateManager.currentUser?.email,
-                onDismiss: { redesignRouter.isProfilePresented = false },
-                onSignOut: {
-                    authStateManager.signOut()
+        .sheet(item: $redesignRouter.presentation) { presentation in
+            // Une seule feuille possédée par le routeur : changer de présentation
+            // pendant qu'une feuille est ouverte la ferme puis présente l'autre.
+            switch presentation {
+            case .profile:
+                ProfileTabView(
+                    userId: userId,
+                    userName: authStateManager.currentUser?.name,
+                    userEmail: authStateManager.currentUser?.email,
+                    onDismiss: { redesignRouter.presentation = nil },
+                    onSignOut: {
+                        authStateManager.signOut()
+                    }
+                )
+            case .settings:
+                NavigationStack {
+                    NotificationPreferencesView(userId: userId)
                 }
-            )
-        }
-        .onChange(of: redesignRouter.isSettingsPresented) { _, isPresented in
-            // Layer 2: the settings button opens the existing notification preferences sheet.
-            if isPresented {
-                showNotificationPreferencesSheet = true
-                redesignRouter.isSettingsPresented = false
             }
         }
     }

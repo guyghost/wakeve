@@ -29,6 +29,12 @@ final class AppRouterTests: XCTestCase {
         }
     }
 
+    func testPresentationIsIdentifiableForASingleItemSheet() {
+        XCTAssertEqual(AppRouter.Presentation.profile.id, "profile")
+        XCTAssertEqual(AppRouter.Presentation.settings.id, "settings")
+        XCTAssertNil(AppRouter().presentation)
+    }
+
     func testApplyingAPlanUpdatesShellState() {
         let router = AppRouter()
         XCTAssertEqual(router.zone, .events)
@@ -37,18 +43,26 @@ final class AppRouterTests: XCTestCase {
         XCTAssertEqual(router.zone, .activity)
 
         XCTAssertNil(router.apply(.presentProfile))
-        XCTAssertTrue(router.isProfilePresented)
+        XCTAssertEqual(router.presentation, .profile)
 
         XCTAssertNil(router.apply(.presentSettings))
-        XCTAssertTrue(router.isSettingsPresented)
-        XCTAssertFalse(router.isProfilePresented, "Une seule présentation à la fois.")
+        XCTAssertEqual(router.presentation, .settings, "Une seule présentation à la fois : profil → réglages bascule la feuille.")
 
+        XCTAssertNil(router.apply(.presentProfile))
+        XCTAssertEqual(router.presentation, .profile, "Réglages → profil bascule aussi la feuille.")
+
+        XCTAssertNil(router.apply(.showActivity))
+        XCTAssertNil(router.presentation, "Changer de zone ferme la présentation.")
+
+        router.apply(.presentSettings)
         let delegated = router.apply(.delegateToEvents(.event(.detail(eventId: "e1"))))
         XCTAssertEqual(delegated, .event(.detail(eventId: "e1")))
         XCTAssertEqual(router.zone, .events)
-        XCTAssertFalse(router.isSettingsPresented, "Une navigation d'événement ferme les présentations.")
+        XCTAssertNil(router.presentation, "Une navigation d'événement ferme les présentations.")
 
+        router.apply(.presentProfile)
         XCTAssertEqual(router.apply(.showEventsRoot), .topLevel(.home))
         XCTAssertEqual(router.zone, .events)
+        XCTAssertNil(router.presentation, "Le retour à la racine ferme les présentations.")
     }
 }
