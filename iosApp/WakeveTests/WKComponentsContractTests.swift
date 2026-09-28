@@ -47,6 +47,23 @@ final class WKComponentsContractTests: XCTestCase {
         XCTAssertTrue(circle.contains("#available(iOS 26.0, *)"))
     }
 
+    func testHeroMetricCombinesValueAndCaptionForVoiceOver() throws {
+        let source = try readProjectFile("iosApp/src/Components/WK/WKHeroMetric.swift")
+        XCTAssertTrue(source.contains("static func accessibilitySummary"))
+        XCTAssertTrue(source.contains("WK.Typo.display"))
+    }
+
+    func testHeroMetricSummaryReadsNaturally() {
+        XCTAssertEqual(
+            WKHeroMetric.accessibilitySummary(caption: "Week-end Annecy", value: "5", unit: "/8", subtitle: "votes reçus"),
+            "Week-end Annecy, 5/8, votes reçus"
+        )
+        XCTAssertEqual(
+            WKHeroMetric.accessibilitySummary(caption: "Rendez-vous", value: "19:30", unit: nil, subtitle: nil),
+            "Rendez-vous, 19:30"
+        )
+    }
+
     func readProjectFile(_ relativePath: String) throws -> String {
         let projectRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()   // WakeveTests
