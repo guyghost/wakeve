@@ -55,27 +55,92 @@ struct SharedEventsHomeSource: EventsHomeSource {
     private func raw(from card: LibraryCardProjection, viewerId: String) -> HomeRawEvent {
         let event = card.event
         let statusName = event.status.name
-        let keepsActive = event.status == .polling || event.status == .draft
-        let slotIds = Set(event.proposedSlots.map(\.id))
-        let votes = repository.getPoll(eventId: event.id)?.votes ?? [:]
-        let completeVoters = slotIds.isEmpty ? 0 : votes.values.filter { ballot in
-            slotIds.isSubset(of: Set(ballot.keys))
-        }.count
+        let isOwner = event.organizerId == viewerId
+        let isOrganizer = card.memberships.contains(.hosting) || isOwner
+        let isActive = Self.keepsActive(
+            statusName: statusName,
+            isTemporallyPast: card.temporalClass == .past,
+            hasStructuredEndBound: EventTemporalClassifier.shared.structuredEndBound(event: event) != nil
+        )
+        let ballots: HomeBallotStats
+        if event.status == .polling {
+            let votes = repository.getPoll(eventId: event.id)?.votes ?? [:]
+            let accepted = (repository.getParticipantRecords(eventId: event.id) ?? [])
+                .map { ParticipantAccessMapper.shared.fromRepositoryRecord(record: $0) }
+                .filter { $0.role == .member && $0.rsvp == .accepted }
+                .map(\.userId)
+            ballots = Self.ballotStats(
+                slotIds: Set(event.proposedSlots.map(\.id)),
+                ballots: votes.mapValues { Set($0.keys) },
+                organizerId: event.organizerId,
+                acceptedParticipantIds: Set(accepted),
+                viewerId: viewerId
+            )
+        } else {
+            ballots = .none
+        }
         return HomeRawEvent(
             id: event.id,
             title: event.title,
             statusName: statusName,
-            isOrganizer: card.memberships.contains(.hosting) || event.organizerId == viewerId,
-            isPast: card.temporalClass == .past && !keepsActive,
+            isOrganizer: isOrganizer,
+            isOwner: isOwner,
+            isPast: !isActive,
+            readOnly: card.interactionPolicy == .readOnly,
+            // `ATTENDING` = membre actif avec RSVP accepté (projection de la bibliothèque).
+            viewerAccepted: isOrganizer || card.memberships.contains(.attending),
             deadlineISO: event.deadline,
             finalDateISO: event.finalDate,
-            firstSlotStartISO: event.proposedSlots.first?.start,
-            userBallotComplete: repository.hasCompleteBallot(eventId: event.id, participantId: viewerId),
-            votersWithCompleteBallot: completeVoters,
-            eligibleVoters: max(1, event.participants.count),
+            earliestSlotStartISO: Self.earliestStartISO(event.proposedSlots.compactMap(\.start)),
+            ballots: ballots,
             participantNames: event.participants.prefix(5).map(displayName),
             hasPendingSync: !(card.syncState is LibrarySyncStateSynced)
         )
+    }
+
+    // MARK: - Règles pures (testées unitairement)
+
+    /// Un événement classé « passé » reste actif seulement s'il est brouillon, ou en sondage
+    /// sans borne de fin structurée (aucun créneau exploitable). Un sondage dont tous les
+    /// créneaux sont terminés rejoint « Passés ».
+    static func keepsActive(statusName: String, isTemporallyPast: Bool, hasStructuredEndBound: Bool) -> Bool {
+        guard isTemporallyPast else { return true }
+        switch statusName {
+        case "DRAFT": return true
+        case "POLLING": return !hasStructuredEndBound
+        default: return false
+        }
+    }
+
+    /// Bulletins complets des votants éligibles (participants acceptés + organisateur).
+    /// `ballots` : identifiants de créneaux votés, par identifiant d'utilisateur.
+    static func ballotStats(
+        slotIds: Set<String>,
+        ballots: [String: Set<String>],
+        organizerId: String,
+        acceptedParticipantIds: Set<String>,
+        viewerId: String
+    ) -> HomeBallotStats {
+        func isComplete(_ userId: String) -> Bool {
+            !slotIds.isEmpty && slotIds.isSubset(of: ballots[userId] ?? [])
+        }
+        let eligible = acceptedParticipantIds.union([organizerId])
+        let others = eligible.subtracting([organizerId])
+        return HomeBallotStats(
+            userBallotComplete: isComplete(viewerId),
+            votersWithCompleteBallot: eligible.filter(isComplete).count,
+            eligibleVoters: eligible.count,
+            otherVotersComplete: others.filter(isComplete).count,
+            otherEligibleVoters: others.count
+        )
+    }
+
+    /// Début de créneau le plus tôt (les chaînes illisibles sont ignorées).
+    static func earliestStartISO(_ starts: [String]) -> String? {
+        starts
+            .compactMap { value in HomeDateText.parseISO(value).map { (value, $0) } }
+            .min { $0.1 < $1.1 }?
+            .0
     }
 
     @MainActor

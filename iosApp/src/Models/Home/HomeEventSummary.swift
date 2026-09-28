@@ -1,5 +1,21 @@
 import Foundation
 
+/// Bulletins d'un sondage vus depuis la source (couche 3, #47).
+/// Votants éligibles = participants ayant accepté + organisateur ; seuls les bulletins complets comptent.
+/// « Autres » = votants éligibles hors organisateur (règle « prêt à confirmer »).
+struct HomeBallotStats: Equatable {
+    let userBallotComplete: Bool
+    let votersWithCompleteBallot: Int
+    let eligibleVoters: Int
+    let otherVotersComplete: Int
+    let otherEligibleVoters: Int
+
+    static let none = HomeBallotStats(
+        userBallotComplete: false, votersWithCompleteBallot: 0, eligibleVoters: 0,
+        otherVotersComplete: 0, otherEligibleVoters: 0
+    )
+}
+
 /// Faits calculés pour un événement, vus par l'utilisateur courant (couche 3, #47).
 struct HomeEventFacts: Equatable {
     enum Phase: Equatable { case draft, polling, comparing, confirmed, organizing, finalized }
@@ -9,17 +25,37 @@ struct HomeEventFacts: Equatable {
     let title: String
     let phase: Phase
     let role: Role
+    let isOwner: Bool
     let isPast: Bool
-    let userBallotComplete: Bool
-    let votersWithCompleteBallot: Int
-    let eligibleVoters: Int
+    /// Politique d'interaction « lecture seule » de la projection (passé, finalisé, archivé).
+    let readOnly: Bool
+    /// Échéance future, ou absente.
+    let pollOpen: Bool
+    /// Invitation acceptée (toujours vrai pour l'organisateur).
+    let viewerAccepted: Bool
+    let ballots: HomeBallotStats
     let deadline: Date?
     let eventDate: Date?
     let participantNames: [String]
 
-    var everyoneVoted: Bool { eligibleVoters > 0 && votersWithCompleteBallot >= eligibleVoters }
-    var voteRequired: Bool { phase == .polling && !isPast && !userBallotComplete }
-    var readyToConfirm: Bool { phase == .polling && !isPast && role == .organizer && everyoneVoted }
+    var userBallotComplete: Bool { ballots.userBallotComplete }
+    var votersWithCompleteBallot: Int { ballots.votersWithCompleteBallot }
+    var eligibleVoters: Int { ballots.eligibleVoters }
+
+    private var pollActionable: Bool { phase == .polling && !isPast && !readOnly }
+
+    /// Organisateur : tous les autres votants éligibles (au moins un) ont un bulletin complet,
+    /// que l'organisateur ait voté ou non.
+    var readyToConfirm: Bool {
+        pollActionable && role == .organizer
+            && ballots.otherEligibleVoters > 0
+            && ballots.otherVotersComplete >= ballots.otherEligibleVoters
+    }
+
+    /// Invitation acceptée, sondage ouvert, bulletin incomplet ; « prêt à confirmer » l'emporte.
+    var voteRequired: Bool {
+        pollActionable && pollOpen && viewerAccepted && !userBallotComplete && !readyToConfirm
+    }
 }
 
 /// Résumé affichable d'une carte d'événement.
@@ -46,10 +82,10 @@ struct HomeEventSummary: Identifiable, Equatable {
         case .draft:
             status = .draft; label = .key("home.v2.status.draft"); sortRank = 3
         case .polling:
-            if facts.voteRequired {
-                status = .actionNeeded; label = .key("home.v2.status.vote_required"); sortRank = 0
-            } else if facts.readyToConfirm {
+            if facts.readyToConfirm {
                 status = .actionNeeded; label = .key("home.v2.status.ready_to_confirm"); sortRank = 0
+            } else if facts.voteRequired {
+                status = .actionNeeded; label = .key("home.v2.status.vote_required"); sortRank = 0
             } else {
                 status = .pending; label = .key("home.v2.status.polling"); sortRank = 1
             }
@@ -98,9 +134,13 @@ struct HomeNextStep: Equatable {
             return votes(f, kind: .voteRequired, action: .vote, now: now)
         }
         if let f = soonest(active.filter(\.readyToConfirm), by: \.deadline) {
-            return votes(f, kind: .readyToConfirm, action: .pollResults, now: now)
+            return HomeNextStep(
+                eventId: f.id, title: f.title, kind: .readyToConfirm, action: .pollResults,
+                value: String(f.ballots.otherVotersComplete), unit: "/\(f.ballots.otherEligibleVoters)",
+                daysLeft: nil
+            )
         }
-        if let f = soonest(active.filter { $0.phase == .polling && $0.role == .organizer }, by: \.deadline) {
+        if let f = soonest(active.filter { $0.phase == .polling && $0.role == .organizer && !$0.readOnly }, by: \.deadline) {
             return votes(f, kind: .pollInProgress, action: .pollResults, now: now)
         }
         let organizing = active.filter {
@@ -120,7 +160,7 @@ struct HomeNextStep: Equatable {
         HomeNextStep(
             eventId: f.id, title: f.title, kind: kind, action: action,
             value: String(f.votersWithCompleteBallot), unit: "/\(f.eligibleVoters)",
-            daysLeft: f.deadline.map { HomeDateText.daysBetween(now, $0) }
+            daysLeft: f.pollOpen ? f.deadline.map { HomeDateText.daysBetween(now, $0) } : nil
         )
     }
 }

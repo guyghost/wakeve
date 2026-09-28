@@ -6,13 +6,14 @@ struct HomeRawEvent: Equatable {
     let title: String
     let statusName: String          // `EventStatus.name` Kotlin : "DRAFT", "POLLING", …
     let isOrganizer: Bool
-    let isPast: Bool                // depuis LibraryCardProjection.temporalClass
+    let isOwner: Bool               // `event.organizerId == viewerId`
+    let isPast: Bool                // depuis LibraryCardProjection.temporalClass (voir `keepsActive`)
+    let readOnly: Bool              // LibraryCardProjection.interactionPolicy == READ_ONLY
+    let viewerAccepted: Bool        // RSVP accepté (toujours vrai pour l'organisateur)
     let deadlineISO: String
     let finalDateISO: String?
-    let firstSlotStartISO: String?
-    let userBallotComplete: Bool
-    let votersWithCompleteBallot: Int
-    let eligibleVoters: Int
+    let earliestSlotStartISO: String?
+    let ballots: HomeBallotStats
     let participantNames: [String]
     let hasPendingSync: Bool
 }
@@ -45,7 +46,7 @@ final class EventsHomeViewModel: ObservableObject {
         do {
             let raw = try await source.loadEvents(viewerId: viewerId)
             let current = now()
-            let facts = raw.map { Self.facts(from: $0) }
+            let facts = raw.map { Self.facts(from: $0, now: current) }
             let summaries = HomeEventSummary.sorted(facts.map { HomeEventSummary(facts: $0, now: current) })
             active = summaries.filter { !$0.isPast }
             past = summaries.filter(\.isPast)
@@ -57,7 +58,7 @@ final class EventsHomeViewModel: ObservableObject {
         }
     }
 
-    static func facts(from raw: HomeRawEvent) -> HomeEventFacts {
+    static func facts(from raw: HomeRawEvent, now: Date) -> HomeEventFacts {
         let phase: HomeEventFacts.Phase
         switch raw.statusName {
         case "DRAFT": phase = .draft
@@ -67,13 +68,21 @@ final class EventsHomeViewModel: ObservableObject {
         case "ORGANIZING": phase = .organizing
         default: phase = .finalized
         }
+        let deadline = HomeDateText.parseISO(raw.deadlineISO)
+        // Événement daté : date finale uniquement ; sondage/brouillon : plus tôt des créneaux (tri).
+        let eventDate: Date?
+        switch phase {
+        case .draft, .polling: eventDate = HomeDateText.parseISO(raw.earliestSlotStartISO)
+        default: eventDate = HomeDateText.parseISO(raw.finalDateISO)
+        }
         return HomeEventFacts(
             id: raw.id, title: raw.title, phase: phase,
-            role: raw.isOrganizer ? .organizer : .participant, isPast: raw.isPast,
-            userBallotComplete: raw.userBallotComplete,
-            votersWithCompleteBallot: raw.votersWithCompleteBallot, eligibleVoters: raw.eligibleVoters,
-            deadline: HomeDateText.parseISO(raw.deadlineISO),
-            eventDate: HomeDateText.parseISO(raw.finalDateISO) ?? HomeDateText.parseISO(raw.firstSlotStartISO),
+            role: raw.isOrganizer ? .organizer : .participant, isOwner: raw.isOwner,
+            isPast: raw.isPast, readOnly: raw.readOnly,
+            pollOpen: deadline.map { $0 > now } ?? true,
+            viewerAccepted: raw.isOrganizer || raw.viewerAccepted,
+            ballots: raw.ballots,
+            deadline: deadline, eventDate: eventDate,
             participantNames: raw.participantNames
         )
     }

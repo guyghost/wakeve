@@ -8,8 +8,10 @@ final class EventsHomeViewTests: XCTestCase {
 
     private func summary(voted: Bool) -> HomeEventSummary {
         HomeEventSummary(facts: HomeEventFacts(
-            id: "e1", title: "Raclette", phase: .polling, role: .participant, isPast: false,
-            userBallotComplete: voted, votersWithCompleteBallot: 2, eligibleVoters: 4,
+            id: "e1", title: "Raclette", phase: .polling, role: .participant, isOwner: false,
+            isPast: false, readOnly: false, pollOpen: true, viewerAccepted: true,
+            ballots: HomeBallotStats(userBallotComplete: voted, votersWithCompleteBallot: 2, eligibleVoters: 4,
+                                     otherVotersComplete: 1, otherEligibleVoters: 3),
             deadline: nil, eventDate: nil, participantNames: ["Léa", "Tom"]
         ), now: now)
     }
