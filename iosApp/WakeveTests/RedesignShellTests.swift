@@ -46,4 +46,30 @@ final class RedesignShellTests: XCTestCase {
         XCTAssertTrue(source.contains(".accessibilityHidden(router.zone != .events)"), "La zone inactive reste montée mais masquée.")
         XCTAssertTrue(source.contains(".accessibilityHidden(router.zone != .activity)"))
     }
+
+    private func contentViewSource() throws -> String {
+        try String(
+            contentsOf: URL(fileURLWithPath: #filePath)
+                .deletingLastPathComponent().deletingLastPathComponent()
+                .appendingPathComponent("src/Views/App/ContentView.swift"),
+            encoding: .utf8
+        )
+    }
+
+    func testAuthenticatedViewBranchesOnTheRedesignFlag() throws {
+        let source = try contentViewSource()
+        XCTAssertTrue(source.contains("@AppStorage(FeatureFlags.redesign2026Key) private var iosRedesign2026 = false"))
+        XCTAssertTrue(source.contains("RedesignShellView("))
+        XCTAssertTrue(source.contains("TabView(selection: $selectedTab)"), "Le chemin legacy reste intact tant que le flag est éteint.")
+        XCTAssertTrue(source.contains("@State private var redesignRouter = AppRouter()"))
+    }
+
+    func testDeepLinksGoThroughTheRouterWhenRedesignIsOn() throws {
+        let source = try contentViewSource()
+        guard let start = source.range(of: "private func handleDeepLinkNavigation(_ route: IosRoute)") else {
+            return XCTFail("handleDeepLinkNavigation introuvable")
+        }
+        let body = String(source[start.lowerBound...].prefix(1200))
+        XCTAssertTrue(body.contains("AppRouter.plan(for: route)"), "Toute route passe d'abord par le plan du routeur.")
+    }
 }

@@ -185,6 +185,8 @@ struct ErrorView: View {
 struct AuthenticatedView: View {
     let userId: String
     @AppStorage("iosInvitationExperienceV1") private var iosInvitationExperienceV1 = false
+    @AppStorage(FeatureFlags.redesign2026Key) private var iosRedesign2026 = false
+    @State private var redesignRouter = AppRouter()
     @State private var selectedTab: WakeveTab = .home
     @State private var currentView: AppView = .eventList
     @State private var selectedEvent: Event?
@@ -249,34 +251,7 @@ struct AuthenticatedView: View {
     var body: some View {
         // Main tabs are destinations only. One-off actions such as Create Event
         // stay contextual in Home, toolbars, or sheets.
-        TabView(selection: $selectedTab) {
-            tabContent(for: .home)
-                .tabItem {
-                    Label(WakeveTab.home.title, systemImage: WakeveTab.home.systemImage)
-                }
-                .tag(WakeveTab.home)
-
-            tabContent(for: .groups)
-                .tabItem {
-                    Label(WakeveTab.groups.title, systemImage: WakeveTab.groups.systemImage)
-                }
-                .tag(WakeveTab.groups)
-
-            tabContent(for: .messages)
-                .tabItem {
-                    Label(WakeveTab.messages.title, systemImage: WakeveTab.messages.systemImage)
-                }
-                .tag(WakeveTab.messages)
-                .badge(unreadInboxCount)
-
-            tabContent(for: .profile)
-                .tabItem {
-                    Label(WakeveTab.profile.title, systemImage: WakeveTab.profile.systemImage)
-                }
-                .tag(WakeveTab.profile)
-        }
-        .tint(.wakevePrimary)
-        .toolbar(tabBarVisibility, for: .tabBar)
+        shellChrome
         .fullScreenCover(isPresented: $showEventCreationSheet) {
             CreateEventSheet(
                 userId: userId,
@@ -451,6 +426,101 @@ struct AuthenticatedView: View {
 
     private var tabBarVisibility: Visibility {
         selectedTab == .home && currentView != .eventList ? .hidden : .visible
+    }
+
+    // MARK: - Shell (legacy tabs vs redesign 2026, proposition #47)
+
+    @ViewBuilder
+    private var shellChrome: some View {
+        if iosRedesign2026 {
+            redesignChrome
+        } else {
+            legacyTabChrome
+        }
+    }
+
+    private var legacyTabChrome: some View {
+            TabView(selection: $selectedTab) {
+                tabContent(for: .home)
+                    .tabItem {
+                        Label(WakeveTab.home.title, systemImage: WakeveTab.home.systemImage)
+                    }
+                    .tag(WakeveTab.home)
+
+                tabContent(for: .groups)
+                    .tabItem {
+                        Label(WakeveTab.groups.title, systemImage: WakeveTab.groups.systemImage)
+                    }
+                    .tag(WakeveTab.groups)
+
+                tabContent(for: .messages)
+                    .tabItem {
+                        Label(WakeveTab.messages.title, systemImage: WakeveTab.messages.systemImage)
+                    }
+                    .tag(WakeveTab.messages)
+                    .badge(unreadInboxCount)
+
+                tabContent(for: .profile)
+                    .tabItem {
+                        Label(WakeveTab.profile.title, systemImage: WakeveTab.profile.systemImage)
+                    }
+                    .tag(WakeveTab.profile)
+            }
+            .tint(.wakevePrimary)
+            .toolbar(tabBarVisibility, for: .tabBar)
+    }
+
+    private var redesignChrome: some View {
+        RedesignShellView(
+            router: redesignRouter,
+            eventsAtRoot: currentView == .eventList,
+            activityBadge: unreadInboxCount,
+            userId: userId,
+            userName: authStateManager.currentUser?.name,
+            onCreate: beginRedesignEventCreation,
+            events: { homeTabContent },
+            activity: {
+                InboxView(
+                    userId: userId,
+                    onBack: { /* Activity is a shell zone, no back action needed */ },
+                    unreadCount: $unreadInboxCount
+                )
+            }
+        )
+        .sheet(isPresented: $redesignRouter.isProfilePresented) {
+            ProfileTabView(
+                userId: userId,
+                userName: authStateManager.currentUser?.name,
+                userEmail: authStateManager.currentUser?.email,
+                onDismiss: { redesignRouter.isProfilePresented = false },
+                onSignOut: {
+                    authStateManager.signOut()
+                }
+            )
+        }
+        .onChange(of: redesignRouter.isSettingsPresented) { _, isPresented in
+            // Layer 2: the settings button opens the existing notification preferences sheet.
+            if isPresented {
+                showNotificationPreferencesSheet = true
+                redesignRouter.isSettingsPresented = false
+            }
+        }
+    }
+
+    /// Mirrors the `.eventCreate` deep-link branch so the ＋ button follows the
+    /// same rollout rules as the legacy entry points.
+    private func beginRedesignEventCreation() {
+        redesignRouter.zone = .events
+        eventCreationScenario = nil
+        if invitationExperienceRolloutEnabled {
+            selectedEvent = nil
+            selectedCreationBaseRevision = nil
+            selectedCreationArtwork = nil
+            showEventCreationSheet = false
+            currentView = .eventCreation
+        } else {
+            showEventCreationSheet = true
+        }
     }
     
     // MARK: - Home Tab
@@ -1434,6 +1504,16 @@ struct AuthenticatedView: View {
     }
 
     private func handleDeepLinkNavigation(_ route: IosRoute) {
+        var route = route
+        if iosRedesign2026 {
+            guard let delegated = redesignRouter.apply(AppRouter.plan(for: route)) else {
+                deepLinkService.clearPendingInvite()
+                deepLinkService.clearPendingDeepLink()
+                deepLinkService.resetNavigation()
+                return
+            }
+            route = delegated
+        }
         invitationLandingEventId = nil
         switch route {
         case .topLevel(.home):
