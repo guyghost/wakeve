@@ -43,6 +43,10 @@ final class WKRenderingTests: XCTestCase {
                                width: 375, dynamicType: .accessibility5)
         XCTAssertLessThanOrEqual(size.width, 375, "\(size)")
         XCTAssertLessThanOrEqual(size.height, 120, "\(size)")
+        // Taille idéale (largeur proposée non contraignante) : la barre ne compte pas sur la compression.
+        let ideal = fittingSize(WKFloatingNavBar(selection: .constant(.events), activityBadge: 3) {},
+                                width: 1000, dynamicType: .accessibility5)
+        XCTAssertLessThanOrEqual(ideal.width, 375, "idéale \(ideal)")
     }
 
     func testFloatingNavBarKeepsMinimumTapTargetAtDefaultSize() {
@@ -92,7 +96,39 @@ final class WKRenderingTests: XCTestCase {
         }
     }
 
+    /// Le plafond `...accessibility1` fige le rendu au-delà d'AX1 (AX5 == AX1) et, jusqu'à AX1,
+    /// le cadre grandit avec le glyphe au lieu de le rogner. Un glyphe étroit tient dans 44 pt même
+    /// à AX1 (la croissance serait invisible) : on prend un glyphe large, qui dépasse 44 pt à AX1.
+    private let wideGlyph = "person.3.fill"
+
+    func testCircleButtonGrowsWithGlyphUpToAX1ThenCaps() {
+        let button = WKCircleButton(systemImage: wideGlyph, accessibilityLabel: "Participants") {}
+        let ax1 = fittingSize(button, dynamicType: .accessibility1)
+        let ax5 = fittingSize(button, dynamicType: .accessibility5)
+        XCTAssertEqual(ax5, ax1, "plafond : AX1 \(ax1) / AX5 \(ax5)")
+        XCTAssertGreaterThan(ax1.width, WK.Size.minTapTarget, "croissance : AX1 \(ax1)")
+    }
+
+    func testActionBarSecondaryIconGrowsUpToAX1ThenCaps() {
+        // Titre principal vide : sa taille ne dépend pas de Dynamic Type, seule l'icône varie.
+        let bar = WKActionBar(primaryTitle: "", primaryAction: {},
+                              secondary: [WKActionBar.Item(systemImage: wideGlyph, label: "Participants") {}]).fixedSize()
+        let large = fittingSize(bar, dynamicType: .large)
+        let ax1 = fittingSize(bar, dynamicType: .accessibility1)
+        let ax5 = fittingSize(bar, dynamicType: .accessibility5)
+        XCTAssertEqual(ax5, ax1, "plafond : AX1 \(ax1) / AX5 \(ax5)")
+        XCTAssertGreaterThanOrEqual(ax1.height, WK.Size.minTapTarget, "AX1 \(ax1)")
+        XCTAssertGreaterThan(ax1.width, large.width, "croissance : large \(large) / AX1 \(ax1)")
+    }
+
     // MARK: - M4 bouton principal
+
+    func testPrimaryButtonPadsTitleHorizontally() {
+        let title = "Continuer"
+        let button = fittingSize(WKPrimaryButton(title: title) {}.fixedSize())
+        let text = fittingSize(Text(title).font(WK.Typo.headline).fixedSize())
+        XCTAssertGreaterThanOrEqual(button.width, text.width + 2 * WK.Space.md, "bouton \(button) / texte \(text)")
+    }
 
     func testPrimaryButtonWrapsLongTitleInsteadOfTruncating() {
         let title = "Confirmer la date et prévenir tout le groupe maintenant"

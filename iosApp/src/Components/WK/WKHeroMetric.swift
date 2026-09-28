@@ -43,7 +43,6 @@ struct WKHeroMetric: View {
             if let actionTitle, let action {
                 WKChip(title: actionTitle, style: .prominent, action: action)
                     .frame(maxWidth: .infinity)
-                    .padding(.top, WK.Space.xs)
             }
         }
     }

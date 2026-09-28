@@ -135,10 +135,21 @@ final class WKComponentsContractTests: XCTestCase {
         _ = WKModuleTile(systemImage: "car", title: "Transport", summary: "", accessibilityID: "wk.test.tile") {}
     }
 
-    func testAppLocaleFollowsBundleLocalizationNotRegion() {
-        XCTAssertEqual(WK.appLocale.identifier, Bundle.main.preferredLocalizations.first ?? "en")
-        XCTAssertEqual(WK.localizedFormat("wk.avatars.others_format", locale: Locale(identifier: "fr")), "%d autres")
-        XCTAssertEqual(WK.localizedFormat("wk.avatars.others_format", locale: Locale(identifier: "it_CH")), "altri %d")
+    func testLocalizedFormatResolvesByLanguageWhateverTheRegion() {
+        func format(_ id: String) -> String { WK.localizedFormat("wk.avatars.others_format", locale: Locale(identifier: id)) }
+        XCTAssertEqual(format("pt_BR"), "mais %d")
+        XCTAssertEqual(format("en_GB"), "%d others")
+        XCTAssertEqual(format("fr_CA"), "%d autres")
+        XCTAssertEqual(format("fr"), "%d autres")
+        XCTAssertEqual(format("it_CH"), "altri %d")
+    }
+
+    func testAppLocaleUsesAppLanguageAndKeepsRegion() {
+        XCTAssertEqual(WK.appLocale.language.languageCode?.identifier, Bundle.main.preferredLocalizations.first)
+        XCTAssertEqual(WK.appLocale.region, Locale.current.region)
+    }
+
+    func testDefaultLocaleArgumentsMatchAppLocale() {
         XCTAssertEqual(
             WKFloatingNavBar.badgeAccessibilityValue(for: 3),
             WKFloatingNavBar.badgeAccessibilityValue(for: 3, locale: WK.appLocale)

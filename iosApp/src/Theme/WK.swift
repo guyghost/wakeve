@@ -32,9 +32,11 @@ enum WK {
 
     // MARK: - Localisation
 
-    /// Langue effective de l'app (celle que résout `String(localized:)`), et non la région système.
+    /// Langue effective de l'app (celle que résout `String(localized:)`), avec la région de l'utilisateur
+    /// (formats de nombres et listes).
     static var appLocale: Locale {
-        Locale(identifier: Bundle.main.preferredLocalizations.first ?? "en")
+        let lang = Bundle.main.preferredLocalizations.first ?? "en"
+        return Locale(languageComponents: .init(languageCode: .init(lang), region: Locale.current.region))
     }
 
     /// Format localisé (strings ou stringsdict) pour la langue de `locale`, indépendamment de la langue de l'app.
