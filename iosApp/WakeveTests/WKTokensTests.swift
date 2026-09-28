@@ -92,6 +92,14 @@ final class WKTokensTests: XCTestCase {
         }
     }
 
+    func testStatusColorOnCardIsAtLeastThreeToOne() {
+        for status in WK.Status.allCases {
+            for style in [UIUserInterfaceStyle.light, .dark] {
+                XCTAssertGreaterThanOrEqual(contrast(status.color, WK.Colors.card, style), 3, "\(status)")
+            }
+        }
+    }
+
     func testImmersiveMoodTextIsReadableOnItsBackground() {
         for mood in EventMoodPalette.Mood.allCases {
             let m = WK.Mood(palette: .palette(for: mood))

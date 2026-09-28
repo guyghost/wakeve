@@ -64,6 +64,22 @@ final class WKComponentsContractTests: XCTestCase {
         )
     }
 
+    func testActionBarSecondaryItemsAreLabelledIconButtons() throws {
+        let source = try readProjectFile("iosApp/src/Components/WK/WKActionBar.swift")
+        XCTAssertTrue(source.contains("struct Item: Identifiable"))
+        XCTAssertTrue(source.contains(".accessibilityLabel(item.label)"))
+        XCTAssertTrue(source.contains("WK.Size.minTapTarget"))
+    }
+
+    func testModuleTileSummaryIsReadWithTitleAndHighlightIsAnnounced() {
+        XCTAssertEqual(
+            WKModuleTile.accessibilityLabel(title: "Transport", summary: "2 sans place"),
+            "Transport, 2 sans place"
+        )
+        let source = (try? readProjectFile("iosApp/src/Components/WK/WKModuleTile.swift")) ?? ""
+        XCTAssertTrue(source.contains(".accessibilityAddTraits(isHighlighted ? .isSelected : [])"))
+    }
+
     func readProjectFile(_ relativePath: String) throws -> String {
         let projectRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()   // WakeveTests
