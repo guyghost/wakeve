@@ -289,8 +289,11 @@ Consignés après les couches 0-1 (proposition #47) ; ils font désormais partie
 ### Couche 3 (nouvel accueil, 2026-09-28)
 
 - Source de l'accueil : projections de la bibliothèque d'invitations (filtrage par utilisateur, rôle, passé/à venir, état de synchro) + dépôt d'événements (votes reçus, bulletin de l'utilisateur, noms), via `SharedEventsHomeSource` → `EventsHomeViewModel` → règles pures `HomeEventSummary` / `HomeNextStep`.
-- Les sondages et brouillons sans créneau daté restent actifs même si le classifieur de la bibliothèque les range en « passé ».
-- L'organisateur compte parmi les votants (il peut voter) : tant qu'il n'a pas voté, l'accueil lui affiche « À toi de voter ».
+- Votants éligibles = participants ayant accepté + organisateur ; seuls leurs bulletins complets comptent.
+- Un participant n'est invité à voter que si l'invitation est acceptée, le sondage ouvert (échéance future) et l'événement non en lecture seule.
+- Organisateur : « Prêt à confirmer » dès que tous les **autres** votants éligibles ont voté (au moins un), qu'il ait voté ou non, y compris après l'échéance ; seul sur l'événement, il n'est jamais « prêt ». Tant que le sondage est ouvert et qu'il n'a pas voté (et que les autres n'ont pas tous voté), l'accueil lui affiche « À toi de voter ».
+- Un sondage dont l'échéance est passée ou dont tous les créneaux sont terminés n'est plus une action ; seuls les brouillons et les sondages sans créneau daté restent actifs malgré le classifieur.
+- Écarts §8 : chargement par `ProgressView` (pas de squelettes de cartes) ; seul le bandeau « modifications en attente de synchro » existe (pas encore de bandeau hors ligne dédié).
 - Pas d'action « Relancer » (aucune API) : l'action de « Prochaine étape » ouvre le vote, les résultats ou l'organisation.
 - Menu contextuel : Ouvrir, Modifier le brouillon, Supprimer (organisateur, non finalisé). Pas de Dupliquer ni Archiver (aucune API).
 - En-tête du shell : mot-symbole « wakeve » au centre et fond opaque (le contenu défile dessous).
