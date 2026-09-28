@@ -53,6 +53,7 @@ import com.guyghost.wakeve.ui.event.DraftEventWizard
 import com.guyghost.wakeve.ui.event.EventPhotosFollowUpUiState
 import com.guyghost.wakeve.ui.event.EventWorkspaceRoute
 import com.guyghost.wakeve.ui.event.fallbackEventPhotosFollowUpUiState
+import com.guyghost.wakeve.ui.event.rememberEventLifecycleCopy
 import com.guyghost.wakeve.ui.meeting.MeetingDetailScreen
 import com.guyghost.wakeve.ui.meeting.MeetingListScreen
 import com.guyghost.wakeve.ui.scenario.ScenarioComparisonScreen
@@ -552,6 +553,7 @@ fun WakeveNavHost(
                 userId = userId,
                 viewModel = viewModel,
                 settlements = settlements,
+                lifecycleCopy = rememberEventLifecycleCopy(),
                 onNavigateTo = { route ->
                     navController.navigate(route)
                 },

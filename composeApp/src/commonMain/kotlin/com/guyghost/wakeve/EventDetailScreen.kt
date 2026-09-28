@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
@@ -40,10 +41,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -66,6 +70,13 @@ import com.guyghost.wakeve.ui.event.EventAttendanceSummary
 import com.guyghost.wakeve.ui.event.EventBudgetPlanningSummary
 import com.guyghost.wakeve.ui.event.EventDayOfSummary
 import com.guyghost.wakeve.ui.event.EventDetailUiState
+import com.guyghost.wakeve.ui.event.EventLifecycleCardMode
+import com.guyghost.wakeve.ui.event.EventLifecycleCopy
+import com.guyghost.wakeve.ui.event.EventLifecycleOutcome
+import com.guyghost.wakeve.ui.event.EventLifecycleSideEffectResult
+import com.guyghost.wakeve.ui.event.EventLifecycleTarget
+import com.guyghost.wakeve.ui.event.EventLifecycleTransitionController
+import com.guyghost.wakeve.ui.event.eventLifecycleCardMode
 import com.guyghost.wakeve.ui.event.EventDestinationSummary
 import com.guyghost.wakeve.ui.event.EventNotificationSummary
 import com.guyghost.wakeve.ui.event.EventProgramPlanningSummary
@@ -142,6 +153,8 @@ private object OrganizationUxLabels {
  * @param onNavigateTo Callback for navigation to other screens
  * @param onShowToast Callback for showing toast messages
  * @param onNavigateBack Callback for navigating back
+ * @param lifecycleCopy Localized copy for the organizer lifecycle card
+ *   (CONFIRMED -> ORGANIZING -> FINALIZED). The card is hidden when null.
  * @param modifier Modifier for customizing the layout
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -156,11 +169,26 @@ fun EventDetailScreen(
     onShareInvite: ((eventId: String, eventTitle: String) -> Unit)? = null,
     onCreateFromTemplate: ((EventWorkspaceCreationTemplate) -> Unit)? = null,
     settlements: List<SettlementRecord> = emptyList(),
+    lifecycleCopy: EventLifecycleCopy? = null,
     modifier: Modifier = Modifier
 ) {
     // State from ViewModel
     val state by viewModel.state.collectAsState()
     var showDeleteConfirmation by remember { mutableStateOf(false) }
+
+    // Organizer lifecycle transitions (CONFIRMED -> ORGANIZING -> FINALIZED)
+    val lifecycleController = remember(eventId, userId, viewModel) {
+        EventLifecycleTransitionController(
+            eventId = eventId,
+            userId = userId,
+            dispatch = viewModel::dispatch,
+            currentState = { viewModel.state.value }
+        )
+    }
+    val lifecycleInFlight by lifecycleController.inFlightTarget.collectAsState()
+    var lifecycleConfirmationTarget by remember(eventId) { mutableStateOf<EventLifecycleTarget?>(null) }
+    var lifecycleErrorMessage by remember(eventId) { mutableStateOf<String?>(null) }
+    val currentLifecycleCopy by rememberUpdatedState(lifecycleCopy)
 
     LaunchedEffect(eventId) {
         viewModel.dispatch(EventManagementContract.Intent.SelectEvent(eventId))
@@ -169,6 +197,17 @@ fun EventDetailScreen(
     // Handle side effects (navigation, toasts)
     LaunchedEffect(Unit) {
         viewModel.sideEffect.collect { effect ->
+            when (val lifecycleResult = lifecycleController.onSideEffect(effect)) {
+                is EventLifecycleSideEffectResult.Settled -> {
+                    lifecycleErrorMessage = when (val outcome = lifecycleResult.outcome) {
+                        is EventLifecycleOutcome.Transitioned -> null
+                        is EventLifecycleOutcome.Failed -> currentLifecycleCopy?.failureMessage(outcome.failure)
+                    }
+                    return@collect
+                }
+                EventLifecycleSideEffectResult.Consumed -> return@collect
+                EventLifecycleSideEffectResult.NotHandled -> Unit
+            }
             when (effect) {
                 is EventManagementContract.SideEffect.NavigateTo -> {
                     onNavigateTo(effect.route)
@@ -203,8 +242,43 @@ fun EventDetailScreen(
         },
         onCreateFromTemplate = onCreateFromTemplate,
         onRequestDelete = { showDeleteConfirmation = true },
+        lifecycleCopy = lifecycleCopy,
+        lifecycleMode = eventLifecycleCardMode(uiState.event, userId),
+        lifecycleInFlight = lifecycleInFlight,
+        lifecycleErrorMessage = lifecycleErrorMessage,
+        onRequestLifecycleTransition = { target -> lifecycleConfirmationTarget = target },
         modifier = modifier
     )
+
+    // Lifecycle transition confirmation dialog
+    val confirmationTarget = lifecycleConfirmationTarget
+    if (confirmationTarget != null && lifecycleCopy != null) {
+        val isFinalizing = confirmationTarget == EventLifecycleTarget.FINALIZED
+        val actionLabel = if (isFinalizing) lifecycleCopy.finalizeAction else lifecycleCopy.organizingAction
+        AlertDialog(
+            onDismissRequest = { lifecycleConfirmationTarget = null },
+            title = { Text(actionLabel) },
+            text = {
+                Text(if (isFinalizing) lifecycleCopy.finalizeConfirmMessage else lifecycleCopy.organizingConfirmMessage)
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        lifecycleConfirmationTarget = null
+                        lifecycleErrorMessage = null
+                        lifecycleController.transition(confirmationTarget)
+                    }
+                ) {
+                    Text(actionLabel)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { lifecycleConfirmationTarget = null }) {
+                    Text(lifecycleCopy.cancel)
+                }
+            }
+        )
+    }
 
     // Delete confirmation dialog
     if (showDeleteConfirmation) {
@@ -255,6 +329,11 @@ fun EventDetailContent(
     onRsvpSelected: (ParticipantRsvp) -> Unit,
     onCreateFromTemplate: ((EventWorkspaceCreationTemplate) -> Unit)?,
     onRequestDelete: () -> Unit,
+    lifecycleCopy: EventLifecycleCopy? = null,
+    lifecycleMode: EventLifecycleCardMode? = null,
+    lifecycleInFlight: EventLifecycleTarget? = null,
+    lifecycleErrorMessage: String? = null,
+    onRequestLifecycleTransition: (EventLifecycleTarget) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val event = state.event
@@ -337,6 +416,18 @@ fun EventDetailContent(
                 // Status card
                 item {
                     StatusCard(event = event)
+                }
+
+                if (lifecycleCopy != null && lifecycleMode != null) {
+                    item {
+                        EventLifecycleCard(
+                            copy = lifecycleCopy,
+                            mode = lifecycleMode,
+                            inFlightTarget = lifecycleInFlight,
+                            errorMessage = lifecycleErrorMessage,
+                            onRequestTransition = onRequestLifecycleTransition
+                        )
+                    }
                 }
 
                 state.scheduleSummary?.let { summary ->
@@ -1132,6 +1223,68 @@ private fun AndroidWeatherStatusCard(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+        }
+    }
+}
+
+/**
+ * Organizer-only card that moves the event to its next lifecycle stage:
+ * CONFIRMED -> ORGANIZING, then ORGANIZING -> FINALIZED. COMPARING only explains
+ * that a final option must be picked first.
+ */
+@Composable
+private fun EventLifecycleCard(
+    copy: EventLifecycleCopy,
+    mode: EventLifecycleCardMode,
+    inFlightTarget: EventLifecycleTarget?,
+    errorMessage: String?,
+    onRequestTransition: (EventLifecycleTarget) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val isFinalizing = mode == EventLifecycleCardMode.READY_TO_FINALIZE
+    val target = mode.target
+    WakeveCard(modifier = modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(WakeveSpacing.sm)) {
+            Text(
+                text = if (isFinalizing) copy.finalizeTitle else copy.organizingTitle,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = when (mode) {
+                    EventLifecycleCardMode.READY_TO_ORGANIZE -> copy.organizingBody
+                    EventLifecycleCardMode.PICK_FINAL_OPTION -> copy.comparingBody
+                    EventLifecycleCardMode.READY_TO_FINALIZE -> copy.finalizeBody
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (errorMessage != null) {
+                Text(
+                    text = errorMessage,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+                )
+            }
+            if (target != null) {
+                Button(
+                    onClick = { onRequestTransition(target) },
+                    enabled = inFlightTarget == null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = WakeveSize.minTouchTarget)
+                ) {
+                    if (inFlightTarget == target) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(WakeveSize.progressIndicator),
+                            strokeWidth = WakeveSpacing.xs / 2
+                        )
+                        Spacer(modifier = Modifier.width(WakeveSpacing.sm))
+                    }
+                    Text(if (isFinalizing) copy.finalizeAction else copy.organizingAction)
+                }
             }
         }
     }
