@@ -59,7 +59,7 @@ final class RedesignShellTests: XCTestCase {
         XCTAssertFalse(RedesignShellView<EmptyView, EmptyView>.showsHeader(zone: .activity, eventsAtRoot: true))
     }
 
-    func testShellRendersBothZonesAndTheFloatingBar() throws {
+    func testShellRendersSmoke() throws {
         let router = AppRouter()
         let shell = RedesignShellView(
             router: router,
@@ -113,7 +113,10 @@ final class RedesignShellTests: XCTestCase {
             return XCTFail("handleDeepLinkNavigation introuvable")
         }
         let body = String(source[start.lowerBound...].prefix(1200))
-        XCTAssertTrue(body.contains("AppRouter.plan(for: route)"), "Toute route passe d'abord par le plan du routeur.")
+        XCTAssertTrue(
+            body.contains("AppRouter.preRoute(route, redesignEnabled: iosRedesign2026, router: redesignRouter)"),
+            "Toute route passe d'abord par le pré-aiguillage du routeur."
+        )
     }
 
     func testShellPresentsProfileAndSettingsFromOneRouterOwnedSheet() throws {
@@ -124,5 +127,10 @@ final class RedesignShellTests: XCTestCase {
         let body = String(source[start.lowerBound...].prefix(2000))
         XCTAssertTrue(body.contains(".sheet(item: $redesignRouter.presentation)"), "Une seule feuille pilotée par le routeur.")
         XCTAssertFalse(body.contains("showNotificationPreferencesSheet"), "Plus de relais vers la feuille legacy.")
+    }
+
+    func testFlippingTheFlagResetsTheShellRouter() throws {
+        let source = try contentViewSource()
+        XCTAssertTrue(source.contains(".onChange(of: iosRedesign2026) { _, _ in redesignRouter = AppRouter() }"))
     }
 }

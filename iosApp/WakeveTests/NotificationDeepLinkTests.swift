@@ -25,4 +25,11 @@ final class NotificationDeepLinkTests: XCTestCase {
     func testPercentEncodesEventIds() {
         XCTAssertEqual(NotificationDeepLink.url(from: ["eventId": "a b"])?.absoluteString, "wakeve://event/a%20b")
     }
+
+    func testEncodesSlashesInEventIdsSoTheyCannotAddPathSegments() {
+        XCTAssertEqual(
+            NotificationDeepLink.url(from: ["eventId": "e1/poll"])?.absoluteString,
+            "wakeve://event/e1%2Fpoll"
+        )
+    }
 }

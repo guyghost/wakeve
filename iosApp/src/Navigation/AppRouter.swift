@@ -41,6 +41,14 @@ final class AppRouter {
         }
     }
 
+    /// Pré-aiguillage des deep links : flag éteint, la route est rendue telle
+    /// quelle (routeur intact) ; flag allumé, le plan est appliqué au shell.
+    /// - Returns: la route que l'aiguillage d'événements doit encore traiter, sinon `nil`.
+    static func preRoute(_ route: IosRoute, redesignEnabled: Bool, router: AppRouter) -> IosRoute? {
+        guard redesignEnabled else { return route }
+        return router.apply(plan(for: route))
+    }
+
     /// Applique le plan à l'état du shell.
     /// - Returns: la route que l'aiguillage d'événements doit encore traiter, sinon `nil`.
     @discardableResult

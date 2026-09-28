@@ -65,4 +65,22 @@ final class AppRouterTests: XCTestCase {
         XCTAssertEqual(router.zone, .events)
         XCTAssertNil(router.presentation, "Le retour à la racine ferme les présentations.")
     }
+
+    func testPreRouteLeavesRoutesAndRouterUntouchedWhenRedesignIsOff() {
+        let router = AppRouter()
+        let route = AppRouter.preRoute(.topLevel(.profile), redesignEnabled: false, router: router)
+        XCTAssertEqual(route, .topLevel(.profile))
+        XCTAssertNil(router.presentation)
+        XCTAssertEqual(router.zone, .events)
+    }
+
+    func testPreRouteAppliesTheShellPlanWhenRedesignIsOn() {
+        let router = AppRouter()
+        XCTAssertNil(AppRouter.preRoute(.topLevel(.profile), redesignEnabled: true, router: router))
+        XCTAssertEqual(router.presentation, .profile)
+
+        let delegated = AppRouter.preRoute(.event(.detail(eventId: "e1")), redesignEnabled: true, router: router)
+        XCTAssertEqual(delegated, .event(.detail(eventId: "e1")))
+        XCTAssertNil(router.presentation)
+    }
 }

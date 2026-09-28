@@ -305,6 +305,7 @@ struct AuthenticatedView: View {
             await prepareInvitationExperienceQALaunch()
         }
 #endif
+        .onChange(of: iosRedesign2026) { _, _ in redesignRouter = AppRouter() }
     }
 
 #if DEBUG
@@ -1515,17 +1516,14 @@ struct AuthenticatedView: View {
     }
 
     private func handleDeepLinkNavigation(_ route: IosRoute) {
-        var route = route
-        if iosRedesign2026 {
-            guard let delegated = redesignRouter.apply(AppRouter.plan(for: route)) else {
-                deepLinkService.clearPendingInvite()
-                deepLinkService.clearPendingDeepLink()
-                deepLinkService.resetNavigation()
-                return
-            }
-            route = delegated
-        }
         invitationLandingEventId = nil
+        guard let route = AppRouter.preRoute(route, redesignEnabled: iosRedesign2026, router: redesignRouter) else {
+            // Route entièrement traitée par le shell de la refonte.
+            deepLinkService.clearPendingInvite()
+            deepLinkService.clearPendingDeepLink()
+            deepLinkService.resetNavigation()
+            return
+        }
         switch route {
         case .topLevel(.home):
             selectedTab = .home
