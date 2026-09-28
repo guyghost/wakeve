@@ -76,4 +76,19 @@ final class WKTokensTests: XCTestCase {
         XCTAssertEqual(WK.Space.screen, 16)
         XCTAssertEqual(WK.Size.minTapTarget, 44)
     }
+
+    func testMotionFallsBackToFadeUnderReduceMotion() {
+        XCTAssertEqual(WK.Motion.snappy(reduceMotion: true), WK.Motion.reducedFade)
+        XCTAssertEqual(WK.Motion.smooth(reduceMotion: true), WK.Motion.reducedFade)
+        XCTAssertEqual(WK.Motion.bouncy(reduceMotion: true), WK.Motion.reducedFade)
+        XCTAssertNotEqual(WK.Motion.bouncy(reduceMotion: false), WK.Motion.reducedFade)
+    }
+
+    func testImmersiveMoodTextIsReadableOnItsBackground() {
+        for mood in EventMoodPalette.Mood.allCases {
+            let m = WK.Mood(palette: .palette(for: mood))
+            XCTAssertGreaterThanOrEqual(contrast(m.textPrimary, m.background, .dark), 7, "\(mood)")
+            XCTAssertGreaterThanOrEqual(contrast(m.textSecondary, m.background, .dark), 4.5, "\(mood)")
+        }
+    }
 }

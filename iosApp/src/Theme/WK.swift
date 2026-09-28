@@ -103,4 +103,62 @@ enum WK {
         static let avatar: CGFloat = 28
         static let primaryButtonHeight: CGFloat = 52
     }
+
+    // MARK: - Typographie (toujours indexée sur Dynamic Type)
+
+    enum Typo {
+        static let display = Font.system(.largeTitle, design: .rounded).weight(.semibold)
+        static let title = Font.system(.title2).weight(.semibold)
+        static let headline = Font.headline
+        static let body = Font.body
+        static let caption = Font.footnote
+        static let micro = Font.caption
+    }
+
+    // MARK: - Mouvement
+
+    enum Motion {
+        static let reducedFade = Animation.easeInOut(duration: 0.15)
+
+        static func snappy(reduceMotion: Bool) -> Animation {
+            reduceMotion ? reducedFade : .snappy(duration: 0.25)
+        }
+
+        static func smooth(reduceMotion: Bool) -> Animation {
+            reduceMotion ? reducedFade : .smooth(duration: 0.35)
+        }
+
+        static func bouncy(reduceMotion: Bool) -> Animation {
+            reduceMotion ? reducedFade : .bouncy(duration: 0.4)
+        }
+    }
+
+    // MARK: - Mode immersif
+
+    /// Ambiance sombre teintée par la palette de l'événement (invitation, jour J).
+    struct Mood {
+        let background: Color
+        let surface: Color
+        let textPrimary: Color
+        let textSecondary: Color
+        let pillStroke: Color
+        let accent: Color
+
+        init(palette: EventMoodPalette) {
+            let tint = UIColor(palette.primary(for: .dark))
+            background = Color(uiColor: WK.darkened(tint, towardsBlackBy: 0.72))
+            surface = Color(uiColor: WK.uiColor(0xFFFFFF, alpha: 0.08))
+            textPrimary = Color(uiColor: WK.uiColor(0xF2F7F6))
+            textSecondary = Color(uiColor: WK.uiColor(0xB8C4C2))
+            pillStroke = Color(uiColor: WK.uiColor(0xFFFFFF, alpha: 0.25))
+            accent = palette.accent(for: .dark)
+        }
+    }
+
+    static func darkened(_ color: UIColor, towardsBlackBy amount: CGFloat) -> UIColor {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        color.getRed(&r, green: &g, blue: &b, alpha: &a)
+        let keep = 1 - amount
+        return UIColor(red: r * keep, green: g * keep, blue: b * keep, alpha: 1)
+    }
 }
