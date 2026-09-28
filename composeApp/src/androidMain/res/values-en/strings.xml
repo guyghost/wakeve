@@ -906,4 +906,35 @@
     <string name="conflict_field_deadline">Voting deadline</string>
     <string name="conflict_field_participants">Participants</string>
     <string name="conflict_field_proposed_slots">Proposed time slots</string>
+    <!-- Organizer lifecycle transitions (CONFIRMED -> ORGANIZING -> FINALIZED) -->
+    <string name="event_lifecycle_organizing_title">Ready to organize?</string>
+    <string name="event_lifecycle_organizing_body">The date is set. Move to organizing to unlock meetings, budget and the shared pot.</string>
+    <string name="event_lifecycle_organizing_action">Start organizing</string>
+    <string name="event_lifecycle_organizing_confirm_message">Confirmed participants will see meetings, budget and the shared pot.</string>
+    <string name="event_lifecycle_comparing_body">Pick a final option to move on to organizing.</string>
+    <string name="event_lifecycle_finalize_title">Final step</string>
+    <string name="event_lifecycle_finalize_body">Finalize once logistics are settled. The event becomes read-only.</string>
+    <string name="event_lifecycle_finalize_action">Finalize event</string>
+    <string name="event_lifecycle_finalize_confirm_message">Planning will be frozen for the whole group.</string>
+    <string name="event_lifecycle_blocked_intro">Still to settle:</string>
+    <string name="event_lifecycle_error_generic">Could not change the event stage. Please try again.</string>
+    <string name="event_lifecycle_blocker_organizer_required">an organizer</string>
+    <string name="event_lifecycle_blocker_confirmed_participants_required">at least one confirmed participant</string>
+    <string name="event_lifecycle_blocker_final_scenario_required">the final option</string>
+    <string name="event_lifecycle_blocker_destination_required">the destination</string>
+    <string name="event_lifecycle_blocker_lodging_required">lodging</string>
+    <string name="event_lifecycle_blocker_transport_required">transport</string>
+    <string name="event_lifecycle_blocker_meeting_required">a meeting</string>
+    <string name="event_lifecycle_blocker_calendar_confirmed_date_required">the confirmed date</string>
+    <string name="event_lifecycle_blocker_notification_reminders_required">reminders</string>
+    <string name="event_lifecycle_blocker_budget_required">the budget</string>
+    <string name="event_lifecycle_blocker_payment_pot_required">the shared pot</string>
+    <string name="event_lifecycle_blocker_tricount_handoff_required">the Tricount link</string>
+    <string name="event_lifecycle_blocker_critical_sync_pending">pending sync</string>
+    <string name="event_lifecycle_blocker_critical_sync_failed">a failed sync</string>
+    <string name="event_lifecycle_blocker_critical_conflict_pending">a conflict to resolve</string>
+    <string name="event_lifecycle_blocker_unsafe_external_links">unsafe external links</string>
+    <string name="event_lifecycle_blocker_access_organizer_required">an organizer</string>
+    <string name="event_lifecycle_blocker_access_confirmed_participants_required">at least one confirmed participant</string>
+    <string name="event_lifecycle_blocker_event_not_organizing">moving to organizing</string>
 </resources>

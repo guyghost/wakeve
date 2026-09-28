@@ -47,9 +47,9 @@ struct CreateEventSheet: View {
     @State private var showingDatePicker = false
     @State private var isAllDay = false
     @State private var startDate = Date()
-    @State private var startTime = Date()
+    @State private var startTime = EventSlotInputBuilder.defaultStartTime(on: Date())
     @State private var hasEndTime = false
-    @State private var endTime = Date().addingTimeInterval(3600) // +1 hour by default
+    @State private var endTime = EventSlotInputBuilder.defaultStartTime(on: Date()).addingTimeInterval(3600) // +1 hour by default
     @State private var editingSlotID: UUID?
     
     // Event info sheet state
@@ -1367,12 +1367,13 @@ struct CreateEventSheet: View {
 
     private func prepareNewSlotDraft() {
         editingSlotID = nil
-        let now = Date()
-        startDate = now
-        startTime = now
+        let today = Date()
+        let defaultStart = EventSlotInputBuilder.defaultStartTime(on: today)
+        startDate = today
+        startTime = defaultStart
         hasEndTime = false
         isAllDay = false
-        endTime = Calendar.current.date(byAdding: .hour, value: 1, to: now) ?? now.addingTimeInterval(3600)
+        endTime = Calendar.current.date(byAdding: .hour, value: 1, to: defaultStart) ?? defaultStart.addingTimeInterval(3600)
         showingDatePicker = true
     }
 
@@ -1798,44 +1799,29 @@ private struct EventSlotDraft: Identifiable, Equatable {
     }
 
     func timeSlotInput(using formatter: ISO8601DateFormatter) -> EventTimeSlotInput {
-        EventTimeSlotInput(
-            start: formatter.string(from: startDateTime),
-            end: endDateTime.map { formatter.string(from: $0) },
-            timeOfDay: isAllDay ? .allDay : .specific
+        EventSlotInputBuilder.input(
+            startDate: startDate,
+            startTime: startTime,
+            isAllDay: isAllDay,
+            hasEndTime: hasEndTime,
+            endTime: endTime,
+            formatter: formatter
         )
     }
 
     private var startDateTime: Date {
-        combinedDateTime(date: startDate, time: startTime)
+        EventSlotInputBuilder.startDateTime(startDate: startDate, startTime: startTime, isAllDay: isAllDay)
     }
 
     private var endDateTime: Date? {
         guard !isAllDay else { return nil }
-
-        if hasEndTime {
-            let combinedEnd = combinedDateTime(date: startDate, time: endTime)
-            if combinedEnd <= startDateTime {
-                return Calendar.current.date(byAdding: .day, value: 1, to: combinedEnd)
-            }
-            return combinedEnd
-        }
-
-        return Calendar.current.date(byAdding: .hour, value: 1, to: startDateTime)
-    }
-
-    private func combinedDateTime(date: Date, time: Date) -> Date {
-        let calendar = Calendar.current
-        let dateComponents = calendar.dateComponents([.year, .month, .day], from: date)
-        let timeComponents = calendar.dateComponents([.hour, .minute], from: time)
-
-        var components = DateComponents()
-        components.year = dateComponents.year
-        components.month = dateComponents.month
-        components.day = dateComponents.day
-        components.hour = timeComponents.hour
-        components.minute = timeComponents.minute
-
-        return calendar.date(from: components) ?? date
+        return EventSlotInputBuilder.endDateTime(
+            startDate: startDate,
+            start: startDateTime,
+            isAllDay: false,
+            hasEndTime: hasEndTime,
+            endTime: endTime
+        )
     }
 }
 
@@ -1964,8 +1950,9 @@ struct DateTimePickerPopup: View {
                         Spacer()
 
                         Toggle("", isOn: $isAllDay)
+                            .labelsHidden()
                             .toggleStyle(SwitchToggleStyle(tint: Color(hex: "34C759")))
-                            .frame(width: 48, height: 28)
+                            .accessibilityLabel(String(localized: "events.all_day"))
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)

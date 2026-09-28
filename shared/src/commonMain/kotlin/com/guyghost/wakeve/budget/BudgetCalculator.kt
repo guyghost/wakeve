@@ -268,8 +268,18 @@ object BudgetCalculator {
      * @param items List of all budget items
      * @return List of (from, to, amount) tuples representing settlements
      */
-    fun calculateSettlements(items: List<BudgetItem>): List<Triple<String, String, Double>> {
-        val balances = calculateBalances(items).toMutableMap()
+    fun calculateSettlements(items: List<BudgetItem>): List<Triple<String, String, Double>> =
+        calculateSettlementsFromBalances(calculateBalances(items))
+
+    /**
+     * Calculate simplified debt settlements from precomputed balances
+     * (positive = owes money, negative = is owed money), e.g. balances that
+     * combine budget items and recorded expenses.
+     *
+     * @param balances Map of participantId to balance
+     * @return List of (from, to, amount) tuples representing settlements
+     */
+    fun calculateSettlementsFromBalances(balances: Map<String, Double>): List<Triple<String, String, Double>> {
         val settlements = mutableListOf<Triple<String, String, Double>>()
         
         // Filter out balanced participants

@@ -2256,3 +2256,9 @@
 "draft_dates.remove" = "Remove this date";
 "draft_dates.save" = "Save dates";
 "draft_dates.error.save_failed" = "The dates could not be saved. Please try again.";
+
+/* Local guest organizer: finalization needs an account */
+"event.lifecycle.guest.title" = "An account is needed to finalize";
+"event.lifecycle.guest.body" = "In guest mode, this event stays on this device: it can't be shared with the group or finalized. Sign in to continue with your participants.";
+"event.lifecycle.guest.action" = "Sign in";
+"event.lifecycle.guest.confirm_message" = "You will leave guest mode to sign in. Events made in guest mode are not moved to your account automatically.";

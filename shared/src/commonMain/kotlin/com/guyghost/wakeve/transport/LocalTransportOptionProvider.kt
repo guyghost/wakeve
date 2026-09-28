@@ -3,6 +3,7 @@ package com.guyghost.wakeve.transport
 import com.guyghost.wakeve.models.TransportLocation
 import com.guyghost.wakeve.models.TransportMode
 import com.guyghost.wakeve.models.TransportOption
+import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.roundToInt
@@ -64,12 +65,17 @@ object LocalTransportOptionProvider {
         val lon2 = to.longitude
         if (lat1 != null && lon1 != null && lat2 != null && lon2 != null) {
             val r = 6371.0
-            val dLat = Math.toRadians(lat2 - lat1)
-            val dLon = Math.toRadians(lon2 - lon1)
-            val a = sin(dLat / 2) * sin(dLat / 2) +
-                cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
-                sin(dLon / 2) * sin(dLon / 2)
-            return 2 * r * atan2(sqrt(a), sqrt(1 - a)).coerceAtLeast(50.0)
+            val dLat = (lat2 - lat1) * PI / 180.0
+            val dLon = (lon2 - lon1) * PI / 180.0
+            val lat1Radians = lat1 * PI / 180.0
+            val lat2Radians = lat2 * PI / 180.0
+            val a = (
+                sin(dLat / 2) * sin(dLat / 2) +
+                    cos(lat1Radians) * cos(lat2Radians) *
+                    sin(dLon / 2) * sin(dLon / 2)
+                ).coerceIn(0.0, 1.0)
+            val distanceKm = 2 * r * atan2(sqrt(a), sqrt(1 - a))
+            return distanceKm.coerceAtLeast(50.0)
         }
         // Deterministic fallback: stable pseudo-distance from the location names
         val seed = (from.name + to.name).hashCode().toUInt().toInt()

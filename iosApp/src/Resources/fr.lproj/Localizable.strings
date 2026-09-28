@@ -2280,3 +2280,9 @@
 "draft_dates.remove" = "Retirer cette date";
 "draft_dates.save" = "Enregistrer les dates";
 "draft_dates.error.save_failed" = "Les dates n’ont pas pu être enregistrées. Réessayez.";
+
+/* Local guest organizer: finalization needs an account */
+"event.lifecycle.guest.title" = "Un compte est nécessaire pour finaliser";
+"event.lifecycle.guest.body" = "En mode invité, cet événement reste sur cet appareil : il ne peut être ni partagé avec le groupe ni finalisé. Connectez-vous pour continuer avec les participants.";
+"event.lifecycle.guest.action" = "Se connecter";
+"event.lifecycle.guest.confirm_message" = "Vous allez quitter le mode invité pour vous connecter. Les événements créés en mode invité ne sont pas transférés automatiquement vers votre compte.";

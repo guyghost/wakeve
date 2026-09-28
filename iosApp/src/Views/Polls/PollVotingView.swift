@@ -628,7 +628,7 @@ struct PollVotingContentView: View {
                 HStack(spacing: WakeveTheme.Spacing.xs) {
                     Image(systemName: "clock")
                         .font(.caption.weight(.bold))
-                    Text("\(formatTime(activeSlot.start ?? "", timezone: activeSlot.timezone)) - \(formatTime(activeSlot.end ?? "", timezone: activeSlot.timezone))")
+                    Text(TimeSlotDisplayFormatter.hoursText(start: activeSlot.start, end: activeSlot.end, timezone: activeSlot.timezone, timeOfDay: activeSlot.timeOfDay))
                         .font(TypographyTokens.metadata)
                 }
                 .foregroundColor(SemanticColor.secondaryText(for: colorScheme))
@@ -816,17 +816,6 @@ struct PollVotingContentView: View {
         return dateString
     }
 
-    private func formatTime(_ dateString: String, timezone: String) -> String {
-        if let date = ISO8601DateFormatter().date(from: dateString) {
-            let formatter = DateFormatter()
-            formatter.locale = .autoupdatingCurrent
-            formatter.timeZone = timeZone(for: timezone)
-            formatter.timeStyle = .short
-            return formatter.string(from: date)
-        }
-        return dateString
-    }
-
     private func timeZone(for identifier: String) -> TimeZone {
         TimeZone(identifier: identifier.trimmingCharacters(in: .whitespacesAndNewlines)) ?? .current
     }
@@ -908,7 +897,7 @@ struct TimeSlotVoteCard: View {
                         .font(.system(size: 14))
                         .foregroundColor(.secondary)
 
-                    Text("\(formatTime(timeSlot.start ?? "", timezone: timeSlot.timezone)) - \(formatTime(timeSlot.end ?? "", timezone: timeSlot.timezone))")
+                    Text(TimeSlotDisplayFormatter.hoursText(start: timeSlot.start, end: timeSlot.end, timezone: timeSlot.timezone, timeOfDay: timeSlot.timeOfDay))
                         .font(WakeveTheme.Typography.metadata)
                         .foregroundColor(.secondary)
                 }
@@ -934,17 +923,6 @@ struct TimeSlotVoteCard: View {
             formatter.locale = .autoupdatingCurrent
             formatter.timeZone = timeZone(for: timezone)
             formatter.dateFormat = "EEEE, MMM d"
-            return formatter.string(from: date)
-        }
-        return dateString
-    }
-
-    private func formatTime(_ dateString: String, timezone: String) -> String {
-        if let date = ISO8601DateFormatter().date(from: dateString) {
-            let formatter = DateFormatter()
-            formatter.locale = .current
-            formatter.timeZone = timeZone(for: timezone)
-            formatter.timeStyle = .short
             return formatter.string(from: date)
         }
         return dateString

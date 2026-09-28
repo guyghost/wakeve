@@ -805,11 +805,22 @@ struct ParticipantManagementView: View {
 
     private var invitationPosterSubtitle: String {
         if let firstSlot = event.proposedSlots.first {
-            let start = firstSlot.start ?? String(localized: "invitation.poster_subtitle")
-            if let end = firstSlot.end, end != start {
-                return "\(start) / \(end)"
+            guard let startValue = firstSlot.start,
+                  let start = ISO8601DateFormatter().date(from: startValue) else {
+                return firstSlot.start ?? String(localized: "invitation.poster_subtitle")
             }
-            return start
+            let dateFormatter = DateFormatter()
+            dateFormatter.locale = .autoupdatingCurrent
+            dateFormatter.timeZone = TimeSlotDisplayFormatter.timeZone(for: firstSlot.timezone)
+            dateFormatter.dateStyle = .medium
+            dateFormatter.timeStyle = .none
+            let hours = TimeSlotDisplayFormatter.hoursText(
+                start: firstSlot.start,
+                end: firstSlot.end,
+                timezone: firstSlot.timezone,
+                timeOfDay: firstSlot.timeOfDay
+            )
+            return "\(dateFormatter.string(from: start)) · \(hours)"
         }
 
         return String(localized: "invitation.poster_subtitle")

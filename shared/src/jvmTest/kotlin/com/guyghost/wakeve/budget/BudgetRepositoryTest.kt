@@ -620,7 +620,62 @@ class BudgetRepositoryTest {
         assertEquals("user-1", to)
         assertEquals(150.0, amount, 0.01)
     }
-    
+
+    @Test
+    fun testGetSettlementsIncludesRecordedExpenses() {
+        // QA BUG-C (2026-09-27): expenses advanced by a participant must be settled.
+        val budget = repository.createBudget("event-1")
+        ExpenseRepository(database).createExpense(
+            eventId = "event-1",
+            amount = 1900.0,
+            category = BudgetCategory.OTHER,
+            payerId = "karim",
+            splitParticipantIds = listOf("sophie", "karim")
+        )
+
+        val settlements = repository.getSettlements(budget.id)
+
+        assertEquals(1, settlements.size)
+        val (from, to, amount) = settlements[0]
+        assertEquals("sophie", from)
+        assertEquals("karim", to)
+        assertEquals(950.0, amount, 0.01)
+    }
+
+    @Test
+    fun testSettlementsAndBalancesCombinePaidItemsAndExpenses() {
+        val budget = repository.createBudget("event-1")
+        val train = repository.createBudgetItem(
+            budgetId = budget.id,
+            category = BudgetCategory.TRANSPORT,
+            name = "Train",
+            description = "Tickets",
+            estimatedCost = 300.0,
+            sharedBy = listOf("user-1", "user-2", "user-3")
+        )
+        repository.markItemAsPaid(train.id, 300.0, "user-1")
+        ExpenseRepository(database).createExpense(
+            eventId = "event-1",
+            amount = 90.0,
+            category = BudgetCategory.MEALS,
+            payerId = "user-2",
+            splitParticipantIds = listOf("user-1", "user-2", "user-3")
+        )
+
+        // user-1: owes 100 + 30, paid 300 -> -170
+        // user-2: owes 100 + 30, paid 90  -> +40
+        // user-3: owes 100 + 30, paid 0   -> +130
+        val balances = repository.getParticipantBalances(budget.id)
+        assertEquals(-170.0, balances["user-1"]!!, 0.01)
+        assertEquals(40.0, balances["user-2"]!!, 0.01)
+        assertEquals(130.0, balances["user-3"]!!, 0.01)
+
+        val settlements = repository.getSettlements(budget.id)
+        assertEquals(170.0, settlements.filter { it.second == "user-1" }.sumOf { it.third }, 0.01)
+        assertEquals(40.0, settlements.filter { it.first == "user-2" }.sumOf { it.third }, 0.01)
+        assertEquals(130.0, settlements.filter { it.first == "user-3" }.sumOf { it.third }, 0.01)
+    }
+
     // ==================== Statistics Tests ====================
     
     @Test

@@ -317,7 +317,7 @@ struct BestSlotCard: View {
                             .font(.callout)
                             .foregroundColor(.secondary)
                         
-                        Text("\(formatTime(slot.start ?? "", timezone: slot.timezone)) - \(formatTime(slot.end ?? "", timezone: slot.timezone))")
+                        Text(TimeSlotDisplayFormatter.hoursText(start: slot.start, end: slot.end, timezone: slot.timezone, timeOfDay: slot.timeOfDay))
                             .font(WakeveTheme.Typography.body)
                             .foregroundColor(.secondary)
                     }
@@ -343,17 +343,6 @@ struct BestSlotCard: View {
         return dateString
     }
     
-    private func formatTime(_ dateString: String, timezone: String) -> String {
-        if let date = ISO8601DateFormatter().date(from: dateString) {
-            let formatter = DateFormatter()
-            formatter.locale = .autoupdatingCurrent
-            formatter.timeZone = timeZone(for: timezone)
-            formatter.timeStyle = .short
-            return formatter.string(from: date)
-        }
-        return dateString
-    }
-
     private func timeZone(for identifier: String) -> TimeZone {
         TimeZone(identifier: identifier.trimmingCharacters(in: .whitespacesAndNewlines)) ?? .current
     }
@@ -425,7 +414,7 @@ struct ConfirmedDateCard: View {
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             
-                            Text("\(formatTime(slot.start ?? "", timezone: slot.timezone)) - \(formatTime(slot.end ?? "", timezone: slot.timezone))")
+                            Text(TimeSlotDisplayFormatter.hoursText(start: slot.start, end: slot.end, timezone: slot.timezone, timeOfDay: slot.timeOfDay))
                                 .font(WakeveTheme.Typography.callout)
                                 .foregroundColor(.secondary)
                         }
@@ -456,17 +445,6 @@ struct ConfirmedDateCard: View {
         return dateString
     }
     
-    private func formatTime(_ dateString: String, timezone: String) -> String {
-        if let date = ISO8601DateFormatter().date(from: dateString) {
-            let formatter = DateFormatter()
-            formatter.locale = .autoupdatingCurrent
-            formatter.timeZone = timeZone(for: timezone)
-            formatter.timeStyle = .short
-            return formatter.string(from: date)
-        }
-        return dateString
-    }
-
     private func timeZone(for identifier: String) -> TimeZone {
         TimeZone(identifier: identifier.trimmingCharacters(in: .whitespacesAndNewlines)) ?? .current
     }
@@ -505,7 +483,10 @@ struct PollDecisionAnnouncementCard: View {
 
     private var announcementMessage: String {
         let date = formatDate(slot.start ?? "", timezone: slot.timezone)
-        let time = formatTimeRange(start: slot.start, end: slot.end, timezone: slot.timezone)
+        // An all-day slot has no hours: say so instead of inventing "00:00 - 00:00".
+        let time = TimeSlotDisplayFormatter.isAllDay(slot.timeOfDay)
+            ? "(\(TimeSlotDisplayFormatter.allDayLabel))"
+            : formatTimeRange(start: slot.start, end: slot.end, timezone: slot.timezone)
 
         if isConfirmed {
             return String(format: String(localized: "poll.results.announcement.confirmed_message_format"), event.title, date, time)
@@ -767,7 +748,7 @@ struct SlotResultCard: View {
                         .font(.system(size: 14))
                         .foregroundColor(.secondary)
 
-                    Text("\(formatTime(slot.start ?? "", timezone: slot.timezone)) - \(formatTime(slot.end ?? "", timezone: slot.timezone))")
+                    Text(TimeSlotDisplayFormatter.hoursText(start: slot.start, end: slot.end, timezone: slot.timezone, timeOfDay: slot.timeOfDay))
                         .font(WakeveTheme.Typography.callout)
                         .foregroundColor(.secondary)
                 }
@@ -847,17 +828,6 @@ struct SlotResultCard: View {
             formatter.locale = .autoupdatingCurrent
             formatter.timeZone = timeZone(for: timezone)
             formatter.setLocalizedDateFormatFromTemplate("EEEdMMM")
-            return formatter.string(from: date)
-        }
-        return dateString
-    }
-
-    private func formatTime(_ dateString: String, timezone: String) -> String {
-        if let date = ISO8601DateFormatter().date(from: dateString) {
-            let formatter = DateFormatter()
-            formatter.locale = .autoupdatingCurrent
-            formatter.timeZone = timeZone(for: timezone)
-            formatter.timeStyle = .short
             return formatter.string(from: date)
         }
         return dateString

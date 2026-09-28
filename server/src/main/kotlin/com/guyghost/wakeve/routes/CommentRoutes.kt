@@ -2,6 +2,7 @@ package com.guyghost.wakeve.routes
 
 import com.guyghost.wakeve.auth.userId
 import com.guyghost.wakeve.comment.CommentRepository
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.CommentRequest
 import com.guyghost.wakeve.models.CommentSection
 import com.guyghost.wakeve.models.Comment
@@ -14,6 +15,7 @@ import com.guyghost.wakeve.moderation.ModerationStatus
 import com.guyghost.wakeve.notification.EventNotificationTrigger
 import com.guyghost.wakeve.repository.DatabaseEventRepository
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.ApplicationCall
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
@@ -42,7 +44,8 @@ fun io.ktor.server.routing.Route.commentRoutes(
     repository: CommentRepository,
     eventNotificationTrigger: EventNotificationTrigger? = null,
     eventRepository: DatabaseEventRepository? = null,
-    moderationRepository: ModerationRepository? = null
+    moderationRepository: ModerationRepository? = null,
+    database: WakeveDb? = null
 ) {
     route("/events/{eventId}/comments") {
 
@@ -53,6 +56,12 @@ fun io.ktor.server.routing.Route.commentRoutes(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                if (!call.hasCommentEventAccess(eventId, eventRepository, database)) {
+                    return@post call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to commentEventAccessDeniedMessage())
+                    )
+                }
 
                 val request = try {
                     call.receive<CreateCommentRequest>()
@@ -122,6 +131,12 @@ fun io.ktor.server.routing.Route.commentRoutes(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to e.result.userMessage, "reasonCode" to e.result.reasonCode)
                 )
+            } catch (e: IllegalArgumentException) {
+                // Invalid content (blank, too long) or unknown parent comment.
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to commentCreateInvalidRequestMessage())
+                )
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
@@ -137,6 +152,12 @@ fun io.ktor.server.routing.Route.commentRoutes(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                if (!call.hasCommentEventAccess(eventId, eventRepository, database)) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to commentEventAccessDeniedMessage())
+                    )
+                }
 
                 val section = call.request.queryParameters["section"]?.let { CommentSection.valueOf(it) }
                 val sectionItemId = call.request.queryParameters["sectionItemId"]
@@ -183,6 +204,12 @@ fun io.ktor.server.routing.Route.commentRoutes(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                if (!call.hasCommentEventAccess(eventId, eventRepository, database)) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to commentEventAccessDeniedMessage())
+                    )
+                }
 
                 val commentId = call.parameters["commentId"] ?: return@get call.respond(
                     HttpStatusCode.BadRequest,
@@ -229,6 +256,12 @@ fun io.ktor.server.routing.Route.commentRoutes(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                if (!call.hasCommentEventAccess(eventId, eventRepository, database)) {
+                    return@put call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to commentEventAccessDeniedMessage())
+                    )
+                }
 
                 val commentId = call.parameters["commentId"] ?: return@put call.respond(
                     HttpStatusCode.BadRequest,
@@ -290,6 +323,12 @@ fun io.ktor.server.routing.Route.commentRoutes(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                if (!call.hasCommentEventAccess(eventId, eventRepository, database)) {
+                    return@delete call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to commentEventAccessDeniedMessage())
+                    )
+                }
 
                 val commentId = call.parameters["commentId"] ?: return@delete call.respond(
                     HttpStatusCode.BadRequest,
@@ -344,6 +383,12 @@ fun io.ktor.server.routing.Route.commentRoutes(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                if (!call.hasCommentEventAccess(eventId, eventRepository, database)) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to commentEventAccessDeniedMessage())
+                    )
+                }
 
                 val viewerUserId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
                 val statistics = repository.getCommentStatistics(eventId)
@@ -369,6 +414,12 @@ fun io.ktor.server.routing.Route.commentRoutes(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                if (!call.hasCommentEventAccess(eventId, eventRepository, database)) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to commentEventAccessDeniedMessage())
+                    )
+                }
 
                 val limit = parseCommentContributorLimit(call.request.queryParameters["limit"])
                 val viewerUserId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
@@ -400,6 +451,12 @@ fun io.ktor.server.routing.Route.commentRoutes(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                if (!call.hasCommentEventAccess(eventId, eventRepository, database)) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to commentEventAccessDeniedMessage())
+                    )
+                }
 
                 val since = call.request.queryParameters["since"]
                 val limit = parseRecentCommentLimit(call.request.queryParameters["limit"])
@@ -431,6 +488,12 @@ fun io.ktor.server.routing.Route.commentRoutes(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                if (!call.hasCommentEventAccess(eventId, eventRepository, database)) {
+                    return@post call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to commentEventAccessDeniedMessage())
+                    )
+                }
 
                 val commentId = call.parameters["commentId"] ?: return@post call.respond(
                     HttpStatusCode.BadRequest,
@@ -489,6 +552,12 @@ fun io.ktor.server.routing.Route.commentRoutes(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                if (!call.hasCommentEventAccess(eventId, eventRepository, database)) {
+                    return@delete call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to commentEventAccessDeniedMessage())
+                    )
+                }
 
                 val commentId = call.parameters["commentId"] ?: return@delete call.respond(
                     HttpStatusCode.BadRequest,
@@ -547,6 +616,12 @@ fun io.ktor.server.routing.Route.commentRoutes(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                if (!call.hasCommentEventAccess(eventId, eventRepository, database)) {
+                    return@post call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to commentEventAccessDeniedMessage())
+                    )
+                }
 
                 val commentId = call.parameters["commentId"] ?: return@post call.respond(
                     HttpStatusCode.BadRequest,
@@ -606,6 +681,12 @@ fun io.ktor.server.routing.Route.commentRoutes(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                if (!call.hasCommentEventAccess(eventId, eventRepository, database)) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to commentEventAccessDeniedMessage())
+                    )
+                }
 
                 val viewerUserId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
                 val statsBySection = repository.getCommentsByEvent(eventId)
@@ -716,6 +797,20 @@ private fun CommentsBySection.paginate(offset: Int, limit: Int): CommentsBySecti
     )
 }
 
+/**
+ * Comments are private to the event: only the organizer or a participant may
+ * read or write them (QA BUG-A). Fails closed when dependencies are missing.
+ */
+private fun ApplicationCall.hasCommentEventAccess(
+    eventId: String,
+    eventRepository: DatabaseEventRepository?,
+    database: WakeveDb?
+): Boolean {
+    val userId = principal<JWTPrincipal>()?.userId ?: return false
+    if (eventRepository == null || database == null) return false
+    return hasEventMemberAccess(eventRepository, database, eventId, userId)
+}
+
 private fun isCommentAuthor(comment: Comment, currentUserId: String?): Boolean =
     currentUserId != null && comment.authorId == currentUserId
 
@@ -784,6 +879,12 @@ internal fun resolveAuthenticatedCommentAuthorName(
 
 internal fun commentAuthorForbiddenMessage(): String =
     "You are not allowed to create this comment."
+
+internal fun commentEventAccessDeniedMessage(): String =
+    "You do not have access to this event"
+
+internal fun commentCreateInvalidRequestMessage(): String =
+    "Invalid comment: content must be between 1 and 2000 characters."
 
 internal fun commentCreateFailureMessage(): String =
     "Failed to create the comment. Please try again."

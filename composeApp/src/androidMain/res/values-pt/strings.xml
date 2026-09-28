@@ -859,4 +859,35 @@
     <string name="conflict_field_deadline">Prazo da votação</string>
     <string name="conflict_field_participants">Participantes</string>
     <string name="conflict_field_proposed_slots">Horários propostos</string>
+    <!-- Organizer lifecycle transitions (CONFIRMED -> ORGANIZING -> FINALIZED) -->
+    <string name="event_lifecycle_organizing_title">Prontos para organizar?</string>
+    <string name="event_lifecycle_organizing_body">A data está definida. Passe à organização para desbloquear reuniões, orçamento e vaquinha.</string>
+    <string name="event_lifecycle_organizing_action">Passar à organização</string>
+    <string name="event_lifecycle_organizing_confirm_message">Os participantes confirmados verão reuniões, orçamento e vaquinha.</string>
+    <string name="event_lifecycle_comparing_body">Escolha uma opção final para passar à organização.</string>
+    <string name="event_lifecycle_finalize_title">Último passo</string>
+    <string name="event_lifecycle_finalize_body">Finalize quando a logística estiver fechada. O evento ficará só de leitura.</string>
+    <string name="event_lifecycle_finalize_action">Finalizar o evento</string>
+    <string name="event_lifecycle_finalize_confirm_message">A organização ficará fechada para todo o grupo.</string>
+    <string name="event_lifecycle_blocked_intro">Falta resolver:</string>
+    <string name="event_lifecycle_error_generic">Não foi possível mudar a etapa do evento. Tente novamente.</string>
+    <string name="event_lifecycle_blocker_organizer_required">um organizador</string>
+    <string name="event_lifecycle_blocker_confirmed_participants_required">pelo menos um participante confirmado</string>
+    <string name="event_lifecycle_blocker_final_scenario_required">a opção final</string>
+    <string name="event_lifecycle_blocker_destination_required">o destino</string>
+    <string name="event_lifecycle_blocker_lodging_required">o alojamento</string>
+    <string name="event_lifecycle_blocker_transport_required">o transporte</string>
+    <string name="event_lifecycle_blocker_meeting_required">uma reunião</string>
+    <string name="event_lifecycle_blocker_calendar_confirmed_date_required">a data confirmada</string>
+    <string name="event_lifecycle_blocker_notification_reminders_required">os lembretes</string>
+    <string name="event_lifecycle_blocker_budget_required">o orçamento</string>
+    <string name="event_lifecycle_blocker_payment_pot_required">a vaquinha</string>
+    <string name="event_lifecycle_blocker_tricount_handoff_required">o link do Tricount</string>
+    <string name="event_lifecycle_blocker_critical_sync_pending">a sincronização pendente</string>
+    <string name="event_lifecycle_blocker_critical_sync_failed">uma sincronização com falha</string>
+    <string name="event_lifecycle_blocker_critical_conflict_pending">um conflito por resolver</string>
+    <string name="event_lifecycle_blocker_unsafe_external_links">links externos inseguros</string>
+    <string name="event_lifecycle_blocker_access_organizer_required">um organizador</string>
+    <string name="event_lifecycle_blocker_access_confirmed_participants_required">pelo menos um participante confirmado</string>
+    <string name="event_lifecycle_blocker_event_not_organizing">a passagem à organização</string>
 </resources>

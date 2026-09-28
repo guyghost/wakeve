@@ -862,4 +862,35 @@
     <string name="conflict_field_deadline">Abstimmungsfrist</string>
     <string name="conflict_field_participants">Teilnehmende</string>
     <string name="conflict_field_proposed_slots">Vorgeschlagene Zeitfenster</string>
+    <!-- Organizer lifecycle transitions (CONFIRMED -> ORGANIZING -> FINALIZED) -->
+    <string name="event_lifecycle_organizing_title">Bereit zum Organisieren?</string>
+    <string name="event_lifecycle_organizing_body">Das Datum steht fest. Wechsle zur Organisation, um Treffen, Budget und Gemeinschaftskasse freizuschalten.</string>
+    <string name="event_lifecycle_organizing_action">Zur Organisation wechseln</string>
+    <string name="event_lifecycle_organizing_confirm_message">Bestätigte Teilnehmende sehen Treffen, Budget und Gemeinschaftskasse.</string>
+    <string name="event_lifecycle_comparing_body">Wähle eine endgültige Option, um danach zur Organisation zu wechseln.</string>
+    <string name="event_lifecycle_finalize_title">Letzter Schritt</string>
+    <string name="event_lifecycle_finalize_body">Schließe ab, sobald die Logistik steht. Das Event ist danach schreibgeschützt.</string>
+    <string name="event_lifecycle_finalize_action">Event abschließen</string>
+    <string name="event_lifecycle_finalize_confirm_message">Die Planung wird für die ganze Gruppe eingefroren.</string>
+    <string name="event_lifecycle_blocked_intro">Noch zu klären:</string>
+    <string name="event_lifecycle_error_generic">Die Phase des Events konnte nicht geändert werden. Bitte versuche es erneut.</string>
+    <string name="event_lifecycle_blocker_organizer_required">ein Organisator</string>
+    <string name="event_lifecycle_blocker_confirmed_participants_required">mindestens eine bestätigte Person</string>
+    <string name="event_lifecycle_blocker_final_scenario_required">die endgültige Option</string>
+    <string name="event_lifecycle_blocker_destination_required">das Reiseziel</string>
+    <string name="event_lifecycle_blocker_lodging_required">die Unterkunft</string>
+    <string name="event_lifecycle_blocker_transport_required">der Transport</string>
+    <string name="event_lifecycle_blocker_meeting_required">ein Treffen</string>
+    <string name="event_lifecycle_blocker_calendar_confirmed_date_required">das bestätigte Datum</string>
+    <string name="event_lifecycle_blocker_notification_reminders_required">die Erinnerungen</string>
+    <string name="event_lifecycle_blocker_budget_required">das Budget</string>
+    <string name="event_lifecycle_blocker_payment_pot_required">die Gemeinschaftskasse</string>
+    <string name="event_lifecycle_blocker_tricount_handoff_required">der Tricount-Link</string>
+    <string name="event_lifecycle_blocker_critical_sync_pending">die ausstehende Synchronisierung</string>
+    <string name="event_lifecycle_blocker_critical_sync_failed">eine fehlgeschlagene Synchronisierung</string>
+    <string name="event_lifecycle_blocker_critical_conflict_pending">ein offener Konflikt</string>
+    <string name="event_lifecycle_blocker_unsafe_external_links">unsichere externe Links</string>
+    <string name="event_lifecycle_blocker_access_organizer_required">ein Organisator</string>
+    <string name="event_lifecycle_blocker_access_confirmed_participants_required">mindestens eine bestätigte Person</string>
+    <string name="event_lifecycle_blocker_event_not_organizing">der Wechsel zur Organisation</string>
 </resources>

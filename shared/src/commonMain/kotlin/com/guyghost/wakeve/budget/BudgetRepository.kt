@@ -403,8 +403,33 @@ class BudgetRepository(private val db: WakeveDb) {
      * Get balances for all participants in a budget.
      */
     fun getParticipantBalances(budgetId: String): Map<String, Double> {
-        val items = getBudgetItems(budgetId)
-        return BudgetCalculator.calculateBalances(items)
+        val itemBalances = BudgetCalculator.calculateBalances(getBudgetItems(budgetId))
+        val expenseBalances = getExpenseBalances(budgetId)
+        return (itemBalances.keys + expenseBalances.keys).associateWith { participantId ->
+            (itemBalances[participantId] ?: 0.0) + (expenseBalances[participantId] ?: 0.0)
+        }
+    }
+
+    /**
+     * Balances from shared expenses recorded for this budget (who advanced how
+     * much, split equally among the split participants).
+     * Positive = owes money, negative = is owed money, like budget item balances.
+     */
+    private fun getExpenseBalances(budgetId: String): Map<String, Double> {
+        val balances = mutableMapOf<String, Double>()
+        db.expenseQueries.selectByBudgetId(budgetId).executeAsList().forEach { expense ->
+            val splitParticipantIds = expense.splitParticipantIds
+                .split(",")
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+            if (splitParticipantIds.isEmpty()) return@forEach
+            balances[expense.payerId] = (balances[expense.payerId] ?: 0.0) - expense.amount
+            val share = expense.amount / splitParticipantIds.size
+            splitParticipantIds.forEach { participantId ->
+                balances[participantId] = (balances[participantId] ?: 0.0) + share
+            }
+        }
+        return balances
     }
 
     /**
@@ -480,12 +505,11 @@ class BudgetRepository(private val db: WakeveDb) {
     }
     
     /**
-     * Get settlement suggestions for a budget.
+     * Get settlement suggestions for a budget, combining paid budget items and
+     * shared expenses recorded via [ExpenseRepository] (QA BUG-C, 2026-09-27).
      */
-    fun getSettlements(budgetId: String): List<Triple<String, String, Double>> {
-        val items = getBudgetItems(budgetId)
-        return BudgetCalculator.calculateSettlements(items)
-    }
+    fun getSettlements(budgetId: String): List<Triple<String, String, Double>> =
+        BudgetCalculator.calculateSettlementsFromBalances(getParticipantBalances(budgetId))
     
     // ==================== Statistics ====================
     

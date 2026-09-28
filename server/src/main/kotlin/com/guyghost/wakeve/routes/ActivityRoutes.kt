@@ -46,7 +46,7 @@ fun io.ktor.server.routing.Route.activityRoutes(
                 )
                 val qaCallerId = call.principal<JWTPrincipal>()?.userId
                 if (qaCallerId == null || eventRepository == null || database == null ||
-                    !hasActivityEventAccess(eventRepository, database, eventId, qaCallerId)
+                    !hasEventMemberAccess(eventRepository, database, eventId, qaCallerId)
                 ) {
                     return@get call.respond(
                         HttpStatusCode.Forbidden,
@@ -73,7 +73,7 @@ fun io.ktor.server.routing.Route.activityRoutes(
                 )
                 val qaCallerId = call.principal<JWTPrincipal>()?.userId
                 if (qaCallerId == null || eventRepository == null || database == null ||
-                    !hasActivityEventAccess(eventRepository, database, eventId, qaCallerId)
+                    !hasEventMemberAccess(eventRepository, database, eventId, qaCallerId)
                 ) {
                     return@get call.respond(
                         HttpStatusCode.Forbidden,
@@ -100,7 +100,7 @@ fun io.ktor.server.routing.Route.activityRoutes(
                 )
                 val qaCallerId = call.principal<JWTPrincipal>()?.userId
                 if (qaCallerId == null || eventRepository == null || database == null ||
-                    !hasActivityEventAccess(eventRepository, database, eventId, qaCallerId)
+                    !hasEventMemberAccess(eventRepository, database, eventId, qaCallerId)
                 ) {
                     return@get call.respond(
                         HttpStatusCode.Forbidden,
@@ -142,7 +142,7 @@ fun io.ktor.server.routing.Route.activityRoutes(
                 )
                 val qaCallerId = call.principal<JWTPrincipal>()?.userId
                 if (qaCallerId == null || eventRepository == null || database == null ||
-                    !hasActivityEventAccess(eventRepository, database, eventId, qaCallerId)
+                    !hasEventMemberAccess(eventRepository, database, eventId, qaCallerId)
                 ) {
                     return@get call.respond(
                         HttpStatusCode.Forbidden,
@@ -185,7 +185,7 @@ fun io.ktor.server.routing.Route.activityRoutes(
                 )
                 val qaCallerId = call.principal<JWTPrincipal>()?.userId
                 if (qaCallerId == null || eventRepository == null || database == null ||
-                    !hasActivityEventAccess(eventRepository, database, eventId, qaCallerId)
+                    !hasEventMemberAccess(eventRepository, database, eventId, qaCallerId)
                 ) {
                     return@get call.respond(
                         HttpStatusCode.Forbidden,
@@ -231,7 +231,7 @@ fun io.ktor.server.routing.Route.activityRoutes(
                 )
                 val qaCallerId = call.principal<JWTPrincipal>()?.userId
                 if (qaCallerId == null || eventRepository == null || database == null ||
-                    !hasActivityEventAccess(eventRepository, database, eventId, qaCallerId)
+                    !hasEventMemberAccess(eventRepository, database, eventId, qaCallerId)
                 ) {
                     return@get call.respond(
                         HttpStatusCode.Forbidden,
@@ -263,7 +263,7 @@ fun io.ktor.server.routing.Route.activityRoutes(
                 )
                 val qaCallerId = call.principal<JWTPrincipal>()?.userId
                 if (qaCallerId == null || eventRepository == null || database == null ||
-                    !hasActivityEventAccess(eventRepository, database, eventId, qaCallerId)
+                    !hasEventMemberAccess(eventRepository, database, eventId, qaCallerId)
                 ) {
                     return@post call.respond(
                         HttpStatusCode.Forbidden,
@@ -321,7 +321,7 @@ fun io.ktor.server.routing.Route.activityRoutes(
                 )
                 val qaCallerId = call.principal<JWTPrincipal>()?.userId
                 if (qaCallerId == null || eventRepository == null || database == null ||
-                    !hasActivityEventAccess(eventRepository, database, eventId, qaCallerId)
+                    !hasEventMemberAccess(eventRepository, database, eventId, qaCallerId)
                 ) {
                     return@post call.respond(
                         HttpStatusCode.Forbidden,
@@ -389,7 +389,7 @@ fun io.ktor.server.routing.Route.activityRoutes(
                 )
                 val qaCallerId = call.principal<JWTPrincipal>()?.userId
                 if (qaCallerId == null || eventRepository == null || database == null ||
-                    !hasActivityEventAccess(eventRepository, database, eventId, qaCallerId)
+                    !hasEventMemberAccess(eventRepository, database, eventId, qaCallerId)
                 ) {
                     return@put call.respond(
                         HttpStatusCode.Forbidden,
@@ -460,7 +460,7 @@ fun io.ktor.server.routing.Route.activityRoutes(
                 )
                 val qaCallerId = call.principal<JWTPrincipal>()?.userId
                 if (qaCallerId == null || eventRepository == null || database == null ||
-                    !hasActivityEventAccess(eventRepository, database, eventId, qaCallerId)
+                    !hasEventMemberAccess(eventRepository, database, eventId, qaCallerId)
                 ) {
                     return@delete call.respond(
                         HttpStatusCode.Forbidden,
@@ -492,7 +492,7 @@ fun io.ktor.server.routing.Route.activityRoutes(
                 )
                 val qaCallerId = call.principal<JWTPrincipal>()?.userId
                 if (qaCallerId == null || eventRepository == null || database == null ||
-                    !hasActivityEventAccess(eventRepository, database, eventId, qaCallerId)
+                    !hasEventMemberAccess(eventRepository, database, eventId, qaCallerId)
                 ) {
                     return@delete call.respond(
                         HttpStatusCode.Forbidden,
@@ -554,22 +554,3 @@ internal fun activityDeleteFailureMessage(): String =
 
 internal fun activityUnregistrationFailureMessage(): String =
     "Failed to unregister from this activity. Please try again."
-
-/**
- * Access control for activity endpoints: only the event organizer or an event
- * participant may read or mutate activities (QA BUG-4 hardening).
- */
-private fun hasActivityEventAccess(
-    eventRepository: DatabaseEventRepository,
-    database: WakeveDb,
-    eventId: String,
-    userId: String
-): Boolean {
-    val event = eventRepository.getEvent(eventId) ?: return false
-    if (event.organizerId == userId) {
-        return true
-    }
-    return database.participantQueries
-        .selectByEventIdAndUserId(eventId, userId)
-        .executeAsOneOrNull() != null
-}
