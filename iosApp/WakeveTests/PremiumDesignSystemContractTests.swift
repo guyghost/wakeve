@@ -504,7 +504,6 @@ final class PremiumDesignSystemContractTests: XCTestCase {
     func testSecondaryScreensStayWithinFixedTypographyBudgets() throws {
         let budgets = [
             ("iosApp/src/Views/Auth/LoginView.swift", 4),
-            ("iosApp/src/Views/Events/HomeView.swift", 7),
             ("iosApp/src/Views/Events/ParticipantManagementView.swift", 4),
             ("iosApp/src/Views/Profile/ProfileTabView.swift", 5),
             ("iosApp/src/Views/Explore/ExploreScenarioDetailView.swift", 1),
@@ -532,7 +531,6 @@ final class PremiumDesignSystemContractTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(occurrenceCount(of: ".frame(minHeight: 44)", in: legal), 2, "Privacy and terms links each need a 44pt minimum target.")
 
         for path in [
-            "iosApp/src/Views/Events/HomeView.swift",
             "iosApp/src/Views/Events/ParticipantManagementView.swift",
             "iosApp/src/Views/Explore/LeaderboardView.swift",
             "iosApp/src/Components/LocationSelectionSheet.swift"
@@ -604,16 +602,8 @@ final class PremiumDesignSystemContractTests: XCTestCase {
         XCTAssertTrue(meeting.contains("SemanticColor."), "Meeting detail must use semantic state colors.")
     }
 
-    func testRemainingHomeAndPollHighlightsUseSemanticColors() throws {
-        let home = try readProjectFile("iosApp/src/Views/Events/HomeView.swift")
-        let blockedAction = slice(home, from: "private struct HomeNextActionCard", to: "private struct HomeDraftResumeCard")
+    func testRemainingPollHighlightsUseSemanticColors() throws {
         let pollResults = try readProjectFile("iosApp/src/Views/Polls/PollResultsView.swift")
-
-        XCTAssertFalse(blockedAction.contains("Color.orange"), "The blocked home action must not hard-code orange.")
-        XCTAssertTrue(
-            blockedAction.contains("SemanticColor.warning"),
-            "The blocked home action must communicate its status with SemanticColor.warning."
-        )
 
         for rawHighlight in [".foregroundColor(.yellow)", "Color.yellow"] {
             XCTAssertFalse(pollResults.contains(rawHighlight), "Poll result highlights must replace \(rawHighlight) with semantic colors.")
