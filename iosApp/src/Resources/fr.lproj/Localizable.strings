@@ -2299,3 +2299,29 @@
 "wk.module.highlight" = "Prochaine étape";
 "wk.nav.profile" = "Profil";
 "wk.nav.settings" = "Réglages";
+
+/* Home v2 (refonte 2026) */
+"home.v2.status.draft" = "Brouillon";
+"home.v2.status.vote_required" = "À toi de voter";
+"home.v2.status.ready_to_confirm" = "Prêt à confirmer";
+"home.v2.status.polling" = "Vote en cours";
+"home.v2.status.organizing" = "En préparation";
+"home.v2.status.confirmed" = "Confirmé";
+"home.v2.status.past" = "Passé";
+"home.v2.next_step.caption_format" = "Prochaine étape · %@";
+"home.v2.next_step.vote.subtitle" = "Il manque ton vote";
+"home.v2.next_step.ready.subtitle" = "Tout le monde a voté";
+"home.v2.next_step.polling.subtitle" = "votes reçus";
+"home.v2.next_step.organizing.subtitle" = "avant l'événement";
+"home.v2.next_step.action.vote" = "Voter";
+"home.v2.next_step.action.results" = "Voir les résultats";
+"home.v2.next_step.action.organize" = "Continuer l'organisation";
+"home.v2.section.past" = "Passés";
+"home.v2.empty.title" = "Organise ton premier événement";
+"home.v2.empty.body" = "Propose des dates, le groupe vote, Wakeve suit le reste.";
+"home.v2.empty.action" = "Créer un événement";
+"home.v2.menu.open" = "Ouvrir";
+"home.v2.menu.edit" = "Modifier le brouillon";
+"home.v2.menu.delete" = "Supprimer";
+"home.v2.sync.pending" = "Modifications en attente de synchro";
+"wk.wordmark" = "wakeve";

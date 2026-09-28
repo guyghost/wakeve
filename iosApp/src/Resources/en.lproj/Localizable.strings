@@ -2275,3 +2275,29 @@
 "wk.module.highlight" = "Next step";
 "wk.nav.profile" = "Profile";
 "wk.nav.settings" = "Settings";
+
+/* Home v2 (refonte 2026) */
+"home.v2.status.draft" = "Draft";
+"home.v2.status.vote_required" = "Your vote";
+"home.v2.status.ready_to_confirm" = "Ready to confirm";
+"home.v2.status.polling" = "Voting";
+"home.v2.status.organizing" = "In progress";
+"home.v2.status.confirmed" = "Confirmed";
+"home.v2.status.past" = "Past";
+"home.v2.next_step.caption_format" = "Next step · %@";
+"home.v2.next_step.vote.subtitle" = "Your vote is missing";
+"home.v2.next_step.ready.subtitle" = "Everyone has voted";
+"home.v2.next_step.polling.subtitle" = "votes received";
+"home.v2.next_step.organizing.subtitle" = "days to go";
+"home.v2.next_step.action.vote" = "Vote";
+"home.v2.next_step.action.results" = "See results";
+"home.v2.next_step.action.organize" = "Keep organizing";
+"home.v2.section.past" = "Past";
+"home.v2.empty.title" = "Plan your first event";
+"home.v2.empty.body" = "Propose dates, the group votes, Wakeve keeps track.";
+"home.v2.empty.action" = "Create an event";
+"home.v2.menu.open" = "Open";
+"home.v2.menu.edit" = "Edit draft";
+"home.v2.menu.delete" = "Delete";
+"home.v2.sync.pending" = "Changes waiting to sync";
+"wk.wordmark" = "wakeve";

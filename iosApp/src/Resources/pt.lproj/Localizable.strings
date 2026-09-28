@@ -2277,3 +2277,29 @@
 "wk.module.highlight" = "Próximo passo";
 "wk.nav.profile" = "Perfil";
 "wk.nav.settings" = "Ajustes";
+
+/* Home v2 (refonte 2026) */
+"home.v2.status.draft" = "Rascunho";
+"home.v2.status.vote_required" = "Sua vez de votar";
+"home.v2.status.ready_to_confirm" = "Pronto para confirmar";
+"home.v2.status.polling" = "Votação em andamento";
+"home.v2.status.organizing" = "Em preparação";
+"home.v2.status.confirmed" = "Confirmado";
+"home.v2.status.past" = "Passado";
+"home.v2.next_step.caption_format" = "Próximo passo · %@";
+"home.v2.next_step.vote.subtitle" = "Falta o seu voto";
+"home.v2.next_step.ready.subtitle" = "Todos votaram";
+"home.v2.next_step.polling.subtitle" = "votos recebidos";
+"home.v2.next_step.organizing.subtitle" = "dias para o evento";
+"home.v2.next_step.action.vote" = "Votar";
+"home.v2.next_step.action.results" = "Ver resultados";
+"home.v2.next_step.action.organize" = "Continuar organizando";
+"home.v2.section.past" = "Passados";
+"home.v2.empty.title" = "Organize seu primeiro evento";
+"home.v2.empty.body" = "Proponha datas, o grupo vota e o Wakeve cuida do resto.";
+"home.v2.empty.action" = "Criar um evento";
+"home.v2.menu.open" = "Abrir";
+"home.v2.menu.edit" = "Editar rascunho";
+"home.v2.menu.delete" = "Excluir";
+"home.v2.sync.pending" = "Alterações aguardando sincronização";
+"wk.wordmark" = "wakeve";

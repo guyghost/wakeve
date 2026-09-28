@@ -18,5 +18,21 @@
             <string>%d à traiter</string>
         </dict>
     </dict>
+    <key>home.v2.closes_in_days</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@days@</string>
+        <key>days</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>one</key>
+            <string>clôture dans %d j</string>
+            <key>other</key>
+            <string>clôture dans %d j</string>
+        </dict>
+    </dict>
 </dict>
 </plist>
