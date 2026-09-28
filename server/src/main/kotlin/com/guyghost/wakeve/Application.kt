@@ -598,7 +598,7 @@ fun Application.module(
                             budgetRoutes(budgetRepository, eventRepository, database, moderationPolicy)
                             paymentRoutes(tricountHandoffRepository, eventRepository, database)
                             mealRoutes(mealRepository, eventRepository, database, moderationPolicy)
-                            commentRoutes(commentRepository, eventNotificationTrigger, eventRepository, moderationRepository)
+                            commentRoutes(commentRepository, eventNotificationTrigger, eventRepository, moderationRepository, database)
                             activityRoutes(activityRepository, eventRepository, database)
                             equipmentRoutes(equipmentRepository)
                             moderationRoutes(moderationRepository, database)

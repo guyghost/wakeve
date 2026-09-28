@@ -670,6 +670,8 @@ class UgcModerationRoutesTest {
         val viewerToken = createTestJwt(fixture.viewerId)
         val client = createJsonClient()
         createAdditionalEvent(fixture.database, otherEventId, fixture.authorId, "event-scoped-block-other")
+        // Comments are members-only (QA BUG-A): the viewer must belong to the other event to read it.
+        seedParticipant(fixture.database, otherEventId, fixture.viewerId, "viewer-event-scoped-block-other")
 
         application { module(fixture.database) }
 
