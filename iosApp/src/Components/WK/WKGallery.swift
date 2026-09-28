@@ -1,7 +1,7 @@
 import SwiftUI
 
 #if DEBUG
-/// Galerie de composants WK — à vérifier en clair, sombre, AX5 et Reduce Transparency.
+/// Galerie de composants WK — à vérifier en clair, sombre, AX5, Reduce Transparency et Increase Contrast.
 struct WKGallery: View {
     @State private var zone: AppZone = .events
 
@@ -79,6 +79,10 @@ struct WKGallery: View {
 #Preview("Reduce Transparency") {
     // Le setter public est en lecture seule ; la variante soulignée est réservée aux previews.
     WKGallery().environment(\._accessibilityReduceTransparency, true)
+}
+#Preview("Increase Contrast") {
+    // Même contrainte : `colorSchemeContrast` est en lecture seule, la variante soulignée est réservée aux previews.
+    WKGallery().environment(\._colorSchemeContrast, .increased)
 }
 
 #Preview("Mood immersif") {
