@@ -7,6 +7,7 @@ struct WKModuleTile: View {
     let summary: String
     var status: WK.Status? = nil
     var isHighlighted: Bool = false
+    var accessibilityID: String? = nil
     let action: () -> Void
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -53,5 +54,6 @@ struct WKModuleTile: View {
         .buttonStyle(.plain)
         .accessibilityLabel(Self.accessibilityLabel(title: title, summary: summary, status: status))
         .accessibilityValue(Self.accessibilityValue(isHighlighted: isHighlighted))
+        .wkAccessibilityID(accessibilityID)
     }
 }

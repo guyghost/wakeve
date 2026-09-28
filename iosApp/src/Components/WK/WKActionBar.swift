@@ -3,10 +3,12 @@ import SwiftUI
 /// Barre d'actions de sheet : une action principale + icônes secondaires groupées.
 struct WKActionBar: View {
     struct Item: Identifiable {
-        let id = UUID()
         let systemImage: String
         let label: String
         let action: () -> Void
+
+        /// Identité stable entre rendus ; sert aussi d'identifiant d'accessibilité.
+        var id: String { systemImage + "|" + label }
     }
 
     let primaryTitle: String
@@ -33,11 +35,16 @@ struct WKActionBar: View {
                             Image(systemName: item.systemImage)
                                 .font(WK.Typo.body)
                                 .foregroundStyle(WK.Colors.textPrimary)
-                                .frame(width: WK.Size.minTapTarget, height: WK.Size.minTapTarget)
+                                .frame(minWidth: WK.Size.minTapTarget, minHeight: WK.Size.minTapTarget)
                                 .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+                        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
                         .accessibilityLabel(item.label)
+                        .accessibilityShowsLargeContentViewer {
+                            Label(item.label, systemImage: item.systemImage)
+                        }
+                        .accessibilityIdentifier(item.id)
                     }
                 }
                 .padding(.horizontal, WK.Space.xxs)

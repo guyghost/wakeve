@@ -4,23 +4,29 @@ import SwiftUI
 struct WKPrimaryButton: View {
     let title: String
     var systemImage: String? = nil
+    var accessibilityID: String? = nil
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Label {
-                Text(title)
-            } icon: {
-                if let systemImage { Image(systemName: systemImage) }
+            Group {
+                if let systemImage {
+                    Label(title, systemImage: systemImage)
+                        .labelStyle(.titleAndIcon)
+                } else {
+                    Text(title)
+                }
             }
-            .labelStyle(.titleAndIcon)
             .font(WK.Typo.headline)
+            .multilineTextAlignment(.center)
             .foregroundStyle(WK.Colors.onPrimaryButton)
+            .padding(.horizontal, WK.Space.md)
             .frame(maxWidth: .infinity, minHeight: max(WK.Size.primaryButtonHeight, WK.Size.minTapTarget))
             .background(WK.Colors.primaryButton, in: Capsule())
             .contentShape(Capsule())
         }
         .buttonStyle(.plain)
+        .wkAccessibilityID(accessibilityID)
     }
 }
 
@@ -33,6 +39,7 @@ struct WKChip: View {
     var systemImage: String? = nil
     var style: Style = .standard
     var isSelected: Bool = false
+    var accessibilityID: String? = nil
     let action: () -> Void
 
     private var isFilled: Bool { style == .prominent || isSelected }
@@ -52,6 +59,7 @@ struct WKChip: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .wkAccessibilityID(accessibilityID)
     }
 }
 
@@ -59,6 +67,7 @@ struct WKChip: View {
 struct WKCircleButton: View {
     let systemImage: String
     let accessibilityLabel: String
+    var accessibilityID: String? = nil
     let action: () -> Void
 
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
@@ -67,13 +76,19 @@ struct WKCircleButton: View {
         Button(action: action) {
             Image(systemName: systemImage)
                 .font(WK.Typo.headline)
-                .foregroundStyle(WK.Colors.textPrimary)
-                .frame(width: WK.Size.minTapTarget, height: WK.Size.minTapTarget)
+                .foregroundStyle(.primary)
+                .frame(minWidth: WK.Size.minTapTarget, minHeight: WK.Size.minTapTarget)
                 .modifier(CircleChrome(reduceTransparency: reduceTransparency))
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
+        // Glyphe dans un cercle : plafonné, le Large Content Viewer prend le relais au-delà.
+        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
         .accessibilityLabel(accessibilityLabel)
+        .accessibilityShowsLargeContentViewer {
+            Label(accessibilityLabel, systemImage: systemImage)
+        }
+        .wkAccessibilityID(accessibilityID)
     }
 
     private struct CircleChrome: ViewModifier {

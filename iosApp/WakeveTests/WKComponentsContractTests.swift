@@ -76,11 +76,77 @@ final class WKComponentsContractTests: XCTestCase {
         XCTAssertTrue(source.contains(".accessibilityLabel(text)"), "Le statut ne doit jamais être porté par la couleur seule.")
     }
 
-    func testButtonsGuaranteeMinimumTapTarget() throws {
-        let source = try readProjectFile("iosApp/src/Components/WK/WKButtons.swift")
-        XCTAssertGreaterThanOrEqual(
-            source.components(separatedBy: "WK.Size.minTapTarget").count - 1, 3,
-            "WKPrimaryButton, WKChip et WKCircleButton doivent chacun garantir 44 pt."
+    static let wkComponentFiles = [
+        "WKActionBar", "WKAvatarStack", "WKButtons", "WKCard",
+        "WKFloatingNavBar", "WKHeroMetric", "WKModuleTile", "WKStatusPill"
+    ]
+
+    func testComponentsUseTokensNotLiterals() throws {
+        let forbidden = [
+            "Color(hex:", ".font(.system(size:", "Color.white", "lineWidth: 1", "lineWidth: 2",
+            "offset(x: 1", "offset(x: 2", "offset(x: 3", "offset(x: 4", "+ 1)", "+ 2)", "spacing: 2)"
+        ]
+        for name in Self.wkComponentFiles {
+            let source = try readProjectFile("iosApp/src/Components/WK/\(name).swift")
+            for token in forbidden {
+                XCTAssertFalse(source.contains(token), "\(name) contient le littéral « \(token) ».")
+            }
+            XCTAssertNil(source.range(of: #"cornerRadius: *[0-9]"#, options: .regularExpression), name)
+        }
+    }
+
+    func testStrokeAndHairlineSpacingTokens() {
+        XCTAssertEqual(WK.Space.xxxs, 2)
+        XCTAssertEqual(WK.Stroke.hairline, 1)
+        XCTAssertEqual(WK.Stroke.emphasis, 1.5)
+    }
+
+    func testFixedSizeGlyphButtonsCapDynamicTypeAndOfferLargeContentViewer() throws {
+        for name in ["WKButtons", "WKActionBar", "WKFloatingNavBar"] {
+            let source = try readProjectFile("iosApp/src/Components/WK/\(name).swift")
+            XCTAssertTrue(source.contains(".accessibilityShowsLargeContentViewer"), name)
+            XCTAssertTrue(source.contains(".dynamicTypeSize(...DynamicTypeSize.accessibility1)"), name)
+            XCTAssertFalse(source.contains("frame(width: WK.Size.minTapTarget"), "\(name) : cadre fixe autour d'un glyphe.")
+        }
+    }
+
+    func testChromeUsesHierarchicalForegroundStyles() throws {
+        let bar = try readProjectFile("iosApp/src/Components/WK/WKFloatingNavBar.swift")
+        XCTAssertFalse(bar.contains("WK.Colors.textPrimary"))
+        XCTAssertFalse(bar.contains("WK.Colors.textSecondary"))
+        XCTAssertTrue(bar.contains(".opaqueSeparator"), "Contour Reduce Transparency visible.")
+        let buttons = try readProjectFile("iosApp/src/Components/WK/WKButtons.swift")
+        let circle = buttons.components(separatedBy: "struct WKCircleButton").last ?? ""
+        XCTAssertFalse(circle.contains("WK.Colors.textPrimary"))
+    }
+
+    func testActionBarItemIdentityIsStable() {
+        let a = WKActionBar.Item(systemImage: "trash", label: "Supprimer") {}
+        let b = WKActionBar.Item(systemImage: "trash", label: "Supprimer") {}
+        XCTAssertEqual(a.id, "trash|Supprimer")
+        XCTAssertEqual(a.id, b.id)
+    }
+
+    func testComponentsAcceptStableAccessibilityIdentifiers() {
+        // Compile-time contract : chaque composant interactif accepte un identifiant stable (spec §7).
+        _ = WKPrimaryButton(title: "OK", accessibilityID: "wk.test.primary") {}
+        _ = WKChip(title: "OK", accessibilityID: "wk.test.chip") {}
+        _ = WKCircleButton(systemImage: "xmark", accessibilityLabel: "Fermer", accessibilityID: "wk.test.close") {}
+        _ = WKModuleTile(systemImage: "car", title: "Transport", summary: "", accessibilityID: "wk.test.tile") {}
+    }
+
+    func testAppLocaleFollowsBundleLocalizationNotRegion() {
+        XCTAssertEqual(WK.appLocale.identifier, Bundle.main.preferredLocalizations.first ?? "en")
+        XCTAssertEqual(WK.localizedFormat("wk.avatars.others_format", locale: Locale(identifier: "fr")), "%d autres")
+        XCTAssertEqual(WK.localizedFormat("wk.avatars.others_format", locale: Locale(identifier: "it_CH")), "altri %d")
+        XCTAssertEqual(
+            WKFloatingNavBar.badgeAccessibilityValue(for: 3),
+            WKFloatingNavBar.badgeAccessibilityValue(for: 3, locale: WK.appLocale)
+        )
+        let avatars = ["Léa", "Tom", "Max", "Sam"].map { WKAvatar(id: $0, name: $0) }
+        XCTAssertEqual(
+            WKAvatarStack.accessibilityLabel(for: avatars),
+            WKAvatarStack.accessibilityLabel(for: avatars, locale: WK.appLocale)
         )
     }
 

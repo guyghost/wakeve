@@ -18,7 +18,7 @@ struct WKCard<Content: View>: View {
         .background(style == .inset ? WK.Colors.cardInset : WK.Colors.card, in: WK.shape(radius))
         .overlay {
             if style == .selected {
-                WK.shape(radius).strokeBorder(WK.Colors.accent, lineWidth: 1.5)
+                WK.shape(radius).strokeBorder(WK.Colors.accent, lineWidth: WK.Stroke.emphasis)
             }
         }
     }

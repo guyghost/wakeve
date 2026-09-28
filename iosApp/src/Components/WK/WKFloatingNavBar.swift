@@ -8,21 +8,30 @@ struct WKFloatingNavBar: View {
 
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Lu sur la vue englobante, donc avant le plafond `...accessibility1` appliqué dans `body`.
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    static let createAccessibilityID = "wk.nav.create"
+
+    static func accessibilityID(for zone: AppZone) -> String {
+        "wk.nav.\(zone.rawValue)"
+    }
+
+    /// Aux tailles d'accessibilité, la zone sélectionnée n'affiche que son icône
+    /// (le Large Content Viewer et VoiceOver donnent le titre) pour tenir sur 375 pt.
+    static func showsSelectedTitle(at size: DynamicTypeSize) -> Bool {
+        !size.isAccessibilitySize
+    }
 
     static func badgeText(for count: Int) -> String? {
         guard count > 0 else { return nil }
         return count > 99 ? "99+" : "\(count)"
     }
 
-    /// Valeur d'accessibilité pluralisée du badge Activité pour la locale demandée,
-    /// indépendante de la langue de l'app (même approche que WKAvatarStack.othersText).
-    static func badgeAccessibilityValue(for count: Int, locale: Locale = .current) -> String {
+    /// Valeur d'accessibilité pluralisée du badge Activité pour la locale demandée.
+    static func badgeAccessibilityValue(for count: Int, locale: Locale = WK.appLocale) -> String {
         guard count > 0 else { return "" }
-        let bundle = locale.language.languageCode
-            .flatMap { Bundle.main.path(forResource: $0.identifier, ofType: "lproj") }
-            .flatMap(Bundle.init(path:)) ?? .main
-        let format = bundle.localizedString(forKey: "wk.nav.activity.badge_format", value: nil, table: nil)
-        return String(format: format, locale: locale, count)
+        return String(format: WK.localizedFormat("wk.nav.activity.badge_format", locale: locale), locale: locale, count)
     }
 
     var body: some View {
@@ -31,17 +40,22 @@ struct WKFloatingNavBar: View {
             Button(action: onCreate) {
                 Image(systemName: "plus")
                     .font(WK.Typo.title)
-                    .foregroundStyle(WK.Colors.textPrimary)
-                    .frame(width: WK.Size.minTapTarget + WK.Space.md, height: WK.Size.minTapTarget)
+                    .foregroundStyle(.primary)
+                    .frame(minWidth: WK.Size.minTapTarget + WK.Space.md, minHeight: WK.Size.minTapTarget)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel(String(localized: "wk.nav.create"))
+            .accessibilityShowsLargeContentViewer {
+                Label(String(localized: "wk.nav.create"), systemImage: "plus")
+            }
+            .accessibilityIdentifier(Self.createAccessibilityID)
             zoneButton(.activity)
         }
-        .padding(WK.Space.xxs + 2)  // 6 pt : anneau intérieur de la capsule
+        .padding(WK.Space.xxs + WK.Space.xxxs)  // anneau intérieur de la capsule
         .modifier(BarChrome(reduceTransparency: reduceTransparency))
         .padding(.horizontal, WK.Space.lg)
+        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
     }
 
     private func zoneButton(_ zone: AppZone) -> some View {
@@ -52,10 +66,10 @@ struct WKFloatingNavBar: View {
         } label: {
             HStack(spacing: WK.Space.xxs) {
                 Image(systemName: zone.systemImage)
-                if isSelected { Text(zone.title) }
+                if isSelected && Self.showsSelectedTitle(at: dynamicTypeSize) { Text(zone.title) }
             }
             .font(WK.Typo.caption.weight(.semibold))
-            .foregroundStyle(isSelected ? WK.Colors.onAccentFill : WK.Colors.textSecondary)
+            .foregroundStyle(isSelected ? AnyShapeStyle(WK.Colors.onAccentFill) : AnyShapeStyle(.secondary))
             .padding(.horizontal, WK.Space.sm)
             .frame(minWidth: WK.Size.minTapTarget, minHeight: WK.Size.minTapTarget)
             .background {
@@ -66,10 +80,10 @@ struct WKFloatingNavBar: View {
                     Text(badge)
                         .font(WK.Typo.micro.weight(.bold))
                         .foregroundStyle(WK.Status.actionNeeded.fill)
-                        .padding(.horizontal, WK.Space.xxs + 1)
+                        .padding(.horizontal, WK.Space.xxs)
                         .frame(minHeight: WK.Space.md)
                         .background(WK.Status.actionNeeded.onFill, in: Capsule())
-                        .offset(x: 4, y: 2)
+                        .offset(x: WK.Space.xxs, y: WK.Space.xxxs)
                         .accessibilityHidden(true)
                 }
             }
@@ -79,6 +93,10 @@ struct WKFloatingNavBar: View {
         .accessibilityLabel(zone.title)
         .accessibilityValue(badge.map { _ in Self.badgeAccessibilityValue(for: activityBadge) } ?? "")
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
+        .accessibilityShowsLargeContentViewer {
+            Label(zone.title, systemImage: zone.systemImage)
+        }
+        .accessibilityIdentifier(Self.accessibilityID(for: zone))
     }
 
     private struct BarChrome: ViewModifier {
@@ -90,7 +108,7 @@ struct WKFloatingNavBar: View {
             } else if reduceTransparency {
                 content
                     .background(WK.Colors.card, in: Capsule())
-                    .overlay(Capsule().stroke(WK.Colors.cardInset, lineWidth: 1))
+                    .overlay(Capsule().stroke(Color(uiColor: .opaqueSeparator), lineWidth: WK.Stroke.hairline))
             } else {
                 content.background(.regularMaterial, in: Capsule())
             }

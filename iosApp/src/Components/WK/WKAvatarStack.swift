@@ -45,14 +45,10 @@ struct WKAvatarStack: View {
 
     /// Texte localisé "N autres" pour la locale demandée, indépendant de la langue de l'app.
     static func othersText(_ count: Int, locale: Locale) -> String {
-        let bundle = locale.language.languageCode
-            .flatMap { Bundle.main.path(forResource: $0.identifier, ofType: "lproj") }
-            .flatMap(Bundle.init(path:)) ?? .main
-        let format = bundle.localizedString(forKey: "wk.avatars.others_format", value: nil, table: nil)
-        return String(format: format, locale: locale, count)
+        String(format: WK.localizedFormat("wk.avatars.others_format", locale: locale), locale: locale, count)
     }
 
-    static func accessibilityLabel(for avatars: [WKAvatar], locale: Locale = .current) -> String {
+    static func accessibilityLabel(for avatars: [WKAvatar], locale: Locale = WK.appLocale) -> String {
         let formatter = ListFormatter()
         formatter.locale = locale
         let names = avatars
@@ -81,7 +77,7 @@ struct WKAvatarStack: View {
                     .padding(.horizontal, WK.Space.xs)
                     .frame(minWidth: side, minHeight: side)
                     .background(WK.Colors.cardInset, in: Capsule())
-                    .overlay(Capsule().stroke(WK.Colors.card, lineWidth: 1.5))
+                    .overlay(Capsule().stroke(WK.Colors.card, lineWidth: WK.Stroke.emphasis))
             }
         }
         .dynamicTypeSize(...DynamicTypeSize.accessibility1)
@@ -106,7 +102,7 @@ struct WKAvatarStack: View {
             }
         }
         .frame(width: side, height: side)
-        .overlay(Circle().stroke(WK.Colors.card, lineWidth: 1.5))
+        .overlay(Circle().stroke(WK.Colors.card, lineWidth: WK.Stroke.emphasis))
     }
 
     private func initialsView(_ avatar: WKAvatar) -> some View {

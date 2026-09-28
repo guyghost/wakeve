@@ -26,6 +26,21 @@ enum WK {
         RoundedRectangle(cornerRadius: radius, style: .continuous)
     }
 
+    // MARK: - Localisation
+
+    /// Langue effective de l'app (celle que résout `String(localized:)`), et non la région système.
+    static var appLocale: Locale {
+        Locale(identifier: Bundle.main.preferredLocalizations.first ?? "en")
+    }
+
+    /// Format localisé (strings ou stringsdict) pour la langue de `locale`, indépendamment de la langue de l'app.
+    static func localizedFormat(_ key: String, locale: Locale) -> String {
+        let bundle = locale.language.languageCode
+            .flatMap { Bundle.main.path(forResource: $0.identifier, ofType: "lproj") }
+            .flatMap(Bundle.init(path:)) ?? .main
+        return bundle.localizedString(forKey: key, value: nil, table: nil)
+    }
+
     // MARK: - Couleurs
 
     enum Colors {
@@ -102,6 +117,7 @@ enum WK {
     }
 
     enum Space {
+        static let xxxs: CGFloat = 2
         static let xxs: CGFloat = 4
         static let xs: CGFloat = 8
         static let sm: CGFloat = 12
@@ -109,6 +125,11 @@ enum WK {
         static let lg: CGFloat = 24
         static let xl: CGFloat = 32
         static let screen: CGFloat = 16
+    }
+
+    enum Stroke {
+        static let hairline: CGFloat = 1
+        static let emphasis: CGFloat = 1.5
     }
 
     enum Size {
@@ -173,5 +194,17 @@ enum WK {
         color.getRed(&r, green: &g, blue: &b, alpha: &a)
         let keep = 1 - amount
         return UIColor(red: r * keep, green: g * keep, blue: b * keep, alpha: 1)
+    }
+}
+
+extension View {
+    /// Identifiant d'accessibilité stable (spec §7), appliqué uniquement s'il est fourni.
+    @ViewBuilder
+    func wkAccessibilityID(_ id: String?) -> some View {
+        if let id {
+            accessibilityIdentifier(id)
+        } else {
+            self
+        }
     }
 }

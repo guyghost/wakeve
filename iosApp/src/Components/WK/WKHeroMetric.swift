@@ -19,7 +19,7 @@ struct WKHeroMetric: View {
                 Text(caption)
                     .font(WK.Typo.caption)
                     .foregroundStyle(WK.Colors.textMuted)
-                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                HStack(alignment: .firstTextBaseline, spacing: WK.Space.xxxs) {
                     Text(value)
                         .font(WK.Typo.display)
                         .foregroundStyle(WK.Colors.textPrimary)
