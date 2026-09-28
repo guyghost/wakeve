@@ -31,6 +31,22 @@ final class WKComponentsContractTests: XCTestCase {
         XCTAssertTrue(source.contains(".accessibilityLabel(text)"), "Le statut ne doit jamais être porté par la couleur seule.")
     }
 
+    func testButtonsGuaranteeMinimumTapTarget() throws {
+        let source = try readProjectFile("iosApp/src/Components/WK/WKButtons.swift")
+        XCTAssertGreaterThanOrEqual(
+            source.components(separatedBy: "WK.Size.minTapTarget").count - 1, 3,
+            "WKPrimaryButton, WKChip et WKCircleButton doivent chacun garantir 44 pt."
+        )
+    }
+
+    func testCircleButtonRequiresAccessibilityLabelAndHonorsReduceTransparency() throws {
+        let source = try readProjectFile("iosApp/src/Components/WK/WKButtons.swift")
+        let circle = source.components(separatedBy: "struct WKCircleButton").last ?? ""
+        XCTAssertTrue(circle.contains("let accessibilityLabel: String"))
+        XCTAssertTrue(circle.contains("accessibilityReduceTransparency"))
+        XCTAssertTrue(circle.contains("#available(iOS 26.0, *)"))
+    }
+
     func readProjectFile(_ relativePath: String) throws -> String {
         let projectRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()   // WakeveTests
