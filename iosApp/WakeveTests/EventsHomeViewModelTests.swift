@@ -59,6 +59,22 @@ final class EventsHomeViewModelTests: XCTestCase {
         XCTAssertEqual(vm.state, .failed)
     }
 
+    func testCancelledLoadKeepsTheCurrentState() async {
+        let vm = EventsHomeViewModel(viewerId: "u", source: StubSource(result: .failure(CancellationError())),
+                                     now: { self.fixedNow })
+        await vm.reload()
+        XCTAssertEqual(vm.state, .loading, "Une annulation n'est pas un échec de chargement.")
+    }
+
+    func testHomeLibraryIsLoadedOffTheMainActor() throws {
+        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        let source = try String(contentsOf: root.appendingPathComponent("src/Services/SharedEventsHomeSource.swift"),
+                                encoding: .utf8)
+        XCTAssertFalse(source.contains("@MainActor"), "Les projections `library(...)` ne bloquent plus le fil principal.")
+        XCTAssertTrue(source.contains("Task.detached"))
+        XCTAssertTrue(source.contains("withTaskCancellationHandler"))
+    }
+
     func testUnknownStatusIsTreatedAsFinalized() {
         XCTAssertEqual(EventsHomeViewModel.facts(from: raw("x", status: "WHATEVER"), now: fixedNow).phase, .finalized)
     }

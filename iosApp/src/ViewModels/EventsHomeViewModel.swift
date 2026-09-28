@@ -64,7 +64,8 @@ final class EventsHomeViewModel: ObservableObject {
             pendingSyncCount = raw.filter(\.hasPendingSync).count
             state = raw.isEmpty ? .empty : .loaded
         } catch {
-            guard token == generation else { return }
+            // Chargement annulé (vue quittée) : on garde l'état courant.
+            guard token == generation, !(error is CancellationError) else { return }
             state = active.isEmpty && past.isEmpty ? .failed : .loaded
         }
     }
