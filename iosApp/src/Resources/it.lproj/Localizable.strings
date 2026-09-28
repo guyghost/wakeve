@@ -2264,3 +2264,10 @@
 "event.lifecycle.guest.body" = "In modalità ospite, questo evento resta su questo dispositivo: non può essere condiviso con il gruppo né finalizzato. Accedi per continuare con i partecipanti.";
 "event.lifecycle.guest.action" = "Accedi";
 "event.lifecycle.guest.confirm_message" = "Uscirai dalla modalità ospite per accedere. Gli eventi della modalità ospite non vengono trasferiti automaticamente al tuo account.";
+
+/* WK design system (redesign 2026) */
+"wk.avatars.others_format" = "altri %d";
+"wk.nav.events" = "Eventi";
+"wk.nav.create" = "Crea evento";
+"wk.nav.activity" = "Attività";
+"wk.nav.activity.badge_format" = "%d da fare";

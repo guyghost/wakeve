@@ -2262,3 +2262,10 @@
 "event.lifecycle.guest.body" = "In guest mode, this event stays on this device: it can't be shared with the group or finalized. Sign in to continue with your participants.";
 "event.lifecycle.guest.action" = "Sign in";
 "event.lifecycle.guest.confirm_message" = "You will leave guest mode to sign in. Events made in guest mode are not moved to your account automatically.";
+
+/* WK design system (redesign 2026) */
+"wk.avatars.others_format" = "%d others";
+"wk.nav.events" = "Events";
+"wk.nav.create" = "Create event";
+"wk.nav.activity" = "Activity";
+"wk.nav.activity.badge_format" = "%d to do";

@@ -2264,3 +2264,10 @@
 "event.lifecycle.guest.body" = "En modo invitado, este evento se queda en este dispositivo: no se puede compartir con el grupo ni finalizar. Inicia sesión para continuar con los participantes.";
 "event.lifecycle.guest.action" = "Iniciar sesión";
 "event.lifecycle.guest.confirm_message" = "Saldrás del modo invitado para iniciar sesión. Los eventos del modo invitado no se transfieren automáticamente a tu cuenta.";
+
+/* WK design system (redesign 2026) */
+"wk.avatars.others_format" = "%d más";
+"wk.nav.events" = "Eventos";
+"wk.nav.create" = "Crear evento";
+"wk.nav.activity" = "Actividad";
+"wk.nav.activity.badge_format" = "%d pendientes";

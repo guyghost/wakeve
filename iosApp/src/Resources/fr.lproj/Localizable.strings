@@ -2286,3 +2286,10 @@
 "event.lifecycle.guest.body" = "En mode invité, cet événement reste sur cet appareil : il ne peut être ni partagé avec le groupe ni finalisé. Connectez-vous pour continuer avec les participants.";
 "event.lifecycle.guest.action" = "Se connecter";
 "event.lifecycle.guest.confirm_message" = "Vous allez quitter le mode invité pour vous connecter. Les événements créés en mode invité ne sont pas transférés automatiquement vers votre compte.";
+
+/* WK design system (refonte 2026) */
+"wk.avatars.others_format" = "%d autres";
+"wk.nav.events" = "Événements";
+"wk.nav.create" = "Créer un événement";
+"wk.nav.activity" = "Activité";
+"wk.nav.activity.badge_format" = "%d à traiter";
