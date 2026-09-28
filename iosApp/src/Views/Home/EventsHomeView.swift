@@ -30,6 +30,38 @@ struct EventsHomeView: View {
         }
     }
 
+    /// Unité affichée à côté du grand chiffre : « /8 » ou « jours » accordé.
+    static func heroUnit(for step: HomeNextStep, locale: Locale = WK.appLocale) -> String? {
+        switch step.metric {
+        case .votes: return step.unit
+        case .days(let days): return " " + HomeDateText.daysUnit(days, locale: locale)
+        case .unknown: return nil
+        }
+    }
+
+    /// Valeur lue par VoiceOver : « 5 votes sur 8 », « 5 jours ».
+    static func heroAccessibilityValue(for step: HomeNextStep, locale: Locale = WK.appLocale) -> String? {
+        switch step.metric {
+        case .votes(let complete, let eligible):
+            return String(format: WK.localizedFormat("home.v2.a11y.votes_format", locale: locale),
+                          locale: locale, complete, eligible)
+        case .days(let days):
+            return "\(days) " + HomeDateText.daysUnit(days, locale: locale)
+        case .unknown:
+            return nil
+        }
+    }
+
+    /// Actions secondaires d'une carte (menu contextuel et actions VoiceOver).
+    enum CardAction: Equatable { case editDraft, delete }
+
+    static func cardActions(for summary: HomeEventSummary) -> [CardAction] {
+        var actions: [CardAction] = []
+        if summary.facts.phase == .draft && summary.facts.role == .organizer { actions.append(.editDraft) }
+        if summary.canDelete { actions.append(.delete) }
+        return actions
+    }
+
     static func actionTitle(for step: HomeNextStep) -> String {
         switch step.kind {
         case .voteRequired: return String(localized: "home.v2.next_step.action.vote")
@@ -60,8 +92,9 @@ struct EventsHomeView: View {
                             step.title
                         ),
                         value: step.value,
-                        unit: step.unit,
+                        unit: Self.heroUnit(for: step),
                         subtitle: Self.subtitle(for: step),
+                        accessibilityValue: Self.heroAccessibilityValue(for: step),
                         actionTitle: Self.actionTitle(for: step),
                         action: { onNextStep(step) }
                     )
@@ -78,7 +111,12 @@ struct EventsHomeView: View {
                 case .failed:
                     failedState
                 case .loaded:
-                    grid(viewModel.active)
+                    // Sans événement actif, l'invitation à créer précède la section Passés.
+                    if viewModel.showsCreateCTA {
+                        emptyState
+                    } else {
+                        grid(viewModel.active)
+                    }
                 }
 
                 if !viewModel.past.isEmpty {
@@ -144,8 +182,14 @@ struct EventsHomeView: View {
     private func grid(_ items: [HomeEventSummary]) -> some View {
         LazyVGrid(columns: columns, spacing: WK.Space.sm) {
             ForEach(items) { summary in
-                HomeEventCard(summary: summary, onOpen: { onOpenEvent(summary.id) })
-                    .contextMenu { menu(for: summary) }
+                let actions = Self.cardActions(for: summary)
+                HomeEventCard(
+                    summary: summary,
+                    onOpen: { onOpenEvent(summary.id) },
+                    onEditDraft: actions.contains(.editDraft) ? { onEditDraft(summary.id) } : nil,
+                    onDelete: actions.contains(.delete) ? { onDelete(summary.id) } : nil
+                )
+                .contextMenu { menu(for: summary) }
             }
         }
     }
@@ -157,14 +201,15 @@ struct EventsHomeView: View {
         } label: {
             Label(String(localized: "home.v2.menu.open"), systemImage: "arrow.up.forward.app")
         }
-        if summary.facts.phase == .draft && summary.facts.role == .organizer {
+        let actions = Self.cardActions(for: summary)
+        if actions.contains(.editDraft) {
             Button {
                 onEditDraft(summary.id)
             } label: {
                 Label(String(localized: "home.v2.menu.edit"), systemImage: "pencil")
             }
         }
-        if summary.canDelete {
+        if actions.contains(.delete) {
             Button(role: .destructive) {
                 onDelete(summary.id)
             } label: {

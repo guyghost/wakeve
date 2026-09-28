@@ -32,6 +32,11 @@ final class EventsHomeViewModel: ObservableObject {
     @Published private(set) var nextStep: HomeNextStep?
     @Published private(set) var pendingSyncCount = 0
 
+    /// Invitation à créer un événement : aucun événement actif (même s'il en existe de passés).
+    var showsCreateCTA: Bool {
+        state == .empty || (state == .loaded && active.isEmpty)
+    }
+
     private let viewerId: String
     private let source: EventsHomeSource
     private let now: () -> Date

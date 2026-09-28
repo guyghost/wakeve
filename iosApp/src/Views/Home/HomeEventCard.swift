@@ -4,6 +4,9 @@ import SwiftUI
 struct HomeEventCard: View {
     let summary: HomeEventSummary
     let onOpen: () -> Void
+    /// Actions VoiceOver, présentes seulement quand elles sont permises.
+    var onEditDraft: (() -> Void)? = nil
+    var onDelete: (() -> Void)? = nil
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -49,6 +52,14 @@ struct HomeEventCard: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Self.accessibilityLabel(for: summary))
+        .accessibilityActions {
+            if let onEditDraft {
+                Button(String(localized: "home.v2.menu.edit"), action: onEditDraft)
+            }
+            if let onDelete {
+                Button(String(localized: "home.v2.menu.delete"), action: onDelete)
+            }
+        }
         .wkAccessibilityID("home.card.\(summary.id)")
     }
 }

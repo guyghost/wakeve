@@ -59,8 +59,58 @@ final class EventsHomeViewTests: XCTestCase {
 
     func testNextStepSubtitleCombinesMissingVoteAndDeadline() {
         let step = HomeNextStep(eventId: "e", title: "Raclette", kind: .voteRequired, action: .vote,
-                                value: "5", unit: "/8", daysLeft: 2)
+                                metric: .votes(complete: 5, eligible: 8), daysLeft: 2)
         let text = EventsHomeView.subtitle(for: step, locale: Locale(identifier: "en"))
         XCTAssertTrue(text.contains("2"), text)
+    }
+
+    private func summary(phase: HomeEventFacts.Phase, role: HomeEventFacts.Role) -> HomeEventSummary {
+        HomeEventSummary(facts: HomeEventFacts(
+            id: "e2", title: "Brunch", phase: phase, role: role, isOwner: role == .organizer,
+            isPast: false, readOnly: false, pollOpen: true, viewerAccepted: true, ballots: .none,
+            deadline: nil, eventDate: nil, participantNames: []
+        ))
+    }
+
+    func testHeroUnitAndVoiceOverValueAreLocalized() {
+        let fr = Locale(identifier: "fr")
+        let en = Locale(identifier: "en")
+        let votes = HomeNextStep(eventId: "e", title: "Raclette", kind: .voteRequired, action: .vote,
+                                 metric: .votes(complete: 5, eligible: 8), daysLeft: nil)
+        XCTAssertEqual(EventsHomeView.heroUnit(for: votes, locale: fr), "/8")
+        XCTAssertEqual(EventsHomeView.heroAccessibilityValue(for: votes, locale: fr), "5 votes sur 8")
+        XCTAssertEqual(EventsHomeView.heroAccessibilityValue(for: votes, locale: en), "5 of 8 votes")
+        let days = HomeNextStep(eventId: "e", title: "Raclette", kind: .organizing, action: .open,
+                                metric: .days(5), daysLeft: 5)
+        XCTAssertEqual(EventsHomeView.heroUnit(for: days, locale: fr), " jours")
+        XCTAssertEqual(EventsHomeView.heroAccessibilityValue(for: days, locale: fr), "5 jours")
+        XCTAssertEqual(EventsHomeView.heroUnit(for: days, locale: en), " days")
+        let oneDay = HomeNextStep(eventId: "e", title: "Raclette", kind: .organizing, action: .open,
+                                  metric: .days(1), daysLeft: 1)
+        XCTAssertEqual(EventsHomeView.heroAccessibilityValue(for: oneDay, locale: en), "1 day")
+    }
+
+    func testHeroMetricPrefersExplicitVoiceOverValue() {
+        XCTAssertEqual(
+            WKHeroMetric.accessibilitySummary(caption: "Raclette", value: "5", unit: "/8", subtitle: "votes reçus",
+                                              accessibilityValue: "5 votes sur 8"),
+            "Raclette, 5 votes sur 8, votes reçus"
+        )
+        XCTAssertEqual(
+            WKHeroMetric.accessibilitySummary(caption: "Raclette", value: "5", unit: "/8", subtitle: nil),
+            "Raclette, 5/8"
+        )
+    }
+
+    func testCardActionsMatchTheContextMenu() throws {
+        XCTAssertEqual(EventsHomeView.cardActions(for: summary(phase: .draft, role: .organizer)), [.editDraft, .delete])
+        XCTAssertEqual(EventsHomeView.cardActions(for: summary(phase: .confirmed, role: .organizer)), [.delete])
+        XCTAssertEqual(EventsHomeView.cardActions(for: summary(phase: .polling, role: .participant)), [])
+        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        let card = try String(contentsOf: root.appendingPathComponent("src/Views/Home/HomeEventCard.swift"), encoding: .utf8)
+        XCTAssertTrue(card.contains(".accessibilityActions"), "Modifier / supprimer sont accessibles à VoiceOver.")
+        let home = try String(contentsOf: root.appendingPathComponent("src/Views/Home/EventsHomeView.swift"), encoding: .utf8)
+        XCTAssertTrue(home.contains("accessibilityValue: Self.heroAccessibilityValue(for: step)"))
+        XCTAssertTrue(home.contains("viewModel.showsCreateCTA"))
     }
 }

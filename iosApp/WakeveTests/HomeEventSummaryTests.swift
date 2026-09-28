@@ -104,6 +104,7 @@ final class HomeEventSummaryTests: XCTestCase {
         let step = HomeNextStep.pick(from: items, now: now)
         XCTAssertEqual(step?.eventId, "vote")
         XCTAssertEqual(step?.action, .vote)
+        XCTAssertEqual(step?.metric, .votes(complete: 5, eligible: 8))
         XCTAssertEqual(step?.value, "5")
         XCTAssertEqual(step?.unit, "/8")
         XCTAssertEqual(step?.daysLeft, 2)
@@ -167,8 +168,7 @@ final class HomeEventSummaryTests: XCTestCase {
         XCTAssertEqual(s.label, .key("home.v2.status.ready_to_confirm"))
         let step = HomeNextStep.pick(from: [f], now: now)
         XCTAssertEqual(step?.kind, .readyToConfirm)
-        XCTAssertEqual(step?.value, "3")
-        XCTAssertEqual(step?.unit, "/3")
+        XCTAssertEqual(step?.metric, .votes(complete: 3, eligible: 3))
     }
 
     func testOrganizerNotReadyWhileAnotherVoterIsIncomplete() {
@@ -190,5 +190,14 @@ final class HomeEventSummaryTests: XCTestCase {
         XCTAssertTrue(HomeEventSummary(facts: facts(phase: .confirmed, role: .organizer)).canDelete)
         XCTAssertFalse(HomeEventSummary(facts: facts(phase: .finalized, role: .organizer)).canDelete)
         XCTAssertFalse(HomeEventSummary(facts: facts(phase: .polling, role: .participant)).canDelete)
+    }
+
+    func testOrganizingHeroCountsDaysWithoutALiteralUnit() {
+        let date = now.addingTimeInterval(5 * 86_400)
+        let step = HomeNextStep.pick(from: [facts(phase: .confirmed, role: .organizer, eventDate: date)], now: now)
+        XCTAssertEqual(step?.kind, .organizing)
+        XCTAssertEqual(step?.metric, .days(5))
+        XCTAssertEqual(step?.value, "5")
+        XCTAssertNil(step?.unit, "L'unité des jours est localisée par la vue.")
     }
 }

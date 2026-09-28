@@ -119,14 +119,29 @@ struct HomeEventSummary: Identifiable, Equatable {
 struct HomeNextStep: Equatable {
     enum Kind: Equatable { case voteRequired, readyToConfirm, pollInProgress, organizing }
     enum Action: Equatable { case vote, pollResults, open }
+    /// Grand chiffre : bulletins complets sur votants éligibles, jours avant l'événement, ou inconnu.
+    enum Metric: Equatable { case votes(complete: Int, eligible: Int), days(Int), unknown }
 
     let eventId: String
     let title: String
     let kind: Kind
     let action: Action
-    let value: String
-    let unit: String?
+    let metric: Metric
     let daysLeft: Int?
+
+    var value: String {
+        switch metric {
+        case .votes(let complete, _): return String(complete)
+        case .days(let days): return String(days)
+        case .unknown: return "—"
+        }
+    }
+
+    /// Unité non linguistique (« /8 ») ; l'unité des jours est localisée par la vue.
+    var unit: String? {
+        if case .votes(_, let eligible) = metric { return "/\(eligible)" }
+        return nil
+    }
 
     static func pick(from facts: [HomeEventFacts], now: Date) -> HomeNextStep? {
         let active = facts.filter { !$0.isPast }
@@ -139,7 +154,7 @@ struct HomeNextStep: Equatable {
         if let f = soonest(active.filter(\.readyToConfirm), by: \.deadline) {
             return HomeNextStep(
                 eventId: f.id, title: f.title, kind: .readyToConfirm, action: .pollResults,
-                value: String(f.ballots.otherVotersComplete), unit: "/\(f.ballots.otherEligibleVoters)",
+                metric: .votes(complete: f.ballots.otherVotersComplete, eligible: f.ballots.otherEligibleVoters),
                 daysLeft: nil
             )
         }
@@ -153,7 +168,7 @@ struct HomeNextStep: Equatable {
             let days = f.eventDate.map { HomeDateText.daysBetween(now, $0) }
             return HomeNextStep(
                 eventId: f.id, title: f.title, kind: .organizing, action: .open,
-                value: days.map(String.init) ?? "—", unit: days == nil ? nil : "j", daysLeft: days
+                metric: days.map(Metric.days) ?? .unknown, daysLeft: days
             )
         }
         return nil
@@ -162,7 +177,7 @@ struct HomeNextStep: Equatable {
     private static func votes(_ f: HomeEventFacts, kind: Kind, action: Action, now: Date) -> HomeNextStep {
         HomeNextStep(
             eventId: f.id, title: f.title, kind: kind, action: action,
-            value: String(f.votersWithCompleteBallot), unit: "/\(f.eligibleVoters)",
+            metric: .votes(complete: f.votersWithCompleteBallot, eligible: f.eligibleVoters),
             daysLeft: f.pollOpen ? f.deadline.map { HomeDateText.daysBetween(now, $0) } : nil
         )
     }

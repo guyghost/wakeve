@@ -179,4 +179,21 @@ final class EventsHomeViewModelTests: XCTestCase {
 
         XCTAssertEqual(vm.state, .empty)
     }
+
+    func testCreateCallToActionShowsWhenNothingIsActive() async {
+        let onlyPast = EventsHomeViewModel(viewerId: "u", source: StubSource(result: .success([
+            raw("old", status: "FINALIZED", past: true)
+        ])), now: { self.fixedNow })
+        await onlyPast.reload()
+        XCTAssertEqual(onlyPast.state, .loaded)
+        XCTAssertTrue(onlyPast.showsCreateCTA, "Sans événement actif, l'invitation à créer reste visible au-dessus des Passés.")
+
+        let empty = EventsHomeViewModel(viewerId: "u", source: StubSource(result: .success([])), now: { self.fixedNow })
+        await empty.reload()
+        XCTAssertTrue(empty.showsCreateCTA)
+
+        let busy = EventsHomeViewModel(viewerId: "u", source: StubSource(result: .success([raw("mine")])), now: { self.fixedNow })
+        await busy.reload()
+        XCTAssertFalse(busy.showsCreateCTA)
+    }
 }

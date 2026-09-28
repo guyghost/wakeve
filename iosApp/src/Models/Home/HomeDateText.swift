@@ -36,8 +36,14 @@ enum HomeDateText {
         return isoWithFraction.date(from: value) ?? iso.date(from: value)
     }
 
-    /// « clôture dans N j » avec pluriel (stringsdict `home.v2.closes_in_days`).
+    /// « clôture aujourd'hui », sinon « clôture dans N j » avec pluriel (stringsdict `home.v2.closes_in_days`).
     static func closesIn(days: Int, locale: Locale = WK.appLocale) -> String {
-        String(format: WK.localizedFormat("home.v2.closes_in_days", locale: locale), locale: locale, days)
+        if days == 0 { return WK.localizedFormat("home.v2.closes_today", locale: locale) }
+        return String(format: WK.localizedFormat("home.v2.closes_in_days", locale: locale), locale: locale, days)
+    }
+
+    /// Unité « jour(s) » accordée (stringsdict `home.v2.days_unit`), sans le nombre.
+    static func daysUnit(_ days: Int, locale: Locale = WK.appLocale) -> String {
+        String(format: WK.localizedFormat("home.v2.days_unit", locale: locale), locale: locale, days)
     }
 }

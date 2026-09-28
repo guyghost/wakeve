@@ -2288,7 +2288,7 @@
 "home.v2.next_step.vote.subtitle" = "Your vote is missing";
 "home.v2.next_step.ready.subtitle" = "Everyone has voted";
 "home.v2.next_step.polling.subtitle" = "votes received";
-"home.v2.next_step.organizing.subtitle" = "days to go";
+"home.v2.next_step.organizing.subtitle" = "to go";
 "home.v2.next_step.action.vote" = "Vote";
 "home.v2.next_step.action.results" = "See results";
 "home.v2.next_step.action.organize" = "Keep organizing";
@@ -2301,4 +2301,6 @@
 "home.v2.menu.edit" = "Edit draft";
 "home.v2.menu.delete" = "Delete";
 "home.v2.sync.pending" = "Changes waiting to sync";
+"home.v2.closes_today" = "closes today";
+"home.v2.a11y.votes_format" = "%1$d of %2$d votes";
 "wk.wordmark" = "wakeve";

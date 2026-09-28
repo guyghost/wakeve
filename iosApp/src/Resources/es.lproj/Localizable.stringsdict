@@ -34,5 +34,21 @@
             <string>cierra en %d días</string>
         </dict>
     </dict>
+    <key>home.v2.days_unit</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@days@</string>
+        <key>days</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>one</key>
+            <string>día</string>
+            <key>other</key>
+            <string>días</string>
+        </dict>
+    </dict>
 </dict>
 </plist>

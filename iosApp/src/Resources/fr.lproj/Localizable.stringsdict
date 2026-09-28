@@ -34,5 +34,21 @@
             <string>clôture dans %d j</string>
         </dict>
     </dict>
+    <key>home.v2.days_unit</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@days@</string>
+        <key>days</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>one</key>
+            <string>jour</string>
+            <key>other</key>
+            <string>jours</string>
+        </dict>
+    </dict>
 </dict>
 </plist>

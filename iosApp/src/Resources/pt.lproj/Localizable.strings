@@ -2290,7 +2290,7 @@
 "home.v2.next_step.vote.subtitle" = "Falta o seu voto";
 "home.v2.next_step.ready.subtitle" = "Todos votaram";
 "home.v2.next_step.polling.subtitle" = "votos recebidos";
-"home.v2.next_step.organizing.subtitle" = "dias para o evento";
+"home.v2.next_step.organizing.subtitle" = "para o evento";
 "home.v2.next_step.action.vote" = "Votar";
 "home.v2.next_step.action.results" = "Ver resultados";
 "home.v2.next_step.action.organize" = "Continuar organizando";
@@ -2303,4 +2303,6 @@
 "home.v2.menu.edit" = "Editar rascunho";
 "home.v2.menu.delete" = "Excluir";
 "home.v2.sync.pending" = "Alterações aguardando sincronização";
+"home.v2.closes_today" = "fecha hoje";
+"home.v2.a11y.votes_format" = "%1$d de %2$d votos";
 "wk.wordmark" = "wakeve";

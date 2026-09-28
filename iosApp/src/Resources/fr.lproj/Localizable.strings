@@ -2325,4 +2325,6 @@
 "home.v2.menu.edit" = "Modifier le brouillon";
 "home.v2.menu.delete" = "Supprimer";
 "home.v2.sync.pending" = "Modifications en attente de synchro";
+"home.v2.closes_today" = "clôture aujourd'hui";
+"home.v2.a11y.votes_format" = "%1$d votes sur %2$d";
 "wk.wordmark" = "wakeve";
