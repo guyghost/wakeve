@@ -79,6 +79,9 @@ struct WKFloatingNavBar: View {
                 if let badge {
                     Text(badge)
                         .font(WK.Typo.micro.weight(.bold))
+                        // Pastille décorative (valeur lue par VoiceOver) : jamais tronquée ni masquant l'icône.
+                        .fixedSize()
+                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                         .foregroundStyle(WK.Status.actionNeeded.fill)
                         .padding(.horizontal, WK.Space.xxs)
                         .frame(minHeight: WK.Space.md)
@@ -106,9 +109,12 @@ struct WKFloatingNavBar: View {
             if #available(iOS 26.0, *), !reduceTransparency {
                 content.glassEffect(.regular, in: Capsule())
             } else if reduceTransparency {
-                content
-                    .background(WK.Colors.card, in: Capsule())
-                    .overlay(Capsule().stroke(Color(uiColor: .opaqueSeparator), lineWidth: WK.Stroke.hairline))
+                // Contour sous le contenu : la pastille du badge reste au-dessus.
+                content.background {
+                    Capsule()
+                        .fill(WK.Colors.card)
+                        .overlay(Capsule().stroke(Color(uiColor: .opaqueSeparator), lineWidth: WK.Stroke.hairline))
+                }
             } else {
                 content.background(.regularMaterial, in: Capsule())
             }

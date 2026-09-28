@@ -26,6 +26,10 @@ enum WK {
         RoundedRectangle(cornerRadius: radius, style: .continuous)
     }
 
+    /// Forme des boutons texte : capsule sur une ligne (le rayon est plafonné à la demi-hauteur),
+    /// rectangle arrondi quand le titre passe à la ligne (tailles d'accessibilité) pour ne pas rogner le texte.
+    static var pill: RoundedRectangle { shape(Radius.lg) }
+
     // MARK: - Localisation
 
     /// Langue effective de l'app (celle que résout `String(localized:)`), et non la région système.

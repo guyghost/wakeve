@@ -38,6 +38,9 @@ struct WKAvatarStack: View {
 
     private var side: CGFloat { size ?? scaledSize }
 
+    /// Part de chaque avatar recouverte par le suivant ; les initiales tiennent dans le reste.
+    static let overlapRatio: CGFloat = 0.15
+
     static func layout(count: Int, maxVisible: Int) -> (visible: Int, overflow: Int) {
         let visible = min(count, maxVisible)
         return (visible, max(0, count - visible))
@@ -66,7 +69,8 @@ struct WKAvatarStack: View {
 
     var body: some View {
         let layout = Self.layout(count: avatars.count, maxVisible: maxVisible)
-        HStack(spacing: -side * 0.3) {
+        // Chevauchement limité pour que les initiales de l'avatar recouvert restent lisibles.
+        HStack(spacing: -side * Self.overlapRatio) {
             ForEach(avatars.prefix(layout.visible)) { avatar in
                 avatarView(avatar)
             }
@@ -109,6 +113,9 @@ struct WKAvatarStack: View {
         Text(avatar.initials)
             .font(WK.Typo.micro.weight(.semibold))
             .foregroundStyle(Color(uiColor: WK.uiColor(0x1C1C1E)))
+            .lineLimit(1)
             .minimumScaleFactor(0.6)
+            // Les initiales restent dans la partie visible, hors du chevauchement.
+            .padding(.horizontal, side * Self.overlapRatio)
     }
 }

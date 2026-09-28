@@ -22,9 +22,10 @@ struct WKActionBar: View {
                     .font(WK.Typo.headline)
                     .foregroundStyle(WK.Colors.onAccent)
                     .padding(.horizontal, WK.Space.md)
+                    .padding(.vertical, WK.Space.xs)
                     .frame(minHeight: WK.Size.minTapTarget)
-                    .background(WK.Colors.accent, in: Capsule())
-                    .contentShape(Capsule())
+                    .background(WK.Colors.accent, in: WK.pill)
+                    .contentShape(WK.pill)
             }
             .buttonStyle(.plain)
 
