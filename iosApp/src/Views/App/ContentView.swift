@@ -582,6 +582,11 @@ struct AuthenticatedView: View {
                     },
                     onLifecycleChanged: {
                         selectedEvent = repository.getEvent(id: event.id)
+                    },
+                    isLocalGuestSession: authStateManager.isCurrentSessionGuest,
+                    onRequestSignIn: {
+                        // Existing sign-in entry point: leaving guest mode returns to LoginView.
+                        authStateManager.signOut()
                     }
                 )
 #if DEBUG
@@ -2987,7 +2992,12 @@ struct EventDetailView: View {
     let onBack: () -> Void
     /// Reloads the event after an organizer lifecycle transition (ORGANIZING / FINALIZED).
     var onLifecycleChanged: () -> Void = {}
+    /// A local-only guest session (no Wakeve account): sharing and finalization need a signed-in organizer.
+    var isLocalGuestSession: Bool = false
+    /// Leads a local guest to the existing sign-in screen (same path as Profile).
+    var onRequestSignIn: () -> Void = {}
 
+    @State private var showsGuestSignInConfirmation = false
     @State private var lifecycleController: EventLifecycleTransitionController?
     @State private var lifecycleConfirmationTarget: EventLifecycleTransitionController.Target?
     @State private var lifecycleErrorMessage: String?
@@ -3733,6 +3743,9 @@ struct EventDetailView: View {
         let target = lifecycleTarget
         // ORGANIZING is the only status whose next organizer step is finalization.
         let isFinalizing = event.status == .organizing
+        // Finalization readiness needs server sync and confirmed participants, which a
+        // local guest can never reach: propose signing in instead of a dead-end action.
+        let showsGuestSignInPrompt = isLocalGuestSession && isFinalizing
         return WakeveGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
                 Text(String(localized: isFinalizing ? "event.lifecycle.finalize.title" : "event.lifecycle.organizing.title"))
@@ -3752,7 +3765,9 @@ struct EventDetailView: View {
                         .accessibilityIdentifier("eventLifecycleError")
                 }
 
-                if let target {
+                if showsGuestSignInPrompt {
+                    lifecycleGuestSignInPrompt
+                } else if let target {
                     WakeveActionButton(
                         String(localized: isFinalizing ? "event.lifecycle.finalize.action" : "event.lifecycle.organizing.action"),
                         systemImage: isFinalizing ? "checkmark.seal.fill" : "arrow.right.circle.fill",
@@ -3810,6 +3825,41 @@ struct EventDetailView: View {
             case .failed(let message):
                 lifecycleErrorMessage = message
             }
+        }
+    }
+
+    private var lifecycleGuestSignInPrompt: some View {
+        VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
+            Label(String(localized: "event.lifecycle.guest.title"), systemImage: "person.crop.circle")
+                .font(WakeveTheme.Typography.bodySemibold)
+                .foregroundColor(primaryText)
+
+            Text(String(localized: "event.lifecycle.guest.body"))
+                .font(WakeveTheme.Typography.callout)
+                .foregroundColor(secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+
+            WakeveActionButton(
+                String(localized: "event.lifecycle.guest.action"),
+                systemImage: "arrow.right.circle.fill",
+                variant: .primary
+            ) {
+                showsGuestSignInConfirmation = true
+            }
+            .accessibilityIdentifier("eventLifecycleGuestSignInAction")
+        }
+        .accessibilityElement(children: .contain)
+        .confirmationDialog(
+            String(localized: "event.lifecycle.guest.action"),
+            isPresented: $showsGuestSignInConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "event.lifecycle.guest.action")) {
+                onRequestSignIn()
+            }
+            Button(String(localized: "common.cancel"), role: .cancel) {}
+        } message: {
+            Text(String(localized: "event.lifecycle.guest.confirm_message"))
         }
     }
 
@@ -4634,6 +4684,10 @@ struct EventDetailView: View {
         let dateFormatter = DateFormatter()
         dateFormatter.locale = .autoupdatingCurrent
         dateFormatter.setLocalizedDateFormatFromTemplate("d MMM")
+
+        if TimeSlotDisplayFormatter.isAllDay(slot.timeOfDay) {
+            return "\(dateFormatter.string(from: start)) · \(TimeSlotDisplayFormatter.allDayLabel)"
+        }
 
         let timeFormatter = DateFormatter()
         timeFormatter.locale = .autoupdatingCurrent

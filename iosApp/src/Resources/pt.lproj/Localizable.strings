@@ -2258,3 +2258,9 @@
 "draft_dates.remove" = "Remover esta data";
 "draft_dates.save" = "Guardar as datas";
 "draft_dates.error.save_failed" = "Não foi possível guardar as datas. Tente novamente.";
+
+/* Local guest organizer: finalization needs an account */
+"event.lifecycle.guest.title" = "É necessária uma conta para finalizar";
+"event.lifecycle.guest.body" = "No modo convidado, este evento fica neste dispositivo: não pode ser partilhado com o grupo nem finalizado. Inicie sessão para continuar com os participantes.";
+"event.lifecycle.guest.action" = "Iniciar sessão";
+"event.lifecycle.guest.confirm_message" = "Vai sair do modo convidado para iniciar sessão. Os eventos do modo convidado não são transferidos automaticamente para a sua conta.";

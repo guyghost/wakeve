@@ -2258,3 +2258,9 @@
 "draft_dates.remove" = "Rimuovi questa data";
 "draft_dates.save" = "Salva le date";
 "draft_dates.error.save_failed" = "Impossibile salvare le date. Riprova.";
+
+/* Local guest organizer: finalization needs an account */
+"event.lifecycle.guest.title" = "Serve un account per finalizzare";
+"event.lifecycle.guest.body" = "In modalità ospite, questo evento resta su questo dispositivo: non può essere condiviso con il gruppo né finalizzato. Accedi per continuare con i partecipanti.";
+"event.lifecycle.guest.action" = "Accedi";
+"event.lifecycle.guest.confirm_message" = "Uscirai dalla modalità ospite per accedere. Gli eventi della modalità ospite non vengono trasferiti automaticamente al tuo account.";
