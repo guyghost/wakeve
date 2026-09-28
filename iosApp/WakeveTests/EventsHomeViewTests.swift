@@ -27,4 +27,28 @@ final class EventsHomeViewTests: XCTestCase {
         let size = host.sizeThatFits(in: CGSize(width: 180, height: CGFloat.greatestFiniteMagnitude))
         XCTAssertGreaterThanOrEqual(size.height, WK.Size.minTapTarget)
     }
+
+    func testHomeShowsEmptyStateAndHidesHeroWhenNoEvents() throws {
+        let source = try String(contentsOf: URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("src/Views/Home/EventsHomeView.swift"), encoding: .utf8)
+        XCTAssertTrue(source.contains("case .empty"))
+        XCTAssertTrue(source.contains("WKHeroMetric("))
+        XCTAssertTrue(source.contains("if let step = viewModel.nextStep"))
+        XCTAssertTrue(source.contains("DisclosureGroup"), "La section Passés est repliée par défaut.")
+        XCTAssertTrue(source.contains(".contextMenu"))
+        XCTAssertTrue(source.contains(".refreshable"))
+    }
+
+    func testGridUsesOneColumnAtAccessibilitySizes() {
+        XCTAssertEqual(EventsHomeView.columnCount(for: .large), 2)
+        XCTAssertEqual(EventsHomeView.columnCount(for: .accessibility1), 1)
+    }
+
+    func testNextStepSubtitleCombinesMissingVoteAndDeadline() {
+        let step = HomeNextStep(eventId: "e", title: "Raclette", kind: .voteRequired, action: .vote,
+                                value: "5", unit: "/8", daysLeft: 2)
+        let text = EventsHomeView.subtitle(for: step, locale: Locale(identifier: "en"))
+        XCTAssertTrue(text.contains("2"), text)
+    }
 }

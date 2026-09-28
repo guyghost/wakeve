@@ -42,10 +42,9 @@ struct HomeEventCard: View {
                     .multilineTextAlignment(.leading)
                     .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                Spacer(minLength: 0)
                 WKStatusPill(text: Self.statusText(for: summary), status: summary.status)
             }
-            .frame(minHeight: WK.Size.minTapTarget, maxHeight: .infinity, alignment: .topLeading)
+            .frame(minHeight: WK.Size.minTapTarget, alignment: .topLeading)
             .contentShape(WK.shape(WK.Radius.md))
         }
         .buttonStyle(.plain)

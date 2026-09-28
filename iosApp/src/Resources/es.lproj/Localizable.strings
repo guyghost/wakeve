@@ -2294,6 +2294,7 @@
 "home.v2.next_step.action.vote" = "Votar";
 "home.v2.next_step.action.results" = "Ver resultados";
 "home.v2.next_step.action.organize" = "Seguir organizando";
+"home.v2.next_step.action.choose_date" = "Elegir la fecha";
 "home.v2.section.past" = "Pasados";
 "home.v2.empty.title" = "Organiza tu primer evento";
 "home.v2.empty.body" = "Propón fechas, el grupo vota y Wakeve se encarga del resto.";

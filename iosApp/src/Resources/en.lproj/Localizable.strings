@@ -2292,6 +2292,7 @@
 "home.v2.next_step.action.vote" = "Vote";
 "home.v2.next_step.action.results" = "See results";
 "home.v2.next_step.action.organize" = "Keep organizing";
+"home.v2.next_step.action.choose_date" = "Choose the date";
 "home.v2.section.past" = "Past";
 "home.v2.empty.title" = "Plan your first event";
 "home.v2.empty.body" = "Propose dates, the group votes, Wakeve keeps track.";
