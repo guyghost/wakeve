@@ -13,7 +13,7 @@ L'application iOS fonctionne mais son rendu et son parcours manquent de finition
 - **Trop d'écrans** : ~15 écrans d'organisation distincts par événement (transport, repas, matériel, activités, budget, paiement, photos…), chacun poussé en plein écran.
 - **Deux accueils et deux flux de création** coexistent derrière `@AppStorage("iosInvitationExperienceV1")` (désactivé par défaut), plus du code mort (`Views/Events/HomeView.swift`, `Views/EventDetailExperienceView.swift`, `LiquidGlassTabBar`).
 - **Prolifération de tokens** : trois échelles d'espacements/rayons parallèles dans `Theme/DesignSystem.swift`, cinq fichiers de couleurs (`WakeveColors`, `BrandColor`, `SemanticColor`, `EventMoodPalette`, `WakeveTheme`) avec quatre bleus concurrents (#2563EB, #0969DA, #2F6F9F, #3F8FF2).
-- **Styles en dur dans `Views/`** : ~65 `Color(hex:)`, ~101 `.font(.system(size:))`, ~91 `cornerRadius` littéraux.
+- **Styles en dur dans `Views/`** : ~77 `Color(hex:)`, ~101 `.font(.system(size:))`, ~78 `cornerRadius` littéraux (mesuré après la couche 0 : 65 / 87 / 68).
 - **Incohérences de nommage** : onglet `.groups` libellé « Explorer ».
 - Les listes d'événements n'affichent ni statut ni « qui doit agir ».
 
@@ -23,7 +23,7 @@ L'application iOS fonctionne mais son rendu et son parcours manquent de finition
 2. Rendre évident, sur chaque écran : **ce qui est confirmé, ce qui est en attente, qui doit agir, et la prochaine action utile** (gate Product Excellence).
 3. Réduire le nombre d'écrans et d'allers-retours : un hub par événement, des modules en sheets.
 4. Une navigation native (`NavigationStack`) pilotée par les routes typées existantes (`IosRoute`).
-5. Un socle de tokens/composants unique, garanti par lint.
+5. Un socle de tokens/composants unique, garanti par un test de contrat à cliquet (`WKStyleGuardTests`).
 
 ### Non-objectifs
 
@@ -149,7 +149,7 @@ Règles :
 
 ## 6. Tokens — `Theme/WK.swift`
 
-Source unique, namespace `WK`. Remplace `WakeveTheme`, les `Typography`/`Spacing`/`CornerRadius`/`AdaptiveColors` legacy, `WakeveColors`, `BrandColor`, `SemanticColor`. `EventMoodPalette` est conservé et consommé par `WK.mood(for:)`.
+Source unique, namespace `WK`. Remplace `WakeveTheme`, les `Typography`/`Spacing`/`CornerRadius`/`AdaptiveColors` legacy, `WakeveColors`, `BrandColor`, `SemanticColor`. `EventMoodPalette` est conservé et consommé par `WK.Mood(palette:)`.
 
 | Famille | Tokens (clair / sombre) |
 |---|---|
@@ -157,8 +157,8 @@ Source unique, namespace `WK`. Remplace `WakeveTheme`, les `Typography`/`Spacing
 | Texte | `textPrimary` / `textSecondary` / `textTertiary` = `label` / `secondaryLabel` / `tertiaryLabel` |
 | Accent | `accent` #5B54D6 / #8B85F0 (+ `accentFill` pour fonds doux) |
 | Statuts | `confirmed` (vert), `pending` (ambre), `actionNeeded` (rouge), `draft` (gris) — chacun avec `fill` (fond doux) et `onFill` (texte, contraste AA) |
-| Immersif | `mood(for:)` → `background`, `surface`, `textPrimary`, `textSecondary`, `pillStroke` |
-| Rayons | `sm` 12 · `md` 18 · `lg` 28 · `pill` — toujours `RoundedRectangle(cornerRadius:style: .continuous)` |
+| Immersif | `WK.Mood(palette:)` → `background`, `surface`, `textPrimary`, `textSecondary`, `pillStroke`, `accent` |
+| Rayons | `sm` 12 · `md` 18 · `lg` 28 ; forme `WK.pill` (rayon `lg`, capsule tant que la hauteur ≤ 56 pt, rectangle arrondi au-delà) — toujours `.continuous` |
 | Espacements | 4 · 8 · 12 · 16 · 24 · 32 ; marge d'écran 16 |
 | Typographie | `display` (SF Pro Rounded, chiffres héros) · `title` · `headline` · `body` · `caption` — toutes basées sur les `Font.TextStyle` (Dynamic Type) |
 | Mouvement | `snappy` (tap), `smooth` (sheet/push), `bouncy` (validation) ; fondus si Reduce Motion |
@@ -172,7 +172,7 @@ Valeurs de statut en mode clair (couleur / `fill` / `onFill`) :
 | `actionNeeded` | #D64545 | #FDE7E7 | #A12E2E |
 | `draft` | #8A8A8E | #F2F2F4 | #5A5A5F |
 
-En mode sombre, `fill` = couleur à 22 % d'opacité sur `card`, `onFill` = couleur éclaircie. Un test unitaire vérifie le contraste AA (≥ 4.5:1) de `onFill` sur `fill` dans les deux modes.
+En mode sombre, valeurs explicites définies dans `Theme/WK.swift` (`WK.Status`), contraste AA vérifié par `WKTokensTests`. `status.color` n'est **jamais** utilisé pour du texte : seulement comme repère non textuel (≥ 3:1) ; le texte de statut utilise `onFill`.
 
 ## 7. Composants — `Components/WK/`
 
@@ -210,7 +210,7 @@ Tout est derrière un flag `redesign2026` lu via un `FeatureFlags` unique (rempl
 | # | Couche | Contenu |
 |---|---|---|
 | 0 | Nettoyage | Suppression du code mort (`HomeView`, `EventDetailExperienceView`, `LiquidGlassTabBar`) |
-| 1 | Socle | `WK` tokens + composants + previews + règle SwiftLint (avertissement) |
+| 1 | Socle | `WK` tokens + composants + previews + garde-fou `WKStyleGuardTests` (cliquet) |
 | 2 | Shell | `AppRouter`, `NavigationStack` sur `IosRoute`, `WKFloatingNavBar` ; écrans existants branchés tels quels |
 | 3 | Accueil | `EventsHomeView` |
 | 4 | Hub | `EventHubView` + `WKModuleTile` (modules ouvrent encore les anciens écrans) |
@@ -218,16 +218,16 @@ Tout est derrière un flag `redesign2026` lu via un `FeatureFlags` unique (rempl
 | 6 | Activité | `ActivityView` (fusion Inbox + messages) |
 | 7 | Création | `CreateEventFlow` |
 | 8 | Immersif | `WKImmersiveScaffold` : invitation, jour J |
-| 9 | Bascule | Flag activé par défaut ; suppression du `switch` de `ContentView`, de l'ancien design system et des écrans remplacés ; lint en erreur |
+| 9 | Bascule | Flag activé par défaut ; suppression du `switch` de `ContentView`, de l'ancien design system et des écrans remplacés ; baselines du garde-fou ramenées à 0 |
 
-Règle SwiftLint (custom rules) dans `iosApp/src/Views/` : interdit `Color(hex:`, `.font(.system(size:`, `cornerRadius:` littéral numérique.
+Garde-fou : `WKStyleGuardTests` (XCTest, SwiftLint n'étant pas installé) — zéro style en dur dans `Components/WK`, compteurs de `Views/` à cliquet (ne peuvent que baisser), baseline ramenée à 0 à la couche 9. Périmètre : `Views/` et `Components/WK` uniquement. `WKModuleSheet` arrive en couche 5, `WKImmersiveScaffold` en couche 8.
 
 ## 10. Tests
 
 - **TDD** : tests écrits avant chaque couche (règle AGENTS.md).
 - **Unitaires** : `AppRouter` (résolution des routes, deep links, push/pop, présentation de module), dérivation des statuts et de la « prochaine action », tri de l'accueil, groupement d'Activité, sélection des modules selon `EventStatus`.
 - **UI (XCUITest)** : parcours création → sondage → confirmation → organisation → finalisation dans la nouvelle UI ; adaptation des tests existants via identifiants d'accessibilité.
-- **Snapshots** des composants `WK` (clair/sombre/AX5).
+- **Rendu** des composants `WK` : tests de mesure `UIHostingController.sizeThatFits` (cibles ≥ 44 pt, plafonds Dynamic Type, non-débordement AX5 sur 375 pt) + galerie DEBUG (clair/sombre/AX5/Reduce Transparency/Increase Contrast/mood). Pas de snapshots image pour l'instant.
 - **Offline** : un scénario par écran principal (création hors ligne, vote hors ligne, actions en file visibles).
 - **Accessibilité** : audit VoiceOver et Dynamic Type par couche.
 
@@ -236,7 +236,7 @@ Règle SwiftLint (custom rules) dans `iosApp/src/Views/` : interdit `Color(hex:`
 1. La navigation est entièrement native (retour et swipe-back fonctionnels partout) ; `enum AppView` n'existe plus.
 2. Depuis l'accueil, chaque événement montre son statut et si l'utilisateur doit agir, sans l'ouvrir.
 3. Tout module d'organisation est accessible en ≤ 2 taps depuis le hub, sans quitter le contexte de l'événement.
-4. Aucune occurrence de `Color(hex:`, `.font(.system(size:` ou `cornerRadius` littéral dans `Views/`.
+4. Aucune occurrence de `Color(hex:`, `.font(.system(size:` ou `cornerRadius` littéral dans `Views/` (`WKStyleGuardTests` avec baseline 0).
 5. Un seul fichier de tokens ; les anciens fichiers de couleurs sont supprimés.
 6. Tous les écrans passent Dynamic Type AX5 sans troncature bloquante et VoiceOver sans élément non libellé.
 7. Tests unitaires, UI et offline verts.
@@ -260,3 +260,23 @@ Règle SwiftLint (custom rules) dans `iosApp/src/Views/` : interdit `Color(hex:`
 | Durée longue avec deux UI en parallèle | Couches courtes, une PR par module, bascule planifiée dès la couche 8 |
 | Tests UI existants cassés | Identifiants d'accessibilité posés dès la couche 1 |
 | Liquid Glass indisponible sur iOS 18 | Replis `.regularMaterial` testés ; verre limité aux contrôles |
+
+## 15. Écarts d'implémentation constatés (couches 0-1)
+
+Consignés après les couches 0-1 (proposition #47) ; ils font désormais partie de la spec.
+
+- **Tokens ajoutés** : `textMuted` (texte secondaire opaque AA sur cartes), `onCardInset`, `onAccent`, `onAccentFill`, `Typo.micro`, `Size.*` (`minTapTarget`, `avatar`, `primaryButtonHeight`), `Stroke.*`, `Space.xxxs`, forme `WK.pill`. `Typo.caption` = `.footnote`, `Typo.micro` = `.caption`.
+- **Helpers** : `WK.appLocale` (langue de l'app + région de l'utilisateur), `WK.localizedFormat(_:locale:)`, modificateur `wkAccessibilityID(_:)`, `WK.shape(_:)`.
+- **`AppZone`** introduit en couche 1 ; coexiste avec `WakeveTab` jusqu'à la couche 2.
+- **`WKStatusPill`** prend `(text, WK.Status)` ; la dérivation depuis `EventStatus` et le rôle utilisateur arrive en couches 3-4.
+- **`WKCard`** n'a pas d'ombre (fond blanc sur canvas gris suffit) ; à réévaluer en couche 3.
+- **Pluriels** : `wk.nav.activity.badge_format` vit dans `Localizable.stringsdict` (5 langues).
+- **Avatars** : le compteur « +N » est numérique ; le libellé VoiceOver nomme jusqu'à 3 personnes, sinon « A, B et N autres ».
+- **Barre flottante** : Dynamic Type plafonné à AX1 ; aux tailles d'accessibilité, la zone sélectionnée n'affiche que son icône (titre via VoiceOver et Large Content Viewer) — à valider avec @designer.
+
+### Points ouverts
+
+- **Increase Contrast** : `textMuted` n'a pas encore de variante haut contraste.
+- **Registre du français** : la spec et `wk.status.action_needed` (« À toi d'agir ») tutoient, le reste de l'app vouvoie. Décision produit à prendre avant la couche 3.
+- **Mood immersif** : le fond (palette sombre assombrie de 72 %) est presque noir ; facteur à revoir en couche 8.
+- **Clés orphelines** : ~32 clés `home.*` laissées par la suppression de `HomeView` ; nettoyage en couche 9.
