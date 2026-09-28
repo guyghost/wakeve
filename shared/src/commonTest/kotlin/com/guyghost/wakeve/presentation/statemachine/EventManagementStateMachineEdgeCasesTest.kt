@@ -13,6 +13,7 @@ import com.guyghost.wakeve.presentation.state.EventManagementContract
 import com.guyghost.wakeve.presentation.usecase.CreateEventUseCase
 import com.guyghost.wakeve.presentation.usecase.LoadEventsUseCase
 import com.guyghost.wakeve.repository.EventRepositoryInterface
+import com.guyghost.wakeve.repository.POLL_REQUIRES_TIME_SLOT_MESSAGE
 import com.guyghost.wakeve.test.TypedConfirmationTestRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -315,6 +316,22 @@ class EventManagementStateMachineEdgeCasesTest {
         val state = stateMachine.state.value
         assertEquals(EventStatus.CONFIRMED, mockRepository.events[eventId]?.status)
         assertTrue(state.error?.contains("Cannot start poll") == true)
+    }
+
+    @Test
+    fun `cannot start poll while the draft has no date`() = runTest {
+        // Given - "Date à décider avec le groupe": a DRAFT created without any slot
+        val eventId = "event-no-date"
+        val organizerId = "user-1"
+        mockRepository.events[eventId] = createDraftEvent(eventId, organizerId).copy(proposedSlots = emptyList())
+
+        // When
+        stateMachine.dispatch(EventManagementContract.Intent.StartPoll(eventId, organizerId))
+        testScope.advanceUntilIdle()
+
+        // Then - stays DRAFT with an identifiable reason the UI can explain
+        assertEquals(EventStatus.DRAFT, mockRepository.events[eventId]?.status)
+        assertEquals(POLL_REQUIRES_TIME_SLOT_MESSAGE, stateMachine.state.value.error)
     }
 
     @Test

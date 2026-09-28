@@ -24,6 +24,8 @@ class CreateEventViewModel: StateMachineViewModel<
     var onDismiss: (() -> Void)?
     private var pendingCreationEvent: WakeveEvent?
     @Published private(set) var isCreating = false
+    /// Localized reason of the last failed creation, surfaced by the wizard.
+    @Published private(set) var creationErrorMessage: String?
     var isCreationInFlight: Bool { isCreating }
 
     // MARK: - WakeveAI
@@ -72,14 +74,18 @@ class CreateEventViewModel: StateMachineViewModel<
     ) {
         guard !isCreating else { return }
         guard !title.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        creationErrorMessage = nil
+
+        // An empty slot list is a valid DRAFT ("date à décider avec le groupe"):
+        // the organizer adds dates before starting the poll.
+        let proposedSlots = selectedSlots.isEmpty
+            ? EventTimeSlotFactory.proposedSlots(from: selectedDate)
+            : EventTimeSlotFactory.proposedSlots(from: selectedSlots)
         isCreating = true
 
         let iso8601 = ISO8601DateFormatter()
         let now = iso8601.string(from: Date())
         let deadline = iso8601.string(from: Calendar.current.date(byAdding: .day, value: 7, to: Date())!)
-        let proposedSlots = selectedSlots.isEmpty
-            ? EventTimeSlotFactory.proposedSlots(from: selectedDate)
-            : EventTimeSlotFactory.proposedSlots(from: selectedSlots)
 
         let event = WakeveEvent(
             id: "event-\(Int(Date().timeIntervalSince1970 * 1000))",
@@ -113,16 +119,37 @@ class CreateEventViewModel: StateMachineViewModel<
     override func onStateDidChange() {
         guard let pending = pendingCreationEvent, !state.isLoading else { return }
         guard state.error == nil else {
-            pendingCreationEvent = nil
-            isCreating = false
+            failPendingCreation()
             return
         }
         guard let persisted = state.events.first(where: { $0.id == pending.id }) else { return }
+        completePendingCreation(with: persisted)
+    }
+
+    /// The state machine emits a toast once a creation settles, on success and on failure.
+    /// State updates are conflated: a failure identical to the previous one produces no
+    /// new state, so the toast is the reliable settlement signal for a pending creation.
+    private func settlePendingCreationAfterToast() {
+        guard let pending = pendingCreationEvent else { return }
+        if let persisted = RepositoryProvider.shared.repository.getEvent(id: pending.id) {
+            completePendingCreation(with: persisted)
+        } else {
+            failPendingCreation()
+        }
+    }
+
+    private func completePendingCreation(with persisted: WakeveEvent) {
         pendingCreationEvent = nil
         isCreating = false
         let completion = onEventCreated
         onEventCreated = nil
         completion?(persisted)
+    }
+
+    private func failPendingCreation() {
+        pendingCreationEvent = nil
+        isCreating = false
+        creationErrorMessage = String(localized: "create_event.error.failed")
     }
 
     func updateSmartEventDraftPhrase(_ phrase: String) {
@@ -231,6 +258,7 @@ class CreateEventViewModel: StateMachineViewModel<
     override func mapSideEffect(_ effect: EventManagementContractSideEffect) -> MappedSideEffect {
         switch effect {
         case let showToast as EventManagementContractSideEffectShowToast:
+            settlePendingCreationAfterToast()
             return .toast(showToast.message)
         case let navigateTo as EventManagementContractSideEffectNavigateTo:
             return .navigate(navigateTo.route)

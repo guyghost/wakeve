@@ -70,10 +70,17 @@ final class EventPollStartController: ObservableObject {
         guard awaitingOutcome, !state.isLoading else { return }
 
         if let error = state.error {
-            finish(.failed(error))
+            finish(.failed(Self.localizedFailure(error)))
         } else if repository?.getEvent(id: eventId)?.status == .polling {
             finish(.started)
         }
+    }
+
+    private static func localizedFailure(_ error: String) -> String {
+        if error == DatabaseEventRepositoryKt.POLL_REQUIRES_TIME_SLOT_MESSAGE {
+            return String(localized: "participants.start_poll.requires_slot")
+        }
+        return String(localized: "participants.error.start_poll_failed")
     }
 
     private func finish(_ outcome: Outcome) {

@@ -173,11 +173,26 @@ class CreateEventUseCaseTest {
     }
 
     @Test
-    fun testCreateEvent_ValidationError_NoProposedSlots() = runTest {
+    fun testCreateEvent_DraftWithoutProposedSlotsIsAccepted() = runTest {
+        // "Date à décider avec le groupe": the organizer adds dates before starting the poll.
         val repository = MockEventRepository()
         val useCase = CreateEventUseCase(repository)
 
         val event = createValidEvent("evt-1", "Valid Title").copy(proposedSlots = emptyList())
+        val result = useCase(event)
+
+        assertTrue(result.isSuccess, "A DRAFT may be created before any date is known: ${result.exceptionOrNull()}")
+    }
+
+    @Test
+    fun testCreateEvent_ValidationError_NoProposedSlotsOutsideDraft() = runTest {
+        val repository = MockEventRepository()
+        val useCase = CreateEventUseCase(repository)
+
+        val event = createValidEvent("evt-1", "Valid Title").copy(
+            proposedSlots = emptyList(),
+            status = EventStatus.POLLING
+        )
         val result = useCase(event)
 
         assertTrue(result.isFailure)

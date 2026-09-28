@@ -27,6 +27,7 @@ struct ParticipantManagementView: View {
     @State private var showError = false
     @State private var showSuccess = false
     @State private var showStartPollConfirmation = false
+    @State private var showDraftDatesSheet = false
     @State private var contactCandidates: [DeviceContactParticipantCandidate] = []
     @State private var selectedContactEmails: Set<String> = []
     @State private var contactSearchQuery = ""
@@ -155,6 +156,13 @@ struct ParticipantManagementView: View {
             Button(String(localized: "common.cancel"), role: .cancel) {}
         } message: {
             Text(String(localized: "participants.contacts_permission.message"))
+        }
+        .sheet(isPresented: $showDraftDatesSheet) {
+            if let repository {
+                DraftDatesSheet(eventId: event.id, repository: repository) {
+                    onParticipantsUpdated()
+                }
+            }
         }
         .sheet(isPresented: $showContactSheet) {
             ContactParticipantSelectionSheet(
@@ -596,14 +604,30 @@ struct ParticipantManagementView: View {
             .frame(height: 42)
             .allowsHitTesting(false)
 
-            LiquidGlassButton(
-                String(localized: "participants.start_poll.action"),
-                systemImage: "chart.bar.xaxis",
-                variant: .primary,
-                isDisabled: !canStartPoll,
-                isLoading: isLoading
-            ) {
-                presentStartPollConfirmation()
+            Group {
+                if needsDatesBeforePoll {
+                    LiquidGlassButton(
+                        String(localized: "participants.add_dates.action"),
+                        systemImage: "calendar.badge.plus",
+                        variant: .primary,
+                        isDisabled: repository == nil,
+                        isLoading: false
+                    ) {
+                        WakeveHaptics.selection()
+                        showDraftDatesSheet = true
+                    }
+                    .accessibilityIdentifier("participantsAddDatesAction")
+                } else {
+                    LiquidGlassButton(
+                        String(localized: "participants.start_poll.action"),
+                        systemImage: "chart.bar.xaxis",
+                        variant: .primary,
+                        isDisabled: !canStartPoll,
+                        isLoading: isLoading
+                    ) {
+                        presentStartPollConfirmation()
+                    }
+                }
             }
             .padding(.horizontal, WakeveTheme.Spacing.page)
             .padding(.top, WakeveTheme.Spacing.xs)
@@ -698,6 +722,11 @@ struct ParticipantManagementView: View {
 
     private var canStartPoll: Bool {
         event.status == .draft && !event.proposedSlots.isEmpty
+    }
+
+    /// A DRAFT created with "date à décider avec le groupe" needs dates before its poll.
+    private var needsDatesBeforePoll: Bool {
+        event.status == .draft && event.proposedSlots.isEmpty
     }
 
     private var hasTimezoneCoordinationContext: Bool {
@@ -1128,6 +1157,10 @@ struct ParticipantManagementView: View {
 
     private func startPoll() async {
         guard canStartPoll else {
+            if needsDatesBeforePoll {
+                showDraftDatesSheet = true
+                return
+            }
             WakeveHaptics.warning()
             errorMessage = String(localized: "participants.start_poll.requires_slot")
             showError = true

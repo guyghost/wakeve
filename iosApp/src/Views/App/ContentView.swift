@@ -579,6 +579,9 @@ struct AuthenticatedView: View {
                     onBack: {
                         invitationLandingEventId = nil
                         currentView = .eventList
+                    },
+                    onLifecycleChanged: {
+                        selectedEvent = repository.getEvent(id: event.id)
                     }
                 )
 #if DEBUG
@@ -717,10 +720,9 @@ struct AuthenticatedView: View {
                         currentView = .eventDetail
                     },
                     onOpenMeetings: {
-                        if let updatedEvent = repository.getEvent(id: event.id) {
-                            selectedEvent = updatedEvent
-                        }
-                        currentView = .meetingList
+                        // Selecting the final option emits meetings/{id}; meetings unlock
+                        // only in ORGANIZING, so land on the detail and its lifecycle card first.
+                        routeToMeetingsWhenUnlocked(eventId: event.id)
                     },
                     onOpenTransport: {
                         if let updatedEvent = repository.getEvent(id: event.id) {
@@ -745,7 +747,9 @@ struct AuthenticatedView: View {
                         currentView = .eventDetail
                     },
                     onOpenMeetings: {
-                        currentView = .meetingList
+                        // Selecting the final option emits meetings/{id}; meetings unlock
+                        // only in ORGANIZING, so land on the detail and its lifecycle card first.
+                        routeToMeetingsWhenUnlocked(eventId: event.id)
                     },
                     onOpenTransport: {
                         currentView = .transportPlanning
@@ -911,10 +915,9 @@ struct AuthenticatedView: View {
                         currentView = .eventDetail
                     },
                     onOpenMeetings: {
-                        if let updatedEvent = repository.getEvent(id: event.id) {
-                            selectedEvent = updatedEvent
-                        }
-                        currentView = .meetingList
+                        // Selecting the final option emits meetings/{id}; meetings unlock
+                        // only in ORGANIZING, so land on the detail and its lifecycle card first.
+                        routeToMeetingsWhenUnlocked(eventId: event.id)
                     },
                     onOpenTransport: {
                         if let updatedEvent = repository.getEvent(id: event.id) {
@@ -1669,6 +1672,14 @@ struct AuthenticatedView: View {
         } else {
             currentView = .eventDetail
         }
+    }
+
+    private func routeToMeetingsWhenUnlocked(eventId: String) {
+        if let updatedEvent = repository.getEvent(id: eventId) {
+            selectedEvent = updatedEvent
+        }
+        let meetingsUnlocked = selectedEvent?.status == .organizing || selectedEvent?.status == .finalized
+        currentView = meetingsUnlocked ? .meetingList : .eventDetail
     }
 
     private func invitationExperienceLegacyFallback(for event: Event) {
@@ -2974,7 +2985,12 @@ struct EventDetailView: View {
     let onShareServerIssuedInvitation: (EventDetailInvitationServerIssuedSharePayload) -> Void
     let isInvitationLanding: Bool
     let onBack: () -> Void
+    /// Reloads the event after an organizer lifecycle transition (ORGANIZING / FINALIZED).
+    var onLifecycleChanged: () -> Void = {}
 
+    @State private var lifecycleController: EventLifecycleTransitionController?
+    @State private var lifecycleConfirmationTarget: EventLifecycleTransitionController.Target?
+    @State private var lifecycleErrorMessage: String?
     @State private var eventAISummary: EventSummary?
     @State private var eventAIPolls: [PollSuggestion] = []
     @State private var eventAIChecklist: [ChecklistItem] = []
@@ -3060,6 +3076,11 @@ struct EventDetailView: View {
 
                             if presentation.visibleSecondarySections.contains(.participants) {
                                 participantsPreview(interactionPolicy: presentation.interactionPolicy)
+                                    .padding(.horizontal, WakeveTheme.Spacing.page)
+                            }
+
+                            if showsLifecycleCard {
+                                lifecycleCard
                                     .padding(.horizontal, WakeveTheme.Spacing.page)
                             }
 
@@ -3689,6 +3710,105 @@ struct EventDetailView: View {
                     interactionPolicy: interactionPolicy,
                     action: onOpenTricount
                 )
+            }
+        }
+    }
+
+    // MARK: - Organizer lifecycle (CONFIRMED -> ORGANIZING -> FINALIZED)
+
+    private var showsLifecycleCard: Bool {
+        event.organizerId == userId &&
+            [EventStatus.confirmed, .comparing, .organizing].contains(event.status)
+    }
+
+    private var lifecycleTarget: EventLifecycleTransitionController.Target? {
+        switch event.status {
+        case .confirmed: return .organizing
+        case .organizing: return .finalized
+        default: return nil
+        }
+    }
+
+    private var lifecycleCard: some View {
+        let target = lifecycleTarget
+        // ORGANIZING is the only status whose next organizer step is finalization.
+        let isFinalizing = event.status == .organizing
+        return WakeveGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
+                Text(String(localized: isFinalizing ? "event.lifecycle.finalize.title" : "event.lifecycle.organizing.title"))
+                    .font(WakeveTheme.Typography.section)
+                    .foregroundColor(primaryText)
+
+                Text(lifecycleBodyText)
+                    .font(WakeveTheme.Typography.callout)
+                    .foregroundColor(secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if let lifecycleErrorMessage {
+                    Label(lifecycleErrorMessage, systemImage: "exclamationmark.triangle.fill")
+                        .font(WakeveTheme.Typography.callout)
+                        .foregroundColor(SemanticColor.warning(for: colorScheme))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("eventLifecycleError")
+                }
+
+                if let target {
+                    WakeveActionButton(
+                        String(localized: isFinalizing ? "event.lifecycle.finalize.action" : "event.lifecycle.organizing.action"),
+                        systemImage: isFinalizing ? "checkmark.seal.fill" : "arrow.right.circle.fill",
+                        variant: .primary,
+                        isDisabled: lifecycleController?.inFlightTarget != nil,
+                        isLoading: lifecycleController?.inFlightTarget == target
+                    ) {
+                        lifecycleConfirmationTarget = target
+                    }
+                    .accessibilityIdentifier(isFinalizing ? "eventLifecycleFinalizeAction" : "eventLifecycleOrganizeAction")
+                }
+            }
+        }
+        .confirmationDialog(
+            String(localized: isFinalizing ? "event.lifecycle.finalize.action" : "event.lifecycle.organizing.action"),
+            isPresented: Binding(
+                get: { lifecycleConfirmationTarget != nil },
+                set: { if !$0 { lifecycleConfirmationTarget = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: isFinalizing ? "event.lifecycle.finalize.action" : "event.lifecycle.organizing.action")) {
+                if let target {
+                    performLifecycleTransition(to: target)
+                }
+            }
+            Button(String(localized: "common.cancel"), role: .cancel) {}
+        } message: {
+            Text(String(localized: isFinalizing ? "event.lifecycle.finalize.confirm_message" : "event.lifecycle.organizing.confirm_message"))
+        }
+    }
+
+    private var lifecycleBodyText: String {
+        switch event.status {
+        case .comparing: return String(localized: "event.lifecycle.comparing.body")
+        case .organizing: return String(localized: "event.lifecycle.finalize.body")
+        default: return String(localized: "event.lifecycle.organizing.body")
+        }
+    }
+
+    private func performLifecycleTransition(to target: EventLifecycleTransitionController.Target) {
+        lifecycleConfirmationTarget = nil
+        lifecycleErrorMessage = nil
+        let controller = lifecycleController ?? EventLifecycleTransitionController(
+            eventId: event.id,
+            userId: userId,
+            repository: repository
+        )
+        lifecycleController = controller
+        controller.transition(to: target) { outcome in
+            switch outcome {
+            case .transitioned:
+                WakeveHaptics.success()
+                onLifecycleChanged()
+            case .failed(let message):
+                lifecycleErrorMessage = message
             }
         }
     }
