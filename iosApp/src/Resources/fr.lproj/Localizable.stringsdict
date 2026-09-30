@@ -130,5 +130,53 @@
             <string>%d réunions</string>
         </dict>
     </dict>
+    <key>hub.confirmed_count</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@count@</string>
+        <key>count</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>one</key>
+            <string>%d confirmé</string>
+            <key>other</key>
+            <string>%d confirmés</string>
+        </dict>
+    </dict>
+    <key>hub.pending_count</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@count@</string>
+        <key>count</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>one</key>
+            <string>%d en attente</string>
+            <key>other</key>
+            <string>%d en attente</string>
+        </dict>
+    </dict>
+    <key>hub.scenarios_count</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@count@</string>
+        <key>count</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>one</key>
+            <string>%d scénario à comparer</string>
+            <key>other</key>
+            <string>%d scénarios à comparer</string>
+        </dict>
+    </dict>
 </dict>
 </plist>

@@ -2347,6 +2347,8 @@
 "hub.module.payments" = "Paiements";
 "hub.tile.locked" = "À confirmer d'abord";
 "hub.tile.hint" = "À préparer";
+"hub.tile.recap_hint" = "Revois l'essentiel";
+"hub.tile.photos_hint" = "Partage tes photos";
 "hub.summary.format" = "%1$@ · %2$@";
 "hub.summary.meals_progress_format" = "%1$d/%2$d repas prêts";
 "hub.primary.vote" = "Voter";
@@ -2358,5 +2360,6 @@
 "hub.primary.sign_in" = "Connecte-toi pour finaliser";
 "hub.primary.add_dates" = "Ajouter des dates";
 "hub.quick_vote.title_format" = "Tu es dispo le %@ ?";
+"hub.quick_vote.hint" = "Ouvre le vote";
 "hub.menu.info" = "Infos de l'événement";
 "hub.menu.more" = "Plus d'options";

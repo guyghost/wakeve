@@ -38,7 +38,7 @@ final class EventHubViewModelTests: XCTestCase {
         EventHubFacts(
             id: "e1", title: title, phase: phase, isOrganizer: false, viewerAccepted: true,
             hasDetailsAccess: false, isLocalGuest: false, pollOpen: true, userBallotComplete: false,
-            ballotsKnown: true, votersWithCompleteBallot: 1, eligibleVoters: 3, otherEligibleVoters: 2,
+            ballotsKnown: true, votersWithCompleteBallot: 1, otherEligibleVoters: 2,
             otherVotersComplete: 1, slotCount: 2, leadingSlotStart: nil, finalDate: nil,
             confirmedCount: 2, pendingCount: 1, participantNames: ["Léa"], summaries: [.date: "2 créneaux"]
         )
@@ -218,6 +218,44 @@ final class EventHubViewModelTests: XCTestCase {
         XCTAssertEqual(HubSummaryText.participants(confirmed: 3, pending: 2, locale: fr), "3 confirmés · 2 en attente")
         XCTAssertEqual(HubSummaryText.meals(completed: 2, total: 5, locale: fr), "2/5 repas prêts")
         XCTAssertTrue(HubSummaryText.euros(1200, locale: fr).contains("€"))
+    }
+
+    func testParticipantAndScenarioSummariesArePluralized() {
+        let fr = Locale(identifier: "fr_FR")
+        let en = Locale(identifier: "en")
+        XCTAssertEqual(HubSummaryText.participants(confirmed: 1, pending: 0, locale: fr), "1 confirmé")
+        XCTAssertEqual(HubSummaryText.participants(confirmed: 1, pending: 1, locale: fr), "1 confirmé · 1 en attente")
+        XCTAssertEqual(HubSummaryText.participants(confirmed: 3, pending: 3, locale: fr), "3 confirmés · 3 en attente")
+        XCTAssertEqual(HubSummaryText.participants(confirmed: 1, pending: 1, locale: en), "1 confirmed · 1 pending")
+        XCTAssertEqual(HubSummaryText.participants(confirmed: 3, pending: 3, locale: en), "3 confirmed · 3 pending")
+        XCTAssertEqual(HubSummaryText.scenarios(1, locale: fr), "1 scénario à comparer")
+        XCTAssertEqual(HubSummaryText.scenarios(3, locale: fr), "3 scénarios à comparer")
+        XCTAssertEqual(HubSummaryText.scenarios(1, locale: en), "1 scenario to compare")
+        XCTAssertEqual(HubSummaryText.scenarios(3, locale: en), "3 scenarios to compare")
+    }
+
+    private func sourceFacts(phase: EventHubFacts.Phase, isOrganizer: Bool) -> EventHubFacts {
+        EventHubFacts(
+            id: "e1", title: "t", phase: phase, isOrganizer: isOrganizer, viewerAccepted: true,
+            hasDetailsAccess: true, isLocalGuest: false, pollOpen: true, userBallotComplete: false,
+            ballotsKnown: true, votersWithCompleteBallot: 0, otherEligibleVoters: 0,
+            otherVotersComplete: 0, slotCount: 0, leadingSlotStart: nil, finalDate: nil,
+            confirmedCount: 0, pendingCount: 0, participantNames: [], summaries: [:]
+        )
+    }
+
+    func testLocationSummaryMatchesTheScreenItOpens() {
+        // La tuile Lieu ouvre la liste des scénarios : lieux potentiels (visibles de l'organisateur seul)
+        // avant la date, scénarios ensuite.
+        for phase in [EventHubFacts.Phase.draft, .polling] {
+            XCTAssertEqual(SharedEventHubSource.locationSummary(for: sourceFacts(phase: phase, isOrganizer: true)), .potentialLocations)
+            XCTAssertEqual(SharedEventHubSource.locationSummary(for: sourceFacts(phase: phase, isOrganizer: false)), .none)
+        }
+        for phase in [EventHubFacts.Phase.confirmed, .comparing, .organizing, .finalized] {
+            for organizer in [true, false] {
+                XCTAssertEqual(SharedEventHubSource.locationSummary(for: sourceFacts(phase: phase, isOrganizer: organizer)), .scenarios)
+            }
+        }
     }
 
     func testLeadingSlotIsIgnoredWithoutVotes() {

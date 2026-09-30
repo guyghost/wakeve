@@ -25,7 +25,7 @@ final class EventHubViewTests: XCTestCase {
             isOrganizer: isOrganizer, viewerAccepted: true,
             hasDetailsAccess: hasDetailsAccess || isOrganizer, isLocalGuest: isLocalGuest,
             pollOpen: true, userBallotComplete: false, ballotsKnown: true,
-            votersWithCompleteBallot: 2, eligibleVoters: 5, otherEligibleVoters: 4, otherVotersComplete: 1,
+            votersWithCompleteBallot: 2, otherEligibleVoters: 4, otherVotersComplete: 1,
             slotCount: slotCount, leadingSlotStart: leadingSlotStart, finalDate: finalDate,
             confirmedCount: confirmedCount, pendingCount: pendingCount,
             participantNames: ["Léa Martin", "Tom Durand", "Inès"], summaries: summaries,
@@ -81,6 +81,17 @@ final class EventHubViewTests: XCTestCase {
         XCTAssertEqual(EventHubView.tileSummary(open, facts: f, locale: fr), "3 créneaux")
         XCTAssertEqual(EventHubView.tileSummary(empty, facts: f, locale: fr), "À préparer")
         XCTAssertEqual(EventHubView.tileSummary(locked, facts: f, locale: fr), "À confirmer d'abord")
+    }
+
+    func testFinalizedRecapAndPhotosHaveTheirOwnHint() {
+        let f = facts(phase: .finalized)
+        let recap = EventHubModel.Tile(module: .recap, isLocked: false, isHighlighted: false, status: nil)
+        let photos = EventHubModel.Tile(module: .photos, isLocked: false, isHighlighted: false, status: nil)
+        XCTAssertEqual(EventHubView.tileSummary(recap, facts: f, locale: fr), "Revois l'essentiel")
+        XCTAssertEqual(EventHubView.tileSummary(photos, facts: f, locale: fr), "Partage tes photos")
+        XCTAssertEqual(EventHubView.tileSummary(recap, facts: f, locale: en), "See the highlights")
+        XCTAssertEqual(EventHubView.tileSummary(photos, facts: f, locale: en), "Share your photos")
+        XCTAssertEqual(EventHubView.hintKey(for: .budget), "hub.tile.hint")
     }
 
     func testHeroSummaryCombinesSlotsAndGuests() {

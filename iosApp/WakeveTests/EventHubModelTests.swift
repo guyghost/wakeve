@@ -14,19 +14,19 @@ final class EventHubModelTests: XCTestCase {
         userBallotComplete: Bool = false,
         ballotsKnown: Bool = true,
         votersWithCompleteBallot: Int = 2,
-        eligibleVoters: Int = 5,
         otherEligibleVoters: Int = 4,
         otherVotersComplete: Int = 1,
-        slotCount: Int = 3
+        slotCount: Int = 3,
+        leadingSlotStart: Date? = nil
     ) -> EventHubFacts {
         EventHubFacts(
             id: "e1", title: "Week-end Annecy", phase: phase,
             isOrganizer: isOrganizer, viewerAccepted: viewerAccepted || isOrganizer,
             hasDetailsAccess: hasDetailsAccess || isOrganizer, isLocalGuest: isLocalGuest,
             pollOpen: pollOpen, userBallotComplete: userBallotComplete, ballotsKnown: ballotsKnown,
-            votersWithCompleteBallot: votersWithCompleteBallot, eligibleVoters: eligibleVoters,
+            votersWithCompleteBallot: votersWithCompleteBallot,
             otherEligibleVoters: otherEligibleVoters, otherVotersComplete: otherVotersComplete,
-            slotCount: slotCount, leadingSlotStart: nil, finalDate: nil,
+            slotCount: slotCount, leadingSlotStart: leadingSlotStart, finalDate: nil,
             confirmedCount: 3, pendingCount: 1, participantNames: ["Léa", "Tom"], summaries: [:]
         )
     }
@@ -54,8 +54,10 @@ final class EventHubModelTests: XCTestCase {
 
     // MARK: - Sondage
 
+    private let slot = ISO8601DateFormatter().date(from: "2026-10-17T10:00:00Z")!
+
     func testAcceptedParticipantWhoHasNotVotedIsAskedToVote() {
-        let model = EventHubModel(facts: facts())
+        let model = EventHubModel(facts: facts(leadingSlotStart: slot))
         XCTAssertEqual(model.primary, .vote)
         XCTAssertEqual(model.status, .actionNeeded)
         XCTAssertEqual(model.statusKey, "home.v2.status.vote_required")
@@ -65,7 +67,14 @@ final class EventHubModelTests: XCTestCase {
     }
 
     func testQuickVoteNeedsAtLeastOneSlot() {
-        let model = EventHubModel(facts: facts(slotCount: 0))
+        let model = EventHubModel(facts: facts(slotCount: 0, leadingSlotStart: slot))
+        XCTAssertEqual(model.primary, .vote)
+        XCTAssertFalse(model.showsQuickVote)
+    }
+
+    func testQuickVoteNeedsALeadingSlot() {
+        // Sans créneau en tête, la carte n'a rien à proposer : le modèle ne l'annonce pas.
+        let model = EventHubModel(facts: facts(leadingSlotStart: nil))
         XCTAssertEqual(model.primary, .vote)
         XCTAssertFalse(model.showsQuickVote)
     }
@@ -97,7 +106,7 @@ final class EventHubModelTests: XCTestCase {
     func testOrganizerIsReadyToConfirmWhenAllOthersVoted() {
         let model = EventHubModel(facts: facts(
             isOrganizer: true, userBallotComplete: false,
-            votersWithCompleteBallot: 4, eligibleVoters: 5, otherEligibleVoters: 4, otherVotersComplete: 4
+            votersWithCompleteBallot: 4, otherEligibleVoters: 4, otherVotersComplete: 4
         ))
         XCTAssertEqual(model.primary, .confirmDate, "« Prêt à confirmer » l'emporte sur le vote (règle de la couche 3).")
         XCTAssertEqual(model.status, .actionNeeded)
@@ -117,7 +126,7 @@ final class EventHubModelTests: XCTestCase {
     func testLoneOrganizerIsNotReadyToConfirm() {
         let model = EventHubModel(facts: facts(
             isOrganizer: true, userBallotComplete: true,
-            votersWithCompleteBallot: 1, eligibleVoters: 1, otherEligibleVoters: 0, otherVotersComplete: 0
+            votersWithCompleteBallot: 1, otherEligibleVoters: 0, otherVotersComplete: 0
         ))
         XCTAssertNotEqual(model.primary, .confirmDate)
         XCTAssertEqual(model.primary, .pollResults)
@@ -243,7 +252,11 @@ final class EventHubModelTests: XCTestCase {
                 for module in HubModule.allCases {
                     let granted: Bool
                     switch module {
-                    case .date, .location, .participants, .scenarios, .recap: granted = true
+                    case .date, .participants, .recap: granted = true
+                    // Écran sans garde de `case`, mais verrouillé dans l'écran lui-même
+                    // (`ScenarioOrganizationView.isLocked` : `!canAccessOrganizationDetails`) ;
+                    // en brouillon, seul l'organisateur (toujours autorisé) voit l'événement.
+                    case .location, .scenarios: granted = phase == .draft || access
                     case .budget, .meetings, .payments: granted = dashboard
                     case .accommodation, .meals, .equipment, .activities, .photos: granted = planning
                     case .transport: granted = transport
@@ -263,8 +276,32 @@ final class EventHubModelTests: XCTestCase {
 
     func testCoreModulesAreNeverLocked() {
         let denied = facts(phase: .polling, viewerAccepted: false, hasDetailsAccess: false)
-        for module in [HubModule.date, .location, .participants, .scenarios, .recap] {
+        for module in [HubModule.date, .participants, .recap] {
             XCTAssertFalse(EventHubModel.isLocked(module, facts: denied), "\(module) ne doit jamais être verrouillé")
+        }
+    }
+
+    func testLocationAndScenariosFollowTheScenarioScreenLock() {
+        for module in [HubModule.location, .scenarios] {
+            for phase in [EventHubFacts.Phase.polling, .comparing, .confirmed] {
+                XCTAssertTrue(EventHubModel.isLocked(module, facts: facts(phase: phase, hasDetailsAccess: false)), "\(module) \(phase)")
+                XCTAssertFalse(EventHubModel.isLocked(module, facts: facts(phase: phase, hasDetailsAccess: true)), "\(module) \(phase)")
+            }
+            XCTAssertFalse(EventHubModel.isLocked(module, facts: facts(phase: .draft, isOrganizer: true)), "\(module) brouillon")
+        }
+    }
+
+    func testLockedTileIsNeverHighlighted() {
+        // Participant sans accès pendant la comparaison : la tuile Scénarios est verrouillée, donc pas mise en avant.
+        let model = EventHubModel(facts: facts(phase: .comparing, hasDetailsAccess: false))
+        XCTAssertEqual(tile(.scenarios, in: model)?.isLocked, true)
+        XCTAssertEqual(tile(.scenarios, in: model)?.isHighlighted, false)
+        let phases: [EventHubFacts.Phase] = [.draft, .polling, .comparing, .confirmed, .organizing, .finalized]
+        for phase in phases {
+            for access in [true, false] {
+                let tiles = EventHubModel(facts: facts(phase: phase, hasDetailsAccess: access)).tiles
+                XCTAssertFalse(tiles.contains { $0.isLocked && $0.isHighlighted }, "\(phase) accès=\(access)")
+            }
         }
     }
 
@@ -312,7 +349,7 @@ final class EventHubModelTests: XCTestCase {
                         )
                         let hub = facts(
                             isOrganizer: organizer, pollOpen: pollOpen, userBallotComplete: true, ballotsKnown: known,
-                            votersWithCompleteBallot: complete, eligibleVoters: others + 1,
+                            votersWithCompleteBallot: complete,
                             otherEligibleVoters: others, otherVotersComplete: othersComplete
                         )
                         XCTAssertEqual(home.readyToConfirm, shared)
@@ -339,10 +376,11 @@ final class EventHubModelTests: XCTestCase {
         "hub.primary.vote", "hub.primary.results", "hub.primary.confirm_date_format", "hub.primary.confirm_date",
         "hub.primary.organize", "hub.primary.finalize", "hub.primary.sign_in", "hub.primary.add_dates",
         "hub.quick_vote.title_format", "hub.menu.info", "hub.menu.more",
-        "hub.summary.meals_progress_format"
+        "hub.summary.meals_progress_format", "hub.quick_vote.hint", "hub.tile.recap_hint", "hub.tile.photos_hint"
     ]
     static let hubPluralKeys = [
-        "hub.slots_count", "hub.guests_count", "hub.activities_count", "hub.items_count", "hub.meetings_count"
+        "hub.slots_count", "hub.guests_count", "hub.activities_count", "hub.items_count", "hub.meetings_count",
+        "hub.confirmed_count", "hub.pending_count", "hub.scenarios_count"
     ]
     /// Clés existantes réutilisées par le hub.
     static let reusedKeys = [
@@ -351,8 +389,7 @@ final class EventHubModelTests: XCTestCase {
         "event.lifecycle.finalize.title", "event.lifecycle.finalize.confirm_message", "event.lifecycle.finalize.action",
         "event.lifecycle.guest.confirm_message", "common.retry", "common.error_generic",
         "event.detail.slot_option_singular_format", "event.detail.slot_options_plural_format",
-        "event.detail.canvas.participants.confirmed_format", "event.detail.canvas.participants.pending_format",
-        "scenario.options_count_format", "transport.plan.selected",
+        "transport.plan.selected",
         "event.detail.payment_pot.define_before_share", "event.detail.payment_pot.define_goal",
         "event.detail.payment_pot.goal_format"
     ]

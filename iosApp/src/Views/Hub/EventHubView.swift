@@ -61,7 +61,16 @@ struct EventHubView: View {
     /// Tuile verrouillée : « À confirmer d'abord » ; sinon le résumé de la source, ou l'indice statique.
     static func tileSummary(_ tile: EventHubModel.Tile, facts: EventHubFacts, locale: Locale = WK.appLocale) -> String {
         if tile.isLocked { return WK.localizedFormat("hub.tile.locked", locale: locale) }
-        return facts.summaries[tile.module] ?? WK.localizedFormat("hub.tile.hint", locale: locale)
+        return facts.summaries[tile.module] ?? WK.localizedFormat(hintKey(for: tile.module), locale: locale)
+    }
+
+    /// Indice statique d'une tuile sans résumé ; l'après-événement n'a plus rien « à préparer ».
+    static func hintKey(for module: HubModule) -> String {
+        switch module {
+        case .recap: return "hub.tile.recap_hint"
+        case .photos: return "hub.tile.photos_hint"
+        default: return "hub.tile.hint"
+        }
     }
 
     /// « 3 créneaux · 4 invités », ou la date retenue une fois le sondage terminé.

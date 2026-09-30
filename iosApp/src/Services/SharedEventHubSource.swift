@@ -40,20 +40,14 @@ enum HubSummaryText {
     }
 
     static func scenarios(_ count: Int, locale: Locale) -> String {
-        String(format: WK.localizedFormat("scenario.options_count_format", locale: locale), locale: locale, count)
+        plural("hub.scenarios_count", count, locale: locale)
     }
 
-    /// « 3 confirmés », ou « 3 confirmés · 2 en attente ».
+    /// « 1 confirmé », ou « 3 confirmés · 2 en attente ».
     static func participants(confirmed: Int, pending: Int, locale: Locale) -> String {
-        let confirmedText = String(
-            format: WK.localizedFormat("event.detail.canvas.participants.confirmed_format", locale: locale),
-            locale: locale, confirmed
-        )
+        let confirmedText = plural("hub.confirmed_count", confirmed, locale: locale)
         guard pending > 0 else { return confirmedText }
-        let pendingText = String(
-            format: WK.localizedFormat("event.detail.canvas.participants.pending_format", locale: locale),
-            locale: locale, pending
-        )
+        let pendingText = plural("hub.pending_count", pending, locale: locale)
         return String(format: WK.localizedFormat("hub.summary.format", locale: locale), confirmedText, pendingText)
     }
 
@@ -177,13 +171,7 @@ struct SharedEventHubSource: EventHubSource {
             (declined: state.rsvp == .declined, confirmed: row.canAccessOrganizationDetails)
         })
 
-        var names: [String: String] = [:]
-        let participantNames: [String] = event.participants.prefix(5).map { userId in
-            if let cached = names[userId] { return cached }
-            let name = displayName(userId)
-            names[userId] = name
-            return name
-        }
+        let participantNames = event.participants.prefix(5).map(displayName)
 
         let pollOpen = HomeDateText.parseISO(event.deadline).map { $0 > now } ?? true
         let finalDate = HomeDateText.parseISO(event.finalDate)
@@ -201,7 +189,6 @@ struct SharedEventHubSource: EventHubSource {
                 userBallotComplete: ballots.userBallotComplete,
                 ballotsKnown: ballots.ballotsKnown,
                 votersWithCompleteBallot: ballots.votersWithCompleteBallot,
-                eligibleVoters: ballots.eligibleVoters,
                 otherEligibleVoters: ballots.otherEligibleVoters,
                 otherVotersComplete: ballots.otherVotersComplete,
                 slotCount: event.proposedSlots.count,
@@ -235,8 +222,15 @@ struct SharedEventHubSource: EventHubSource {
             }
             return facts.slotCount > 0 ? HubSummaryText.slots(facts.slotCount, locale: locale) : nil
         case .location:
-            let count = database.potentialLocationQueries.selectByEventId(eventId: event.id).executeAsList().count
-            return count > 0 ? HubSummaryText.options(count, locale: locale) : nil
+            switch Self.locationSummary(for: facts) {
+            case .potentialLocations:
+                let count = database.potentialLocationQueries.selectByEventId(eventId: event.id).executeAsList().count
+                return count > 0 ? HubSummaryText.options(count, locale: locale) : nil
+            case .scenarios:
+                return summary(for: .scenarios, event: event, facts: facts, locale: locale)
+            case .none:
+                return nil
+            }
         case .participants:
             if facts.confirmedCount + facts.pendingCount > 0 {
                 return HubSummaryText.participants(confirmed: facts.confirmedCount, pending: facts.pendingCount, locale: locale)
@@ -314,6 +308,17 @@ struct SharedEventHubSource: EventHubSource {
         let active = guests.filter { !$0.declined }
         let confirmed = active.filter(\.confirmed).count
         return (confirmed, active.count - confirmed)
+    }
+
+    enum LocationSummary: Equatable { case potentialLocations, scenarios, none }
+
+    /// La tuile Lieu ouvre la liste des scénarios : son résumé décrit ce que cet écran montre.
+    /// Avant la date, les lieux potentiels (visibles de l'organisateur seul) ; ensuite, les scénarios.
+    static func locationSummary(for facts: EventHubFacts) -> LocationSummary {
+        switch facts.phase {
+        case .draft, .polling: return facts.isOrganizer ? .potentialLocations : .none
+        case .confirmed, .comparing, .organizing, .finalized: return .scenarios
+        }
     }
 
     /// Créneau en tête seulement s'il existe au moins un vote (sinon PollLogic renvoie un créneau arbitraire).

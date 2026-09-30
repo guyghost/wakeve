@@ -27,7 +27,6 @@ struct EventHubFacts: Equatable {
     /// Faux si le sondage n'a pas pu être lu : ni appel à voter, ni « prêt à confirmer ».
     let ballotsKnown: Bool
     let votersWithCompleteBallot: Int
-    let eligibleVoters: Int
     let otherEligibleVoters: Int
     let otherVotersComplete: Int
     let slotCount: Int
@@ -81,7 +80,8 @@ struct EventHubModel: Equatable {
         (status, statusKey) = Self.status(for: facts)
         let primary = Self.primary(for: facts)
         self.primary = primary
-        showsQuickVote = facts.voteRequired && facts.slotCount >= 1
+        // La carte propose le créneau en tête : sans lui, rien à afficher.
+        showsQuickVote = facts.voteRequired && facts.slotCount >= 1 && facts.leadingSlotStart != nil
 
         let highlighted: HubModule?
         switch primary {
@@ -90,10 +90,12 @@ struct EventHubModel: Equatable {
         }
         let dateNeedsAction = facts.voteRequired || facts.readyToConfirm
         tiles = Self.modules(for: facts.phase).map { module in
-            Tile(
+            let isLocked = Self.isLocked(module, facts: facts)
+            return Tile(
                 module: module,
-                isLocked: Self.isLocked(module, facts: facts),
-                isHighlighted: module == highlighted,
+                isLocked: isLocked,
+                // Une tuile verrouillée n'est jamais la prochaine étape.
+                isHighlighted: module == highlighted && !isLocked,
                 status: module == .date && dateNeedsAction ? .actionNeeded : nil
             )
         }
@@ -110,13 +112,19 @@ struct EventHubModel: Equatable {
     }
 
     /// Tuile visible mais non actionnable quand la garde du `case` de destination (`homeTabContent`)
-    /// afficherait « accès refusé » : aucune tuile ouverte ne mène à `AccessDenied`.
+    /// afficherait « accès refusé », ou quand l'écran ouvert se verrouille lui-même :
+    /// aucune tuile ouverte ne mène à un écran bloqué.
     static func isLocked(_ module: HubModule, facts: EventHubFacts) -> Bool {
         let access = facts.hasDetailsAccess
         switch module {
-        case .date, .location, .participants, .scenarios, .recap:
-            // Sondage, scénarios, participants, informations : écrans sans garde d'accès.
+        case .date, .participants, .recap:
+            // Sondage, participants, informations : écrans sans garde d'accès.
             return false
+        case .location, .scenarios:
+            // Liste des scénarios : sans garde de `case`, mais verrouillée dans l'écran
+            // (`ScenarioOrganizationView.isLocked` : `!canAccessOrganizationDetails`).
+            // En brouillon, seul l'organisateur (toujours autorisé) voit l'événement.
+            return facts.phase != .draft && !access
         case .budget, .meetings, .payments:
             // `canAccessOrganizationDashboard` (et la même règle pour la cagnotte) : organisation ou finalisé.
             return !access || ![.organizing, .finalized].contains(facts.phase)

@@ -2325,6 +2325,8 @@
 "hub.module.payments" = "Pagamenti";
 "hub.tile.locked" = "Conferma prima";
 "hub.tile.hint" = "Da preparare";
+"hub.tile.recap_hint" = "Rivedi l'essenziale";
+"hub.tile.photos_hint" = "Condividi le tue foto";
 "hub.summary.format" = "%1$@ · %2$@";
 "hub.summary.meals_progress_format" = "%1$d/%2$d pasti pronti";
 "hub.primary.vote" = "Vota";
@@ -2336,5 +2338,6 @@
 "hub.primary.sign_in" = "Accedi per finalizzare";
 "hub.primary.add_dates" = "Aggiungi date";
 "hub.quick_vote.title_format" = "Sei libero il %@?";
+"hub.quick_vote.hint" = "Apre il voto";
 "hub.menu.info" = "Informazioni";
 "hub.menu.more" = "Altre opzioni";

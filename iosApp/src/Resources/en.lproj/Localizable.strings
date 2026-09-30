@@ -2323,6 +2323,8 @@
 "hub.module.payments" = "Payments";
 "hub.tile.locked" = "Confirm first";
 "hub.tile.hint" = "To plan";
+"hub.tile.recap_hint" = "See the highlights";
+"hub.tile.photos_hint" = "Share your photos";
 "hub.summary.format" = "%1$@ · %2$@";
 "hub.summary.meals_progress_format" = "%1$d/%2$d meals ready";
 "hub.primary.vote" = "Vote";
@@ -2334,5 +2336,6 @@
 "hub.primary.sign_in" = "Sign in to finalize";
 "hub.primary.add_dates" = "Add dates";
 "hub.quick_vote.title_format" = "Free on %@?";
+"hub.quick_vote.hint" = "Opens the vote";
 "hub.menu.info" = "Event info";
 "hub.menu.more" = "More options";
