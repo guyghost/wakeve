@@ -115,7 +115,7 @@ struct HubModuleSheetView: View {
             onOpenFullScreen: onOpenFullScreen,
             onOpenComments: onOpenComments
         )
-        .task { await viewModel.reload() }
+        .task(id: eventId) { await viewModel.reload() }
         .sheet(isPresented: $showsMealForm, onDismiss: {
             // Si le formulaire écrit un jour en base, la liste se met à jour ; les ajouts locaux restent.
             Task { await viewModel.reload() }

@@ -17,6 +17,8 @@ enum EventHubRoute: Equatable {
 /// retombent sur le détail, c'est-à-dire le hub lui-même : chaque action vise alors un écran legacy réel.
 enum EventHubRouting {
     static func route(for module: HubModule, phase: EventHubFacts.Phase, invitationRollout: Bool) -> EventHubRoute {
+        // `sheetModules` est la seule liste des modules en sheet.
+        if sheetModules.contains(module) { return .sheet(module) }
         switch module {
         case .date:
             guard phase == .draft else { return .screen(.pollResults) }
@@ -30,7 +32,9 @@ enum EventHubRouting {
         case .location, .scenarios: return .screen(.scenarioList)
         case .budget: return .screen(.budgetOverview)
         case .transport: return .screen(.transportPlanning)
-        case .accommodation, .meals, .equipment, .activities, .photos: return .sheet(module)
+        case .accommodation, .meals, .equipment, .activities, .photos:
+            // Retiré de `sheetModules` : retour à son écran legacy.
+            return .screen(fullScreenFallback(for: module) ?? .eventDetail)
         case .meetings: return .screen(.meetingList)
         case .payments: return .screen(.paymentPot)
         }

@@ -202,10 +202,9 @@ struct AuthenticatedView: View {
     @State private var eventsHomeReloadToken = 0
     /// Rechargement du hub d'événement de la refonte (couche 4, #47) après une transition de cycle de vie.
     @State private var eventHubReloadToken = 0
-    /// Module du hub ouvert en sheet (couche 5a, #47).
-    @State private var presentedHubModule: HubModule?
-    /// Écran legacy à ouvrir une fois la sheet fermée (« Plein écran », « Commentaires »).
-    @State private var pendingHubFallback: AppView?
+    /// Sheet de module du hub (couche 5a, #47) : module présenté et son événement, repli
+    /// `(eventId, view)` appliqué après fermeture, présentation du routeur différée (`HubSheetLifecycle`).
+    @State private var hubSheet = HubSheetLifecycle()
 #if DEBUG
     @State private var invitationQALibraryReloadGeneration = 0
     @State private var invitationQALibraryIsSeedReady =
@@ -314,6 +313,14 @@ struct AuthenticatedView: View {
         }
 #endif
         .onChange(of: iosRedesign2026) { _, _ in redesignRouter = AppRouter() }
+        .onChange(of: iosRedesign2026) { _, _ in
+            dismissHubModuleSheet()
+            releaseHubSheetHost()
+        }
+        .onChange(of: selectedEvent?.id) { _, id in hubSheet.selectedEventChanged(to: id) }
+        .onChange(of: currentView) { _, view in
+            if view != .eventDetail { releaseHubSheetHost() }
+        }
     }
 
 #if DEBUG
@@ -507,6 +514,7 @@ struct AuthenticatedView: View {
             }
         )
         .onChange(of: redesignRouter.zone) { _, zone in
+            dismissHubModuleSheet()
             // Les deux zones restent montées : recharger l'Activité à chaque entrée.
             if zone == .activity { activityReloadToken += 1 }
             if zone == .events { eventsHomeReloadToken += 1 }
@@ -652,6 +660,7 @@ struct AuthenticatedView: View {
             repository: repository,
             reloadToken: eventHubReloadToken,
             onBack: {
+                dismissHubModuleSheet()
                 invitationLandingEventId = nil
                 currentView = .eventList
             },
@@ -677,8 +686,8 @@ struct AuthenticatedView: View {
         )
         // Un autre événement ouvert depuis le hub (lien profond) recrée son modèle de vue.
         .id(event.id)
-        .sheet(item: $presentedHubModule, onDismiss: finishHubModuleSheet) { module in
-            hubModuleSheet(module, for: event)
+        .sheet(item: hubSheetBinding, onDismiss: finishHubModuleSheet) { presented in
+            hubModuleSheet(presented.module, for: event).id(event.id)
         }
     }
 
@@ -717,14 +726,22 @@ struct AuthenticatedView: View {
             selectedEvent = event
             // Même garde que le `case` legacy ; sans accès, son écran affiche le refus comme avant.
             switch EventHubRouting.sheetRoute(for: module, accessGranted: canAccessDetailedPlanning(for: event)) {
-            case .sheet?: presentedHubModule = module
+            case .sheet?: hubSheet.present(module, eventId: event.id)
             case .screen(let view)?: currentView = view
             default: break
             }
         }
     }
 
-    /// Sheet d'un module du hub ; les replis passent par `pendingHubFallback`, appliqué après la fermeture.
+    /// Sheet présentée (`HubSheetLifecycle.Presented`, clé événement + module) ; la fermer passe par `close()`.
+    private var hubSheetBinding: Binding<HubSheetLifecycle.Presented?> {
+        Binding(
+            get: { hubSheet.presented },
+            set: { if $0 == nil { hubSheet.close() } }
+        )
+    }
+
+    /// Sheet d'un module du hub ; les replis passent par `hubSheet.requestFallback`, appliqué après la fermeture.
     private func hubModuleSheet(_ module: HubModule, for event: Event) -> some View {
         HubModuleSheetView(
             module: module,
@@ -732,28 +749,46 @@ struct AuthenticatedView: View {
             viewerId: userId,
             source: SharedEventModuleSheetSource(),
             mealParticipants: module == .meals ? participantModels(for: event) : [],
-            onClose: { presentedHubModule = nil },
+            onClose: { hubSheet.close() },
             onOpenFullScreen: {
-                pendingHubFallback = EventHubRouting.fullScreenFallback(for: module)
-                presentedHubModule = nil
+                if let view = EventHubRouting.fullScreenFallback(for: module) {
+                    hubSheet.requestFallback(view)
+                } else {
+                    hubSheet.close()
+                }
             },
             onOpenComments: {
                 if let section = EventHubRouting.commentSection(for: module) {
                     selectedCommentSection = section
-                    pendingHubFallback = .comments
+                    hubSheet.requestFallback(.comments)
+                } else {
+                    hubSheet.close()
                 }
-                presentedHubModule = nil
             }
         )
     }
 
-    /// Fermeture de la sheet : repli vers l'écran legacy demandé, sinon rechargement du hub.
+    /// Navigation hors du hub (lien profond, flag, zone, retour, autre événement) : ferme la sheet sans repli.
+    private func dismissHubModuleSheet() {
+        hubSheet.dismiss()
+    }
+
+    /// Le hub quitte l'écran (autre écran, bascule du flag) : sa sheet ne recevra peut-être jamais `onDismiss`.
+    private func releaseHubSheetHost() {
+        if let presentation = hubSheet.hostRemoved() {
+            redesignRouter.presentation = presentation
+        }
+    }
+
+    /// Fermeture de la sheet : repli vers l'écran legacy si le hub du même événement est toujours affiché,
+    /// sinon rechargement du hub ; puis présentation du routeur différée.
     private func finishHubModuleSheet() {
-        if let view = pendingHubFallback {
-            pendingHubFallback = nil
-            currentView = view
-        } else {
-            eventHubReloadToken += 1
+        for effect in hubSheet.didDismiss(currentView: currentView, selectedEventId: selectedEvent?.id) {
+            switch effect {
+            case .show(let view): currentView = view
+            case .reloadHub: eventHubReloadToken += 1
+            case .presentRouter(let presentation): redesignRouter.presentation = presentation
+            }
         }
     }
 
@@ -1783,7 +1818,11 @@ struct AuthenticatedView: View {
 
     private func handleDeepLinkNavigation(_ route: IosRoute) {
         invitationLandingEventId = nil
-        guard let route = AppRouter.preRoute(route, redesignEnabled: iosRedesign2026, router: redesignRouter) else {
+        dismissHubModuleSheet()
+        let shellRoute = AppRouter.preRoute(route, redesignEnabled: iosRedesign2026, router: redesignRouter)
+        // Profil / réglages attendent la fermeture de la sheet du hub (`finishHubModuleSheet`).
+        redesignRouter.presentation = hubSheet.routerPresentation(redesignRouter.presentation)
+        guard let route = shellRoute else {
             // Route entièrement traitée par le shell de la refonte.
             deepLinkService.clearPendingInvite()
             deepLinkService.clearPendingDeepLink()

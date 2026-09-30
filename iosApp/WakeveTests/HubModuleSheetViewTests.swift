@@ -24,6 +24,13 @@ final class HubModuleSheetViewTests: XCTestCase {
         }
     }
 
+    func testModuleRoutingReadsTheSheetListOnly() throws {
+        let routing = try source("src/Views/Hub/EventHubRouting.swift")
+        XCTAssertTrue(routing.contains("if sheetModules.contains(module) { return .sheet(module) }"))
+        XCTAssertEqual(routing.components(separatedBy: "return .sheet(module)").count - 1, 2,
+                       "Un seul `.sheet(module)` pour les modules (plus `sheetRoute`).")
+    }
+
     func testFullScreenFallbackIsTheLegacyScreenOfEachSheetModule() {
         let expected: [HubModule: AppView] = [
             .meals: .mealPlanning, .equipment: .equipmentChecklist, .activities: .activityPlanning,
@@ -164,7 +171,7 @@ final class HubModuleSheetViewTests: XCTestCase {
         let view = try source("src/Views/Hub/Modules/HubModuleSheetView.swift")
         for anchor in ["WKModuleSheet(", "WKCard(style: .inset)", "WKStatusPill(", "WKAvatarStack(", "MealFormSheet(",
                        "arrow.up.left.and.arrow.down.right", "bubble.left", "hub.sheet.open_full", "hub.sheet.comments",
-                       "hub.sheet.meals.add", "common.retry", ".task"] {
+                       "hub.sheet.meals.add", "common.retry", ".task(id: eventId)"] {
             XCTAssertTrue(view.contains(anchor), anchor)
         }
         XCTAssertFalse(view.contains("NavigationStack"), "Le formulaire legacy porte déjà sa pile de navigation.")
@@ -172,9 +179,9 @@ final class HubModuleSheetViewTests: XCTestCase {
 
     func testContentViewPresentsTheSheetAndFallsBackAfterDismissal() throws {
         let content = try source("src/Views/App/ContentView.swift")
-        XCTAssertTrue(content.contains("@State private var presentedHubModule: HubModule?"))
-        XCTAssertTrue(content.contains("@State private var pendingHubFallback: AppView?"))
-        XCTAssertTrue(content.contains(".sheet(item: $presentedHubModule"))
+        XCTAssertTrue(content.contains("@State private var hubSheet = HubSheetLifecycle()"))
+        XCTAssertTrue(content.contains(".sheet(item: hubSheetBinding, onDismiss: finishHubModuleSheet)"))
+        XCTAssertTrue(content.contains("hubModuleSheet(presented.module, for: event).id(event.id)"), "Sheet recréée pour un autre événement.")
         guard let route = content.range(of: "private func performHubRoute(_ route: EventHubRoute, for event: Event)") else {
             return XCTFail("performHubRoute")
         }
@@ -182,22 +189,47 @@ final class HubModuleSheetViewTests: XCTestCase {
         XCTAssertTrue(perform.contains("repository.getEvent(id: event.id)"))
         XCTAssertTrue(perform.contains("case .sheet(let module):"))
         XCTAssertTrue(perform.contains("canAccessDetailedPlanning(for: event)"), "Même garde que le `case` legacy.")
-        XCTAssertTrue(perform.contains("presentedHubModule = module"))
+        XCTAssertTrue(perform.contains("hubSheet.present(module, eventId: event.id)"))
         guard let dismiss = content.range(of: "private func finishHubModuleSheet()") else { return XCTFail("finishHubModuleSheet") }
         let finish = String(content[dismiss.lowerBound...].prefix(600))
-        // Le repli se fait après la fermeture, jamais pendant la présentation ; sinon le hub se recharge.
-        XCTAssertTrue(finish.contains("pendingHubFallback = nil"))
-        XCTAssertTrue(finish.contains("currentView = view"))
-        XCTAssertTrue(finish.contains("eventHubReloadToken += 1"))
+        // Le repli se fait après la fermeture (règles pures : `HubSheetLifecycle.didDismiss`).
+        XCTAssertTrue(finish.contains("hubSheet.didDismiss(currentView: currentView, selectedEventId: selectedEvent?.id)"))
+        XCTAssertTrue(finish.contains("case .show(let view): currentView = view"))
+        XCTAssertTrue(finish.contains("case .reloadHub: eventHubReloadToken += 1"))
+        XCTAssertTrue(finish.contains("case .presentRouter(let presentation): redesignRouter.presentation = presentation"))
         guard let builder = content.range(of: "private func hubModuleSheet(_ module: HubModule, for event: Event)") else {
             return XCTFail("hubModuleSheet")
         }
-        let sheet = String(content[builder.lowerBound...].prefix(1600))
+        let sheet = String(content[builder.lowerBound...].prefix(1800))
         XCTAssertTrue(sheet.contains("EventHubRouting.fullScreenFallback(for: module)"))
         XCTAssertTrue(sheet.contains("selectedCommentSection = section"))
-        XCTAssertTrue(sheet.contains("pendingHubFallback = .comments"))
-        XCTAssertTrue(sheet.contains("presentedHubModule = nil"))
+        XCTAssertTrue(sheet.contains("hubSheet.requestFallback(.comments)"))
+        XCTAssertTrue(sheet.contains("hubSheet.close()"))
         XCTAssertTrue(sheet.contains("participantModels(for: event)"), "Mêmes participants que le formulaire legacy.")
+    }
+
+    /// Espaces et retours à la ligne réduits à une espace : ancres indépendantes de l'indentation.
+    private func squashed(_ text: String) -> String {
+        text.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
+    }
+
+    /// Toute navigation hors du hub ferme la sheet sans repli (revue I1–I3).
+    func testNavigationAwayFromTheHubDismissesTheSheet() throws {
+        let content = squashed(try source("src/Views/App/ContentView.swift"))
+        guard let deepLink = content.range(of: "private func handleDeepLinkNavigation(_ route: IosRoute)") else {
+            return XCTFail("handleDeepLinkNavigation")
+        }
+        let handler = String(content[deepLink.lowerBound...].prefix(600))
+        let dismissCall = try XCTUnwrap(handler.range(of: "dismissHubModuleSheet()"))
+        let preRoute = try XCTUnwrap(handler.range(of: "AppRouter.preRoute("))
+        XCTAssertLessThan(dismissCall.lowerBound, preRoute.lowerBound, "La sheet se ferme avant le pré-aiguillage.")
+        XCTAssertTrue(handler.contains("redesignRouter.presentation = hubSheet.routerPresentation(redesignRouter.presentation)"))
+        XCTAssertTrue(content.contains(".onChange(of: iosRedesign2026) { _, _ in dismissHubModuleSheet() releaseHubSheetHost() }"))
+        XCTAssertTrue(content.contains(".onChange(of: selectedEvent?.id) { _, id in hubSheet.selectedEventChanged(to: id) }"))
+        XCTAssertTrue(content.contains(".onChange(of: currentView) { _, view in if view != .eventDetail { releaseHubSheetHost() } }"))
+        XCTAssertTrue(content.contains(".onChange(of: redesignRouter.zone) { _, zone in dismissHubModuleSheet()"))
+        XCTAssertTrue(content.contains("onBack: { dismissHubModuleSheet() invitationLandingEventId = nil currentView = .eventList }"))
+        XCTAssertTrue(content.contains("private func dismissHubModuleSheet() { hubSheet.dismiss() }"))
     }
 
     /// « Plein écran » ouvre l'écran legacy de l'hébergement : son état vide ne doit pas afficher de clé brute.
