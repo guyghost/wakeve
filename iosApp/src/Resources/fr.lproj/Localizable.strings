@@ -2072,6 +2072,7 @@
 "scenario.detail.empty_title" = "Scénario indisponible";
 "scenario.detail.empty_message" = "Ce scénario n’est plus disponible ou n’a pas encore été synchronisé.";
 "scenario.detail.title" = "Scénario";
+"accommodation.empty.title" = "Aucun hébergement pour l’instant";
 "accommodation.empty.subtitle" = "Ajoute des options de logement une fois la destination confirmée.";
 "accommodation.capacity_format" = "%lld couchages";
 "meal.empty.title" = "Aucun repas prévu";

@@ -2048,6 +2048,7 @@
 "scenario.detail.empty_title" = "Scenario unavailable";
 "scenario.detail.empty_message" = "This scenario is no longer available or has not synced yet.";
 "scenario.detail.title" = "Scenario";
+"accommodation.empty.title" = "No places to stay yet";
 "accommodation.empty.subtitle" = "Add lodging options once the destination is confirmed.";
 "accommodation.capacity_format" = "%lld beds";
 "meal.empty.title" = "No meals planned";

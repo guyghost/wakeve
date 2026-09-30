@@ -199,4 +199,14 @@ final class HubModuleSheetViewTests: XCTestCase {
         XCTAssertTrue(sheet.contains("presentedHubModule = nil"))
         XCTAssertTrue(sheet.contains("participantModels(for: event)"), "Mêmes participants que le formulaire legacy.")
     }
+
+    /// « Plein écran » ouvre l'écran legacy de l'hébergement : son état vide ne doit pas afficher de clé brute.
+    func testAccommodationFallbackEmptyTitleIsLocalizedInEveryLanguage() throws {
+        let legacy = try source("src/Views/Events/EventSecondaryRouteViews.swift")
+        XCTAssertTrue(legacy.contains("String(localized: \"accommodation.empty.title\")"))
+        for locale in ["en", "fr", "es", "it", "pt"] {
+            let strings = try source("src/Resources/\(locale).lproj/Localizable.strings")
+            XCTAssertTrue(strings.contains("\"accommodation.empty.title\" ="), "accommodation.empty.title manquante (\(locale))")
+        }
+    }
 }

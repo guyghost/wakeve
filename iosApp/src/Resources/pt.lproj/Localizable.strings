@@ -2050,6 +2050,7 @@
 "scenario.detail.empty_title" = "Cenário indisponível";
 "scenario.detail.empty_message" = "Este cenário não está mais disponível ou ainda não foi sincronizado.";
 "scenario.detail.title" = "Cenário";
+"accommodation.empty.title" = "Ainda sem hospedagem";
 "accommodation.empty.subtitle" = "Adicione opções de hospedagem quando o destino estiver confirmado.";
 "accommodation.capacity_format" = "%lld camas";
 "meal.empty.title" = "Nenhuma refeição planejada";
