@@ -30,8 +30,9 @@ struct SharedEventModuleSheetSource: EventModuleSheetSource {
         // modèle mémoire moderne (objets partageables entre fils, pas de gel), les lectures ci-dessous
         // sont synchrones (aucun saut de dispatcher), et le pilote SQLDelight natif est sûr entre
         // fils — l'app lit déjà cette base depuis `Dispatchers.Default`.
-        let reader = self
         let locale = WK.appLocale
+        if let immediate = Self.immediateData(for: module, locale: locale) { return immediate }
+        let reader = self
         let work = Task.detached(priority: .userInitiated) {
             try reader.data(module: module, eventId: eventId, viewerId: viewerId, locale: locale)
         }
@@ -102,8 +103,6 @@ struct SharedEventModuleSheetSource: EventModuleSheetSource {
                     bookingStatusName: option.bookingStatus.name
                 )
             })
-        case .photos:
-            raw = .photos
         default:
             throw UnsupportedModule()
         }
@@ -115,6 +114,12 @@ struct SharedEventModuleSheetSource: EventModuleSheetSource {
     }
 
     // MARK: - Règles pures (testées unitairement)
+
+    /// Modules sans liste à lire (photos : indice seulement) : servis sans lecture en base.
+    static func immediateData(for module: HubModule, locale: Locale) -> HubModuleSheetData? {
+        guard module == .photos else { return nil }
+        return HubModuleSheetData.make(raw: .photos, isOrganizer: false, isReadOnly: false, pendingSync: false, locale: locale)
+    }
 
     /// Même règle que `isFinalizedOrganizationState` (ContentView) : seul un événement finalisé est en lecture seule.
     static func isReadOnly(statusName: String) -> Bool {

@@ -53,6 +53,8 @@ struct HubModuleSheetView: View {
     @State private var showsMealForm = false
 
     private let eventId: String
+    /// Organisateur d'un événement non finalisé : barre d'ajout affichée dès la première image.
+    private let canAddHint: Bool
     /// Mêmes participants que le formulaire legacy (`participantModels(for:)`).
     private let mealParticipants: [ParticipantModel]
     let onClose: () -> Void
@@ -64,6 +66,7 @@ struct HubModuleSheetView: View {
         eventId: String,
         viewerId: String,
         source: EventModuleSheetSource,
+        canAddHint: Bool,
         mealParticipants: [ParticipantModel],
         onClose: @escaping () -> Void,
         onOpenFullScreen: @escaping () -> Void,
@@ -73,6 +76,7 @@ struct HubModuleSheetView: View {
             module: module, eventId: eventId, viewerId: viewerId, source: source
         ))
         self.eventId = eventId
+        self.canAddHint = canAddHint
         self.mealParticipants = mealParticipants
         self.onClose = onClose
         self.onOpenFullScreen = onOpenFullScreen
@@ -90,6 +94,24 @@ struct HubModuleSheetView: View {
     static func primaryTitle(for data: HubModuleSheetData?, locale: Locale = WK.appLocale) -> String? {
         guard let data, data.canAdd, data.module == .meals else { return nil }
         return WK.localizedFormat("hub.sheet.meals.add", locale: locale)
+    }
+
+    /// Pendant le chargement, l'indice de l'appelant tient lieu de droits ; une fois chargées, les données font foi ;
+    /// en échec, seule la relance est proposée.
+    static func primaryTitle(
+        module: HubModule,
+        state: HubModuleSheetViewModel.State,
+        data: HubModuleSheetData?,
+        canAddHint: Bool,
+        locale: Locale = WK.appLocale
+    ) -> String? {
+        switch state {
+        case .loaded: return primaryTitle(for: data, locale: locale)
+        case .failed: return nil
+        case .loading:
+            guard canAddHint, module == .meals else { return nil }
+            return WK.localizedFormat("hub.sheet.meals.add", locale: locale)
+        }
     }
 
     static func rawMeal(from meal: MealModel) -> HubModuleSheetRaw.Meal {
@@ -110,6 +132,7 @@ struct HubModuleSheetView: View {
     var body: some View {
         HubModuleSheetBody(
             viewModel: viewModel,
+            canAddHint: canAddHint,
             onClose: onClose,
             onAdd: { showsMealForm = true },
             onOpenFullScreen: onOpenFullScreen,
@@ -131,6 +154,7 @@ struct HubModuleSheetView: View {
 /// Rendu de la sheet pour un état du modèle de vue (mesurable sans chargement).
 struct HubModuleSheetBody: View {
     @ObservedObject var viewModel: HubModuleSheetViewModel
+    let canAddHint: Bool
     let onClose: () -> Void
     let onAdd: () -> Void
     let onOpenFullScreen: () -> Void
@@ -144,7 +168,9 @@ struct HubModuleSheetBody: View {
             title: EventHubView.moduleTitle(module),
             status: data?.status.map { .init(text: $0.text, status: $0.status) },
             missing: data?.missing,
-            primary: HubModuleSheetView.primaryTitle(for: data).map { (title: $0, action: onAdd) },
+            primary: HubModuleSheetView.primaryTitle(
+                module: module, state: viewModel.state, data: data, canAddHint: canAddHint
+            ).map { (title: $0, action: onAdd) },
             secondary: secondaryItems,
             onClose: onClose
         ) {
@@ -170,6 +196,7 @@ struct HubModuleSheetBody: View {
                 }
             }
         }
+        .accessibilityElement(children: .contain)
         .wkAccessibilityID("hub.sheet.\(module.rawValue)")
     }
 
@@ -228,7 +255,7 @@ struct HubModuleSheetItemCard: View {
             if item.status != nil || !item.assigneeNames.isEmpty {
                 HStack(spacing: WK.Space.xs) {
                     if let status = item.status {
-                        WKStatusPill(text: status.localizedName, status: status)
+                        WKStatusPill(text: item.statusText ?? status.localizedName, status: status)
                     }
                     if !item.assigneeNames.isEmpty {
                         WKAvatarStack(avatars: item.assigneeNames.enumerated().map { index, name in
@@ -238,6 +265,8 @@ struct HubModuleSheetItemCard: View {
                 }
             }
         }
-        .accessibilityElement(children: .combine)
+        // Libellé explicite : les avatars seuls ne disent pas le rôle des personnes.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(item.accessibilityLabel)
     }
 }

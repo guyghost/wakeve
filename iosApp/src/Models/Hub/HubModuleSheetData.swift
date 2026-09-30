@@ -8,8 +8,12 @@ struct HubModuleSheetItem: Equatable, Identifiable {
     let detail: String?
     /// Ex. repas prêt → `.confirmed`, à assigner → `.pending` ; nil = sans statut (annulé, activité).
     let status: WK.Status?
+    /// Texte de la pastille propre au module (« Prêt », « À trouver », « Réservé »…).
+    let statusText: String?
     /// Avatars : responsables, porteur ou inscrits.
     let assigneeNames: [String]
+    /// Libellé VoiceOver de la carte : titre, détail, statut, personnes avec leur rôle.
+    let accessibilityLabel: String
 }
 
 /// Entrées Swift simples lues par la source (aucun objet Kotlin) ; `statusName` = `enum.name` Kotlin.
@@ -114,23 +118,26 @@ struct HubModuleSheetData: Equatable {
         switch raw {
         case .meals(let meals):
             items = meals.map { meal in
-                HubModuleSheetItem(
+                let status = mealStatus(meal.statusName)
+                return text.item(
+                    module: .meals,
                     id: meal.id,
                     title: meal.name,
                     detail: text.join([
                         text.when(date: meal.date, time: meal.time),
                         meal.servings > 0 ? text.plural("hub.sheet.meals.people_count", meal.servings) : nil
                     ]),
-                    status: mealStatus(meal.statusName),
-                    assigneeNames: meal.responsibleNames
+                    status: status,
+                    statusText: status.map { text.format($0 == .confirmed ? "hub.sheet.status.meal_ready" : "hub.sheet.status.meal_todo") },
+                    names: meal.responsibleNames
                 )
             }
-            if !meals.isEmpty {
-                // Même décompte que la tuile du hub (`MealPlanningSummary` : prêts / total).
-                let ready = meals.filter { $0.statusName == "COMPLETED" }.count
+            // Même décompte que la tuile du hub : prêts / repas non annulés.
+            let progress = HubSummaryText.mealProgress(statusNames: meals.map(\.statusName))
+            if progress.total > 0 {
                 pill = Pill(
-                    text: String(format: text.format("hub.sheet.meals.progress_format"), locale: locale, ready, meals.count),
-                    status: ready == meals.count ? .confirmed : .pending
+                    text: String(format: text.format("hub.sheet.meals.progress_format"), locale: locale, progress.ready, progress.total),
+                    status: progress.ready == progress.total ? .confirmed : .pending
                 )
             }
             let unassigned = meals.filter { $0.statusName != "CANCELLED" && $0.responsibleNames.isEmpty }.count
@@ -141,12 +148,17 @@ struct HubModuleSheetData: Equatable {
 
         case .equipment(let equipment):
             items = equipment.map { item in
-                HubModuleSheetItem(
+                let status = equipmentStatus(item)
+                return text.item(
+                    module: .equipment,
                     id: item.id,
                     title: item.name,
                     detail: String(format: text.format("hub.sheet.equipment.quantity_format"), locale: locale, item.quantity),
-                    status: equipmentStatus(item),
-                    assigneeNames: item.assigneeName.map { [$0] } ?? []
+                    status: status,
+                    statusText: status.map {
+                        text.format($0 == .confirmed ? "hub.sheet.status.equipment_covered" : "hub.sheet.status.equipment_needed")
+                    },
+                    names: item.assigneeName.map { [$0] } ?? []
                 )
             }
             let unassigned = equipment.filter { $0.statusName != "CANCELLED" && equipmentStatus($0) == .pending }.count
@@ -156,7 +168,8 @@ struct HubModuleSheetData: Equatable {
 
         case .activities(let activities):
             items = activities.map { activity in
-                HubModuleSheetItem(
+                text.item(
+                    module: .activities,
                     id: activity.id,
                     title: activity.name,
                     detail: text.join([
@@ -167,14 +180,17 @@ struct HubModuleSheetData: Equatable {
                             : text.plural("hub.sheet.activities.registered_count", activity.registeredNames.count)
                     ]),
                     status: nil,
-                    assigneeNames: activity.registeredNames
+                    statusText: nil,
+                    names: activity.registeredNames
                 )
             }
             missing = activities.isEmpty ? text.format("hub.sheet.activities.empty") : nil
 
         case .accommodation(let options):
             items = options.map { option in
-                HubModuleSheetItem(
+                let status = accommodationStatus(option.bookingStatusName)
+                return text.item(
+                    module: .accommodation,
                     id: option.id,
                     title: option.name,
                     detail: text.join([
@@ -188,8 +204,13 @@ struct HubModuleSheetData: Equatable {
                             ? String(format: text.format("accommodation.capacity_format"), locale: locale, option.capacity)
                             : nil
                     ]),
-                    status: accommodationStatus(option.bookingStatusName),
-                    assigneeNames: []
+                    status: status,
+                    statusText: status.map {
+                        text.format($0 == .confirmed
+                                    ? "hub.sheet.status.accommodation_confirmed"
+                                    : "hub.sheet.status.accommodation_reserved")
+                    },
+                    names: []
                 )
             }
             let retained = options.contains { accommodationStatus($0.bookingStatusName) != nil }
@@ -259,12 +280,44 @@ struct HubModuleSheetData: Equatable {
         }
     }
 
+    // MARK: - Accessibilité
+
+    /// Personnes d'une carte avec leur rôle (« Responsables : Léa et Tom ») ; nil sans personne ou sans rôle.
+    static func peopleLabel(for module: HubModule, names: [String], locale: Locale = WK.appLocale) -> String? {
+        guard !names.isEmpty else { return nil }
+        let key: String
+        switch module {
+        case .meals: key = "hub.sheet.a11y.meal_responsibles_format"
+        case .activities: key = "hub.sheet.a11y.activity_registered_format"
+        case .equipment: key = "hub.sheet.a11y.equipment_brought_by_format"
+        default: return nil
+        }
+        let formatter = ListFormatter()
+        formatter.locale = locale
+        let list = formatter.string(from: names) ?? names.joined(separator: ", ")
+        return String(format: WK.localizedFormat(key, locale: locale), locale: locale, list)
+    }
+
     // MARK: - Texte
 
     /// Formats localisés pour une locale donnée (testable indépendamment de la langue de l'app).
     private struct SheetText {
         let locale: Locale
         let calendar: Calendar
+
+        func item(
+            module: HubModule, id: String, title: String, detail: String?,
+            status: WK.Status?, statusText: String?, names: [String]
+        ) -> HubModuleSheetItem {
+            let label = [title, detail, statusText, HubModuleSheetData.peopleLabel(for: module, names: names, locale: locale)]
+                .compactMap { $0 }
+                .filter { !$0.isEmpty }
+                .joined(separator: ", ")
+            return HubModuleSheetItem(
+                id: id, title: title, detail: detail, status: status, statusText: statusText,
+                assigneeNames: names, accessibilityLabel: label
+            )
+        }
 
         func format(_ key: String) -> String { WK.localizedFormat(key, locale: locale) }
 

@@ -48,6 +48,14 @@ final class WKModuleSheetTests: XCTestCase {
         XCTAssertEqual(WK.localizedFormat(WKModuleSheetChrome.closeLabelKey, locale: Locale(identifier: "fr")), "Fermer")
     }
 
+    func testDetentsAreLargeOnlyAtAccessibilitySizes() {
+        XCTAssertEqual(WKModuleSheetChrome.detents(for: .large), [.medium, .large])
+        XCTAssertEqual(WKModuleSheetChrome.detents(for: .xxxLarge), [.medium, .large])
+        for size in [DynamicTypeSize.accessibility1, .accessibility3, .accessibility5] {
+            XCTAssertEqual(WKModuleSheetChrome.detents(for: size), [.large], "\(size)")
+        }
+    }
+
     func testSecondaryOnlyRowStacksAtAX5() {
         let row = WKModuleSheetSecondaryRow(items: twoSecondaries)
         // Taille idéale (largeur proposée non contraignante) : la rangée ne compte pas sur la compression.
@@ -74,7 +82,8 @@ final class WKModuleSheetTests: XCTestCase {
         let source = try String(contentsOf: URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent()
             .appendingPathComponent("src/Components/WK/WKModuleSheet.swift"), encoding: .utf8)
-        for anchor in [".presentationDetents([.medium, .large])", ".presentationDragIndicator(.visible)",
+        for anchor in [".presentationDetents(WKModuleSheetChrome.detents(for: dynamicTypeSize))",
+                       "[.medium, .large]", ".presentationDragIndicator(.visible)", ".presentationBackground(WK.Colors.canvas)",
                        "WKActionBar(", "WKCircleButton(", "WKStatusPill(", "safeAreaInset(edge: .bottom",
                        "WK.Colors.textMuted", "WK.Colors.canvas"] {
             XCTAssertTrue(source.contains(anchor), anchor)

@@ -98,6 +98,29 @@ final class HubModuleSheetDataTests: XCTestCase {
         XCTAssertEqual(make(.meals([odd])).items[0].detail, "demain · 1 personne")
     }
 
+    func testCancelledMealsAreLeftOutOfTheProgressLikeTheHubTile() {
+        let data = make(.meals([meal("a", status: "COMPLETED"), meal("b", status: "CANCELLED")]))
+        XCTAssertEqual(data.status, .init(text: "1/1 prêts", status: .confirmed))
+        XCTAssertNil(make(.meals([meal("a", status: "CANCELLED")])).status, "Aucun repas actif : pas de pastille.")
+        XCTAssertEqual(HubSummaryText.mealProgress(statusNames: ["COMPLETED", "PLANNED", "CANCELLED", "ASSIGNED"]),
+                       .init(ready: 1, total: 3))
+        XCTAssertEqual(HubSummaryText.mealProgress(statusNames: []), .init(ready: 0, total: 0))
+    }
+
+    func testHubTileAndSheetShareTheMealProgress() throws {
+        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        let hub = try String(contentsOf: root.appendingPathComponent("src/Services/SharedEventHubSource.swift"), encoding: .utf8)
+        let sheet = try String(contentsOf: root.appendingPathComponent("src/Models/Hub/HubModuleSheetData.swift"), encoding: .utf8)
+        XCTAssertTrue(hub.contains("HubSummaryText.mealProgress(statusNames:"))
+        XCTAssertFalse(hub.contains("getMealPlanningSummary"), "Le résumé Kotlin compte les repas annulés.")
+        XCTAssertTrue(sheet.contains("HubSummaryText.mealProgress(statusNames:"))
+    }
+
+    func testMealStatusTextSaysReadyOrToPrepare() {
+        let data = make(.meals([meal("a", status: "COMPLETED"), meal("b", status: "ASSIGNED"), meal("c", status: "CANCELLED")]))
+        XCTAssertEqual(data.items.map(\.statusText), ["Prêt", "À préparer", nil])
+    }
+
     // MARK: - Matériel
 
     func testEquipmentItemsShowQuantityStatusAndAssignee() {
@@ -120,6 +143,15 @@ final class HubModuleSheetDataTests: XCTestCase {
         let data = make(.equipment([.init(id: "t", name: "Tente", quantity: 1, statusName: "NEEDED", assigneeName: "Léa")]))
         XCTAssertEqual(data.items[0].status, .confirmed)
         XCTAssertNil(data.missing)
+    }
+
+    func testEquipmentStatusTextSaysCoveredOrToFind() {
+        let data = make(.equipment([
+            .init(id: "t", name: "Tente", quantity: 1, statusName: "NEEDED", assigneeName: nil),
+            .init(id: "g", name: "Barbecue", quantity: 1, statusName: "NEEDED", assigneeName: "Tom"),
+            .init(id: "c", name: "Glacière", quantity: 1, statusName: "CANCELLED", assigneeName: nil)
+        ]))
+        XCTAssertEqual(data.items.map(\.statusText), ["À trouver", "Pris en charge", nil])
     }
 
     func testEmptyEquipment() {
@@ -168,11 +200,44 @@ final class HubModuleSheetDataTests: XCTestCase {
         XCTAssertNil(data.missing)
     }
 
+    func testAccommodationStatusTextFollowsTheBookingStatus() {
+        let data = make(.accommodation([
+            .init(id: "r", name: "Gîte", pricePerNightCents: 0, capacity: 0, bookingStatusName: "RESERVED"),
+            .init(id: "c", name: "Chalet", pricePerNightCents: 0, capacity: 0, bookingStatusName: "CONFIRMED"),
+            .init(id: "s", name: "Hôtel", pricePerNightCents: 0, capacity: 0, bookingStatusName: "SEARCHING")
+        ]))
+        XCTAssertEqual(data.items.map(\.status), [.pending, .confirmed, nil])
+        XCTAssertEqual(data.items.map(\.statusText), ["Réservé", "Confirmé", nil])
+    }
+
     func testAccommodationWithoutRetainedOptionSaysSo() {
         let data = make(.accommodation([.init(id: "h", name: "Hôtel", pricePerNightCents: 9_950, capacity: 2, bookingStatusName: "SEARCHING")]))
         XCTAssertEqual(data.items[0].detail, "\(euros(99.5)) / nuit · 2 couchages")
         XCTAssertEqual(data.missing, "Aucun hébergement retenu pour l'instant.")
         XCTAssertEqual(make(.accommodation([])).missing, "Aucun hébergement proposé pour l'instant.")
+    }
+
+    // MARK: - Accessibilité (libellé de carte)
+
+    func testCardLabelNamesThePeopleWithTheirRole() {
+        let meals = make(.meals([meal("a", status: "COMPLETED", responsibles: ["Léa", "Tom"])]))
+        XCTAssertEqual(meals.items[0].accessibilityLabel,
+                       "Barbecue a, \(day("2026-10-03")) · 19:30 · 8 personnes, Prêt, Responsables : Léa et Tom")
+        let equipment = make(.equipment([.init(id: "g", name: "Barbecue", quantity: 1, statusName: "PACKED", assigneeName: "Tom")]))
+        XCTAssertEqual(equipment.items[0].accessibilityLabel, "Barbecue, Quantité : 1, Pris en charge, Apporté par Tom")
+        let activities = make(.activities([.init(id: "k", name: "Kayak", date: nil, time: nil, location: nil, registeredNames: ["Léa"])]))
+        XCTAssertEqual(activities.items[0].accessibilityLabel, "Kayak, 1 inscrit, Inscrits : Léa")
+        let nobody = make(.meals([meal("b", responsibles: [])]))
+        XCTAssertFalse(nobody.items[0].accessibilityLabel.contains("Responsables"), nobody.items[0].accessibilityLabel)
+    }
+
+    func testCardLabelRolesAreLocalized() {
+        let en = Locale(identifier: "en_US")
+        XCTAssertEqual(HubModuleSheetData.peopleLabel(for: .meals, names: ["Léa"], locale: en), "Hosts: Léa")
+        XCTAssertEqual(HubModuleSheetData.peopleLabel(for: .activities, names: ["Léa", "Tom"], locale: en), "Registered: Léa and Tom")
+        XCTAssertEqual(HubModuleSheetData.peopleLabel(for: .equipment, names: ["Tom"], locale: en), "Brought by Tom")
+        XCTAssertNil(HubModuleSheetData.peopleLabel(for: .equipment, names: [], locale: en))
+        XCTAssertNil(HubModuleSheetData.peopleLabel(for: .accommodation, names: ["Tom"], locale: en))
     }
 
     // MARK: - Photos et commun
@@ -184,6 +249,14 @@ final class HubModuleSheetDataTests: XCTestCase {
         XCTAssertNil(data.status)
         XCTAssertEqual(data.missing, "Partage tes photos")
         XCTAssertFalse(data.canAdd)
+    }
+
+    func testPhotosAreServedWithoutReadingTheDatabase() {
+        XCTAssertEqual(SharedEventModuleSheetSource.immediateData(for: .photos, locale: fr),
+                       HubModuleSheetData.make(raw: .photos, isOrganizer: false, isReadOnly: false, pendingSync: false, locale: fr))
+        for module in [HubModule.meals, .equipment, .activities, .accommodation] {
+            XCTAssertNil(SharedEventModuleSheetSource.immediateData(for: module, locale: fr), "\(module)")
+        }
     }
 
     func testPendingSyncIsCarried() {
@@ -221,7 +294,12 @@ final class HubModuleSheetDataTests: XCTestCase {
         "hub.sheet.activities.empty",
         "hub.sheet.accommodation.empty", "hub.sheet.accommodation.none_selected",
         "hub.sheet.accommodation.price_per_night_format",
-        "hub.sheet.open_full", "hub.sheet.comments"
+        "hub.sheet.open_full", "hub.sheet.comments",
+        "hub.sheet.status.meal_ready", "hub.sheet.status.meal_todo",
+        "hub.sheet.status.equipment_covered", "hub.sheet.status.equipment_needed",
+        "hub.sheet.status.accommodation_reserved", "hub.sheet.status.accommodation_confirmed",
+        "hub.sheet.a11y.meal_responsibles_format", "hub.sheet.a11y.activity_registered_format",
+        "hub.sheet.a11y.equipment_brought_by_format"
     ]
     static let sheetPluralKeys = [
         "hub.sheet.meals.unassigned_count", "hub.sheet.meals.people_count",

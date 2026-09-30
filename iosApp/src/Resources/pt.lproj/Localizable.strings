@@ -2355,3 +2355,12 @@
 "hub.sheet.accommodation.price_per_night_format" = "%@ / noite";
 "hub.sheet.open_full" = "Tela cheia";
 "hub.sheet.comments" = "Comentários";
+"hub.sheet.status.meal_ready" = "Pronto";
+"hub.sheet.status.meal_todo" = "A preparar";
+"hub.sheet.status.equipment_covered" = "Garantido";
+"hub.sheet.status.equipment_needed" = "A encontrar";
+"hub.sheet.status.accommodation_reserved" = "Reservado";
+"hub.sheet.status.accommodation_confirmed" = "Confirmado";
+"hub.sheet.a11y.meal_responsibles_format" = "Responsáveis: %@";
+"hub.sheet.a11y.activity_registered_format" = "Inscritos: %@";
+"hub.sheet.a11y.equipment_brought_by_format" = "Levado por %@";

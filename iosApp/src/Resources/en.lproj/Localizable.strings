@@ -2353,3 +2353,12 @@
 "hub.sheet.accommodation.price_per_night_format" = "%@ / night";
 "hub.sheet.open_full" = "Full screen";
 "hub.sheet.comments" = "Comments";
+"hub.sheet.status.meal_ready" = "Ready";
+"hub.sheet.status.meal_todo" = "To prepare";
+"hub.sheet.status.equipment_covered" = "Covered";
+"hub.sheet.status.equipment_needed" = "Still needed";
+"hub.sheet.status.accommodation_reserved" = "Reserved";
+"hub.sheet.status.accommodation_confirmed" = "Confirmed";
+"hub.sheet.a11y.meal_responsibles_format" = "Hosts: %@";
+"hub.sheet.a11y.activity_registered_format" = "Registered: %@";
+"hub.sheet.a11y.equipment_brought_by_format" = "Brought by %@";

@@ -51,6 +51,17 @@ enum HubSummaryText {
         return String(format: WK.localizedFormat("hub.summary.format", locale: locale), confirmedText, pendingText)
     }
 
+    struct MealProgress: Equatable {
+        let ready: Int
+        let total: Int
+    }
+
+    /// Repas prêts / repas non annulés (`MealStatus.name`) : même décompte pour la tuile et la sheet.
+    static func mealProgress(statusNames: [String]) -> MealProgress {
+        let active = statusNames.filter { $0 != "CANCELLED" }
+        return MealProgress(ready: active.filter { $0 == "COMPLETED" }.count, total: active.count)
+    }
+
     static func meals(completed: Int, total: Int, locale: Locale) -> String {
         String(format: WK.localizedFormat("hub.summary.meals_progress_format", locale: locale), locale: locale, completed, total)
     }
@@ -255,9 +266,10 @@ struct SharedEventHubSource: EventHubSource {
             let count = AccommodationRepository(db: database).getAccommodationsByEventId(eventId: event.id).count
             return count > 0 ? HubSummaryText.options(count, locale: locale) : nil
         case .meals:
-            let meals = MealRepository(db: database).getMealPlanningSummary(eventId: event.id)
-            guard meals.totalMeals > 0 else { return nil }
-            return HubSummaryText.meals(completed: Int(meals.mealsCompleted), total: Int(meals.totalMeals), locale: locale)
+            let statuses = MealRepository(db: database).getMealsByEventId(eventId: event.id).map { $0.status.name }
+            let progress = HubSummaryText.mealProgress(statusNames: statuses)
+            guard progress.total > 0 else { return nil }
+            return HubSummaryText.meals(completed: progress.ready, total: progress.total, locale: locale)
         case .equipment:
             let count = EquipmentRepository(db: database).getEquipmentItemsByEventId(eventId: event.id).count
             return count > 0 ? HubSummaryText.plural("hub.items_count", count, locale: locale) : nil

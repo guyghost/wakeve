@@ -79,6 +79,22 @@ final class HubModuleSheetViewTests: XCTestCase {
         XCTAssertNil(HubModuleSheetView.primaryTitle(for: nil, locale: fr))
     }
 
+    func testPrimaryShowsFromTheFirstFrameWithTheCallerHint() {
+        let organizer = HubModuleSheetData.make(raw: .meals([]), isOrganizer: true, isReadOnly: false, pendingSync: false, locale: fr)
+        let guest = HubModuleSheetData.make(raw: .meals([]), isOrganizer: false, isReadOnly: false, pendingSync: false, locale: fr)
+        func title(_ module: HubModule, _ state: HubModuleSheetViewModel.State, _ data: HubModuleSheetData?, hint: Bool) -> String? {
+            HubModuleSheetView.primaryTitle(module: module, state: state, data: data, canAddHint: hint, locale: fr)
+        }
+        // Chargement : l'indice de l'appelant (organisateur, non finalisé) affiche déjà la barre.
+        XCTAssertEqual(title(.meals, .loading, nil, hint: true), "Ajouter un repas")
+        XCTAssertNil(title(.meals, .loading, nil, hint: false))
+        XCTAssertNil(title(.equipment, .loading, nil, hint: true), "Seul le module Repas a un formulaire.")
+        // Chargé : les données font foi.
+        XCTAssertEqual(title(.meals, .loaded, organizer, hint: false), "Ajouter un repas")
+        XCTAssertNil(title(.meals, .loaded, guest, hint: true))
+        XCTAssertNil(title(.meals, .failed, nil, hint: true), "Échec : seule la relance est proposée.")
+    }
+
     func testFormMealBecomesARawMealWithItsStatusName() {
         let model = MealModel(
             id: "m", eventId: "e", type: .dinner, name: "Raclette", date: "2026-10-03", time: "20:00",
@@ -131,7 +147,7 @@ final class HubModuleSheetViewTests: XCTestCase {
     // MARK: - Rendu
 
     private func body(_ vm: HubModuleSheetViewModel) -> some View {
-        HubModuleSheetBody(viewModel: vm, onClose: {}, onAdd: {}, onOpenFullScreen: {}, onOpenComments: {})
+        HubModuleSheetBody(viewModel: vm, canAddHint: true, onClose: {}, onAdd: {}, onOpenFullScreen: {}, onOpenComments: {})
     }
 
     func testSheetRendersEveryStateAtAX5WithinAPhone() async {
@@ -171,9 +187,14 @@ final class HubModuleSheetViewTests: XCTestCase {
         let view = try source("src/Views/Hub/Modules/HubModuleSheetView.swift")
         for anchor in ["WKModuleSheet(", "WKCard(style: .inset)", "WKStatusPill(", "WKAvatarStack(", "MealFormSheet(",
                        "arrow.up.left.and.arrow.down.right", "bubble.left", "hub.sheet.open_full", "hub.sheet.comments",
-                       "hub.sheet.meals.add", "common.retry", ".task(id: eventId)"] {
+                       "hub.sheet.meals.add", "common.retry", ".task(id: eventId)",
+                       "canAddHint: canAddHint"] {
             XCTAssertTrue(view.contains(anchor), anchor)
         }
+        // Le conteneur garde ses enfants accessibles avant de recevoir son identifiant.
+        XCTAssertTrue(squashed(view).contains(#".accessibilityElement(children: .contain) .wkAccessibilityID("hub.sheet.\(module.rawValue)")"#))
+        XCTAssertTrue(view.contains(".accessibilityLabel(item.accessibilityLabel)"))
+        XCTAssertTrue(view.contains("item.statusText"))
         XCTAssertFalse(view.contains("NavigationStack"), "Le formulaire legacy porte déjà sa pile de navigation.")
     }
 
@@ -206,6 +227,7 @@ final class HubModuleSheetViewTests: XCTestCase {
         XCTAssertTrue(sheet.contains("hubSheet.requestFallback(.comments)"))
         XCTAssertTrue(sheet.contains("hubSheet.close()"))
         XCTAssertTrue(sheet.contains("participantModels(for: event)"), "Mêmes participants que le formulaire legacy.")
+        XCTAssertTrue(sheet.contains("canAddHint: event.organizerId == userId && !isFinalizedOrganizationState(event)"))
     }
 
     /// Espaces et retours à la ligne réduits à une espace : ancres indépendantes de l'indentation.

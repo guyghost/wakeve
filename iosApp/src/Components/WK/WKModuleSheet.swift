@@ -7,10 +7,15 @@ enum WKModuleSheetChrome {
     /// Libellé existant « Fermer ».
     static let closeLabelKey = "common.close"
     static let primaryAccessibilityID = "wk.sheet.primary"
+
+    /// Moyen/grand ; aux tailles d'accessibilité, grand seulement (à mi-hauteur l'en-tête occuperait tout).
+    static func detents(for dynamicTypeSize: DynamicTypeSize) -> Set<PresentationDetent> {
+        dynamicTypeSize.isAccessibilitySize ? [.large] : [.medium, .large]
+    }
 }
 
 /// Sheet d'un module du hub (couche 5a, #47) : en-tête (titre, pastille, fermer), cartes défilantes,
-/// phrase « ce qui manque », barre d'actions en bas. Detents moyen/grand.
+/// phrase « ce qui manque », barre d'actions en bas. Detents moyen/grand (grand seul aux tailles d'accessibilité).
 struct WKModuleSheet<Content: View>: View {
     struct Status: Equatable {
         let text: String
@@ -24,6 +29,8 @@ struct WKModuleSheet<Content: View>: View {
     var secondary: [WKActionBar.Item] = []
     let onClose: () -> Void
     @ViewBuilder let content: () -> Content
+
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         ScrollView {
@@ -49,7 +56,7 @@ struct WKModuleSheet<Content: View>: View {
         }
         .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
         .background(WK.Colors.canvas.ignoresSafeArea())
-        .presentationDetents([.medium, .large])
+        .presentationDetents(WKModuleSheetChrome.detents(for: dynamicTypeSize))
         .presentationDragIndicator(.visible)
         .presentationBackground(WK.Colors.canvas)
     }
