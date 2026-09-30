@@ -39,6 +39,10 @@ struct EventHubFacts: Equatable {
     let participantNames: [String]
     /// Résumés d'une ligne déjà localisés par la source (absent → indice statique).
     let summaries: [HubModule: String]
+    /// `event.eventType.name` : teinte du hero (`EventMoodPalette.palette(for:)`), nil → palette par défaut.
+    var eventTypeName: String? = nil
+    /// Auteur signalé par « Signaler l'événement » (`ModerationActionTarget.authorId`).
+    var organizerId: String? = nil
 
     /// Même règle que l'accueil (`PollReadiness.readyToConfirm`), limitée au sondage.
     var readyToConfirm: Bool {

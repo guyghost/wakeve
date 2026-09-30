@@ -1,0 +1,195 @@
+import XCTest
+import SwiftUI
+@testable import Wakeve
+
+/// Vue du hub d'événement (couche 4, #47) : fonctions pures et rendu aux grandes tailles.
+@MainActor
+final class EventHubViewTests: XCTestCase {
+    private let fr = Locale(identifier: "fr")
+    private let en = Locale(identifier: "en")
+
+    private func facts(
+        phase: EventHubFacts.Phase = .polling,
+        isOrganizer: Bool = false,
+        hasDetailsAccess: Bool = true,
+        isLocalGuest: Bool = false,
+        slotCount: Int = 3,
+        leadingSlotStart: Date? = nil,
+        finalDate: Date? = nil,
+        confirmedCount: Int = 3,
+        pendingCount: Int = 1,
+        summaries: [HubModule: String] = [:]
+    ) -> EventHubFacts {
+        EventHubFacts(
+            id: "e1", title: "Week-end à Annecy avec toute la bande", phase: phase,
+            isOrganizer: isOrganizer, viewerAccepted: true,
+            hasDetailsAccess: hasDetailsAccess || isOrganizer, isLocalGuest: isLocalGuest,
+            pollOpen: true, userBallotComplete: false, ballotsKnown: true,
+            votersWithCompleteBallot: 2, eligibleVoters: 5, otherEligibleVoters: 4, otherVotersComplete: 1,
+            slotCount: slotCount, leadingSlotStart: leadingSlotStart, finalDate: finalDate,
+            confirmedCount: confirmedCount, pendingCount: pendingCount,
+            participantNames: ["Léa Martin", "Tom Durand", "Inès"], summaries: summaries,
+            eventTypeName: "WEEKEND", organizerId: isOrganizer ? "u" : "org"
+        )
+    }
+
+    // MARK: - Fonctions pures
+
+    func testSystemImagePerModule() {
+        let expected: [HubModule: String] = [
+            .date: "calendar", .location: "mappin.and.ellipse", .participants: "person.2",
+            .budget: "eurosign.circle", .scenarios: "square.stack", .transport: "car",
+            .accommodation: "bed.double", .meals: "fork.knife", .equipment: "backpack",
+            .activities: "figure.hiking", .meetings: "video", .recap: "checkmark.seal",
+            .photos: "photo.on.rectangle", .payments: "creditcard"
+        ]
+        for module in HubModule.allCases {
+            XCTAssertEqual(EventHubView.systemImage(for: module), expected[module], module.rawValue)
+        }
+    }
+
+    func testGridUsesOneColumnAtAccessibilitySizes() {
+        XCTAssertEqual(EventHubView.columnCount(for: .large), 2)
+        XCTAssertEqual(EventHubView.columnCount(for: .xxxLarge), 2)
+        XCTAssertEqual(EventHubView.columnCount(for: .accessibility1), 1)
+        XCTAssertEqual(EventHubView.columnCount(for: .accessibility5), 1)
+    }
+
+    func testPrimaryTitles() {
+        let f = facts()
+        XCTAssertEqual(EventHubView.primaryTitle(for: .vote, facts: f, locale: fr), "Voter")
+        XCTAssertEqual(EventHubView.primaryTitle(for: .pollResults, facts: f, locale: fr), "Voir les résultats")
+        XCTAssertEqual(EventHubView.primaryTitle(for: .organize, facts: f, locale: fr), "Passer en organisation")
+        XCTAssertEqual(EventHubView.primaryTitle(for: .finalize, facts: f, locale: en), "Finalize event")
+        XCTAssertEqual(EventHubView.primaryTitle(for: .signInToFinalize, facts: f, locale: fr), "Connecte-toi pour finaliser")
+        XCTAssertEqual(EventHubView.primaryTitle(for: .addDates, facts: f, locale: en), "Add dates")
+        XCTAssertNil(EventHubView.primaryTitle(for: .none, facts: f, locale: fr))
+    }
+
+    func testConfirmDateTitleNamesTheLeadingSlotWhenKnown() {
+        XCTAssertEqual(EventHubView.primaryTitle(for: .confirmDate, facts: facts(), locale: fr), "Choisir la date")
+        let slot = ISO8601DateFormatter().date(from: "2026-10-17T10:00:00Z")!
+        let title = EventHubView.primaryTitle(for: .confirmDate, facts: facts(leadingSlotStart: slot), locale: fr)
+        XCTAssertEqual(title, "Confirmer le " + HomeDateText.short(slot, locale: fr))
+    }
+
+    func testTileSummaryFallsBackToHintAndLockedText() {
+        let f = facts(summaries: [.date: "3 créneaux"])
+        let open = EventHubModel.Tile(module: .date, isLocked: false, isHighlighted: true, status: nil)
+        let empty = EventHubModel.Tile(module: .location, isLocked: false, isHighlighted: false, status: nil)
+        let locked = EventHubModel.Tile(module: .budget, isLocked: true, isHighlighted: false, status: nil)
+        XCTAssertEqual(EventHubView.tileSummary(open, facts: f, locale: fr), "3 créneaux")
+        XCTAssertEqual(EventHubView.tileSummary(empty, facts: f, locale: fr), "À préparer")
+        XCTAssertEqual(EventHubView.tileSummary(locked, facts: f, locale: fr), "À confirmer d'abord")
+    }
+
+    func testHeroSummaryCombinesSlotsAndGuests() {
+        XCTAssertEqual(EventHubView.heroSummary(for: facts(), locale: en), "3 options · 4 guests")
+        XCTAssertEqual(EventHubView.heroSummary(for: facts(slotCount: 0), locale: en), "4 guests")
+        XCTAssertNil(EventHubView.heroSummary(for: facts(slotCount: 0, confirmedCount: 0, pendingCount: 0), locale: en))
+        let day = ISO8601DateFormatter().date(from: "2026-10-17T10:00:00Z")!
+        let confirmed = facts(phase: .confirmed, finalDate: day)
+        XCTAssertEqual(EventHubView.heroSummary(for: confirmed, locale: en), HomeDateText.short(day, locale: en) + " · 4 guests")
+    }
+
+    func testMenuActionsFollowTheRole() {
+        XCTAssertEqual(EventHubView.menuActions(for: facts(isOrganizer: true)), [.info, .addParticipants, .support])
+        XCTAssertEqual(EventHubView.menuActions(for: facts(phase: .finalized, isOrganizer: true)), [.info, .support])
+        XCTAssertEqual(EventHubView.menuActions(for: facts()), [.info, .report, .support])
+    }
+
+    func testLifecyclePrimaryActionsNeedAConfirmation() {
+        XCTAssertEqual(EventHubView.lifecycleTarget(for: .organize), .organizing)
+        XCTAssertEqual(EventHubView.lifecycleTarget(for: .finalize), .finalized)
+        XCTAssertNil(EventHubView.lifecycleTarget(for: .vote))
+        XCTAssertNil(EventHubView.lifecycleTarget(for: .signInToFinalize))
+    }
+
+    func testDateTileOpensVotingOnlyWhenAVoteIsRequired() {
+        XCTAssertTrue(EventHubView.opensVoting(.date, facts: facts()))
+        XCTAssertFalse(EventHubView.opensVoting(.location, facts: facts()))
+        XCTAssertFalse(EventHubView.opensVoting(.date, facts: facts(phase: .confirmed)))
+    }
+
+    // MARK: - Rendu
+
+    private func loadedViewModel(_ facts: EventHubFacts) async -> EventHubViewModel {
+        struct Stub: EventHubSource {
+            let facts: EventHubFacts
+            func loadFacts(eventId: String, viewerId: String, isLocalGuest: Bool) async throws -> EventHubFacts { facts }
+        }
+        let vm = EventHubViewModel(eventId: "e1", viewerId: "u", isLocalGuest: false, source: Stub(facts: facts))
+        await vm.reload()
+        return vm
+    }
+
+    func testContentFitsThePhoneWidthAtAX5() async throws {
+        let vm = await loadedViewModel(facts(phase: .organizing, isOrganizer: true, summaries: [
+            .transport: "2 options", .meals: "3/5 repas prêts"
+        ]))
+        let model = try XCTUnwrap(vm.model)
+        let facts = try XCTUnwrap(vm.facts)
+        let content = EventHubContent(facts: facts, model: model, onOpenModule: { _ in }, onQuickVote: {})
+        let size = fittingSize(content, width: 375, dynamicType: .accessibility5)
+        XCTAssertGreaterThan(size.height, 0)
+        XCTAssertLessThanOrEqual(size.width, 375)
+    }
+
+    func testQuickVoteCardRendersAtAX5() async throws {
+        let slot = ISO8601DateFormatter().date(from: "2026-10-17T10:00:00Z")!
+        let vm = await loadedViewModel(facts(leadingSlotStart: slot))
+        let model = try XCTUnwrap(vm.model)
+        XCTAssertTrue(model.showsQuickVote)
+        let content = EventHubContent(facts: try XCTUnwrap(vm.facts), model: model, onOpenModule: { _ in }, onQuickVote: {})
+        XCTAssertLessThanOrEqual(fittingSize(content, width: 375, dynamicType: .accessibility5).width, 375)
+    }
+
+    func testPrimaryBarKeepsTheMinimumTapTargetAtAX5() {
+        let bar = EventHubPrimaryBar(title: "Passer en organisation", errorMessage: "Il manque le logement.", isBusy: false, action: {})
+        let size = fittingSize(bar, width: 375, dynamicType: .accessibility5)
+        XCTAssertGreaterThanOrEqual(size.height, WK.Size.minTapTarget)
+        XCTAssertLessThanOrEqual(size.width, 375)
+    }
+
+    func testWholeHubRendersInEveryState() async {
+        let vm = await loadedViewModel(facts())
+        let hub = EventHubView(
+            viewModel: vm, lifecycleError: nil, lifecycleInFlight: false,
+            onBack: {}, onOpenModule: { _ in }, onPrimary: { _ in }, onLifecycle: { _ in },
+            onRequestSignIn: {}, onOpenInfo: {}, onAddParticipants: {}
+        )
+        let host = UIHostingController(rootView: hub)
+        XCTAssertGreaterThan(host.sizeThatFits(in: CGSize(width: 375, height: 812)).height, 0)
+    }
+
+    // MARK: - Contrat source
+
+    private func hubSource() throws -> String {
+        try String(contentsOf: URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("src/Views/Hub/EventHubView.swift"), encoding: .utf8)
+    }
+
+    func testHubUsesWKComponentsAndLockedTilesAreNotButtons() throws {
+        let source = try hubSource()
+        for component in ["WKCircleButton(", "WKCard(", "WKStatusPill(", "WKAvatarStack(", "WKModuleTile(", "WKPrimaryButton(", "WKChip("] {
+            XCTAssertTrue(source.contains(component), component)
+        }
+        XCTAssertTrue(source.contains(".disabled(tile.isLocked)"))
+        XCTAssertTrue(source.contains(".accessibilityRemoveTraits(.isButton)"))
+        XCTAssertTrue(source.contains("safeAreaInset(edge: .bottom"))
+        XCTAssertTrue(source.contains("EventMoodPalette.palette(for:"))
+        XCTAssertTrue(source.contains("ModerationActionSheet(target:"))
+        XCTAssertTrue(source.contains("event.lifecycle.guest.confirm_message"))
+        XCTAssertTrue(source.contains("\"eventLifecycleError\""))
+        XCTAssertFalse(source.contains("PollVotingView("), "Le vote rapide ouvre l'écran de vote, sans soumettre depuis le hub.")
+    }
+
+    func testContainerOwnsTheViewModelAndReloadsOnToken() throws {
+        let source = try hubSource()
+        XCTAssertTrue(source.contains("struct EventHubContainer: View"))
+        XCTAssertTrue(source.contains("@StateObject private var viewModel: EventHubViewModel"))
+        XCTAssertTrue(source.contains(".onChange(of: reloadToken)"))
+        XCTAssertTrue(source.contains("EventLifecycleTransitionController("))
+    }
+}

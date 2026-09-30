@@ -153,6 +153,12 @@ enum WK {
         static let badge: CGFloat = 16
     }
 
+    enum Tint {
+        /// Opacité d'une teinte d'événement posée sur une carte (hero du hub). Le contraste de
+        /// `textMuted` n'est garanti que sur les fonds neutres : sur une carte teintée, écrire en `textPrimary`.
+        static let surface: Double = 0.12
+    }
+
     // MARK: - Typographie (toujours indexée sur Dynamic Type)
 
     enum Typo {

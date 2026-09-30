@@ -210,7 +210,9 @@ struct SharedEventHubSource: EventHubSource {
                 confirmedCount: guests.confirmed,
                 pendingCount: guests.pending,
                 participantNames: participantNames,
-                summaries: summaries
+                summaries: summaries,
+                eventTypeName: event.eventType.name,
+                organizerId: event.organizerId
             )
         }
 
