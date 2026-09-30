@@ -24,6 +24,26 @@ struct HomeBallotStats: Equatable {
     )
 }
 
+/// Règle « prêt à confirmer », partagée par l'accueil (couche 3) et le hub (couche 4).
+enum PollReadiness {
+    /// Organisateur, bulletins connus :
+    /// - sondage ouvert : tous les autres votants éligibles (au moins un) ont un bulletin complet,
+    ///   que l'organisateur ait voté ou non ;
+    /// - échéance passée : au moins un bulletin complet (choisir la date est la seule action utile).
+    static func readyToConfirm(
+        isOrganizer: Bool,
+        pollOpen: Bool,
+        ballotsKnown: Bool,
+        votersWithCompleteBallot: Int,
+        otherVotersComplete: Int,
+        otherEligibleVoters: Int
+    ) -> Bool {
+        guard isOrganizer, ballotsKnown else { return false }
+        if !pollOpen { return votersWithCompleteBallot > 0 }
+        return otherEligibleVoters > 0 && otherVotersComplete >= otherEligibleVoters
+    }
+}
+
 /// Faits calculés pour un événement, vus par l'utilisateur courant (couche 3, #47).
 struct HomeEventFacts: Equatable {
     enum Phase: Equatable { case draft, polling, comparing, confirmed, organizing, finalized }
@@ -52,15 +72,13 @@ struct HomeEventFacts: Equatable {
 
     private var pollActionable: Bool { phase == .polling && !isPast && !readOnly }
 
-    /// Organisateur, bulletins connus :
-    /// - sondage ouvert : tous les autres votants éligibles (au moins un) ont un bulletin complet,
-    ///   que l'organisateur ait voté ou non ;
-    /// - échéance passée : au moins un bulletin complet (choisir la date est la seule action utile).
+    /// Règle partagée avec le hub (`PollReadiness.readyToConfirm`), sur un sondage actionnable.
     var readyToConfirm: Bool {
-        guard pollActionable, role == .organizer, ballots.ballotsKnown else { return false }
-        if !pollOpen { return ballots.votersWithCompleteBallot > 0 }
-        return ballots.otherEligibleVoters > 0
-            && ballots.otherVotersComplete >= ballots.otherEligibleVoters
+        pollActionable && PollReadiness.readyToConfirm(
+            isOrganizer: role == .organizer, pollOpen: pollOpen, ballotsKnown: ballots.ballotsKnown,
+            votersWithCompleteBallot: ballots.votersWithCompleteBallot,
+            otherVotersComplete: ballots.otherVotersComplete, otherEligibleVoters: ballots.otherEligibleVoters
+        )
     }
 
     /// Invitation acceptée, sondage ouvert, bulletin incomplet ; « prêt à confirmer » l'emporte.
