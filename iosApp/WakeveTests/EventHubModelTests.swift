@@ -294,4 +294,53 @@ final class EventHubModelTests: XCTestCase {
         XCTAssertFalse(confirmed.readyToConfirm)
         XCTAssertFalse(confirmed.voteRequired)
     }
+
+    // MARK: - Localisation
+
+    static let hubStringKeys = HubModule.allCases.map { "hub.module.\($0.rawValue)" } + [
+        "hub.tile.locked", "hub.tile.hint", "hub.summary.format",
+        "hub.primary.vote", "hub.primary.results", "hub.primary.confirm_date_format", "hub.primary.confirm_date",
+        "hub.primary.organize", "hub.primary.finalize", "hub.primary.sign_in", "hub.primary.add_dates",
+        "hub.quick_vote.title_format", "hub.menu.info", "hub.menu.more",
+        "hub.summary.meals_progress_format"
+    ]
+    static let hubPluralKeys = [
+        "hub.slots_count", "hub.guests_count", "hub.activities_count", "hub.items_count", "hub.meetings_count"
+    ]
+    /// Clés existantes réutilisées par le hub.
+    static let reusedKeys = [
+        "poll.yes", "poll.maybe", "poll.no", "event.detail.menu.add_participants",
+        "event.lifecycle.organizing.title", "event.lifecycle.organizing.confirm_message", "event.lifecycle.organizing.action",
+        "event.lifecycle.finalize.title", "event.lifecycle.finalize.confirm_message", "event.lifecycle.finalize.action",
+        "event.lifecycle.guest.confirm_message", "common.retry", "common.error_generic",
+        "event.detail.slot_option_singular_format", "event.detail.slot_options_plural_format",
+        "event.detail.canvas.participants.confirmed_format", "event.detail.canvas.participants.pending_format",
+        "scenario.options_count_format", "transport.plan.selected",
+        "event.detail.payment_pot.define_before_share", "event.detail.payment_pot.define_goal",
+        "event.detail.payment_pot.goal_format"
+    ]
+
+    func testEveryHubKeyExistsInEveryLanguage() throws {
+        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        for locale in ["en", "fr", "es", "it", "pt"] {
+            let strings = try String(contentsOf: root.appendingPathComponent("src/Resources/\(locale).lproj/Localizable.strings"), encoding: .utf8)
+            for key in Self.hubStringKeys + Self.reusedKeys {
+                XCTAssertTrue(strings.contains("\"\(key)\" ="), "\(key) manquante (\(locale))")
+            }
+            let dict = try String(contentsOf: root.appendingPathComponent("src/Resources/\(locale).lproj/Localizable.stringsdict"), encoding: .utf8)
+            for key in Self.hubPluralKeys {
+                XCTAssertTrue(dict.contains("<key>\(key)</key>"), "pluriel \(key) manquant (\(locale))")
+            }
+        }
+    }
+
+    func testHubPluralsResolveInFrenchWithTutoiementCopy() {
+        let fr = Locale(identifier: "fr_FR")
+        XCTAssertEqual(String(format: WK.localizedFormat("hub.slots_count", locale: fr), locale: fr, 1), "1 créneau")
+        XCTAssertEqual(String(format: WK.localizedFormat("hub.slots_count", locale: fr), locale: fr, 3), "3 créneaux")
+        XCTAssertEqual(String(format: WK.localizedFormat("hub.guests_count", locale: fr), locale: fr, 2), "2 invités")
+        XCTAssertEqual(WK.localizedFormat("hub.primary.sign_in", locale: fr), "Connecte-toi pour finaliser")
+        XCTAssertEqual(String(format: WK.localizedFormat("hub.quick_vote.title_format", locale: fr), "sam. 3 oct."),
+                       "Tu es dispo le sam. 3 oct. ?")
+    }
 }

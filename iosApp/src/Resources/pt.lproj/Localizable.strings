@@ -2307,3 +2307,34 @@
 "home.v2.today" = "hoje";
 "home.v2.a11y.votes_format" = "%1$d de %2$d votos";
 "wk.wordmark" = "wakeve";
+
+/* Hub d'événement (couche 4, #47) */
+"hub.module.date" = "Data";
+"hub.module.location" = "Local";
+"hub.module.participants" = "Convidados";
+"hub.module.budget" = "Orçamento";
+"hub.module.scenarios" = "Cenários";
+"hub.module.transport" = "Transporte";
+"hub.module.accommodation" = "Hospedagem";
+"hub.module.meals" = "Refeições";
+"hub.module.equipment" = "Equipamento";
+"hub.module.activities" = "Atividades";
+"hub.module.meetings" = "Reuniões";
+"hub.module.recap" = "Resumo";
+"hub.module.photos" = "Fotos";
+"hub.module.payments" = "Pagamentos";
+"hub.tile.locked" = "Confirme primeiro";
+"hub.tile.hint" = "A preparar";
+"hub.summary.format" = "%1$@ · %2$@";
+"hub.summary.meals_progress_format" = "%1$d/%2$d refeições prontas";
+"hub.primary.vote" = "Votar";
+"hub.primary.results" = "Ver resultados";
+"hub.primary.confirm_date_format" = "Confirmar %@";
+"hub.primary.confirm_date" = "Escolher a data";
+"hub.primary.organize" = "Começar a organizar";
+"hub.primary.finalize" = "Finalizar evento";
+"hub.primary.sign_in" = "Entre para finalizar";
+"hub.primary.add_dates" = "Adicionar datas";
+"hub.quick_vote.title_format" = "Você pode em %@?";
+"hub.menu.info" = "Informações";
+"hub.menu.more" = "Mais opções";
