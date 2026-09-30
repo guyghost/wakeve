@@ -278,4 +278,47 @@ final class RedesignShellTests: XCTestCase {
         XCTAssertTrue(barBody.contains("String(localized: \"common.back\")"))
         XCTAssertTrue(barBody.contains("canAccessOrganizationDashboard(for:"))
     }
+
+    // MARK: - Revue de la couche 4
+
+    func testOnlyGuardedScreensNeedTheOrganizationAccess() {
+        let guarded: [AppView] = [.budgetOverview, .budgetDetail, .meetingList, .meetingDetail, .paymentPot, .tricount]
+        for view in guarded {
+            XCTAssertTrue(RedesignBackRoute.needsOrganizationAccess(view), "\(view)")
+        }
+        for view in [AppView.eventList, .eventDetail, .eventAudience, .pollVoting, .scenarioList, .transportPlanning] {
+            XCTAssertFalse(RedesignBackRoute.needsOrganizationAccess(view), "\(view)")
+        }
+    }
+
+    func testBackDestinationComputesAccessOnlyForGuardedScreens() throws {
+        let source = try contentViewSource()
+        guard let start = source.range(of: "private var redesignBackDestination: AppView?") else {
+            return XCTFail("redesignBackDestination introuvable")
+        }
+        let body = String(source[start.lowerBound...].prefix(600))
+        XCTAssertTrue(body.contains("RedesignBackRoute.needsOrganizationAccess(currentView)"))
+    }
+
+    func testHubKeepsTheSelectedEventFresh() throws {
+        let source = try contentViewSource()
+        guard let start = source.range(of: "private func eventHubContent(for event: Event)"),
+              let route = source.range(of: "private func performHubRoute(_ route: EventHubRoute, for event: Event)") else {
+            return XCTFail("hub introuvable")
+        }
+        let hub = String(source[start.lowerBound...].prefix(2000))
+        XCTAssertTrue(hub.contains("onLoaded: { facts in refreshSelectedEvent(from: facts) }"))
+        let perform = String(source[route.lowerBound...].prefix(700))
+        XCTAssertTrue(perform.contains("repository.getEvent(id: event.id)"), "Relire l'événement avant de naviguer.")
+    }
+
+    func testRedesignToolbarBackUsesTopBarLeading() throws {
+        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        for file in ["src/Views/Budget/BudgetOverviewView.swift", "src/Views/Meeting/MeetingListView.swift"] {
+            let source = try String(contentsOf: root.appendingPathComponent(file), encoding: .utf8)
+            guard let start = source.range(of: "if let redesignBackAction {") else { return XCTFail(file) }
+            let item = String(source[start.lowerBound...].prefix(400))
+            XCTAssertTrue(item.contains("ToolbarItem(placement: .topBarLeading)"), file)
+        }
+    }
 }

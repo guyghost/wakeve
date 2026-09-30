@@ -55,7 +55,7 @@ struct BudgetOverviewView: View {
                 if let redesignBackAction {
                     // Refonte (couche 4, #47) : retour au hub à la racine de la pile ; le détail poussé
                     // affiche le retour système à la même place.
-                    ToolbarItem(placement: .navigationBarLeading) {
+                    ToolbarItem(placement: .topBarLeading) {
                         Button(action: redesignBackAction) {
                             Image(systemName: "chevron.left")
                         }

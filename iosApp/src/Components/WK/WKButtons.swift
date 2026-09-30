@@ -5,6 +5,8 @@ struct WKPrimaryButton: View {
     let title: String
     var systemImage: String? = nil
     var accessibilityID: String? = nil
+    /// Action en cours : indicateur à la place du titre, qui garde sa place et reste lu par VoiceOver.
+    var isLoading: Bool = false
     let action: () -> Void
 
     var body: some View {
@@ -17,6 +19,14 @@ struct WKPrimaryButton: View {
                     Text(title)
                 }
             }
+            .opacity(isLoading ? 0 : 1)
+            .overlay {
+                if isLoading {
+                    ProgressView()
+                        .tint(WK.Colors.onPrimaryButton)
+                        .accessibilityHidden(true)
+                }
+            }
             .font(WK.Typo.headline)
             .multilineTextAlignment(.center)
             .foregroundStyle(WK.Colors.onPrimaryButton)
@@ -27,6 +37,8 @@ struct WKPrimaryButton: View {
             .contentShape(WK.pill)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityValue(isLoading ? String(localized: "common.loading") : "")
         .wkAccessibilityID(accessibilityID)
     }
 }

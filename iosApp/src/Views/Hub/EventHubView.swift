@@ -21,10 +21,13 @@ struct EventHubView: View {
     let onAddParticipants: () -> Void
     /// Rollout invitation (`iosInvitationExperienceV1`) : sans lui, les infos de l'événement n'existent pas.
     let invitationRollout: Bool
+    /// Appelé avant chaque rechargement (tirer pour actualiser, réessayer) : efface l'erreur de transition.
+    var onWillReload: () -> Void = {}
 
     @Environment(\.openURL) private var openURL
     @State private var showsMenu = false
     @State private var confirmationTarget: EventLifecycleTransitionController.Target?
+    @State private var showsConfirmation = false
     @State private var showsGuestSignIn = false
     @State private var moderationTarget: ModerationActionTarget?
 
@@ -122,6 +125,11 @@ struct EventHubView: View {
         }
     }
 
+    /// Titre de la confirmation ; la cible reste posée après la fermeture pour que le titre ne bascule pas.
+    static func confirmationTitleKey(for target: EventLifecycleTransitionController.Target?) -> String {
+        target == .finalized ? "event.lifecycle.finalize.title" : "event.lifecycle.organizing.title"
+    }
+
     /// Menu « … » : infos (qui portent quitter/supprimer, rollout invitation seulement : sinon l'écran
     /// retombe sur le hub), ajout de participants pour l'organisateur tant que l'événement n'est pas finalisé
     /// (règle du détail legacy), signalement pour les autres, support.
@@ -169,8 +177,8 @@ struct EventHubView: View {
         .background(WK.Colors.canvas.ignoresSafeArea())
         .safeAreaInset(edge: .top, spacing: 0) { topBar }
         .safeAreaInset(edge: .bottom, spacing: 0) { primaryBar }
-        .refreshable { await viewModel.reload() }
-        .task { await viewModel.reload() }
+        .refreshable { await reload() }
+        .task { await reload() }
         .confirmationDialog(
             String(localized: "hub.menu.more"),
             isPresented: $showsMenu,
@@ -184,11 +192,8 @@ struct EventHubView: View {
             Button(String(localized: "common.cancel"), role: .cancel) {}
         }
         .confirmationDialog(
-            confirmationTitle,
-            isPresented: Binding(
-                get: { confirmationTarget != nil },
-                set: { if !$0 { confirmationTarget = nil } }
-            ),
+            String(localized: String.LocalizationValue(Self.confirmationTitleKey(for: confirmationTarget))),
+            isPresented: $showsConfirmation,
             titleVisibility: .visible,
             presenting: confirmationTarget
         ) { target in
@@ -218,10 +223,9 @@ struct EventHubView: View {
         }
     }
 
-    private var confirmationTitle: String {
-        String(localized: confirmationTarget == .finalized
-            ? "event.lifecycle.finalize.title"
-            : "event.lifecycle.organizing.title")
+    private func reload() async {
+        onWillReload()
+        await viewModel.reload()
     }
 
     private var topBar: some View {
@@ -244,6 +248,8 @@ struct EventHubView: View {
         }
         .padding(.horizontal, WK.Space.screen)
         .padding(.vertical, WK.Space.xxs)
+        // Le contenu défile sous la barre : fond opaque, comme `EventHubPrimaryBar`.
+        .background(WK.Colors.canvas.ignoresSafeArea(edges: .top))
     }
 
     @ViewBuilder
@@ -270,7 +276,7 @@ struct EventHubView: View {
                 title: String(localized: "common.retry"),
                 systemImage: "arrow.clockwise",
                 accessibilityID: "hub.retry",
-                action: { Task { await viewModel.reload() } }
+                action: { Task { await reload() } }
             )
         }
     }
@@ -278,6 +284,7 @@ struct EventHubView: View {
     private func handlePrimary(_ primary: EventHubModel.Primary) {
         if let target = Self.lifecycleTarget(for: primary) {
             confirmationTarget = target
+            showsConfirmation = true
         } else if primary == .signInToFinalize {
             showsGuestSignIn = true
         } else {
@@ -382,8 +389,11 @@ struct EventHubContent: View {
             // Les trois réponses ouvrent l'écran de vote : un bulletin se remplit en entier là-bas.
             layout {
                 WKChip(title: String(localized: "poll.yes"), accessibilityID: "hub.quickVote.yes", action: onQuickVote)
+                    .accessibilityHint(String(localized: "hub.quick_vote.hint"))
                 WKChip(title: String(localized: "poll.maybe"), accessibilityID: "hub.quickVote.maybe", action: onQuickVote)
+                    .accessibilityHint(String(localized: "hub.quick_vote.hint"))
                 WKChip(title: String(localized: "poll.no"), accessibilityID: "hub.quickVote.no", action: onQuickVote)
+                    .accessibilityHint(String(localized: "hub.quick_vote.hint"))
             }
         }
         .wkAccessibilityID("hub.quickVote")
@@ -423,18 +433,29 @@ struct EventHubPrimaryBar: View {
     var body: some View {
         VStack(alignment: .leading, spacing: WK.Space.xs) {
             if let errorMessage {
-                Text(errorMessage)
-                    .font(WK.Typo.caption)
-                    .foregroundStyle(WK.Colors.textMuted)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .wkAccessibilityID("eventLifecycleError")
+                // Icône d'avertissement colorée ; texte principal pour garder le contraste.
+                Label {
+                    Text(errorMessage)
+                        .foregroundStyle(WK.Colors.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } icon: {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(WK.Status.actionNeeded.color)
+                        .accessibilityHidden(true)
+                }
+                .font(WK.Typo.caption)
+                .wkAccessibilityID("eventLifecycleError")
             }
-            WKPrimaryButton(title: title, accessibilityID: "hub.primary", action: action)
+            WKPrimaryButton(title: title, accessibilityID: "hub.primary", isLoading: isBusy, action: action)
                 .disabled(isBusy)
         }
         .padding(.horizontal, WK.Space.screen)
         .padding(.vertical, WK.Space.xs)
         .background(WK.Colors.canvas.ignoresSafeArea(edges: .bottom))
+        .onChange(of: errorMessage) { _, message in
+            // L'erreur apparaît hors du focus VoiceOver : l'annoncer.
+            if let message { AccessibilityNotification.Announcement(message).post() }
+        }
     }
 }
 
@@ -454,6 +475,8 @@ struct EventHubContainer: View {
     let onPrimary: (EventHubModel.Primary) -> Void
     /// Appelé après une transition réussie (l'appelant relit l'événement et fait avancer `reloadToken`).
     let onLifecycleChanged: () -> Void
+    /// Chaque chargement réussi : l'appelant garde son événement sélectionné à jour.
+    let onLoaded: (EventHubFacts) -> Void
     let onRequestSignIn: () -> Void
     let onOpenInfo: () -> Void
     let onAddParticipants: () -> Void
@@ -469,6 +492,7 @@ struct EventHubContainer: View {
         onOpenModule: @escaping (HubModule) -> Void,
         onPrimary: @escaping (EventHubModel.Primary) -> Void,
         onLifecycleChanged: @escaping () -> Void,
+        onLoaded: @escaping (EventHubFacts) -> Void,
         onRequestSignIn: @escaping () -> Void,
         onOpenInfo: @escaping () -> Void,
         onAddParticipants: @escaping () -> Void,
@@ -485,6 +509,7 @@ struct EventHubContainer: View {
         self.onOpenModule = onOpenModule
         self.onPrimary = onPrimary
         self.onLifecycleChanged = onLifecycleChanged
+        self.onLoaded = onLoaded
         self.onRequestSignIn = onRequestSignIn
         self.onOpenInfo = onOpenInfo
         self.onAddParticipants = onAddParticipants
@@ -503,10 +528,15 @@ struct EventHubContainer: View {
             onRequestSignIn: onRequestSignIn,
             onOpenInfo: onOpenInfo,
             onAddParticipants: onAddParticipants,
-            invitationRollout: invitationRollout
+            invitationRollout: invitationRollout,
+            onWillReload: { lifecycleError = nil }
         )
         .onChange(of: reloadToken) { _, _ in
+            lifecycleError = nil
             Task { await viewModel.reload() }
+        }
+        .onChange(of: viewModel.facts) { _, facts in
+            if let facts { onLoaded(facts) }
         }
     }
 

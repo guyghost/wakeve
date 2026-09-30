@@ -32,6 +32,14 @@ enum RedesignBackRoute {
         }
     }
 
+    /// Écrans dont le retour dépend de `canAccessOrganizationDashboard` : l'accès n'est calculé que pour eux.
+    static func needsOrganizationAccess(_ view: AppView) -> Bool {
+        switch view {
+        case .budgetOverview, .budgetDetail, .meetingList, .meetingDetail, .paymentPot, .tricount: return true
+        default: return false
+        }
+    }
+
     static func placement(for view: AppView) -> Placement {
         switch view {
         case .budgetOverview, .meetingList: return .toolbar

@@ -531,7 +531,10 @@ struct AuthenticatedView: View {
 
     /// Parent de l'écran courant quand il n'a pas de retour propre (`RedesignBackRoute`, couche 4).
     private var redesignBackDestination: AppView? {
-        let organizationAccess = selectedEvent.map { canAccessOrganizationDashboard(for: $0) } ?? true
+        // Garde d'accès lue seulement pour les écrans qui en dépendent (budget, réunions, cagnotte).
+        let organizationAccess = RedesignBackRoute.needsOrganizationAccess(currentView)
+            ? selectedEvent.map { canAccessOrganizationDashboard(for: $0) } ?? true
+            : true
         return RedesignBackRoute.destination(from: currentView, organizationAccess: organizationAccess)
     }
 
@@ -654,6 +657,7 @@ struct AuthenticatedView: View {
                 selectedEvent = repository.getEvent(id: event.id)
                 eventHubReloadToken += 1
             },
+            onLoaded: { facts in refreshSelectedEvent(from: facts) },
             onRequestSignIn: {
                 // Même entrée que le détail legacy : quitter le mode invité ramène à LoginView.
                 authStateManager.signOut()
@@ -691,8 +695,11 @@ struct AuthenticatedView: View {
 
     /// Seul point d'exécution des routes du hub (`EventHubRouting`, rollout invitation inclus).
     private func performHubRoute(_ route: EventHubRoute, for event: Event) {
+        // Écrans de destination gardés sur `selectedEvent` : le relire avant de naviguer.
+        let event = repository.getEvent(id: event.id) ?? event
         switch route {
         case .screen(let view):
+            selectedEvent = event
             currentView = view
         case .editDraft:
             editDraftFromHome(event.id)
@@ -700,6 +707,14 @@ struct AuthenticatedView: View {
             // Même route que `onManageParticipants` du détail legacy.
             routeInvitationExperience(InvitationExperienceRouteRequestParticipants.shared, for: event)
         }
+    }
+
+    /// Le hub a relu un autre statut (transition ailleurs, synchronisation) : relire l'événement sélectionné.
+    private func refreshSelectedEvent(from facts: EventHubFacts) {
+        guard let current = selectedEvent, current.id == facts.id,
+              SharedEventHubSource.phase(statusName: current.status.name) != facts.phase,
+              let fresh = repository.getEvent(id: facts.id) else { return }
+        selectedEvent = fresh
     }
 
     /// Réutilise la confirmation de suppression existante (`pendingInformationDeleteEvent`).

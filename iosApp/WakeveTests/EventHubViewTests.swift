@@ -247,6 +247,22 @@ final class EventHubViewTests: XCTestCase {
         XCTAssertGreaterThan(host.sizeThatFits(in: CGSize(width: 375, height: 812)).height, 0)
     }
 
+    func testLoadingPrimaryButtonKeepsTheTitleLayout() {
+        // Le titre reste en place (masqué) sous l'indicateur : même taille, pas de saut de mise en page.
+        let title = "Passer en organisation et prévenir tout le monde"
+        for size in [DynamicTypeSize.large, .accessibility3] {
+            let idle = fittingSize(WKPrimaryButton(title: title) {}, width: 375, dynamicType: size)
+            let busy = fittingSize(WKPrimaryButton(title: title, isLoading: true) {}, width: 375, dynamicType: size)
+            XCTAssertEqual(busy, idle, "\(size)")
+            XCTAssertGreaterThanOrEqual(busy.height, WK.Size.minTapTarget)
+        }
+    }
+
+    func testConfirmationTitleFollowsTheTarget() {
+        XCTAssertEqual(EventHubView.confirmationTitleKey(for: .finalized), "event.lifecycle.finalize.title")
+        XCTAssertEqual(EventHubView.confirmationTitleKey(for: .organizing), "event.lifecycle.organizing.title")
+    }
+
     // MARK: - Contrat source
 
     private func hubSource() throws -> String {
@@ -268,6 +284,40 @@ final class EventHubViewTests: XCTestCase {
         XCTAssertTrue(source.contains("event.lifecycle.guest.confirm_message"))
         XCTAssertTrue(source.contains("\"eventLifecycleError\""))
         XCTAssertFalse(source.contains("PollVotingView("), "Le vote rapide ouvre l'écran de vote, sans soumettre depuis le hub.")
+    }
+
+    func testConfirmationTitleStaysStableWhileTheDialogCloses() throws {
+        let source = try hubSource()
+        // La cible n'est pas effacée à la fermeture : le titre ne bascule pas pendant l'animation.
+        XCTAssertTrue(source.contains("isPresented: $showsConfirmation"))
+        XCTAssertTrue(source.contains("presenting: confirmationTarget"))
+        XCTAssertFalse(source.contains("confirmationTarget = nil"))
+        XCTAssertTrue(source.contains("confirmationTitleKey(for: confirmationTarget"))
+    }
+
+    func testHubChromeIsOpaqueAndLifecycleFeedbackIsAccessible() throws {
+        let source = try hubSource()
+        guard let top = source.range(of: "private var topBar: some View") else { return XCTFail("topBar") }
+        let topBar = String(source[top.lowerBound...].prefix(1200))
+        XCTAssertTrue(topBar.contains(".background(WK.Colors.canvas.ignoresSafeArea(edges: .top))"),
+                      "Le contenu défile sous la barre du haut : elle doit être opaque.")
+        guard let bar = source.range(of: "struct EventHubPrimaryBar: View") else { return XCTFail("EventHubPrimaryBar") }
+        let primaryBar = String(source[bar.lowerBound...].prefix(2000))
+        XCTAssertTrue(primaryBar.contains("exclamationmark.triangle.fill"))
+        XCTAssertTrue(primaryBar.contains("WK.Status.actionNeeded.color"))
+        XCTAssertTrue(primaryBar.contains("AccessibilityNotification.Announcement("))
+        XCTAssertTrue(primaryBar.contains("isLoading: isBusy"))
+        XCTAssertEqual(source.components(separatedBy: ".accessibilityHint(String(localized: \"hub.quick_vote.hint\"))").count - 1, 3,
+                       "Chaque réponse du vote rapide dit qu'elle ouvre le vote.")
+    }
+
+    func testContainerClearsTheLifecycleErrorOnReloadAndReportsLoads() throws {
+        let source = try hubSource()
+        guard let start = source.range(of: "struct EventHubContainer: View") else { return XCTFail("container") }
+        let container = String(source[start.lowerBound...])
+        XCTAssertTrue(container.contains("onWillReload: { lifecycleError = nil }"))
+        XCTAssertTrue(container.contains("let onLoaded: (EventHubFacts) -> Void"))
+        XCTAssertTrue(container.contains(".onChange(of: viewModel.facts)"))
     }
 
     func testContainerOwnsTheViewModelAndReloadsOnToken() throws {
