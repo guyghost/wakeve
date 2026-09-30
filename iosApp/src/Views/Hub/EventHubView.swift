@@ -378,23 +378,12 @@ struct EventHubContent: View {
     }
 
     private func quickVote(_ slot: Date) -> some View {
-        let layout = dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: WK.Space.xs))
-            : AnyLayout(HStackLayout(spacing: WK.Space.xs))
-        return WKCard(style: .inset, padding: WK.Space.md) {
+        WKCard(style: .inset, padding: WK.Space.md) {
             Text(String(format: String(localized: "hub.quick_vote.title_format"), HomeDateText.short(slot)))
                 .font(WK.Typo.headline)
                 .foregroundStyle(WK.Colors.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
-            // Les trois réponses ouvrent l'écran de vote : un bulletin se remplit en entier là-bas.
-            layout {
-                WKChip(title: String(localized: "poll.yes"), accessibilityID: "hub.quickVote.yes", action: onQuickVote)
-                    .accessibilityHint(String(localized: "hub.quick_vote.hint"))
-                WKChip(title: String(localized: "poll.maybe"), accessibilityID: "hub.quickVote.maybe", action: onQuickVote)
-                    .accessibilityHint(String(localized: "hub.quick_vote.hint"))
-                WKChip(title: String(localized: "poll.no"), accessibilityID: "hub.quickVote.no", action: onQuickVote)
-                    .accessibilityHint(String(localized: "hub.quick_vote.hint"))
-            }
+            EventHubQuickVoteAnswers(onVote: onQuickVote)
         }
         .wkAccessibilityID("hub.quickVote")
     }
@@ -419,6 +408,28 @@ struct EventHubContent: View {
             base.accessibilityRemoveTraits(.isButton)
         } else {
             base
+        }
+    }
+}
+
+/// Réponses du vote rapide : en ligne, empilées aux tailles d'accessibilité.
+/// Les trois réponses ouvrent l'écran de vote : un bulletin se remplit en entier là-bas.
+struct EventHubQuickVoteAnswers: View {
+    let onVote: () -> Void
+
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    var body: some View {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: WK.Space.xs))
+            : AnyLayout(HStackLayout(spacing: WK.Space.xs))
+        layout {
+            WKChip(title: String(localized: "poll.yes"), accessibilityID: "hub.quickVote.yes", action: onVote)
+                .accessibilityHint(String(localized: "hub.quick_vote.hint"))
+            WKChip(title: String(localized: "poll.maybe"), accessibilityID: "hub.quickVote.maybe", action: onVote)
+                .accessibilityHint(String(localized: "hub.quick_vote.hint"))
+            WKChip(title: String(localized: "poll.no"), accessibilityID: "hub.quickVote.no", action: onVote)
+                .accessibilityHint(String(localized: "hub.quick_vote.hint"))
         }
     }
 }

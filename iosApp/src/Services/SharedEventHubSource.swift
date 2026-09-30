@@ -203,10 +203,10 @@ struct SharedEventHubSource: EventHubSource {
             )
         }
 
-        // Résumés : seulement pour les tuiles visibles et accessibles (une tuile verrouillée ne lit rien).
+        // Résumés : seulement pour les tuiles visibles et ouvertes (`EventHubModel.summarizedModules`).
         let base = make(summaries: [:])
         var summaries: [HubModule: String] = [:]
-        for module in EventHubModel.modules(for: phase) where !EventHubModel.isLocked(module, facts: base) {
+        for module in EventHubModel.summarizedModules(for: base) {
             try Task.checkCancellation()
             summaries[module] = summary(for: module, event: event, facts: base, locale: locale)
         }

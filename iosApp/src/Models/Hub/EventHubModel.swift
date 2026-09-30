@@ -111,6 +111,11 @@ struct EventHubModel: Equatable {
         }
     }
 
+    /// Modules dont la source lit un résumé : tuiles visibles et ouvertes (une tuile verrouillée ne lit rien).
+    static func summarizedModules(for facts: EventHubFacts) -> [HubModule] {
+        modules(for: facts.phase).filter { !isLocked($0, facts: facts) }
+    }
+
     /// Tuile visible mais non actionnable quand la garde du `case` de destination (`homeTabContent`)
     /// afficherait « accès refusé », ou quand l'écran ouvert se verrouille lui-même :
     /// aucune tuile ouverte ne mène à un écran bloqué.

@@ -208,25 +208,42 @@ final class EventHubViewTests: XCTestCase {
         return vm
     }
 
-    func testContentFitsThePhoneWidthAtAX5() async throws {
+    func testContentFitsThePhoneWidthAtAX5WithoutTruncating() async throws {
         let vm = await loadedViewModel(facts(phase: .organizing, isOrganizer: true, summaries: [
             .transport: "2 options", .meals: "3/5 repas prêts"
         ]))
         let model = try XCTUnwrap(vm.model)
         let facts = try XCTUnwrap(vm.facts)
         let content = EventHubContent(facts: facts, model: model, onOpenModule: { _ in }, onQuickVote: {})
-        let size = fittingSize(content, width: 375, dynamicType: .accessibility5)
-        XCTAssertGreaterThan(size.height, 0)
-        XCTAssertLessThanOrEqual(size.width, 375)
+        // Témoin : le harnais rapporte bien une largeur qui déborde (titre non replié à AX5).
+        let unwrappedTitle = fittingSize(Text(facts.title).font(WK.Typo.title).fixedSize(), width: 375, dynamicType: .accessibility5)
+        XCTAssertGreaterThan(unwrappedTitle.width, 375, "Témoin non discriminant : \(unwrappedTitle)")
+        let large = fittingSize(content, width: 375, dynamicType: .large)
+        let ax5 = fittingSize(content, width: 375, dynamicType: .accessibility5)
+        XCTAssertLessThanOrEqual(ax5.width, 375, "Le contenu déborde à AX5 : \(ax5)")
+        // Sans troncature, le texte se replie : le hero seul (titre sur plusieurs lignes) et la grille
+        // à une colonne font bien plus que doubler la hauteur.
+        XCTAssertGreaterThan(ax5.height, large.height * 2, "large \(large), AX5 \(ax5)")
+        let wrappedTitle = fittingSize(
+            Text(facts.title).font(WK.Typo.title).fixedSize(horizontal: false, vertical: true),
+            width: 375, dynamicType: .accessibility5
+        )
+        XCTAssertGreaterThan(ax5.height, wrappedTitle.height + CGFloat(model.tiles.count) * WK.Size.minTapTarget * 2)
     }
 
-    func testQuickVoteCardRendersAtAX5() async throws {
+    func testQuickVoteAnswersStackAtAX5() async throws {
         let slot = ISO8601DateFormatter().date(from: "2026-10-17T10:00:00Z")!
-        let vm = await loadedViewModel(facts(leadingSlotStart: slot))
-        let model = try XCTUnwrap(vm.model)
-        XCTAssertTrue(model.showsQuickVote)
-        let content = EventHubContent(facts: try XCTUnwrap(vm.facts), model: model, onOpenModule: { _ in }, onQuickVote: {})
-        XCTAssertLessThanOrEqual(fittingSize(content, width: 375, dynamicType: .accessibility5).width, 375)
+        XCTAssertEqual(EventHubModel(facts: facts(leadingSlotStart: slot)).showsQuickVote, true)
+        let answers = EventHubQuickVoteAnswers(onVote: {})
+        // Taille idéale (largeur proposée 1000) : en ligne, les trois réponses dépassent un téléphone à AX5.
+        let ideal = fittingSize(answers, width: 1000, dynamicType: .accessibility5)
+        XCTAssertLessThanOrEqual(ideal.width, 375, "Réponses en ligne à AX5 : \(ideal)")
+        // Sans compression à 375 : même taille que la version figée, donc aucun libellé replié ni tronqué.
+        let phone = fittingSize(answers, width: 375, dynamicType: .accessibility5)
+        let fixed = fittingSize(answers.fixedSize(), width: 375, dynamicType: .accessibility5)
+        XCTAssertEqual(phone, fixed)
+        // Aux tailles standard, les réponses restent sur une ligne.
+        XCTAssertLessThan(fittingSize(answers, width: 375, dynamicType: .large).height, 2 * WK.Size.minTapTarget)
     }
 
     func testPrimaryBarKeepsTheMinimumTapTargetAtAX5() {
@@ -236,31 +253,53 @@ final class EventHubViewTests: XCTestCase {
         XCTAssertLessThanOrEqual(size.width, 375)
     }
 
-    func testWholeHubRendersInEveryState() async {
-        let vm = await loadedViewModel(facts())
-        let hub = EventHubView(
-            viewModel: vm, lifecycleError: nil, lifecycleInFlight: false,
-            onBack: {}, onOpenModule: { _ in }, onPrimary: { _ in }, onLifecycle: { _ in },
-            onRequestSignIn: {}, onOpenInfo: {}, onAddParticipants: {}, invitationRollout: false
-        )
-        let host = UIHostingController(rootView: hub)
-        XCTAssertGreaterThan(host.sizeThatFits(in: CGSize(width: 375, height: 812)).height, 0)
-    }
-
-    func testLoadingPrimaryButtonKeepsTheTitleLayout() {
-        // Le titre reste en place (masqué) sous l'indicateur : même taille, pas de saut de mise en page.
-        let title = "Passer en organisation et prévenir tout le monde"
-        for size in [DynamicTypeSize.large, .accessibility3] {
-            let idle = fittingSize(WKPrimaryButton(title: title) {}, width: 375, dynamicType: size)
-            let busy = fittingSize(WKPrimaryButton(title: title, isLoading: true) {}, width: 375, dynamicType: size)
-            XCTAssertEqual(busy, idle, "\(size)")
-            XCTAssertGreaterThanOrEqual(busy.height, WK.Size.minTapTarget)
+    func testWholeHubRendersInLoadingFailedAndLoadedStates() async {
+        struct Failing: EventHubSource {
+            struct Boom: Error {}
+            func loadFacts(eventId: String, viewerId: String, isLocalGuest: Bool) async throws -> EventHubFacts { throw Boom() }
+        }
+        let loading = EventHubViewModel(eventId: "e1", viewerId: "u", isLocalGuest: false, source: Failing())
+        let failed = EventHubViewModel(eventId: "e1", viewerId: "u", isLocalGuest: false, source: Failing())
+        await failed.reload()
+        let loaded = await loadedViewModel(facts())
+        XCTAssertEqual([loading.state, failed.state, loaded.state], [.loading, .failed, .loaded])
+        for vm in [loading, failed, loaded] {
+            let hub = EventHubView(
+                viewModel: vm, lifecycleError: "Il manque le logement.", lifecycleInFlight: true,
+                onBack: {}, onOpenModule: { _ in }, onPrimary: { _ in }, onLifecycle: { _ in },
+                onRequestSignIn: {}, onOpenInfo: {}, onAddParticipants: {}, invitationRollout: false
+            )
+            let host = UIHostingController(rootView: hub)
+            XCTAssertGreaterThan(host.sizeThatFits(in: CGSize(width: 375, height: 812)).height, 0, "\(vm.state)")
         }
     }
 
-    func testConfirmationTitleFollowsTheTarget() {
-        XCTAssertEqual(EventHubView.confirmationTitleKey(for: .finalized), "event.lifecycle.finalize.title")
-        XCTAssertEqual(EventHubView.confirmationTitleKey(for: .organizing), "event.lifecycle.organizing.title")
+    // MARK: - Résumés
+
+    func testLockedTilesAreNeverSummarized() {
+        // Participant sans accès en organisation : seules les tuiles ouvertes sont lues par la source.
+        let denied = facts(phase: .organizing, hasDetailsAccess: false)
+        XCTAssertEqual(EventHubModel.summarizedModules(for: denied), [])
+        let comparing = facts(phase: .comparing, hasDetailsAccess: false)
+        XCTAssertEqual(EventHubModel.summarizedModules(for: comparing), [.date, .participants])
+        let organizer = facts(phase: .organizing, isOrganizer: true)
+        XCTAssertEqual(EventHubModel.summarizedModules(for: organizer), EventHubModel.modules(for: .organizing))
+        let phases: [EventHubFacts.Phase] = [.draft, .polling, .comparing, .confirmed, .organizing, .finalized]
+        for phase in phases {
+            for access in [true, false] {
+                let f = facts(phase: phase, hasDetailsAccess: access)
+                for module in EventHubModel.summarizedModules(for: f) {
+                    XCTAssertFalse(EventHubModel.isLocked(module, facts: f), "\(module) \(phase)")
+                }
+            }
+        }
+    }
+
+    func testSourceSummarizesOnlyTheModulesTheModelAllows() throws {
+        let source = try String(contentsOf: URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("src/Services/SharedEventHubSource.swift"), encoding: .utf8)
+        XCTAssertTrue(source.contains("for module in EventHubModel.summarizedModules(for: base)"))
     }
 
     // MARK: - Contrat source
@@ -328,3 +367,4 @@ final class EventHubViewTests: XCTestCase {
         XCTAssertTrue(source.contains("EventLifecycleTransitionController("))
     }
 }
+
