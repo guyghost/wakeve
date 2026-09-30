@@ -1987,19 +1987,15 @@ struct AuthenticatedView: View {
     }
 
     private func isParticipantConfirmed(for event: Event) -> Bool? {
+        // Organisateur, ou participant accepté avec la date retenue validée (règle partagée avec le hub).
         if event.organizerId == userId {
             return true
         }
-
-        guard let participantRecords = repository.getParticipantRecords(eventId: event.id), !participantRecords.isEmpty else {
-            return false
-        }
-
-        let participantAccessStates = participantRecords.map { record in
-            ParticipantAccessMapper.shared.fromRepositoryRecord(record: record)
-        }
-        let rows = ParticipantManagementPresentationMapper.shared.map(participants: participantAccessStates)
-        return rows.first { $0.userIdOrEmail == userId }?.canAccessOrganizationDetails ?? false
+        return OrganizationDetailsAccess.isGranted(
+            organizerId: event.organizerId,
+            viewerId: userId,
+            records: repository.getParticipantRecords(eventId: event.id)
+        )
     }
 
     private func canAccessOrganizationDetails(for event: Event) -> Bool {
