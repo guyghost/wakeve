@@ -172,4 +172,44 @@ final class RedesignShellTests: XCTestCase {
         // Le contenu de l'accueil défile sous l'en-tête : sans fond, il se superpose au logotype.
         XCTAssertTrue(slice.contains(".background(WK.Colors.canvas.ignoresSafeArea(edges: .top))"))
     }
+
+    // MARK: - Hub d'événement (couche 4)
+
+    func testEventDetailOpensTheHubUnderTheFlagAndKeepsTheLegacyDetail() throws {
+        let source = try contentViewSource()
+        guard let start = source.range(of: "case .eventDetail:"),
+              let end = source.range(of: "case .eventAudience:", range: start.upperBound..<source.endIndex) else {
+            return XCTFail("Tranche case .eventDetail introuvable")
+        }
+        let slice = String(source[start.upperBound..<end.lowerBound])
+        XCTAssertTrue(slice.contains("if iosRedesign2026, let event = selectedEvent"), "Le hub est prioritaire sous le flag.")
+        XCTAssertTrue(slice.contains("eventHubContent(for: event)"))
+        for anchor in ["EventDetailView(", "artwork:", "onCanvasAction:", "InvitationExperienceRouteRequestCanvasAction"] {
+            XCTAssertTrue(slice.contains(anchor), "Le détail legacy reste intact : \(anchor)")
+        }
+        XCTAssertFalse(slice.contains("ArtworkNone.shared"))
+        XCTAssertFalse(slice.contains("invitationQAArtwork"))
+        XCTAssertFalse(slice.contains("EventHubContainer("), "Les callbacks du hub vivent hors de la tranche legacy.")
+    }
+
+    func testHubCallbacksReuseTheExistingRoutes() throws {
+        let source = try contentViewSource()
+        XCTAssertTrue(source.contains("@State private var eventHubReloadToken = 0"))
+        guard let start = source.range(of: "private func eventHubContent(for event: Event)") else {
+            return XCTFail("eventHubContent introuvable")
+        }
+        let body = String(source[start.lowerBound...].prefix(4000))
+        XCTAssertTrue(body.contains("EventHubContainer("))
+        XCTAssertTrue(body.contains("reloadToken: eventHubReloadToken"))
+        XCTAssertTrue(body.contains("isLocalGuest: authStateManager.isCurrentSessionGuest"))
+        XCTAssertTrue(body.contains("eventHubReloadToken += 1"), "Une transition réussie recharge le hub.")
+        XCTAssertTrue(body.contains("authStateManager.signOut()"), "Même entrée de connexion que le détail legacy.")
+        XCTAssertTrue(body.contains("InvitationExperienceRouteRequestParticipants.shared"), "Même route que onManageParticipants.")
+        XCTAssertTrue(body.contains("currentView = .eventInformation"))
+        XCTAssertTrue(body.contains(".id(event.id)"), "Un autre événement recrée le modèle de vue.")
+        XCTAssertTrue(body.contains("case .date:"))
+        XCTAssertTrue(body.contains("currentView = .pollVoting"))
+        XCTAssertTrue(body.contains("currentView = .paymentPot"))
+        XCTAssertTrue(body.contains("editDraftFromHome(event.id)"), "Ajouter des dates reprend le chemin brouillon de l'accueil.")
+    }
 }

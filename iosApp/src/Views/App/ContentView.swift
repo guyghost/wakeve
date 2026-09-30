@@ -200,6 +200,8 @@ struct AuthenticatedView: View {
     @State private var informationDeleteOwner: EventDetailViewModel?
     /// Rechargement de l'accueil de la refonte (couche 3, #47).
     @State private var eventsHomeReloadToken = 0
+    /// Rechargement du hub d'événement de la refonte (couche 4, #47) après une transition de cycle de vie.
+    @State private var eventHubReloadToken = 0
 #if DEBUG
     @State private var invitationQALibraryReloadGeneration = 0
     @State private var invitationQALibraryIsSeedReady =
@@ -595,6 +597,75 @@ struct AuthenticatedView: View {
         }
     }
 
+    // MARK: - Hub d'événement de la refonte (couche 4, #47)
+
+    /// Hub sous `iosRedesign2026` ; mêmes routes et gardes que le détail legacy (`EventDetailView`).
+    private func eventHubContent(for event: Event) -> some View {
+        EventHubContainer(
+            eventId: event.id,
+            userId: userId,
+            isLocalGuest: authStateManager.isCurrentSessionGuest,
+            repository: repository,
+            reloadToken: eventHubReloadToken,
+            onBack: {
+                invitationLandingEventId = nil
+                currentView = .eventList
+            },
+            onOpenModule: { module in openHubModule(module, for: event) },
+            onPrimary: { primary in handleHubPrimary(primary, for: event) },
+            onLifecycleChanged: {
+                selectedEvent = repository.getEvent(id: event.id)
+                eventHubReloadToken += 1
+            },
+            onRequestSignIn: {
+                // Même entrée que le détail legacy : quitter le mode invité ramène à LoginView.
+                authStateManager.signOut()
+            },
+            onOpenInfo: { currentView = .eventInformation },
+            onAddParticipants: {
+                routeInvitationExperience(InvitationExperienceRouteRequestParticipants.shared, for: event)
+            }
+        )
+        // Un autre événement ouvert depuis le hub (lien profond) recrée son modèle de vue.
+        .id(event.id)
+    }
+
+    /// Tuiles du hub → écrans existants ; leurs gardes d'accès s'appliquent en plus du verrou de la tuile.
+    /// La tuile Date passe par `onPrimary(.vote)` quand un vote est attendu (`EventHubView.opensVoting`).
+    private func openHubModule(_ module: HubModule, for event: Event) {
+        switch module {
+        case .date:
+            if event.status == .draft {
+                editDraftFromHome(event.id)
+            } else {
+                currentView = .pollResults
+            }
+        case .location, .scenarios: currentView = .scenarioList
+        case .participants:
+            routeInvitationExperience(InvitationExperienceRouteRequestParticipants.shared, for: event)
+        case .budget: currentView = .budgetOverview
+        case .transport: currentView = .transportPlanning
+        case .accommodation: currentView = .accommodation
+        case .meals: currentView = .mealPlanning
+        case .equipment: currentView = .equipmentChecklist
+        case .activities: currentView = .activityPlanning
+        case .meetings: currentView = .meetingList
+        case .photos: currentView = .eventPhotos
+        case .recap: currentView = .eventInformation
+        case .payments: currentView = .paymentPot
+        }
+    }
+
+    /// Actions principales de navigation ; organiser/finaliser/se connecter sont confirmés dans le hub.
+    private func handleHubPrimary(_ primary: EventHubModel.Primary, for event: Event) {
+        switch primary {
+        case .vote: currentView = .pollVoting
+        case .pollResults, .confirmDate: currentView = .pollResults
+        case .addDates: editDraftFromHome(event.id)
+        case .organize, .finalize, .signInToFinalize, .none: break
+        }
+    }
+
     /// Réutilise la confirmation de suppression existante (`pendingInformationDeleteEvent`).
     private func requestDeleteFromHome(_ id: String) {
         guard let event = repository.getEvent(id: id) else { return }
@@ -667,7 +738,9 @@ struct AuthenticatedView: View {
             }
             
         case .eventDetail:
-            if let event = selectedEvent,
+            if iosRedesign2026, let event = selectedEvent {
+                eventHubContent(for: event)
+            } else if let event = selectedEvent,
                let artwork = invitationExperienceProjectionRepository.artwork(eventId: event.id) {
                 EventDetailView(
                     event: event,
