@@ -202,6 +202,10 @@ struct AuthenticatedView: View {
     @State private var eventsHomeReloadToken = 0
     /// Rechargement du hub d'événement de la refonte (couche 4, #47) après une transition de cycle de vie.
     @State private var eventHubReloadToken = 0
+    /// Module du hub ouvert en sheet (couche 5a, #47).
+    @State private var presentedHubModule: HubModule?
+    /// Écran legacy à ouvrir une fois la sheet fermée (« Plein écran », « Commentaires »).
+    @State private var pendingHubFallback: AppView?
 #if DEBUG
     @State private var invitationQALibraryReloadGeneration = 0
     @State private var invitationQALibraryIsSeedReady =
@@ -673,6 +677,9 @@ struct AuthenticatedView: View {
         )
         // Un autre événement ouvert depuis le hub (lien profond) recrée son modèle de vue.
         .id(event.id)
+        .sheet(item: $presentedHubModule, onDismiss: finishHubModuleSheet) { module in
+            hubModuleSheet(module, for: event)
+        }
     }
 
     /// Tuiles du hub → écrans existants ; leurs gardes d'accès s'appliquent en plus du verrou de la tuile.
@@ -706,6 +713,47 @@ struct AuthenticatedView: View {
         case .invitationParticipants:
             // Même route que `onManageParticipants` du détail legacy.
             routeInvitationExperience(InvitationExperienceRouteRequestParticipants.shared, for: event)
+        case .sheet(let module):
+            selectedEvent = event
+            // Même garde que le `case` legacy ; sans accès, son écran affiche le refus comme avant.
+            switch EventHubRouting.sheetRoute(for: module, accessGranted: canAccessDetailedPlanning(for: event)) {
+            case .sheet?: presentedHubModule = module
+            case .screen(let view)?: currentView = view
+            default: break
+            }
+        }
+    }
+
+    /// Sheet d'un module du hub ; les replis passent par `pendingHubFallback`, appliqué après la fermeture.
+    private func hubModuleSheet(_ module: HubModule, for event: Event) -> some View {
+        HubModuleSheetView(
+            module: module,
+            eventId: event.id,
+            viewerId: userId,
+            source: SharedEventModuleSheetSource(),
+            mealParticipants: module == .meals ? participantModels(for: event) : [],
+            onClose: { presentedHubModule = nil },
+            onOpenFullScreen: {
+                pendingHubFallback = EventHubRouting.fullScreenFallback(for: module)
+                presentedHubModule = nil
+            },
+            onOpenComments: {
+                if let section = EventHubRouting.commentSection(for: module) {
+                    selectedCommentSection = section
+                    pendingHubFallback = .comments
+                }
+                presentedHubModule = nil
+            }
+        )
+    }
+
+    /// Fermeture de la sheet : repli vers l'écran legacy demandé, sinon rechargement du hub.
+    private func finishHubModuleSheet() {
+        if let view = pendingHubFallback {
+            pendingHubFallback = nil
+            currentView = view
+        } else {
+            eventHubReloadToken += 1
         }
     }
 

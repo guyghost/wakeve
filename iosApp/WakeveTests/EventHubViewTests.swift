@@ -154,13 +154,20 @@ final class EventHubViewTests: XCTestCase {
     func testModuleScreens() {
         let expected: [HubModule: AppView] = [
             .location: .scenarioList, .scenarios: .scenarioList, .budget: .budgetOverview,
-            .transport: .transportPlanning, .accommodation: .accommodation, .meals: .mealPlanning,
-            .equipment: .equipmentChecklist, .activities: .activityPlanning, .meetings: .meetingList,
-            .photos: .eventPhotos, .payments: .paymentPot
+            .transport: .transportPlanning, .meetings: .meetingList, .payments: .paymentPot
+        ]
+        // Couche 5a : ces modules s'ouvrent en sheet, l'écran legacy reste le repli plein écran.
+        let sheets: [HubModule: AppView] = [
+            .accommodation: .accommodation, .meals: .mealPlanning, .equipment: .equipmentChecklist,
+            .activities: .activityPlanning, .photos: .eventPhotos
         ]
         for rollout in [true, false] {
             for (module, view) in expected {
                 XCTAssertEqual(EventHubRouting.route(for: module, phase: .organizing, invitationRollout: rollout), .screen(view))
+            }
+            for (module, view) in sheets {
+                XCTAssertEqual(EventHubRouting.route(for: module, phase: .organizing, invitationRollout: rollout), .sheet(module))
+                XCTAssertEqual(EventHubRouting.fullScreenFallback(for: module), view)
             }
         }
     }

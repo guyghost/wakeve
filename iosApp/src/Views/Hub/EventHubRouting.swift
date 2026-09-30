@@ -8,6 +8,8 @@ enum EventHubRoute: Equatable {
     case editDraft
     /// Route participants du routeur invitation (`EventAudienceView`, rollout invitation).
     case invitationParticipants
+    /// Sheet de module (couche 5a) ; l'écran legacy reste le repli plein écran.
+    case sheet(HubModule)
 }
 
 /// Aiguillage pur des actions du hub selon le rollout invitation (`iosInvitationExperienceV1`).
@@ -28,13 +30,42 @@ enum EventHubRouting {
         case .location, .scenarios: return .screen(.scenarioList)
         case .budget: return .screen(.budgetOverview)
         case .transport: return .screen(.transportPlanning)
-        case .accommodation: return .screen(.accommodation)
-        case .meals: return .screen(.mealPlanning)
-        case .equipment: return .screen(.equipmentChecklist)
-        case .activities: return .screen(.activityPlanning)
+        case .accommodation, .meals, .equipment, .activities, .photos: return .sheet(module)
         case .meetings: return .screen(.meetingList)
-        case .photos: return .screen(.eventPhotos)
         case .payments: return .screen(.paymentPot)
+        }
+    }
+
+    /// Modules convertis en sheet (couche 5a, #47).
+    static let sheetModules: Set<HubModule> = [.meals, .equipment, .activities, .accommodation, .photos]
+
+    /// Écran legacy d'un module en sheet (« Plein écran », ou refus d'accès affiché par son `case`).
+    static func fullScreenFallback(for module: HubModule) -> AppView? {
+        switch module {
+        case .meals: return .mealPlanning
+        case .equipment: return .equipmentChecklist
+        case .activities: return .activityPlanning
+        case .accommodation: return .accommodation
+        case .photos: return .eventPhotos
+        default: return nil
+        }
+    }
+
+    /// Sheet seulement si la garde du `case` legacy (`canAccessDetailedPlanning`) est satisfaite ;
+    /// sinon l'écran legacy, qui affiche son refus d'accès (comportement d'avant la couche 5a).
+    static func sheetRoute(for module: HubModule, accessGranted: Bool) -> EventHubRoute? {
+        if accessGranted { return .sheet(module) }
+        return fullScreenFallback(for: module).map(EventHubRoute.screen)
+    }
+
+    /// Section de commentaires de l'écran legacy du module (même valeur que son `onOpenComments`).
+    static func commentSection(for module: HubModule) -> CommentSectionType? {
+        switch module {
+        case .meals: return .meal
+        case .equipment: return .equipment
+        case .activities: return .activity
+        case .accommodation: return .accommodation
+        default: return nil
         }
     }
 

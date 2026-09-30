@@ -7,6 +7,11 @@ enum HubModule: String, CaseIterable, Equatable {
     case recap, photos, payments
 }
 
+/// Présentation en sheet (`.sheet(item:)`, couche 5a).
+extension HubModule: Identifiable {
+    var id: String { rawValue }
+}
+
 /// Faits sur un événement, vus par l'utilisateur courant (couche 4, #47).
 /// Calculés par `EventHubSource` hors du fil principal ; aucune lecture en base ici.
 struct EventHubFacts: Equatable {
