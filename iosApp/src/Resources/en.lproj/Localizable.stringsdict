@@ -178,5 +178,69 @@
             <string>%d scenarios to compare</string>
         </dict>
     </dict>
+    <key>hub.sheet.meals.unassigned_count</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@count@</string>
+        <key>count</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>one</key>
+            <string>%d meal without a host</string>
+            <key>other</key>
+            <string>%d meals without a host</string>
+        </dict>
+    </dict>
+    <key>hub.sheet.meals.people_count</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@count@</string>
+        <key>count</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>one</key>
+            <string>%d person</string>
+            <key>other</key>
+            <string>%d people</string>
+        </dict>
+    </dict>
+    <key>hub.sheet.equipment.unassigned_count</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@count@</string>
+        <key>count</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>one</key>
+            <string>%d item nobody is bringing</string>
+            <key>other</key>
+            <string>%d items nobody is bringing</string>
+        </dict>
+    </dict>
+    <key>hub.sheet.activities.registered_count</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@count@</string>
+        <key>count</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>one</key>
+            <string>%d signed up</string>
+            <key>other</key>
+            <string>%d signed up</string>
+        </dict>
+    </dict>
 </dict>
 </plist>

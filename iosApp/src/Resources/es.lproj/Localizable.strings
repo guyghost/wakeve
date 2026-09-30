@@ -2341,3 +2341,16 @@
 "hub.quick_vote.hint" = "Abre la votación";
 "hub.menu.info" = "Información";
 "hub.menu.more" = "Más opciones";
+
+/* Sheets de modules du hub (couche 5a, #47) */
+"hub.sheet.meals.progress_format" = "%1$d/%2$d listas";
+"hub.sheet.meals.empty" = "Aún no hay comidas previstas.";
+"hub.sheet.meals.add" = "Añadir una comida";
+"hub.sheet.equipment.empty" = "Aún no hay material en la lista.";
+"hub.sheet.equipment.quantity_format" = "Cantidad: %d";
+"hub.sheet.activities.empty" = "Aún no hay actividades previstas.";
+"hub.sheet.accommodation.empty" = "Aún no hay alojamientos propuestos.";
+"hub.sheet.accommodation.none_selected" = "Aún no hay alojamiento elegido.";
+"hub.sheet.accommodation.price_per_night_format" = "%@ / noche";
+"hub.sheet.open_full" = "Pantalla completa";
+"hub.sheet.comments" = "Comentarios";

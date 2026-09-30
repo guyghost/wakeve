@@ -178,5 +178,69 @@
             <string>%d scénarios à comparer</string>
         </dict>
     </dict>
+    <key>hub.sheet.meals.unassigned_count</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@count@</string>
+        <key>count</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>one</key>
+            <string>%d repas sans responsable</string>
+            <key>other</key>
+            <string>%d repas sans responsable</string>
+        </dict>
+    </dict>
+    <key>hub.sheet.meals.people_count</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@count@</string>
+        <key>count</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>one</key>
+            <string>%d personne</string>
+            <key>other</key>
+            <string>%d personnes</string>
+        </dict>
+    </dict>
+    <key>hub.sheet.equipment.unassigned_count</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@count@</string>
+        <key>count</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>one</key>
+            <string>%d objet sans personne</string>
+            <key>other</key>
+            <string>%d objets sans personne</string>
+        </dict>
+    </dict>
+    <key>hub.sheet.activities.registered_count</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@count@</string>
+        <key>count</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>one</key>
+            <string>%d inscrit</string>
+            <key>other</key>
+            <string>%d inscrits</string>
+        </dict>
+    </dict>
 </dict>
 </plist>

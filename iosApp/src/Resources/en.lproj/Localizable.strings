@@ -2339,3 +2339,16 @@
 "hub.quick_vote.hint" = "Opens the vote";
 "hub.menu.info" = "Event info";
 "hub.menu.more" = "More options";
+
+/* Sheets de modules du hub (couche 5a, #47) */
+"hub.sheet.meals.progress_format" = "%1$d/%2$d ready";
+"hub.sheet.meals.empty" = "No meals planned yet.";
+"hub.sheet.meals.add" = "Add a meal";
+"hub.sheet.equipment.empty" = "No gear listed yet.";
+"hub.sheet.equipment.quantity_format" = "Quantity: %d";
+"hub.sheet.activities.empty" = "No activities planned yet.";
+"hub.sheet.accommodation.empty" = "No places to stay suggested yet.";
+"hub.sheet.accommodation.none_selected" = "No place to stay chosen yet.";
+"hub.sheet.accommodation.price_per_night_format" = "%@ / night";
+"hub.sheet.open_full" = "Full screen";
+"hub.sheet.comments" = "Comments";

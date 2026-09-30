@@ -2363,3 +2363,16 @@
 "hub.quick_vote.hint" = "Ouvre le vote";
 "hub.menu.info" = "Infos de l'événement";
 "hub.menu.more" = "Plus d'options";
+
+/* Sheets de modules du hub (couche 5a, #47) */
+"hub.sheet.meals.progress_format" = "%1$d/%2$d prêts";
+"hub.sheet.meals.empty" = "Aucun repas prévu pour l'instant.";
+"hub.sheet.meals.add" = "Ajouter un repas";
+"hub.sheet.equipment.empty" = "Aucun matériel listé pour l'instant.";
+"hub.sheet.equipment.quantity_format" = "Quantité : %d";
+"hub.sheet.activities.empty" = "Aucune activité prévue pour l'instant.";
+"hub.sheet.accommodation.empty" = "Aucun hébergement proposé pour l'instant.";
+"hub.sheet.accommodation.none_selected" = "Aucun hébergement retenu pour l'instant.";
+"hub.sheet.accommodation.price_per_night_format" = "%@ / nuit";
+"hub.sheet.open_full" = "Plein écran";
+"hub.sheet.comments" = "Commentaires";
