@@ -85,6 +85,27 @@ struct WKGallery: View {
     WKGallery().environment(\._colorSchemeContrast, .increased)
 }
 
+#Preview("Sheet de module") {
+    Color.clear.sheet(isPresented: .constant(true)) {
+        WKModuleSheet(
+            title: "Repas",
+            status: .init(text: "2/5 prêts", status: .pending),
+            missing: "3 repas sans responsable",
+            primary: (title: "Ajouter un repas", action: {}),
+            secondary: [
+                .init(systemImage: "arrow.up.left.and.arrow.down.right", label: "Plein écran", accessibilityID: "full") {},
+                .init(systemImage: "bubble.left", label: "Commentaires", accessibilityID: "comments") {}
+            ],
+            onClose: {}
+        ) {
+            WKCard(style: .inset) {
+                Text("Barbecue du samedi soir").font(WK.Typo.headline).foregroundStyle(WK.Colors.textPrimary)
+                Text("sam. 3 oct. · 19:30").font(WK.Typo.caption).foregroundStyle(WK.Colors.textMuted)
+            }
+        }
+    }
+}
+
 #Preview("Mood immersif") {
     let mood = WK.Mood(palette: .palette(for: .evening))
     return VStack(alignment: .leading, spacing: WK.Space.xs) {
