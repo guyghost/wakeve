@@ -55,7 +55,6 @@ struct WKModuleSheet<Content: View>: View {
             )
         }
         .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
-        .background(WK.Colors.canvas.ignoresSafeArea())
         .presentationDetents(WKModuleSheetChrome.detents(for: dynamicTypeSize))
         .presentationDragIndicator(.visible)
         .presentationBackground(WK.Colors.canvas)

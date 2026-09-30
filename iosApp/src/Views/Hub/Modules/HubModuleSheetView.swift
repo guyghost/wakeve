@@ -51,12 +51,14 @@ struct HubModuleSheetView: View {
 
     @StateObject private var viewModel: HubModuleSheetViewModel
     @State private var showsMealForm = false
+    /// Participants lus à l'ouverture du formulaire, pas à chaque rendu.
+    @State private var formParticipants: [ParticipantModel] = []
 
     private let eventId: String
     /// Organisateur d'un événement non finalisé : barre d'ajout affichée dès la première image.
     private let canAddHint: Bool
-    /// Mêmes participants que le formulaire legacy (`participantModels(for:)`).
-    private let mealParticipants: [ParticipantModel]
+    /// Mêmes participants que le formulaire legacy (`participantModels(for:)`), lus à la demande.
+    private let mealParticipants: () -> [ParticipantModel]
     let onClose: () -> Void
     let onOpenFullScreen: () -> Void
     let onOpenComments: () -> Void
@@ -67,7 +69,7 @@ struct HubModuleSheetView: View {
         viewerId: String,
         source: EventModuleSheetSource,
         canAddHint: Bool,
-        mealParticipants: [ParticipantModel],
+        mealParticipants: @escaping () -> [ParticipantModel],
         onClose: @escaping () -> Void,
         onOpenFullScreen: @escaping () -> Void,
         onOpenComments: @escaping () -> Void
@@ -134,7 +136,10 @@ struct HubModuleSheetView: View {
             viewModel: viewModel,
             canAddHint: canAddHint,
             onClose: onClose,
-            onAdd: { showsMealForm = true },
+            onAdd: {
+                formParticipants = mealParticipants()
+                showsMealForm = true
+            },
             onOpenFullScreen: onOpenFullScreen,
             onOpenComments: onOpenComments
         )
@@ -143,7 +148,7 @@ struct HubModuleSheetView: View {
             // Si le formulaire écrit un jour en base, la liste se met à jour ; les ajouts locaux restent.
             Task { await viewModel.reload() }
         }) {
-            MealFormSheet(eventId: eventId, meal: nil, participants: mealParticipants) { meal in
+            MealFormSheet(eventId: eventId, meal: nil, participants: formParticipants) { meal in
                 viewModel.addMeal(Self.rawMeal(from: meal))
                 showsMealForm = false
             }

@@ -135,6 +135,90 @@ final class HubModuleSheetViewTests: XCTestCase {
         XCTAssertNil(failed.data)
     }
 
+    /// Source dont chaque appel attend d'être libéré par le test, dans l'ordre choisi.
+    private final class GatedSource: EventModuleSheetSource, @unchecked Sendable {
+        private let lock = NSLock()
+        private var waiting: [CheckedContinuation<HubModuleSheetData, Error>] = []
+
+        var pendingCount: Int { lock.withLock { waiting.count } }
+
+        func load(module: HubModule, eventId: String, viewerId: String) async throws -> HubModuleSheetData {
+            try await withCheckedThrowingContinuation { continuation in
+                lock.withLock { waiting.append(continuation) }
+            }
+        }
+
+        func resume(_ index: Int, with result: Result<HubModuleSheetData, Error>) {
+            let continuation = lock.withLock { waiting[index] }
+            continuation.resume(with: result)
+        }
+    }
+
+    private func waitUntil(_ condition: @escaping () -> Bool) async {
+        for _ in 0..<500 where !condition() {
+            await Task.yield()
+            try? await Task.sleep(nanoseconds: 1_000_000)
+        }
+    }
+
+    private func mealsData(_ meals: [HubModuleSheetRaw.Meal]) -> HubModuleSheetData {
+        HubModuleSheetData.make(raw: .meals(meals), isOrganizer: true, isReadOnly: false, pendingSync: false, locale: fr)
+    }
+
+    func testAStaleLoadNeverOverwritesTheLatestOne() async {
+        let source = GatedSource()
+        let vm = HubModuleSheetViewModel(module: .meals, eventId: "e", viewerId: "u", source: source)
+        let first = Task { await vm.reload() }
+        await waitUntil { source.pendingCount == 1 }
+        let second = Task { await vm.reload() }
+        await waitUntil { source.pendingCount == 2 }
+        source.resume(1, with: .success(mealsData([raclette])))
+        await second.value
+        XCTAssertEqual(vm.data?.items.map(\.id), ["b"])
+        // Le premier chargement répond en retard, puis en échec : ni ses données ni son échec ne s'affichent.
+        source.resume(0, with: .success(mealsData([barbecue])))
+        await first.value
+        XCTAssertEqual(vm.data?.items.map(\.id), ["b"], "Chargement périmé ignoré.")
+        XCTAssertEqual(vm.state, .loaded)
+    }
+
+    func testAStaleFailureIsIgnored() async {
+        let source = GatedSource()
+        let vm = HubModuleSheetViewModel(module: .meals, eventId: "e", viewerId: "u", source: source)
+        let first = Task { await vm.reload() }
+        await waitUntil { source.pendingCount == 1 }
+        let second = Task { await vm.reload() }
+        await waitUntil { source.pendingCount == 2 }
+        source.resume(0, with: .failure(Stub.Boom()))
+        await first.value
+        XCTAssertEqual(vm.state, .loading, "L'échec d'un chargement périmé n'affiche pas d'erreur.")
+        source.resume(1, with: .success(mealsData([raclette])))
+        await second.value
+        XCTAssertEqual(vm.state, .loaded)
+    }
+
+    func testCancellationKeepsTheCurrentState() async {
+        let source = GatedSource()
+        let vm = HubModuleSheetViewModel(module: .meals, eventId: "e", viewerId: "u", source: source)
+        let cancelled = Task { await vm.reload() }
+        await waitUntil { source.pendingCount == 1 }
+        source.resume(0, with: .failure(CancellationError()))
+        await cancelled.value
+        XCTAssertEqual(vm.state, .loading, "Sheet fermée pendant le chargement : pas d'état d'échec.")
+        XCTAssertNil(vm.data)
+
+        let reload = Task { await vm.reload() }
+        await waitUntil { source.pendingCount == 2 }
+        source.resume(1, with: .success(mealsData([barbecue])))
+        await reload.value
+        let again = Task { await vm.reload() }
+        await waitUntil { source.pendingCount == 3 }
+        source.resume(2, with: .failure(CancellationError()))
+        await again.value
+        XCTAssertEqual(vm.state, .loaded)
+        XCTAssertEqual(vm.data?.items.map(\.id), ["a"], "Les données affichées restent.")
+    }
+
     func testMealAddedLocallySurvivesAReload() async {
         let vm = HubModuleSheetViewModel(module: .meals, eventId: "e", viewerId: "u", source: Stub(raw: .meals([barbecue])))
         await vm.reload()
@@ -188,7 +272,7 @@ final class HubModuleSheetViewTests: XCTestCase {
         for anchor in ["WKModuleSheet(", "WKCard(style: .inset)", "WKStatusPill(", "WKAvatarStack(", "MealFormSheet(",
                        "arrow.up.left.and.arrow.down.right", "bubble.left", "hub.sheet.open_full", "hub.sheet.comments",
                        "hub.sheet.meals.add", "common.retry", ".task(id: eventId)",
-                       "canAddHint: canAddHint"] {
+                       "let mealParticipants: () -> [ParticipantModel]", "canAddHint: canAddHint"] {
             XCTAssertTrue(view.contains(anchor), anchor)
         }
         // Le conteneur garde ses enfants accessibles avant de recevoir son identifiant.
@@ -226,7 +310,7 @@ final class HubModuleSheetViewTests: XCTestCase {
         XCTAssertTrue(sheet.contains("selectedCommentSection = section"))
         XCTAssertTrue(sheet.contains("hubSheet.requestFallback(.comments)"))
         XCTAssertTrue(sheet.contains("hubSheet.close()"))
-        XCTAssertTrue(sheet.contains("participantModels(for: event)"), "Mêmes participants que le formulaire legacy.")
+        XCTAssertTrue(sheet.contains("mealParticipants: { participantModels(for: event) }"), "Mêmes participants, lus à l'ouverture du formulaire.")
         XCTAssertTrue(sheet.contains("canAddHint: event.organizerId == userId && !isFinalizedOrganizationState(event)"))
     }
 

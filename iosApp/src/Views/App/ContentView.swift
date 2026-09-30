@@ -750,7 +750,8 @@ struct AuthenticatedView: View {
             source: SharedEventModuleSheetSource(),
             // Même règle que le `case` legacy : organisateur d'un événement non finalisé.
             canAddHint: event.organizerId == userId && !isFinalizedOrganizationState(event),
-            mealParticipants: module == .meals ? participantModels(for: event) : [],
+            // Lus à l'ouverture du formulaire seulement.
+            mealParticipants: { participantModels(for: event) },
             onClose: { hubSheet.close() },
             onOpenFullScreen: {
                 if let view = EventHubRouting.fullScreenFallback(for: module) {

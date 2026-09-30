@@ -161,7 +161,8 @@ struct HubModuleSheetData: Equatable {
                     names: item.assigneeName.map { [$0] } ?? []
                 )
             }
-            let unassigned = equipment.filter { $0.statusName != "CANCELLED" && equipmentStatus($0) == .pending }.count
+            // `equipmentStatus` ne renvoie jamais `.pending` pour un objet annulé.
+            let unassigned = equipment.filter { equipmentStatus($0) == .pending }.count
             missing = equipment.isEmpty
                 ? text.format("hub.sheet.equipment.empty")
                 : (unassigned > 0 ? text.plural("hub.sheet.equipment.unassigned_count", unassigned) : nil)
@@ -304,6 +305,19 @@ struct HubModuleSheetData: Equatable {
     private struct SheetText {
         let locale: Locale
         let calendar: Calendar
+        /// Un seul analyseur de date par construction de sheet.
+        private let dayFormatter: DateFormatter
+
+        init(locale: Locale, calendar: Calendar) {
+            self.locale = locale
+            self.calendar = calendar
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.calendar = calendar
+            formatter.timeZone = calendar.timeZone
+            formatter.dateFormat = "yyyy-MM-dd"
+            dayFormatter = formatter
+        }
 
         func item(
             module: HubModule, id: String, title: String, detail: String?,
@@ -335,18 +349,9 @@ struct HubModuleSheetData: Equatable {
 
         /// « sam. 3 oct. · 19:30 » ; date illisible → valeur brute.
         func when(date: String, time: String) -> String? {
-            let day = Self.parseDay(date, calendar: calendar).map { HomeDateText.short($0, locale: locale, calendar: calendar) }
+            let day = dayFormatter.date(from: date).map { HomeDateText.short($0, locale: locale, calendar: calendar) }
                 ?? (date.isEmpty ? nil : date)
             return join([day, time.isEmpty ? nil : time])
-        }
-
-        static func parseDay(_ value: String, calendar: Calendar) -> Date? {
-            let formatter = DateFormatter()
-            formatter.locale = Locale(identifier: "en_US_POSIX")
-            formatter.calendar = calendar
-            formatter.timeZone = calendar.timeZone
-            formatter.dateFormat = "yyyy-MM-dd"
-            return formatter.date(from: value)
         }
     }
 }
