@@ -191,6 +191,28 @@ final class HubModuleSheetDataTests: XCTestCase {
         XCTAssertFalse(make(.activities([])).pendingSync)
     }
 
+    // MARK: - Conversion de la source (règles pures)
+
+    func testOnlyAFinalizedEventIsReadOnlyLikeTheLegacyScreens() {
+        XCTAssertTrue(SharedEventModuleSheetSource.isReadOnly(statusName: "FINALIZED"))
+        for status in ["DRAFT", "POLLING", "COMPARING", "CONFIRMED", "ORGANIZING"] {
+            XCTAssertFalse(SharedEventModuleSheetSource.isReadOnly(statusName: status), status)
+        }
+    }
+
+    func testNamesAreResolvedOncePerLoadAndFallBackToTheIdentifier() {
+        var lookups: [String] = []
+        var names = SharedEventModuleSheetSource.NameCache { id in
+            lookups.append(id)
+            return ["u1": "Léa Martin", "u2": "  "][id]
+        }
+        XCTAssertEqual(names.names(for: ["u1", "u2", "u3", "u1"]), ["Léa Martin", "u2", "u3", "Léa Martin"])
+        XCTAssertEqual(names.name(for: nil), nil)
+        XCTAssertEqual(names.name(for: ""), nil)
+        XCTAssertEqual(names.name(for: "u1"), "Léa Martin")
+        XCTAssertEqual(lookups, ["u1", "u2", "u3"], "Chaque identifiant n'est lu qu'une fois.")
+    }
+
     // MARK: - Localisation
 
     static let sheetStringKeys = [
