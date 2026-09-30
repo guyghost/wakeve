@@ -202,14 +202,80 @@ final class RedesignShellTests: XCTestCase {
         XCTAssertTrue(body.contains("EventHubContainer("))
         XCTAssertTrue(body.contains("reloadToken: eventHubReloadToken"))
         XCTAssertTrue(body.contains("isLocalGuest: authStateManager.isCurrentSessionGuest"))
+        XCTAssertTrue(body.contains("invitationRollout: invitationExperienceRolloutEnabled"))
         XCTAssertTrue(body.contains("eventHubReloadToken += 1"), "Une transition réussie recharge le hub.")
         XCTAssertTrue(body.contains("authStateManager.signOut()"), "Même entrée de connexion que le détail legacy.")
-        XCTAssertTrue(body.contains("InvitationExperienceRouteRequestParticipants.shared"), "Même route que onManageParticipants.")
         XCTAssertTrue(body.contains("currentView = .eventInformation"))
         XCTAssertTrue(body.contains(".id(event.id)"), "Un autre événement recrée le modèle de vue.")
-        XCTAssertTrue(body.contains("case .date:"))
-        XCTAssertTrue(body.contains("currentView = .pollVoting"))
-        XCTAssertTrue(body.contains("currentView = .paymentPot"))
+        // Aiguillage pur et testé (`EventHubRouting`), exécuté par un seul point d'entrée.
+        XCTAssertTrue(body.contains("EventHubRouting.route(for: module, phase:"))
+        XCTAssertTrue(body.contains("EventHubRouting.route(for: primary, invitationRollout:"))
+        XCTAssertTrue(body.contains("EventHubRouting.addParticipantsRoute("))
+        XCTAssertTrue(body.contains("case .screen(let view):"))
+        XCTAssertTrue(body.contains("InvitationExperienceRouteRequestParticipants.shared"), "Même route que onManageParticipants.")
         XCTAssertTrue(body.contains("editDraftFromHome(event.id)"), "Ajouter des dates reprend le chemin brouillon de l'accueil.")
+    }
+
+    // MARK: - Retour hors racine (couche 4)
+
+    func testBackRouteReturnsToTheParentScreen() {
+        XCTAssertEqual(RedesignBackRoute.destination(from: .budgetOverview, organizationAccess: true), .eventDetail)
+        XCTAssertEqual(RedesignBackRoute.destination(from: .budgetDetail, organizationAccess: true), .budgetOverview)
+        XCTAssertEqual(RedesignBackRoute.destination(from: .meetingList, organizationAccess: true), .eventDetail)
+        XCTAssertEqual(RedesignBackRoute.destination(from: .meetingDetail, organizationAccess: true), .meetingList)
+        XCTAssertEqual(RedesignBackRoute.destination(from: .paymentPot, organizationAccess: true), .eventDetail)
+        XCTAssertEqual(RedesignBackRoute.destination(from: .tricount, organizationAccess: true), .paymentPot)
+        XCTAssertEqual(RedesignBackRoute.destination(from: .eventAudience, organizationAccess: false), .eventDetail)
+    }
+
+    func testBackRouteStaysOffScreensThatAlreadyHaveABackControl() {
+        // Écrans avec leur propre retour (onBack/onDone/onReturn) ou racine : pas de second bouton.
+        for view in [AppView.eventList, .eventDetail, .eventCreation, .eventInformation, .eventArchive,
+                     .participantManagement, .pollVoting, .pollResults, .scenarioList, .accommodation,
+                     .mealPlanning, .equipmentChecklist, .activityPlanning, .transportPlanning, .eventPhotos] {
+            XCTAssertNil(RedesignBackRoute.destination(from: view, organizationAccess: true), "\(view)")
+        }
+        // Sans accès, ces écrans affichent `AccessDenied`, qui porte déjà son retour.
+        for view in [AppView.budgetOverview, .budgetDetail, .meetingList, .meetingDetail, .paymentPot, .tricount] {
+            XCTAssertNil(RedesignBackRoute.destination(from: view, organizationAccess: false), "\(view)")
+        }
+    }
+
+    func testScreensThatPushADetailHostTheBackInTheirOwnToolbar() throws {
+        // Un détail poussé (dépenses, réunion) remplace ce bouton par le retour système, sans superposition.
+        XCTAssertEqual(RedesignBackRoute.placement(for: .budgetOverview), .toolbar)
+        XCTAssertEqual(RedesignBackRoute.placement(for: .meetingList), .toolbar)
+        for view in [AppView.budgetDetail, .meetingDetail, .paymentPot, .tricount, .eventAudience] {
+            XCTAssertEqual(RedesignBackRoute.placement(for: view), .inset, "\(view)")
+        }
+        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        for file in ["src/Views/Budget/BudgetOverviewView.swift", "src/Views/Meeting/MeetingListView.swift"] {
+            let source = try String(contentsOf: root.appendingPathComponent(file), encoding: .utf8)
+            XCTAssertTrue(source.contains("@Environment(\\.redesignBackAction) private var redesignBackAction"), file)
+            XCTAssertTrue(source.contains("if let redesignBackAction {"), file)
+            XCTAssertTrue(source.contains("Button(action: redesignBackAction)"), file)
+        }
+    }
+
+    func testRedesignEventsZoneInstallsTheBackBarOutsideTheLegacyCases() throws {
+        let source = try contentViewSource()
+        guard let start = source.range(of: "private var redesignChrome: some View") else {
+            return XCTFail("redesignChrome introuvable")
+        }
+        let chrome = String(source[start.lowerBound...].prefix(1200))
+        XCTAssertTrue(chrome.contains("homeTabContent"))
+        XCTAssertTrue(chrome.contains(".safeAreaInset(edge: .top, spacing: 0)"), "Le retour ne recouvre pas le contenu de l'écran.")
+        XCTAssertTrue(chrome.contains("redesignBackBar"))
+        XCTAssertTrue(chrome.contains(".environment(\\.redesignBackAction, redesignToolbarBackAction)"))
+        guard let bar = source.range(of: "private var redesignBackDestination: AppView?") else {
+            return XCTFail("redesignBackDestination introuvable")
+        }
+        let barBody = String(source[bar.lowerBound...].prefix(1800))
+        XCTAssertTrue(barBody.contains("RedesignBackRoute.destination(from: currentView"))
+        XCTAssertTrue(barBody.contains("RedesignBackRoute.placement(for: currentView) == .inset"))
+        XCTAssertTrue(barBody.contains("RedesignBackRoute.placement(for: currentView) == .toolbar"))
+        XCTAssertTrue(barBody.contains("WKCircleButton("))
+        XCTAssertTrue(barBody.contains("String(localized: \"common.back\")"))
+        XCTAssertTrue(barBody.contains("canAccessOrganizationDashboard(for:"))
     }
 }

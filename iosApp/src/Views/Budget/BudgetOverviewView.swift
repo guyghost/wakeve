@@ -5,6 +5,7 @@ import Shared
 
 struct BudgetOverviewView: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.redesignBackAction) private var redesignBackAction
 
     let eventId: String
 
@@ -51,6 +52,17 @@ struct BudgetOverviewView: View {
             .navigationTitle(String(localized: "budget.overview_title"))
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
+                if let redesignBackAction {
+                    // Refonte (couche 4, #47) : retour au hub à la racine de la pile ; le détail poussé
+                    // affiche le retour système à la même place.
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button(action: redesignBackAction) {
+                            Image(systemName: "chevron.left")
+                        }
+                        .accessibilityLabel(String(localized: "common.back"))
+                        .accessibilityIdentifier("redesign.back")
+                    }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         navigateToDetail = true

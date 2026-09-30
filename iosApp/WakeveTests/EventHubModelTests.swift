@@ -206,15 +206,52 @@ final class EventHubModelTests: XCTestCase {
         XCTAssertTrue(EventHubModel.isLocked(.transport, facts: facts(phase: .polling, isOrganizer: true)))
         XCTAssertTrue(EventHubModel.isLocked(.transport, facts: facts(phase: .comparing, isOrganizer: true)))
         XCTAssertFalse(EventHubModel.isLocked(.transport, facts: facts(phase: .confirmed, isOrganizer: true)))
+        XCTAssertTrue(EventHubModel.isLocked(.transport, facts: facts(phase: .finalized, hasDetailsAccess: false)))
     }
 
-    func testBudgetIsAnEstimateForOrganizerAndAcceptedDuringPollAndConfirmed() {
-        XCTAssertFalse(tile(.budget, in: EventHubModel(facts: facts(phase: .polling, hasDetailsAccess: false)))!.isLocked)
-        XCTAssertFalse(tile(.budget, in: EventHubModel(facts: facts(phase: .confirmed, hasDetailsAccess: false)))!.isLocked)
-        XCTAssertTrue(tile(.budget, in: EventHubModel(facts: facts(
-            phase: .polling, viewerAccepted: false, hasDetailsAccess: false
-        )))!.isLocked)
-        XCTAssertFalse(tile(.budget, in: EventHubModel(facts: facts(phase: .polling, isOrganizer: true)))!.isLocked)
+    func testBudgetFollowsTheOrganizationDashboardGuard() {
+        // `case .budgetOverview` : `canAccessOrganizationDashboard` (organisation/finalisé + accès), sinon « accès refusé ».
+        for phase in [EventHubFacts.Phase.polling, .confirmed, .comparing] {
+            XCTAssertTrue(tile(.budget, in: EventHubModel(facts: facts(phase: phase, isOrganizer: true)))!.isLocked,
+                          "\(phase) : le budget mènerait à un écran d'accès refusé")
+        }
+        XCTAssertFalse(tile(.budget, in: EventHubModel(facts: facts(phase: .organizing, hasDetailsAccess: true)))!.isLocked)
+        XCTAssertTrue(tile(.budget, in: EventHubModel(facts: facts(phase: .organizing, hasDetailsAccess: false)))!.isLocked)
+    }
+
+    func testDetailedPlanningFollowsItsGuard() {
+        // `canAccessDetailedPlanning` : confirmé, comparaison, organisation ou finalisé + accès.
+        for module in [HubModule.accommodation, .meals, .equipment, .activities, .photos] {
+            XCTAssertTrue(EventHubModel.isLocked(module, facts: facts(phase: .polling, isOrganizer: true)), "\(module)")
+            XCTAssertTrue(EventHubModel.isLocked(module, facts: facts(phase: .draft, isOrganizer: true)), "\(module)")
+            for phase in [EventHubFacts.Phase.confirmed, .comparing, .organizing, .finalized] {
+                XCTAssertFalse(EventHubModel.isLocked(module, facts: facts(phase: phase, hasDetailsAccess: true)), "\(module) \(phase)")
+                XCTAssertTrue(EventHubModel.isLocked(module, facts: facts(phase: phase, hasDetailsAccess: false)), "\(module) \(phase)")
+            }
+        }
+    }
+
+    /// Miroir indépendant des gardes des `case` de `homeTabContent` : aucune tuile ouverte ne mène à `AccessDenied`.
+    func testNoUnlockedTileOpensAnAccessDeniedScreen() {
+        let phases: [EventHubFacts.Phase] = [.draft, .polling, .comparing, .confirmed, .organizing, .finalized]
+        for phase in phases {
+            for access in [true, false] {
+                let f = facts(phase: phase, hasDetailsAccess: access)
+                let dashboard = [.organizing, .finalized].contains(phase) && access
+                let planning = [.confirmed, .comparing, .organizing, .finalized].contains(phase) && access
+                let transport = [.confirmed, .organizing, .finalized].contains(phase) && access
+                for module in HubModule.allCases {
+                    let granted: Bool
+                    switch module {
+                    case .date, .location, .participants, .scenarios, .recap: granted = true
+                    case .budget, .meetings, .payments: granted = dashboard
+                    case .accommodation, .meals, .equipment, .activities, .photos: granted = planning
+                    case .transport: granted = transport
+                    }
+                    XCTAssertEqual(EventHubModel.isLocked(module, facts: f), !granted, "\(module) \(phase) accès=\(access)")
+                }
+            }
+        }
     }
 
     func testMeetingsAndPaymentsNeedOrganizationPhaseAndAccess() {

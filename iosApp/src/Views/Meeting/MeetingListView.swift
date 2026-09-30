@@ -11,6 +11,7 @@ struct MeetingListView: View {
     let isReadOnly: Bool
 
     @StateObject private var viewModel: MeetingListViewModel
+    @Environment(\.redesignBackAction) private var redesignBackAction
     @State private var showCreateSheet = false
     @State private var navigateToMeetingId: String? = nil
     private let previewMeetings: [VirtualMeeting]?
@@ -69,6 +70,17 @@ struct MeetingListView: View {
             .navigationTitle(String(localized: "meetings.title"))
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
+                if let redesignBackAction {
+                    // Refonte (couche 4, #47) : retour au hub à la racine de la pile ; la réunion poussée
+                    // affiche le retour système à la même place.
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button(action: redesignBackAction) {
+                            Image(systemName: "chevron.left")
+                        }
+                        .accessibilityLabel(String(localized: "common.back"))
+                        .accessibilityIdentifier("redesign.back")
+                    }
+                }
                 if canCreateMeetings {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button {

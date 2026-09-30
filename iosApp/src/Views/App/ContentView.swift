@@ -486,7 +486,12 @@ struct AuthenticatedView: View {
             userId: userId,
             userName: authStateManager.currentUser?.name,
             onCreate: beginRedesignEventCreation,
-            events: { homeTabContent },
+            events: {
+                homeTabContent
+                    // Retour des écrans sans contrôle propre (barre flottante masquée hors racine).
+                    .safeAreaInset(edge: .top, spacing: 0) { redesignBackBar }
+                    .environment(\.redesignBackAction, redesignToolbarBackAction)
+            },
             activity: {
                 InboxView(
                     userId: userId,
@@ -522,6 +527,38 @@ struct AuthenticatedView: View {
                 }
             }
         }
+    }
+
+    /// Parent de l'écran courant quand il n'a pas de retour propre (`RedesignBackRoute`, couche 4).
+    private var redesignBackDestination: AppView? {
+        let organizationAccess = selectedEvent.map { canAccessOrganizationDashboard(for: $0) } ?? true
+        return RedesignBackRoute.destination(from: currentView, organizationAccess: organizationAccess)
+    }
+
+    /// Rangée de retour posée en inset : la barre de navigation propre de l'écran reste sur sa ligne.
+    @ViewBuilder
+    private var redesignBackBar: some View {
+        if let destination = redesignBackDestination,
+           RedesignBackRoute.placement(for: currentView) == .inset {
+            HStack {
+                WKCircleButton(
+                    systemImage: "chevron.left",
+                    accessibilityLabel: String(localized: "common.back"),
+                    accessibilityID: "redesign.back",
+                    action: { currentView = destination }
+                )
+                Spacer()
+            }
+            .padding(.horizontal, WK.Space.screen)
+            .padding(.vertical, WK.Space.xxs)
+        }
+    }
+
+    /// Retour lu par l'écran dans sa propre barre d'outils : un détail poussé le remplace par le retour système.
+    private var redesignToolbarBackAction: (() -> Void)? {
+        guard let destination = redesignBackDestination,
+              RedesignBackRoute.placement(for: currentView) == .toolbar else { return nil }
+        return { currentView = destination }
     }
 
     /// Mirrors the `.eventCreate` deep-link branch so the ＋ button follows the
@@ -623,8 +660,12 @@ struct AuthenticatedView: View {
             },
             onOpenInfo: { currentView = .eventInformation },
             onAddParticipants: {
-                routeInvitationExperience(InvitationExperienceRouteRequestParticipants.shared, for: event)
-            }
+                performHubRoute(
+                    EventHubRouting.addParticipantsRoute(invitationRollout: invitationExperienceRolloutEnabled),
+                    for: event
+                )
+            },
+            invitationRollout: invitationExperienceRolloutEnabled
         )
         // Un autre événement ouvert depuis le hub (lien profond) recrée son modèle de vue.
         .id(event.id)
@@ -633,36 +674,31 @@ struct AuthenticatedView: View {
     /// Tuiles du hub → écrans existants ; leurs gardes d'accès s'appliquent en plus du verrou de la tuile.
     /// La tuile Date passe par `onPrimary(.vote)` quand un vote est attendu (`EventHubView.opensVoting`).
     private func openHubModule(_ module: HubModule, for event: Event) {
-        switch module {
-        case .date:
-            if event.status == .draft {
-                editDraftFromHome(event.id)
-            } else {
-                currentView = .pollResults
-            }
-        case .location, .scenarios: currentView = .scenarioList
-        case .participants:
-            routeInvitationExperience(InvitationExperienceRouteRequestParticipants.shared, for: event)
-        case .budget: currentView = .budgetOverview
-        case .transport: currentView = .transportPlanning
-        case .accommodation: currentView = .accommodation
-        case .meals: currentView = .mealPlanning
-        case .equipment: currentView = .equipmentChecklist
-        case .activities: currentView = .activityPlanning
-        case .meetings: currentView = .meetingList
-        case .photos: currentView = .eventPhotos
-        case .recap: currentView = .eventInformation
-        case .payments: currentView = .paymentPot
-        }
+        let phase = SharedEventHubSource.phase(statusName: event.status.name)
+        performHubRoute(
+            EventHubRouting.route(for: module, phase: phase, invitationRollout: invitationExperienceRolloutEnabled),
+            for: event
+        )
     }
 
     /// Actions principales de navigation ; organiser/finaliser/se connecter sont confirmés dans le hub.
     private func handleHubPrimary(_ primary: EventHubModel.Primary, for event: Event) {
-        switch primary {
-        case .vote: currentView = .pollVoting
-        case .pollResults, .confirmDate: currentView = .pollResults
-        case .addDates: editDraftFromHome(event.id)
-        case .organize, .finalize, .signInToFinalize, .none: break
+        guard let route = EventHubRouting.route(for: primary, invitationRollout: invitationExperienceRolloutEnabled) else {
+            return
+        }
+        performHubRoute(route, for: event)
+    }
+
+    /// Seul point d'exécution des routes du hub (`EventHubRouting`, rollout invitation inclus).
+    private func performHubRoute(_ route: EventHubRoute, for event: Event) {
+        switch route {
+        case .screen(let view):
+            currentView = view
+        case .editDraft:
+            editDraftFromHome(event.id)
+        case .invitationParticipants:
+            // Même route que `onManageParticipants` du détail legacy.
+            routeInvitationExperience(InvitationExperienceRouteRequestParticipants.shared, for: event)
         }
     }
 

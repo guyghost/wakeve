@@ -19,6 +19,8 @@ struct EventHubView: View {
     let onRequestSignIn: () -> Void
     let onOpenInfo: () -> Void
     let onAddParticipants: () -> Void
+    /// Rollout invitation (`iosInvitationExperienceV1`) : sans lui, les infos de l'événement n'existent pas.
+    let invitationRollout: Bool
 
     @Environment(\.openURL) private var openURL
     @State private var showsMenu = false
@@ -111,10 +113,11 @@ struct EventHubView: View {
         }
     }
 
-    /// Menu « … » : infos (qui portent quitter/supprimer), ajout de participants pour l'organisateur
-    /// tant que l'événement n'est pas finalisé (règle du détail legacy), signalement pour les autres, support.
-    static func menuActions(for facts: EventHubFacts) -> [MenuAction] {
-        var actions: [MenuAction] = [.info]
+    /// Menu « … » : infos (qui portent quitter/supprimer, rollout invitation seulement : sinon l'écran
+    /// retombe sur le hub), ajout de participants pour l'organisateur tant que l'événement n'est pas finalisé
+    /// (règle du détail legacy), signalement pour les autres, support.
+    static func menuActions(for facts: EventHubFacts, invitationRollout: Bool) -> [MenuAction] {
+        var actions: [MenuAction] = invitationRollout ? [.info] : []
         if facts.isOrganizer && facts.phase != .finalized { actions.append(.addParticipants) }
         if !facts.isOrganizer { actions.append(.report) }
         actions.append(.support)
@@ -165,7 +168,7 @@ struct EventHubView: View {
             titleVisibility: .hidden
         ) {
             if let facts = viewModel.facts {
-                ForEach(Self.menuActions(for: facts), id: \.self) { action in
+                ForEach(Self.menuActions(for: facts, invitationRollout: invitationRollout), id: \.self) { action in
                     menuButton(action, facts: facts)
                 }
             }
@@ -445,6 +448,7 @@ struct EventHubContainer: View {
     let onRequestSignIn: () -> Void
     let onOpenInfo: () -> Void
     let onAddParticipants: () -> Void
+    let invitationRollout: Bool
 
     init(
         eventId: String,
@@ -458,7 +462,8 @@ struct EventHubContainer: View {
         onLifecycleChanged: @escaping () -> Void,
         onRequestSignIn: @escaping () -> Void,
         onOpenInfo: @escaping () -> Void,
-        onAddParticipants: @escaping () -> Void
+        onAddParticipants: @escaping () -> Void,
+        invitationRollout: Bool
     ) {
         _viewModel = StateObject(wrappedValue: EventHubViewModel(
             eventId: eventId, viewerId: userId, isLocalGuest: isLocalGuest, source: SharedEventHubSource()
@@ -474,6 +479,7 @@ struct EventHubContainer: View {
         self.onRequestSignIn = onRequestSignIn
         self.onOpenInfo = onOpenInfo
         self.onAddParticipants = onAddParticipants
+        self.invitationRollout = invitationRollout
     }
 
     var body: some View {
@@ -487,7 +493,8 @@ struct EventHubContainer: View {
             onLifecycle: performLifecycleTransition,
             onRequestSignIn: onRequestSignIn,
             onOpenInfo: onOpenInfo,
-            onAddParticipants: onAddParticipants
+            onAddParticipants: onAddParticipants,
+            invitationRollout: invitationRollout
         )
         .onChange(of: reloadToken) { _, _ in
             Task { await viewModel.reload() }

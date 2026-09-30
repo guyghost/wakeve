@@ -109,27 +109,23 @@ struct EventHubModel: Equatable {
         }
     }
 
-    /// Tuile visible mais non actionnable quand les règles d'accès existantes refusent l'écran.
+    /// Tuile visible mais non actionnable quand la garde du `case` de destination (`homeTabContent`)
+    /// afficherait « accès refusé » : aucune tuile ouverte ne mène à `AccessDenied`.
     static func isLocked(_ module: HubModule, facts: EventHubFacts) -> Bool {
         let access = facts.hasDetailsAccess
-        let organizationPhase = facts.phase == .organizing || facts.phase == .finalized
         switch module {
         case .date, .location, .participants, .scenarios, .recap:
+            // Sondage, scénarios, participants, informations : écrans sans garde d'accès.
             return false
+        case .budget, .meetings, .payments:
+            // `canAccessOrganizationDashboard` (et la même règle pour la cagnotte) : organisation ou finalisé.
+            return !access || ![.organizing, .finalized].contains(facts.phase)
         case .transport:
-            // Même règle que `canAccessTransportPlanning(for:)` : confirmé, organisation ou finalisé.
-            let transportPhase = facts.phase == .confirmed || organizationPhase
-            return !transportPhase || !access
+            // `canAccessTransportPlanning` : confirmé, organisation ou finalisé (pas la comparaison).
+            return !access || ![.confirmed, .organizing, .finalized].contains(facts.phase)
         case .accommodation, .meals, .equipment, .activities, .photos:
-            return !access
-        case .budget:
-            // Sondage/confirmé (et comparaison) : estimation consultable par l'organisateur et les acceptés.
-            if [.polling, .confirmed, .comparing].contains(facts.phase) {
-                return !(facts.isOrganizer || facts.viewerAccepted)
-            }
-            return !access || !organizationPhase
-        case .meetings, .payments:
-            return !access || !organizationPhase
+            // `canAccessDetailedPlanning` : confirmé, comparaison, organisation ou finalisé.
+            return !access || ![.confirmed, .comparing, .organizing, .finalized].contains(facts.phase)
         }
     }
 

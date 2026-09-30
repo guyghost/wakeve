@@ -93,9 +93,83 @@ final class EventHubViewTests: XCTestCase {
     }
 
     func testMenuActionsFollowTheRole() {
-        XCTAssertEqual(EventHubView.menuActions(for: facts(isOrganizer: true)), [.info, .addParticipants, .support])
-        XCTAssertEqual(EventHubView.menuActions(for: facts(phase: .finalized, isOrganizer: true)), [.info, .support])
-        XCTAssertEqual(EventHubView.menuActions(for: facts()), [.info, .report, .support])
+        XCTAssertEqual(EventHubView.menuActions(for: facts(isOrganizer: true), invitationRollout: true),
+                       [.info, .addParticipants, .support])
+        XCTAssertEqual(EventHubView.menuActions(for: facts(phase: .finalized, isOrganizer: true), invitationRollout: true),
+                       [.info, .support])
+        XCTAssertEqual(EventHubView.menuActions(for: facts(), invitationRollout: true), [.info, .report, .support])
+    }
+
+    func testInfoMenuItemNeedsTheInvitationRollout() {
+        // `.eventInformation` retombe sur le détail (donc le hub) sans rollout : l'entrée ne ferait rien.
+        XCTAssertEqual(EventHubView.menuActions(for: facts(isOrganizer: true), invitationRollout: false),
+                       [.addParticipants, .support])
+        XCTAssertEqual(EventHubView.menuActions(for: facts(), invitationRollout: false), [.report, .support])
+    }
+
+    // MARK: - Aiguillage des actions (rollout invitation)
+
+    func testModuleRoutesWithTheInvitationRollout() {
+        func route(_ module: HubModule, _ phase: EventHubFacts.Phase = .polling) -> EventHubRoute {
+            EventHubRouting.route(for: module, phase: phase, invitationRollout: true)
+        }
+        XCTAssertEqual(route(.date, .draft), .editDraft)
+        XCTAssertEqual(route(.date), .screen(.pollResults))
+        XCTAssertEqual(route(.participants), .invitationParticipants)
+        XCTAssertEqual(route(.recap, .finalized), .screen(.eventInformation))
+    }
+
+    func testEveryModuleRouteWorksWithoutTheInvitationRollout() {
+        func route(_ module: HubModule, _ phase: EventHubFacts.Phase = .polling) -> EventHubRoute {
+            EventHubRouting.route(for: module, phase: phase, invitationRollout: false)
+        }
+        // Sans rollout, le routeur invitation retombe sur le détail : aucune route ne doit y mener.
+        XCTAssertEqual(route(.date, .draft), .screen(.participantManagement), "Écran legacy qui porte « Ajouter des dates ».")
+        XCTAssertEqual(route(.participants), .screen(.participantManagement))
+        XCTAssertEqual(route(.recap, .finalized), .screen(.pollResults))
+        let phases: [EventHubFacts.Phase] = [.draft, .polling, .comparing, .confirmed, .organizing, .finalized]
+        for phase in phases {
+            for module in HubModule.allCases {
+                let r = route(module, phase)
+                XCTAssertNotEqual(r, .editDraft, "\(module) \(phase)")
+                XCTAssertNotEqual(r, .invitationParticipants, "\(module) \(phase)")
+                for rolloutOnly in [AppView.eventInformation, .eventAudience, .eventArchive, .eventCreation, .eventDetail] {
+                    XCTAssertNotEqual(r, .screen(rolloutOnly), "\(module) \(phase)")
+                }
+            }
+        }
+    }
+
+    func testModuleScreens() {
+        let expected: [HubModule: AppView] = [
+            .location: .scenarioList, .scenarios: .scenarioList, .budget: .budgetOverview,
+            .transport: .transportPlanning, .accommodation: .accommodation, .meals: .mealPlanning,
+            .equipment: .equipmentChecklist, .activities: .activityPlanning, .meetings: .meetingList,
+            .photos: .eventPhotos, .payments: .paymentPot
+        ]
+        for rollout in [true, false] {
+            for (module, view) in expected {
+                XCTAssertEqual(EventHubRouting.route(for: module, phase: .organizing, invitationRollout: rollout), .screen(view))
+            }
+        }
+    }
+
+    func testPrimaryRoutes() {
+        for rollout in [true, false] {
+            XCTAssertEqual(EventHubRouting.route(for: .vote, invitationRollout: rollout), .screen(.pollVoting))
+            XCTAssertEqual(EventHubRouting.route(for: .pollResults, invitationRollout: rollout), .screen(.pollResults))
+            XCTAssertEqual(EventHubRouting.route(for: .confirmDate, invitationRollout: rollout), .screen(.pollResults))
+            for lifecycle in [EventHubModel.Primary.organize, .finalize, .signInToFinalize, .none] {
+                XCTAssertNil(EventHubRouting.route(for: lifecycle, invitationRollout: rollout), "confirmé dans le hub")
+            }
+        }
+        XCTAssertEqual(EventHubRouting.route(for: .addDates, invitationRollout: true), .editDraft)
+        XCTAssertEqual(EventHubRouting.route(for: .addDates, invitationRollout: false), .screen(.participantManagement))
+    }
+
+    func testAddParticipantsRoute() {
+        XCTAssertEqual(EventHubRouting.addParticipantsRoute(invitationRollout: true), .invitationParticipants)
+        XCTAssertEqual(EventHubRouting.addParticipantsRoute(invitationRollout: false), .screen(.participantManagement))
     }
 
     func testLifecyclePrimaryActionsNeedAConfirmation() {
@@ -156,7 +230,7 @@ final class EventHubViewTests: XCTestCase {
         let hub = EventHubView(
             viewModel: vm, lifecycleError: nil, lifecycleInFlight: false,
             onBack: {}, onOpenModule: { _ in }, onPrimary: { _ in }, onLifecycle: { _ in },
-            onRequestSignIn: {}, onOpenInfo: {}, onAddParticipants: {}
+            onRequestSignIn: {}, onOpenInfo: {}, onAddParticipants: {}, invitationRollout: false
         )
         let host = UIHostingController(rootView: hub)
         XCTAssertGreaterThan(host.sizeThatFits(in: CGSize(width: 375, height: 812)).height, 0)
