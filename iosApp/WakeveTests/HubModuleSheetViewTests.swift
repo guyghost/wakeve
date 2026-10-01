@@ -10,18 +10,36 @@ final class HubModuleSheetViewTests: XCTestCase {
     // MARK: - Routage
 
     func testSimpleModulesOpenInSheetsAndOthersKeepTheirScreens() {
-        XCTAssertEqual(EventHubRouting.sheetModules, [.meals, .equipment, .activities, .accommodation, .photos])
+        XCTAssertEqual(EventHubRouting.sheetModules, [
+            .meals, .equipment, .activities, .accommodation, .photos, .budget, .payments, .meetings
+        ])
         for rollout in [true, false] {
             for phase in [EventHubFacts.Phase.organizing, .finalized, .confirmed] {
                 for module in EventHubRouting.sheetModules {
                     XCTAssertEqual(EventHubRouting.route(for: module, phase: phase, invitationRollout: rollout), .sheet(module), "\(module) \(phase)")
                 }
-                XCTAssertEqual(EventHubRouting.route(for: .budget, phase: phase, invitationRollout: rollout), .screen(.budgetOverview))
                 XCTAssertEqual(EventHubRouting.route(for: .transport, phase: phase, invitationRollout: rollout), .screen(.transportPlanning))
-                XCTAssertEqual(EventHubRouting.route(for: .meetings, phase: phase, invitationRollout: rollout), .screen(.meetingList))
-                XCTAssertEqual(EventHubRouting.route(for: .payments, phase: phase, invitationRollout: rollout), .screen(.paymentPot))
             }
         }
+    }
+
+    /// Couche 5b : budget, cagnotte et réunions gardés comme leur `case` legacy (`canAccessOrganizationDashboard`).
+    func testEachSheetUsesTheGuardOfItsLegacyCase() {
+        for module in HubModule.allCases {
+            let expected: EventHubRouting.SheetGuard = [.budget, .payments, .meetings].contains(module)
+                ? .organizationDashboard : .detailedPlanning
+            XCTAssertEqual(EventHubRouting.sheetGuard(for: module), expected, "\(module)")
+        }
+    }
+
+    func testPrimaryActionsFallBackToTheLegacyScreens() {
+        XCTAssertNil(EventHubRouting.fallback(for: .addMeal), "Le repas s'ajoute depuis la sheet.")
+        XCTAssertEqual(EventHubRouting.fallback(for: .viewExpenses), .budgetOverview)
+        XCTAssertEqual(EventHubRouting.fallback(for: .managePot), .paymentPot)
+        XCTAssertEqual(EventHubRouting.fallback(for: .planMeeting), .meetingList)
+        XCTAssertEqual(HubModuleSheetView.fallback(for: .tricount), .tricount)
+        XCTAssertNil(HubModuleSheetView.fallback(for: .fullScreen), "Plein écran : repli du module.")
+        XCTAssertNil(HubModuleSheetView.fallback(for: .comments))
     }
 
     func testModuleRoutingReadsTheSheetListOnly() throws {
@@ -34,7 +52,8 @@ final class HubModuleSheetViewTests: XCTestCase {
     func testFullScreenFallbackIsTheLegacyScreenOfEachSheetModule() {
         let expected: [HubModule: AppView] = [
             .meals: .mealPlanning, .equipment: .equipmentChecklist, .activities: .activityPlanning,
-            .accommodation: .accommodation, .photos: .eventPhotos
+            .accommodation: .accommodation, .photos: .eventPhotos,
+            .budget: .budgetOverview, .payments: .paymentPot, .meetings: .meetingList
         ]
         for module in HubModule.allCases {
             XCTAssertEqual(EventHubRouting.fullScreenFallback(for: module), expected[module], "\(module)")
@@ -67,6 +86,27 @@ final class HubModuleSheetViewTests: XCTestCase {
         XCTAssertEqual(HubModuleSheetView.secondaryActions(for: .meals), [.fullScreen, .comments])
         XCTAssertEqual(HubModuleSheetView.secondaryActions(for: .accommodation), [.fullScreen, .comments])
         XCTAssertEqual(HubModuleSheetView.secondaryActions(for: .photos), [.fullScreen])
+        XCTAssertEqual(HubModuleSheetView.secondaryActions(for: .budget), [.fullScreen])
+        XCTAssertEqual(HubModuleSheetView.secondaryActions(for: .payments), [.tricount, .fullScreen])
+        XCTAssertEqual(HubModuleSheetView.secondaryActions(for: .meetings), [.fullScreen])
+    }
+
+    func testLayer5bPrimaryTitlesFollowRoleAndReadOnly() {
+        func data(_ raw: HubModuleSheetRaw, organizer: Bool, readOnly: Bool) -> HubModuleSheetData {
+            HubModuleSheetData.make(raw: raw, isOrganizer: organizer, isReadOnly: readOnly, pendingSync: false, locale: fr)
+        }
+        func title(_ module: HubModule, _ state: HubModuleSheetViewModel.State, _ data: HubModuleSheetData?, hint: Bool) -> String? {
+            HubModuleSheetView.primaryTitle(module: module, state: state, data: data, canAddHint: hint, locale: fr)
+        }
+        // Consultation ouverte à tous, dès la première image.
+        XCTAssertEqual(title(.budget, .loading, nil, hint: false), "Voir les dépenses")
+        XCTAssertEqual(title(.budget, .loaded, data(.budget(nil), organizer: false, readOnly: true), hint: false), "Voir les dépenses")
+        XCTAssertEqual(title(.payments, .loading, nil, hint: true), "Gérer la cagnotte")
+        XCTAssertNil(title(.payments, .loading, nil, hint: false))
+        XCTAssertNil(title(.payments, .loaded, data(.payments(pot: nil, tricount: .undecided), organizer: true, readOnly: true), hint: true))
+        XCTAssertEqual(title(.meetings, .loaded, data(.meetings([]), organizer: true, readOnly: false), hint: false), "Planifier une réunion")
+        XCTAssertNil(title(.meetings, .loaded, data(.meetings([]), organizer: false, readOnly: false), hint: true))
+        XCTAssertNil(title(.budget, .failed, nil, hint: true), "Échec : seule la relance est proposée.")
     }
 
     func testPrimaryAddsAMealOnlyWhenAllowed() {
@@ -231,7 +271,39 @@ final class HubModuleSheetViewTests: XCTestCase {
     // MARK: - Rendu
 
     private func body(_ vm: HubModuleSheetViewModel) -> some View {
-        HubModuleSheetBody(viewModel: vm, canAddHint: true, onClose: {}, onAdd: {}, onOpenFullScreen: {}, onOpenComments: {})
+        HubModuleSheetBody(viewModel: vm, canAddHint: true, onClose: {}, onPrimary: { _ in }, onSecondary: { _ in })
+    }
+
+    func testLayer5bSheetsRenderLoadedEmptyAndFailedAtAX5WithinAPhone() async {
+        let raws: [HubModuleSheetRaw] = [
+            .budget(.init(totalEstimated: 1200, totalActual: 1500, categories: [
+                .init(key: "transport", estimated: 400, actual: 700), .init(key: "other", estimated: 800, actual: 800)
+            ])),
+            .budget(nil),
+            .payments(pot: .init(title: "Week-end", goalAmount: 400, currency: "EUR", statusName: "ACTIVE"), tricount: .linkToCheck),
+            .payments(pot: nil, tricount: .undecided),
+            .meetings([.init(id: "m", title: "Point logistique", startTime: "2026-10-03T18:00:00Z",
+                             platformName: "GOOGLE_MEET", statusName: "SCHEDULED", hasLink: false)]),
+            .meetings([])
+        ]
+        var models: [HubModuleSheetViewModel] = []
+        for raw in raws {
+            let vm = HubModuleSheetViewModel(module: raw.module, eventId: "e", viewerId: "u", source: Stub(raw: raw))
+            await vm.reload()
+            XCTAssertEqual(vm.state, .loaded, "\(raw.module)")
+            models.append(vm)
+        }
+        for module in [HubModule.budget, .payments, .meetings] {
+            let failed = HubModuleSheetViewModel(module: module, eventId: "e", viewerId: "u", source: Stub(raw: nil))
+            await failed.reload()
+            XCTAssertEqual(failed.state, .failed)
+            models.append(failed)
+        }
+        for vm in models {
+            let size = fittingSize(body(vm), width: 375, dynamicType: .accessibility5)
+            XCTAssertLessThanOrEqual(size.width, 375, "\(vm.module) \(vm.state) \(size)")
+            XCTAssertGreaterThan(size.height, 0, "\(vm.module) \(vm.state)")
+        }
     }
 
     func testSheetRendersEveryStateAtAX5WithinAPhone() async {
@@ -272,7 +344,9 @@ final class HubModuleSheetViewTests: XCTestCase {
         for anchor in ["WKModuleSheet(", "WKCard(style: .inset)", "WKStatusPill(", "WKAvatarStack(", "MealFormSheet(",
                        "arrow.up.left.and.arrow.down.right", "bubble.left", "hub.sheet.open_full", "hub.sheet.comments",
                        "hub.sheet.meals.add", "common.retry", ".task(id: eventId)",
-                       "let mealParticipants: () -> [ParticipantModel]", "canAddHint: canAddHint"] {
+                       "let mealParticipants: () -> [ParticipantModel]", "canAddHint: canAddHint",
+                       "hub.sheet.budget.view_expenses", "hub.sheet.payments.manage_pot", "hub.sheet.meetings.plan",
+                       "tricount.title"] {
             XCTAssertTrue(view.contains(anchor), anchor)
         }
         // Le conteneur garde ses enfants accessibles avant de recevoir son identifiant.
@@ -294,6 +368,8 @@ final class HubModuleSheetViewTests: XCTestCase {
         XCTAssertTrue(perform.contains("repository.getEvent(id: event.id)"))
         XCTAssertTrue(perform.contains("case .sheet(let module):"))
         XCTAssertTrue(perform.contains("canAccessDetailedPlanning(for: event)"), "Même garde que le `case` legacy.")
+        XCTAssertTrue(perform.contains("EventHubRouting.sheetGuard(for: module)"))
+        XCTAssertTrue(perform.contains("canAccessOrganizationDashboard(for: event)"), "Garde des `case` budget, cagnotte, réunions.")
         XCTAssertTrue(perform.contains("hubSheet.present(module, eventId: event.id)"))
         guard let dismiss = content.range(of: "private func finishHubModuleSheet()") else { return XCTFail("finishHubModuleSheet") }
         let finish = String(content[dismiss.lowerBound...].prefix(600))
@@ -312,6 +388,7 @@ final class HubModuleSheetViewTests: XCTestCase {
         XCTAssertTrue(sheet.contains("hubSheet.close()"))
         XCTAssertTrue(sheet.contains("mealParticipants: { participantModels(for: event) }"), "Mêmes participants, lus à l'ouverture du formulaire.")
         XCTAssertTrue(sheet.contains("canAddHint: event.organizerId == userId && !isFinalizedOrganizationState(event)"))
+        XCTAssertTrue(sheet.contains("onOpenScreen: { view in hubSheet.requestFallback(view) }"), "Actions 5b : repli après fermeture.")
     }
 
     /// Espaces et retours à la ligne réduits à une espace : ancres indépendantes de l'indentation.

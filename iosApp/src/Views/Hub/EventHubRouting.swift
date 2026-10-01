@@ -30,18 +30,42 @@ enum EventHubRouting {
             // Sans rollout : la date retenue et les réponses de chacun (`PollResultsView`, sans garde).
             return .screen(invitationRollout ? .eventInformation : .pollResults)
         case .location, .scenarios: return .screen(.scenarioList)
-        case .budget: return .screen(.budgetOverview)
         case .transport: return .screen(.transportPlanning)
-        case .accommodation, .meals, .equipment, .activities, .photos:
+        case .accommodation, .meals, .equipment, .activities, .photos, .budget, .meetings, .payments:
             // Retiré de `sheetModules` : retour à son écran legacy.
             return .screen(fullScreenFallback(for: module) ?? .eventDetail)
-        case .meetings: return .screen(.meetingList)
-        case .payments: return .screen(.paymentPot)
         }
     }
 
-    /// Modules convertis en sheet (couche 5a, #47).
-    static let sheetModules: Set<HubModule> = [.meals, .equipment, .activities, .accommodation, .photos]
+    /// Modules convertis en sheet (couche 5a, puis budget, cagnotte et réunions en 5b, #47).
+    static let sheetModules: Set<HubModule> = [
+        .meals, .equipment, .activities, .accommodation, .photos, .budget, .payments, .meetings
+    ]
+
+    /// Garde d'accès du `case` legacy de chaque module, appliquée avant de présenter sa sheet.
+    enum SheetGuard: Equatable {
+        /// `canAccessDetailedPlanning` (repas, matériel, activités, hébergement, photos).
+        case detailedPlanning
+        /// `canAccessOrganizationDashboard` (budget, réunions ; cagnotte : même règle écrite en ligne).
+        case organizationDashboard
+    }
+
+    static func sheetGuard(for module: HubModule) -> SheetGuard {
+        switch module {
+        case .budget, .payments, .meetings: return .organizationDashboard
+        default: return .detailedPlanning
+        }
+    }
+
+    /// Écran legacy ouvert par l'action principale d'une sheet ; nil : action menée dans la sheet (repas).
+    static func fallback(for primary: HubModuleSheetData.Primary) -> AppView? {
+        switch primary {
+        case .addMeal: return nil
+        case .viewExpenses: return .budgetOverview
+        case .managePot: return .paymentPot
+        case .planMeeting: return .meetingList
+        }
+    }
 
     /// Écran legacy d'un module en sheet (« Plein écran », ou refus d'accès affiché par son `case`).
     static func fullScreenFallback(for module: HubModule) -> AppView? {
@@ -51,11 +75,14 @@ enum EventHubRouting {
         case .activities: return .activityPlanning
         case .accommodation: return .accommodation
         case .photos: return .eventPhotos
+        case .budget: return .budgetOverview
+        case .payments: return .paymentPot
+        case .meetings: return .meetingList
         default: return nil
         }
     }
 
-    /// Sheet seulement si la garde du `case` legacy (`canAccessDetailedPlanning`) est satisfaite ;
+    /// Sheet seulement si la garde du `case` legacy (`sheetGuard(for:)`) est satisfaite ;
     /// sinon l'écran legacy, qui affiche son refus d'accès (comportement d'avant la couche 5a).
     static func sheetRoute(for module: HubModule, accessGranted: Bool) -> EventHubRoute? {
         if accessGranted { return .sheet(module) }

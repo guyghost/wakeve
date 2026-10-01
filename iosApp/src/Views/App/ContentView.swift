@@ -725,7 +725,12 @@ struct AuthenticatedView: View {
         case .sheet(let module):
             selectedEvent = event
             // Même garde que le `case` legacy ; sans accès, son écran affiche le refus comme avant.
-            switch EventHubRouting.sheetRoute(for: module, accessGranted: canAccessDetailedPlanning(for: event)) {
+            let accessGranted: Bool
+            switch EventHubRouting.sheetGuard(for: module) {
+            case .detailedPlanning: accessGranted = canAccessDetailedPlanning(for: event)
+            case .organizationDashboard: accessGranted = canAccessOrganizationDashboard(for: event)
+            }
+            switch EventHubRouting.sheetRoute(for: module, accessGranted: accessGranted) {
             case .sheet?: hubSheet.present(module, eventId: event.id)
             case .screen(let view)?: currentView = view
             default: break
@@ -767,7 +772,8 @@ struct AuthenticatedView: View {
                 } else {
                     hubSheet.close()
                 }
-            }
+            },
+            onOpenScreen: { view in hubSheet.requestFallback(view) }
         )
     }
 

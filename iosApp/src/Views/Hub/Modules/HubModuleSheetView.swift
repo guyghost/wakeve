@@ -47,7 +47,7 @@ final class HubModuleSheetViewModel: ObservableObject {
 
 /// Sheet d'un module du hub : possède le modèle de vue et le formulaire d'ajout de repas existant.
 struct HubModuleSheetView: View {
-    enum SecondaryAction: Equatable { case fullScreen, comments }
+    enum SecondaryAction: Equatable { case fullScreen, comments, tricount }
 
     @StateObject private var viewModel: HubModuleSheetViewModel
     @State private var showsMealForm = false
@@ -55,13 +55,15 @@ struct HubModuleSheetView: View {
     @State private var formParticipants: [ParticipantModel] = []
 
     private let eventId: String
-    /// Organisateur d'un événement non finalisé : barre d'ajout affichée dès la première image.
+    /// Organisateur d'un événement non finalisé : action principale d'écriture affichée dès la première image.
     private let canAddHint: Bool
     /// Mêmes participants que le formulaire legacy (`participantModels(for:)`), lus à la demande.
     private let mealParticipants: () -> [ParticipantModel]
     let onClose: () -> Void
     let onOpenFullScreen: () -> Void
     let onOpenComments: () -> Void
+    /// Écran legacy demandé par une action de la sheet (« Voir les dépenses », « Tricount »…).
+    let onOpenScreen: (AppView) -> Void
 
     init(
         module: HubModule,
@@ -72,7 +74,8 @@ struct HubModuleSheetView: View {
         mealParticipants: @escaping () -> [ParticipantModel],
         onClose: @escaping () -> Void,
         onOpenFullScreen: @escaping () -> Void,
-        onOpenComments: @escaping () -> Void
+        onOpenComments: @escaping () -> Void,
+        onOpenScreen: @escaping (AppView) -> Void
     ) {
         _viewModel = StateObject(wrappedValue: HubModuleSheetViewModel(
             module: module, eventId: eventId, viewerId: viewerId, source: source
@@ -83,23 +86,54 @@ struct HubModuleSheetView: View {
         self.onClose = onClose
         self.onOpenFullScreen = onOpenFullScreen
         self.onOpenComments = onOpenComments
+        self.onOpenScreen = onOpenScreen
     }
 
     // MARK: - Règles de présentation (testées)
 
-    /// « Plein écran » partout ; « Commentaires » là où l'écran legacy en a.
+    /// « Plein écran » partout ; « Commentaires » là où l'écran legacy en a ; « Tricount » pour la cagnotte.
     static func secondaryActions(for module: HubModule) -> [SecondaryAction] {
-        EventHubRouting.commentSection(for: module) == nil ? [.fullScreen] : [.fullScreen, .comments]
+        if module == .payments { return [.tricount, .fullScreen] }
+        return EventHubRouting.commentSection(for: module) == nil ? [.fullScreen] : [.fullScreen, .comments]
     }
 
-    /// Seul le module Repas a un formulaire d'ajout hors écran plein (`MealFormSheet`).
+    /// Écran legacy d'une action secondaire propre ; « Plein écran » et « Commentaires » ont leur propre repli.
+    static func fallback(for secondary: SecondaryAction) -> AppView? {
+        secondary == .tricount ? .tricount : nil
+    }
+
+    static func title(for primary: HubModuleSheetData.Primary, locale: Locale = WK.appLocale) -> String {
+        let key: String
+        switch primary {
+        case .addMeal: key = "hub.sheet.meals.add"
+        case .viewExpenses: key = "hub.sheet.budget.view_expenses"
+        case .managePot: key = "hub.sheet.payments.manage_pot"
+        case .planMeeting: key = "hub.sheet.meetings.plan"
+        }
+        return WK.localizedFormat(key, locale: locale)
+    }
+
+    /// Action principale des données chargées (`HubModuleSheetData.primaryAction`).
     static func primaryTitle(for data: HubModuleSheetData?, locale: Locale = WK.appLocale) -> String? {
-        guard let data, data.canAdd, data.module == .meals else { return nil }
-        return WK.localizedFormat("hub.sheet.meals.add", locale: locale)
+        data?.primary.map { title(for: $0, locale: locale) }
     }
 
-    /// Pendant le chargement, l'indice de l'appelant tient lieu de droits ; une fois chargées, les données font foi ;
-    /// en échec, seule la relance est proposée.
+    /// Pendant le chargement, l'indice de l'appelant (organisateur d'un événement non finalisé) tient lieu de droits ;
+    /// une fois chargées, les données font foi ; en échec, seule la relance est proposée.
+    static func primaryAction(
+        module: HubModule,
+        state: HubModuleSheetViewModel.State,
+        data: HubModuleSheetData?,
+        canAddHint: Bool
+    ) -> HubModuleSheetData.Primary? {
+        switch state {
+        case .loaded: return data?.primary
+        case .failed: return nil
+        case .loading:
+            return HubModuleSheetData.primaryAction(for: module, isOrganizer: canAddHint, isReadOnly: !canAddHint)
+        }
+    }
+
     static func primaryTitle(
         module: HubModule,
         state: HubModuleSheetViewModel.State,
@@ -107,13 +141,7 @@ struct HubModuleSheetView: View {
         canAddHint: Bool,
         locale: Locale = WK.appLocale
     ) -> String? {
-        switch state {
-        case .loaded: return primaryTitle(for: data, locale: locale)
-        case .failed: return nil
-        case .loading:
-            guard canAddHint, module == .meals else { return nil }
-            return WK.localizedFormat("hub.sheet.meals.add", locale: locale)
-        }
+        primaryAction(module: module, state: state, data: data, canAddHint: canAddHint).map { title(for: $0, locale: locale) }
     }
 
     static func rawMeal(from meal: MealModel) -> HubModuleSheetRaw.Meal {
@@ -136,12 +164,21 @@ struct HubModuleSheetView: View {
             viewModel: viewModel,
             canAddHint: canAddHint,
             onClose: onClose,
-            onAdd: {
-                formParticipants = mealParticipants()
-                showsMealForm = true
+            onPrimary: { primary in
+                if primary == .addMeal {
+                    formParticipants = mealParticipants()
+                    showsMealForm = true
+                } else if let view = EventHubRouting.fallback(for: primary) {
+                    onOpenScreen(view)
+                }
             },
-            onOpenFullScreen: onOpenFullScreen,
-            onOpenComments: onOpenComments
+            onSecondary: { secondary in
+                switch secondary {
+                case .fullScreen: onOpenFullScreen()
+                case .comments: onOpenComments()
+                case .tricount: Self.fallback(for: .tricount).map(onOpenScreen)
+                }
+            }
         )
         .task(id: eventId) { await viewModel.reload() }
         .sheet(isPresented: $showsMealForm, onDismiss: {
@@ -161,9 +198,8 @@ struct HubModuleSheetBody: View {
     @ObservedObject var viewModel: HubModuleSheetViewModel
     let canAddHint: Bool
     let onClose: () -> Void
-    let onAdd: () -> Void
-    let onOpenFullScreen: () -> Void
-    let onOpenComments: () -> Void
+    let onPrimary: (HubModuleSheetData.Primary) -> Void
+    let onSecondary: (HubModuleSheetView.SecondaryAction) -> Void
 
     private var module: HubModule { viewModel.module }
 
@@ -173,9 +209,9 @@ struct HubModuleSheetBody: View {
             title: EventHubView.moduleTitle(module),
             status: data?.status.map { .init(text: $0.text, status: $0.status) },
             missing: data?.missing,
-            primary: HubModuleSheetView.primaryTitle(
+            primary: HubModuleSheetView.primaryAction(
                 module: module, state: viewModel.state, data: data, canAddHint: canAddHint
-            ).map { (title: $0, action: onAdd) },
+            ).map { primary in (title: HubModuleSheetView.title(for: primary), action: { onPrimary(primary) }) },
             secondary: secondaryItems,
             onClose: onClose
         ) {
@@ -213,14 +249,21 @@ struct HubModuleSheetBody: View {
                     systemImage: "arrow.up.left.and.arrow.down.right",
                     label: String(localized: "hub.sheet.open_full"),
                     accessibilityID: "hub.sheet.openFull",
-                    action: onOpenFullScreen
+                    action: { onSecondary(.fullScreen) }
                 )
             case .comments:
                 return WKActionBar.Item(
                     systemImage: "bubble.left",
                     label: String(localized: "hub.sheet.comments"),
                     accessibilityID: "hub.sheet.comments",
-                    action: onOpenComments
+                    action: { onSecondary(.comments) }
+                )
+            case .tricount:
+                return WKActionBar.Item(
+                    systemImage: "divide.circle",
+                    label: String(localized: "tricount.title"),
+                    accessibilityID: "hub.sheet.tricount",
+                    action: { onSecondary(.tricount) }
                 )
             }
         }
