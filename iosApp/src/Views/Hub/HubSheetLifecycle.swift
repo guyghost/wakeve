@@ -19,12 +19,24 @@ struct HubSheetLifecycle: Equatable {
 
     struct Fallback: Equatable {
         let eventId: String
-        let view: AppView
+        /// Écran legacy, ou route du hub sensible au flag invitations (invités, couche 5c).
+        let route: EventHubRoute
+
+        init(eventId: String, route: EventHubRoute) {
+            self.eventId = eventId
+            self.route = route
+        }
+
+        init(eventId: String, view: AppView) {
+            self.init(eventId: eventId, route: .screen(view))
+        }
     }
 
     enum Effect: Equatable {
         /// Écran legacy demandé depuis la sheet.
         case show(AppView)
+        /// Route du hub hors écran legacy (`invitationParticipants`), exécutée par `performHubRoute`.
+        case perform(EventHubRoute)
         /// Fermeture simple : le hub relit ses résumés.
         case reloadHub
         /// Présentation du routeur différée jusqu'à la fermeture.
@@ -53,8 +65,13 @@ struct HubSheetLifecycle: Equatable {
 
     /// « Plein écran » / « Commentaires » : repli mémorisé avec l'événement de la sheet, appliqué après fermeture.
     mutating func requestFallback(_ view: AppView) {
+        requestFallback(route: .screen(view))
+    }
+
+    /// Même règle pour une route du hub (« Inviter » / « Plein écran » des invités).
+    mutating func requestFallback(route: EventHubRoute) {
         guard let presented else { return }
-        pendingFallback = Fallback(eventId: presented.eventId, view: view)
+        pendingFallback = Fallback(eventId: presented.eventId, route: route)
         close()
     }
 
@@ -97,7 +114,11 @@ struct HubSheetLifecycle: Equatable {
         var effects: [Effect] = []
         if let fallback = pendingFallback {
             if currentView == .eventDetail, selectedEventId == fallback.eventId {
-                effects.append(.show(fallback.view))
+                if case .screen(let view) = fallback.route {
+                    effects.append(.show(view))
+                } else {
+                    effects.append(.perform(fallback.route))
+                }
             }
         } else if currentView == .eventDetail {
             effects.append(.reloadHub)

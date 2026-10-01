@@ -94,6 +94,12 @@ struct HubModuleSheetView: View {
     /// « Plein écran » partout, sauf le budget dont l'action principale ouvre déjà l'écran plein ;
     /// « Commentaires » là où l'écran legacy en a ; « Tricount » pour la cagnotte.
     static func secondaryActions(for module: HubModule) -> [SecondaryAction] {
+        secondaryActions(for: module, primary: nil)
+    }
+
+    /// Invités : « Plein écran » seulement sans « Inviter », qui ouvre déjà le même écran.
+    static func secondaryActions(for module: HubModule, primary: HubModuleSheetData.Primary?) -> [SecondaryAction] {
+        if module == .participants { return primary == nil ? [.fullScreen] : [] }
         if module == .payments { return [.tricount, .fullScreen] }
         // Budget et transport : l'action principale ouvre déjà l'écran plein.
         if module == .budget { return [] }
@@ -114,6 +120,7 @@ struct HubModuleSheetView: View {
         case .managePot: key = "hub.sheet.payments.manage_pot"
         case .planMeeting: key = "hub.sheet.meetings.plan"
         case .organizeTransport: key = "hub.sheet.transport.organize"
+        case .invite: key = "hub.sheet.participants.invite"
         }
         return WK.localizedFormat(key, locale: locale)
     }
@@ -173,6 +180,9 @@ struct HubModuleSheetView: View {
                 if primary == .addMeal {
                     formParticipants = mealParticipants()
                     showsMealForm = true
+                } else if primary == .invite {
+                    // Même route que « Plein écran » des invités (sensible au flag invitations).
+                    onOpenFullScreen()
                 } else if let view = EventHubRouting.fallback(for: primary) {
                     onOpenScreen(view)
                 }
@@ -210,14 +220,15 @@ struct HubModuleSheetBody: View {
 
     var body: some View {
         let data = viewModel.state == .loaded ? viewModel.data : nil
+        let primaryAction = HubModuleSheetView.primaryAction(
+            module: module, state: viewModel.state, data: data, canAddHint: canAddHint
+        )
         WKModuleSheet(
             title: EventHubView.moduleTitle(module),
             status: data?.status.map { .init(text: $0.text, status: $0.status) },
             missing: data?.missing,
-            primary: HubModuleSheetView.primaryAction(
-                module: module, state: viewModel.state, data: data, canAddHint: canAddHint
-            ).map { primary in (title: HubModuleSheetView.title(for: primary), action: { onPrimary(primary) }) },
-            secondary: secondaryItems,
+            primary: primaryAction.map { primary in (title: HubModuleSheetView.title(for: primary), action: { onPrimary(primary) }) },
+            secondary: secondaryItems(primary: primaryAction),
             onClose: onClose
         ) {
             switch viewModel.state {
@@ -230,7 +241,15 @@ struct HubModuleSheetBody: View {
                 failedState
             case .loaded:
                 if let data {
-                    ForEach(data.items) { item in
+                    ForEach(Array(data.items.enumerated()), id: \.element.id) { index, item in
+                        if let section = item.sectionTitle, index == 0 || data.items[index - 1].sectionTitle != section {
+                            Text(section)
+                                .font(WK.Typo.headline)
+                                .foregroundStyle(WK.Colors.textMuted)
+                                .accessibilityAddTraits(.isHeader)
+                                .padding(.top, index == 0 ? 0 : WK.Space.xs)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
                         HubModuleSheetItemCard(item: item)
                     }
                     if data.pendingSync {
@@ -246,8 +265,8 @@ struct HubModuleSheetBody: View {
         .wkAccessibilityID("hub.sheet.\(module.rawValue)")
     }
 
-    private var secondaryItems: [WKActionBar.Item] {
-        HubModuleSheetView.secondaryActions(for: module).map { action in
+    private func secondaryItems(primary: HubModuleSheetData.Primary?) -> [WKActionBar.Item] {
+        HubModuleSheetView.secondaryActions(for: module, primary: primary).map { action in
             switch action {
             case .fullScreen:
                 return WKActionBar.Item(

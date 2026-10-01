@@ -2395,3 +2395,8 @@
 "hub.sheet.status.transport_chosen" = "Plano escolhido";
 "hub.sheet.status.transport_to_decide" = "A decidir";
 "hub.sheet.status.transport_not_needed" = "Não necessário";
+"hub.sheet.participants.invite" = "Convidar";
+"hub.sheet.participants.empty" = "Ninguém foi convidado ainda.";
+"hub.sheet.participants.section.confirmed" = "Confirmados";
+"hub.sheet.participants.section.pending" = "Pendentes";
+"hub.sheet.participants.section.declined" = "Recusaram";

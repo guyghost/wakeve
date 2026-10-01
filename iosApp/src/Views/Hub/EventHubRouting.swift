@@ -25,6 +25,7 @@ enum EventHubRouting {
             // Sans rollout, l'écran participants legacy porte « Ajouter des dates » (`DraftDatesSheet`).
             return invitationRollout ? .editDraft : .screen(.participantManagement)
         case .participants:
+            // Retiré de `sheetModules` : retour à la route d'ajout.
             return addParticipantsRoute(invitationRollout: invitationRollout)
         case .recap:
             // Sans rollout : la date retenue et les réponses de chacun (`PollResultsView`, sans garde).
@@ -36,9 +37,10 @@ enum EventHubRouting {
         }
     }
 
-    /// Modules convertis en sheet (couche 5a, puis budget, cagnotte et réunions en 5b, transport en 5c, #47).
+    /// Modules convertis en sheet (couche 5a, puis budget, cagnotte et réunions en 5b, transport et invités en 5c, #47).
+    /// Date, Lieu, Scénarios et Récap restent des écrans pleins (vote, résultats, comparaison).
     static let sheetModules: Set<HubModule> = [
-        .meals, .equipment, .activities, .accommodation, .photos, .budget, .payments, .meetings, .transport
+        .meals, .equipment, .activities, .accommodation, .photos, .budget, .payments, .meetings, .transport, .participants
     ]
 
     /// Garde d'accès du `case` legacy de chaque module, appliquée avant de présenter sa sheet.
@@ -49,12 +51,15 @@ enum EventHubRouting {
         case organizationDashboard
         /// `canAccessTransportPlanning` (confirmé, organisation, finalisé).
         case transportPlanning
+        /// Aucune garde : la tuile Invités n'est jamais verrouillée.
+        case unguarded
     }
 
     static func sheetGuard(for module: HubModule) -> SheetGuard {
         switch module {
         case .budget, .payments, .meetings: return .organizationDashboard
         case .transport: return .transportPlanning
+        case .participants: return .unguarded
         default: return .detailedPlanning
         }
     }
@@ -67,6 +72,8 @@ enum EventHubRouting {
         case .managePot: return .paymentPot
         case .planMeeting: return .meetingList
         case .organizeTransport: return .transportPlanning
+        // « Inviter » suit la route d'ajout, sensible au flag invitations (`fullScreenRoute`).
+        case .invite: return nil
         }
     }
 
@@ -84,6 +91,13 @@ enum EventHubRouting {
         case .transport: return .transportPlanning
         default: return nil
         }
+    }
+
+    /// Route plein écran d'un module en sheet : invités → route d'ajout (participants legacy sans rollout,
+    /// audience du routeur d'invitations avec) ; autres modules → leur écran legacy.
+    static func fullScreenRoute(for module: HubModule, invitationRollout: Bool) -> EventHubRoute? {
+        if module == .participants { return addParticipantsRoute(invitationRollout: invitationRollout) }
+        return fullScreenFallback(for: module).map(EventHubRoute.screen)
     }
 
     /// Sheet seulement si la garde du `case` legacy (`sheetGuard(for:)`) est satisfaite ;

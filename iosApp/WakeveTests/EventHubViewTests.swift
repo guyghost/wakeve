@@ -126,7 +126,9 @@ final class EventHubViewTests: XCTestCase {
         }
         XCTAssertEqual(route(.date, .draft), .editDraft)
         XCTAssertEqual(route(.date), .screen(.pollResults))
-        XCTAssertEqual(route(.participants), .invitationParticipants)
+        // Couche 5c : les invités s'ouvrent en sheet ; « Inviter » / « Plein écran » suivent `addParticipantsRoute`.
+        XCTAssertEqual(route(.participants), .sheet(.participants))
+        XCTAssertEqual(EventHubRouting.fullScreenRoute(for: .participants, invitationRollout: true), .invitationParticipants)
         XCTAssertEqual(route(.recap, .finalized), .screen(.eventInformation))
     }
 
@@ -136,7 +138,8 @@ final class EventHubViewTests: XCTestCase {
         }
         // Sans rollout, le routeur invitation retombe sur le détail : aucune route ne doit y mener.
         XCTAssertEqual(route(.date, .draft), .screen(.participantManagement), "Écran legacy qui porte « Ajouter des dates ».")
-        XCTAssertEqual(route(.participants), .screen(.participantManagement))
+        XCTAssertEqual(route(.participants), .sheet(.participants))
+        XCTAssertEqual(EventHubRouting.fullScreenRoute(for: .participants, invitationRollout: false), .screen(.participantManagement))
         XCTAssertEqual(route(.recap, .finalized), .screen(.pollResults))
         let phases: [EventHubFacts.Phase] = [.draft, .polling, .comparing, .confirmed, .organizing, .finalized]
         for phase in phases {

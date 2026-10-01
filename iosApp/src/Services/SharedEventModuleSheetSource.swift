@@ -183,6 +183,29 @@ struct SharedEventModuleSheetSource: EventModuleSheetSource {
                 confirmedCount: validated.count,
                 missingDepartureCount: validated.subtracting(departures).count
             ))
+        case .participants:
+            // Même lecture et même règle que la tuile (`SharedEventHubSource.guestCounts`) ;
+            // sans enregistrement, les participants de l'événement sont en attente.
+            if let records = repository.getParticipantRecords(eventId: event.id), !records.isEmpty {
+                let states = records.map { ParticipantAccessMapper.shared.fromRepositoryRecord(record: $0) }
+                let rows = ParticipantManagementPresentationMapper.shared.map(participants: states)
+                raw = .participants(zip(states, rows).map { state, row in
+                    HubModuleSheetRaw.Guest(
+                        id: state.userId,
+                        name: names.name(for: state.userId) ?? state.userId,
+                        group: HubModuleSheetData.guestGroup(
+                            declined: state.rsvp == .declined, confirmed: row.canAccessOrganizationDetails
+                        ),
+                        isOrganizer: state.userId == event.organizerId || state.role == .organizer
+                    )
+                })
+            } else {
+                raw = .participants(event.participants.map { id in
+                    HubModuleSheetRaw.Guest(
+                        id: id, name: names.name(for: id) ?? id, group: .pending, isOrganizer: id == event.organizerId
+                    )
+                })
+            }
         default:
             throw UnsupportedModule()
         }

@@ -14,6 +14,8 @@ struct HubModuleSheetItem: Equatable, Identifiable {
     let assigneeNames: [String]
     /// Libellé VoiceOver de la carte : titre, détail, statut, personnes avec leur rôle.
     let accessibilityLabel: String
+    /// Section de la carte (invités : « Confirmés »…) ; le rendu affiche ce titre à chaque changement. nil : sans sections.
+    var sectionTitle: String? = nil
 }
 
 /// Entrées Swift simples lues par la source (aucun objet Kotlin) ; `statusName` = `enum.name` Kotlin.
@@ -127,6 +129,19 @@ enum HubModuleSheetRaw: Equatable {
         let missingDepartureCount: Int
     }
 
+    /// Groupe d'un invité, même règle que le décompte de la tuile (`SharedEventHubSource.guestCounts`).
+    enum GuestGroup: Equatable, CaseIterable {
+        case confirmed, pending, declined
+    }
+
+    /// Invité lu dans `getParticipantRecords` (couche 5c).
+    struct Guest: Equatable {
+        let id: String
+        let name: String
+        let group: GuestGroup
+        let isOrganizer: Bool
+    }
+
     case meals([Meal])
     case equipment([EquipmentItem])
     case activities([Activity])
@@ -137,6 +152,7 @@ enum HubModuleSheetRaw: Equatable {
     case payments(pot: PaymentPot?, tricount: Tricount)
     case meetings([Meeting])
     case transport(Transport)
+    case participants([Guest])
 
     var module: HubModule {
         switch self {
@@ -149,6 +165,7 @@ enum HubModuleSheetRaw: Equatable {
         case .payments: return .payments
         case .meetings: return .meetings
         case .transport: return .transport
+        case .participants: return .participants
         }
     }
 }
@@ -172,6 +189,8 @@ struct HubModuleSheetData: Equatable {
         case planMeeting
         /// Écran transport ; il applique lui-même ses droits d'écriture.
         case organizeTransport
+        /// Route d'ajout d'invités, sensible au flag invitations (`EventHubRouting.fullScreenRoute`).
+        case invite
     }
 
     /// État du transport, dans l'ordre de l'écran legacy (`transportStatusText`) : non requis, plan retenu,
@@ -211,6 +230,8 @@ struct HubModuleSheetData: Equatable {
         case .meetings: return canWrite ? .planMeeting : nil
         // Ouvert à tous ceux qui passent la garde transport, comme le `case` legacy.
         case .transport: return .organizeTransport
+        // Même règle que l'entrée « Ajouter des participants » du hub : organisateur d'un événement non finalisé.
+        case .participants: return canWrite ? .invite : nil
         default: return nil
         }
     }
@@ -522,6 +543,36 @@ struct HubModuleSheetData: Equatable {
             case .toDecide: missing = text.format("hub.sheet.transport.choose")
             case .chosen: missing = nil
             }
+
+        case .participants(let guests):
+            // Confirmés, en attente, ont décliné ; l'organisateur en tête, ordre d'origine conservé.
+            let organizerText = text.format("participants.role.organizer")
+            let ordered = HubModuleSheetRaw.GuestGroup.allCases.flatMap { group in
+                guests.filter { $0.group == group && $0.isOrganizer } + guests.filter { $0.group == group && !$0.isOrganizer }
+            }
+            items = ordered.map { guest in
+                var item = text.item(
+                    module: .participants,
+                    id: guest.id,
+                    title: guest.name,
+                    detail: nil,
+                    status: nil,
+                    statusText: guest.isOrganizer ? organizerText : nil,
+                    names: [guest.name]
+                )
+                item.sectionTitle = text.format(guestSectionKey(guest.group))
+                return item
+            }
+            let confirmed = guests.filter { $0.group == .confirmed }.count
+            let pending = guests.filter { $0.group == .pending }.count
+            if !guests.isEmpty {
+                pill = Pill(text: text.plural("hub.confirmed_count", confirmed), status: pending == 0 ? .confirmed : .pending)
+            }
+            if !guests.contains(where: { !$0.isOrganizer }) {
+                missing = text.format("hub.sheet.participants.empty")
+            } else if pending > 0 {
+                missing = text.plural("hub.sheet.participants.pending_count", pending)
+            }
         }
 
         return HubModuleSheetData(
@@ -549,6 +600,22 @@ struct HubModuleSheetData: Equatable {
             raw: .meals(meals + [meal]), isOrganizer: isOrganizer, isReadOnly: isReadOnly,
             pendingSync: pendingSync, locale: locale, calendar: calendar
         )
+    }
+
+    // MARK: - Invités
+
+    /// Refusés à part ; confirmés = accès aux détails d'organisation ; les autres sont en attente.
+    static func guestGroup(declined: Bool, confirmed: Bool) -> HubModuleSheetRaw.GuestGroup {
+        if declined { return .declined }
+        return confirmed ? .confirmed : .pending
+    }
+
+    static func guestSectionKey(_ group: HubModuleSheetRaw.GuestGroup) -> String {
+        switch group {
+        case .confirmed: return "hub.sheet.participants.section.confirmed"
+        case .pending: return "hub.sheet.participants.section.pending"
+        case .declined: return "hub.sheet.participants.section.declined"
+        }
     }
 
     // MARK: - Transport

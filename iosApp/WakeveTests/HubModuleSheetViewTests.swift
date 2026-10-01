@@ -11,7 +11,7 @@ final class HubModuleSheetViewTests: XCTestCase {
 
     func testSimpleModulesOpenInSheetsAndOthersKeepTheirScreens() {
         XCTAssertEqual(EventHubRouting.sheetModules, [
-            .meals, .equipment, .activities, .accommodation, .photos, .budget, .payments, .meetings, .transport
+            .meals, .equipment, .activities, .accommodation, .photos, .budget, .payments, .meetings, .transport, .participants
         ])
         for rollout in [true, false] {
             for phase in [EventHubFacts.Phase.organizing, .finalized, .confirmed] {
@@ -28,7 +28,8 @@ final class HubModuleSheetViewTests: XCTestCase {
     func testEachSheetUsesTheGuardOfItsLegacyCase() {
         for module in HubModule.allCases {
             let expected: EventHubRouting.SheetGuard = [.budget, .payments, .meetings].contains(module)
-                ? .organizationDashboard : (module == .transport ? .transportPlanning : .detailedPlanning)
+                ? .organizationDashboard
+                : (module == .transport ? .transportPlanning : (module == .participants ? .unguarded : .detailedPlanning))
             XCTAssertEqual(EventHubRouting.sheetGuard(for: module), expected, "\(module)")
         }
     }

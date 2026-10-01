@@ -274,5 +274,21 @@
             <string>%d reuniões sem link</string>
         </dict>
     </dict>
+    <key>hub.sheet.participants.pending_count</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@count@</string>
+        <key>count</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>one</key>
+            <string>%d convidado pendente</string>
+            <key>other</key>
+            <string>%d convidados pendentes</string>
+        </dict>
+    </dict>
 </dict>
 </plist>

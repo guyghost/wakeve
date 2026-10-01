@@ -165,6 +165,88 @@ final class HubModuleSheetLayer5cTests: XCTestCase {
         XCTAssertTrue(SharedEventModuleSheetSource.readsDatabase(for: .transport))
     }
 
+    // MARK: - Invités : contenu
+
+    private func guest(_ id: String, _ group: HubModuleSheetRaw.GuestGroup, organizer: Bool = false) -> HubModuleSheetRaw.Guest {
+        .init(id: id, name: "Nom \(id)", group: group, isOrganizer: organizer)
+    }
+
+    func testGuestGroupMatchesTheHubCount() {
+        XCTAssertEqual(HubModuleSheetData.guestGroup(declined: true, confirmed: true), .declined)
+        XCTAssertEqual(HubModuleSheetData.guestGroup(declined: false, confirmed: true), .confirmed)
+        XCTAssertEqual(HubModuleSheetData.guestGroup(declined: false, confirmed: false), .pending)
+    }
+
+    func testGuestsAreGroupedConfirmedPendingDeclinedWithTheOrganizerFirst() {
+        let data = make(.participants([
+            guest("p", .pending), guest("c", .confirmed), guest("d", .declined), guest("o", .confirmed, organizer: true),
+            guest("p2", .pending)
+        ]))
+        XCTAssertEqual(data.items.map(\.id), ["o", "c", "p", "p2", "d"])
+        XCTAssertEqual(data.items.map(\.sectionTitle), ["Confirmés", "Confirmés", "En attente", "En attente", "Ont décliné"])
+        XCTAssertEqual(data.items[0].title, "Nom o")
+        XCTAssertEqual(data.items[0].statusText, "Organisateur")
+        XCTAssertNil(data.items[0].status, "Rôle affiché en texte, sans pastille.")
+        XCTAssertEqual(data.items[0].assigneeNames, ["Nom o"], "Avatar de la personne.")
+        XCTAssertNil(data.items[1].statusText)
+        XCTAssertEqual(data.items[0].accessibilityLabel, "Nom o, Organisateur")
+        XCTAssertEqual(data.status, .init(text: "2 confirmés", status: .pending))
+        XCTAssertEqual(data.missing, "2 invités en attente")
+    }
+
+    func testEveryoneConfirmedHasAConfirmedPillAndNoMissingSentence() {
+        let data = make(.participants([guest("o", .confirmed, organizer: true), guest("c", .confirmed), guest("d", .declined)]))
+        XCTAssertEqual(data.status, .init(text: "2 confirmés", status: .confirmed))
+        XCTAssertNil(data.missing)
+        XCTAssertEqual(make(.participants([guest("c", .confirmed), guest("p", .pending)])).missing, "1 invité en attente")
+    }
+
+    func testNobodyInvitedSaysSo() {
+        XCTAssertEqual(make(.participants([])).missing, "Personne n'est invité pour l'instant.")
+        XCTAssertNil(make(.participants([])).status)
+        let alone = make(.participants([guest("o", .confirmed, organizer: true)]))
+        XCTAssertEqual(alone.missing, "Personne n'est invité pour l'instant.", "L'organisateur seul n'a invité personne.")
+        XCTAssertEqual(alone.items.map(\.id), ["o"])
+    }
+
+    func testOnlyTheOrganizerOfAnOpenEventInvites() {
+        XCTAssertEqual(make(.participants([]), isOrganizer: true, isReadOnly: false).primary, .invite)
+        XCTAssertNil(make(.participants([]), isOrganizer: false, isReadOnly: false).primary)
+        XCTAssertNil(make(.participants([]), isOrganizer: true, isReadOnly: true).primary)
+        XCTAssertEqual(HubModuleSheetView.title(for: .invite, locale: fr), "Inviter")
+        XCTAssertNil(EventHubRouting.fallback(for: .invite), "« Inviter » suit la route d'ajout, sensible au flag invitations.")
+    }
+
+    // MARK: - Invités : actions et routage
+
+    func testParticipantsOfferFullScreenOnlyWithoutInvite() {
+        XCTAssertEqual(HubModuleSheetView.secondaryActions(for: .participants, primary: nil), [.fullScreen])
+        XCTAssertEqual(HubModuleSheetView.secondaryActions(for: .participants, primary: .invite), [],
+                       "« Inviter » ouvre déjà l'écran plein.")
+        XCTAssertEqual(HubModuleSheetView.secondaryActions(for: .meals, primary: .addMeal), [.fullScreen, .comments])
+        XCTAssertEqual(HubModuleSheetView.secondaryActions(for: .transport, primary: .organizeTransport), [.comments])
+    }
+
+    func testParticipantsOpenInASheetWithoutGuardAndFallBackByTheInvitationFlag() {
+        XCTAssertTrue(EventHubRouting.sheetModules.contains(.participants))
+        for rollout in [true, false] {
+            for phase in [EventHubFacts.Phase.draft, .polling, .confirmed, .organizing, .finalized] {
+                XCTAssertEqual(EventHubRouting.route(for: .participants, phase: phase, invitationRollout: rollout), .sheet(.participants))
+            }
+        }
+        XCTAssertEqual(EventHubRouting.sheetGuard(for: .participants), .unguarded)
+        XCTAssertEqual(EventHubRouting.fullScreenRoute(for: .participants, invitationRollout: true), .invitationParticipants)
+        XCTAssertEqual(EventHubRouting.fullScreenRoute(for: .participants, invitationRollout: false), .screen(.participantManagement))
+        XCTAssertEqual(EventHubRouting.fullScreenRoute(for: .meals, invitationRollout: true), .screen(.mealPlanning))
+        XCTAssertNil(EventHubRouting.fullScreenRoute(for: .date, invitationRollout: true))
+        XCTAssertTrue(SharedEventModuleSheetSource.readsDatabase(for: .participants))
+    }
+
+    func testOrganizerSeesInviteFromTheFirstFrame() {
+        XCTAssertEqual(HubModuleSheetView.primaryTitle(module: .participants, state: .loading, data: nil, canAddHint: true, locale: fr), "Inviter")
+        XCTAssertNil(HubModuleSheetView.primaryTitle(module: .participants, state: .loading, data: nil, canAddHint: false, locale: fr))
+    }
+
     // MARK: - Rendu
 
     private struct Stub: EventModuleSheetSource {
@@ -213,6 +295,13 @@ final class HubModuleSheetLayer5cTests: XCTestCase {
         ], failing: [.transport])
     }
 
+    func testParticipantsSheetRendersEveryStateAtAX5WithinAPhone() async {
+        await renderAtAX5([
+            .participants([guest("o", .confirmed, organizer: true), guest("c", .confirmed), guest("p", .pending), guest("d", .declined)]),
+            .participants([])
+        ], failing: [.participants])
+    }
+
     // MARK: - Localisation
 
     func testLayer5cKeysExistInEveryLanguage() throws {
@@ -231,7 +320,16 @@ final class HubModuleSheetLayer5cTests: XCTestCase {
 
     static var stringKeys = [
         "hub.sheet.transport.no_plan", "hub.sheet.transport.choose", "hub.sheet.transport.organize",
-        "hub.sheet.status.transport_chosen", "hub.sheet.status.transport_to_decide", "hub.sheet.status.transport_not_needed"
+        "hub.sheet.status.transport_chosen", "hub.sheet.status.transport_to_decide", "hub.sheet.status.transport_not_needed",
+        "hub.sheet.participants.invite", "hub.sheet.participants.empty", "hub.sheet.participants.section.confirmed",
+        "hub.sheet.participants.section.pending", "hub.sheet.participants.section.declined", "participants.role.organizer"
     ]
-    static var pluralKeys: [String] = []
+    static var pluralKeys = ["hub.sheet.participants.pending_count", "hub.confirmed_count"]
+
+    func testEnglishGuestPluralsResolve() {
+        XCTAssertEqual(String(format: WK.localizedFormat("hub.sheet.participants.pending_count", locale: en), locale: en, 1),
+                       "1 guest pending")
+        XCTAssertEqual(String(format: WK.localizedFormat("hub.sheet.participants.pending_count", locale: en), locale: en, 3),
+                       "3 guests pending")
+    }
 }

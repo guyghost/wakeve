@@ -2417,3 +2417,8 @@
 "hub.sheet.status.transport_chosen" = "Plan choisi";
 "hub.sheet.status.transport_to_decide" = "À décider";
 "hub.sheet.status.transport_not_needed" = "Pas nécessaire";
+"hub.sheet.participants.invite" = "Inviter";
+"hub.sheet.participants.empty" = "Personne n'est invité pour l'instant.";
+"hub.sheet.participants.section.confirmed" = "Confirmés";
+"hub.sheet.participants.section.pending" = "En attente";
+"hub.sheet.participants.section.declined" = "Ont décliné";

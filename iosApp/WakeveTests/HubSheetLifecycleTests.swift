@@ -112,4 +112,20 @@ final class HubSheetLifecycleTests: XCTestCase {
         XCTAssertEqual(deferred.hostRemoved(), .profile, "Sans `onDismiss`, la présentation n'est pas perdue.")
         XCTAssertEqual(deferred.routerPresentation(.settings), .settings, "Plus de fermeture en attente.")
     }
+
+    /// Couche 5c : « Inviter » / « Plein écran » des invités suivent une route non `AppView` (flag invitations).
+    func testRouteFallbackIsPerformedAfterDismissalOnTheSameHub() {
+        var lifecycle = opened(.participants)
+        lifecycle.requestFallback(route: .invitationParticipants)
+        XCTAssertEqual(lifecycle.pendingFallback, .init(eventId: "e1", route: .invitationParticipants))
+        XCTAssertEqual(lifecycle.didDismiss(currentView: .eventDetail, selectedEventId: "e1"), [.perform(.invitationParticipants)])
+
+        var screen = opened(.participants)
+        screen.requestFallback(route: .screen(.participantManagement))
+        XCTAssertEqual(screen.didDismiss(currentView: .eventDetail, selectedEventId: "e1"), [.show(.participantManagement)])
+
+        var elsewhere = opened(.participants)
+        elsewhere.requestFallback(route: .invitationParticipants)
+        XCTAssertEqual(elsewhere.didDismiss(currentView: .eventDetail, selectedEventId: "e2"), [])
+    }
 }

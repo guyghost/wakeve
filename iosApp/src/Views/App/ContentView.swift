@@ -730,6 +730,7 @@ struct AuthenticatedView: View {
             case .detailedPlanning: accessGranted = canAccessDetailedPlanning(for: event)
             case .organizationDashboard: accessGranted = canAccessOrganizationDashboard(for: event)
             case .transportPlanning: accessGranted = canAccessTransportPlanning(for: event)
+            case .unguarded: accessGranted = true
             }
             switch EventHubRouting.sheetRoute(for: module, accessGranted: accessGranted) {
             case .sheet?: hubSheet.present(module, eventId: event.id)
@@ -762,6 +763,11 @@ struct AuthenticatedView: View {
             onOpenFullScreen: {
                 if let view = EventHubRouting.fullScreenFallback(for: module) {
                     hubSheet.requestFallback(view)
+                } else if let route = EventHubRouting.fullScreenRoute(
+                    for: module, invitationRollout: invitationExperienceRolloutEnabled
+                ) {
+                    // Invités : route d'ajout, sensible au flag invitations (couche 5c).
+                    hubSheet.requestFallback(route: route)
                 } else {
                     hubSheet.close()
                 }
@@ -796,6 +802,7 @@ struct AuthenticatedView: View {
         for effect in hubSheet.didDismiss(currentView: currentView, selectedEventId: selectedEvent?.id) {
             switch effect {
             case .show(let view): currentView = view
+            case .perform(let route): if let event = selectedEvent { performHubRoute(route, for: event) }
             case .reloadHub: eventHubReloadToken += 1
             case .presentRouter(let presentation): redesignRouter.presentation = presentation
             }
