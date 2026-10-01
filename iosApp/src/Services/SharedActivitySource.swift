@@ -136,18 +136,21 @@ struct SharedActivitySource: ActivitySource {
                 )
             }
 
-        // Commentaires des autres : la borne avance jusqu'à son propre dernier commentaire
-        // (`countRecentActivity` ne filtre pas l'auteur ; on a vu le fil en y écrivant).
+        // Commentaires des autres dans la section générale, celle qu'ouvre la ligne messages : la borne
+        // avance jusqu'à son propre dernier commentaire de la même section (le compte ne filtre pas
+        // l'auteur ; on a vu le fil en y écrivant). Requêtes à une seule ligne : les statistiques par
+        // participant regroupent aussi par nom d'auteur, et un auteur renommé y donnait plusieurs lignes
+        // (exception Kotlin non rattrapable côté Swift).
         var newMessages: [String: Int] = [:]
         for event in events {
             try Task.checkCancellation()
             let own = database.commentQueries
-                .selectParticipantActivity(event_id: event.id, author_id: viewerId)
-                .executeAsOneOrNull()?
+                .selectLastCommentAtByAuthorInSection(event_id: event.id, author_id: viewerId, section: messagesSection)
+                .executeAsOne()
                 .lastCommentAt
             let since = messagesSinceISO(lastSeen: lastSeen[event.id], ownLastCommentISO: own, now: now)
             let count = database.commentQueries
-                .countRecentActivity(event_id: event.id, created_at: since)
+                .countRecentActivityInSection(event_id: event.id, section: messagesSection, created_at: since)
                 .executeAsOne()
                 .int64Value
             if count > 0 { newMessages[event.id] = Int(count) }
@@ -160,6 +163,9 @@ struct SharedActivitySource: ActivitySource {
     }
 
     // MARK: - Règles pures (testées unitairement)
+
+    /// Section comptée (`CommentSection.GENERAL.name`) : la ligne messages ouvre les commentaires généraux.
+    static let messagesSection = "GENERAL"
 
     /// `eventId` du JSON `data` d'une notification (valeur textuelle ou numérique).
     static func eventId(fromData data: String?) -> String? {

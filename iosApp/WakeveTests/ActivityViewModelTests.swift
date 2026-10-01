@@ -193,7 +193,18 @@ final class ActivityViewModelTests: XCTestCase {
         XCTAssertTrue(source.contains("withTaskCancellationHandler"))
         XCTAssertTrue(source.contains("SharedEventsHomeSource()"), "Les événements et leurs faits viennent de l'accueil.")
         XCTAssertTrue(source.contains("getNotifications(user_id: viewerId, value_: 50)"))
-        XCTAssertTrue(source.contains("countRecentActivity(event_id:"))
         XCTAssertTrue(source.contains("ParticipantAccessMapper"))
+    }
+
+    /// `selectParticipantActivity` regroupe aussi par `author_name` : un auteur renommé donne plusieurs
+    /// lignes et `executeAsOneOrNull()` lève une exception Kotlin qui arrête l'application.
+    func testSourceUsesSingleRowCommentQueriesScopedToOneSection() throws {
+        let source = try String(contentsOf: URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .deletingLastPathComponent().appendingPathComponent("src/Services/SharedActivitySource.swift"), encoding: .utf8)
+        XCTAssertFalse(source.contains("selectParticipantActivity"))
+        XCTAssertFalse(source.contains("executeAsOneOrNull"))
+        XCTAssertTrue(source.contains("selectLastCommentAtByAuthorInSection(event_id:"))
+        XCTAssertTrue(source.contains("countRecentActivityInSection(event_id:"))
+        XCTAssertFalse(source.contains("countRecentActivity(event_id:"), "Compte limité à une section.")
     }
 }
