@@ -62,6 +62,25 @@ enum HubSummaryText {
         return MealProgress(ready: active.filter { $0 == "COMPLETED" }.count, total: active.count)
     }
 
+    struct MeetingCounts: Equatable {
+        /// Réunions non annulées (tuile du hub, cartes de la sheet).
+        let active: Int
+        /// Ni annulées ni terminées (pastille « N à venir »).
+        let upcoming: Int
+    }
+
+    static func isUpcomingMeeting(statusName: String) -> Bool {
+        statusName != "CANCELLED" && statusName != "ENDED"
+    }
+
+    /// Même décompte pour la tuile Réunions et la sheet.
+    static func meetingCounts(statusNames: [String]) -> MeetingCounts {
+        MeetingCounts(
+            active: statusNames.filter { $0 != "CANCELLED" }.count,
+            upcoming: statusNames.filter { isUpcomingMeeting(statusName: $0) }.count
+        )
+    }
+
     static func meals(completed: Int, total: Int, locale: Locale) -> String {
         String(format: WK.localizedFormat("hub.summary.meals_progress_format", locale: locale), locale: locale, completed, total)
     }
@@ -277,11 +296,11 @@ struct SharedEventHubSource: EventHubSource {
             let count = ActivityRepository(db: database).getActivitiesByEventId(eventId: event.id).count
             return count > 0 ? HubSummaryText.plural("hub.activities_count", count, locale: locale) : nil
         case .meetings:
-            let count = database.meetingQueries
+            let statuses = database.meetingQueries
                 .selectByEventId(eventId: event.id)
                 .executeAsList()
-                .filter { $0.status != "CANCELLED" }
-                .count
+                .map(\.status)
+            let count = HubSummaryText.meetingCounts(statusNames: statuses).active
             return count > 0 ? HubSummaryText.plural("hub.meetings_count", count, locale: locale) : nil
         case .payments:
             let pot = PaymentPotRepository(db: database).getActivePotForEvent(eventId: event.id)

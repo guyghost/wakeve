@@ -242,5 +242,37 @@
             <string>%d inscritos</string>
         </dict>
     </dict>
+    <key>hub.sheet.meetings.upcoming_count</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@count@</string>
+        <key>count</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>one</key>
+            <string>%d próxima</string>
+            <key>other</key>
+            <string>%d próximas</string>
+        </dict>
+    </dict>
+    <key>hub.sheet.meetings.without_link_count</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@count@</string>
+        <key>count</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>one</key>
+            <string>%d reunião sem link</string>
+            <key>other</key>
+            <string>%d reuniões sem link</string>
+        </dict>
+    </dict>
 </dict>
 </plist>

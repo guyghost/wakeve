@@ -62,11 +62,58 @@ enum HubModuleSheetRaw: Equatable {
         let bookingStatusName: String
     }
 
+    /// Budget lu sans création (`BudgetRepository.getBudgetByEventId`), en euros comme `BudgetOverviewView`.
+    struct Budget: Equatable {
+        struct Category: Equatable {
+            /// Suffixe de `budget.category.*` : transport, accommodation, meals, activities, equipment, other.
+            let key: String
+            let estimated: Double
+            let actual: Double
+        }
+
+        let totalEstimated: Double
+        let totalActual: Double
+        /// Dans l'ordre d'affichage.
+        let categories: [Category]
+    }
+
+    /// Cagnotte active (`PaymentPotRepository.getActivePotForEvent`).
+    struct PaymentPot: Equatable {
+        let title: String
+        let goalAmount: Double
+        /// Code ISO (`EUR`, `CHF`…).
+        let currency: String
+        /// ACTIVE, CLOSED.
+        let statusName: String
+    }
+
+    /// État Tricount (`TricountHandoffRepository.getPaymentReadiness`), voir `HubModuleSheetData.tricountState`.
+    enum Tricount: Equatable {
+        case notRequired, linkVerified, linkToCheck, undecided
+    }
+
+    struct Meeting: Equatable {
+        let id: String
+        let title: String
+        /// ISO 8601 UTC (`meeting.startTime`).
+        let startTime: String
+        /// ZOOM, GOOGLE_MEET, FACETIME, TEAMS, WEBEX, OTHER.
+        let platformName: String
+        /// SCHEDULED, STARTED, ENDED, CANCELLED.
+        let statusName: String
+        /// Lien de réunion généré (`meetingLink` non vide).
+        let hasLink: Bool
+    }
+
     case meals([Meal])
     case equipment([EquipmentItem])
     case activities([Activity])
     case accommodation([Accommodation])
     case photos
+    /// nil : aucun budget enregistré.
+    case budget(Budget?)
+    case payments(pot: PaymentPot?, tricount: Tricount)
+    case meetings([Meeting])
 
     var module: HubModule {
         switch self {
@@ -75,6 +122,9 @@ enum HubModuleSheetRaw: Equatable {
         case .activities: return .activities
         case .accommodation: return .accommodation
         case .photos: return .photos
+        case .budget: return .budget
+        case .payments: return .payments
+        case .meetings: return .meetings
         }
     }
 }
@@ -86,20 +136,50 @@ struct HubModuleSheetData: Equatable {
         let status: WK.Status
     }
 
+    /// Action principale de la sheet ; les écritures restent dans les écrans existants.
+    enum Primary: Equatable {
+        /// Formulaire `MealFormSheet`, présenté depuis la sheet.
+        case addMeal
+        /// Consultation de l'écran budget, ouverte à tous (même finalisé).
+        case viewExpenses
+        /// Écran cagnotte.
+        case managePot
+        /// Écran réunions (création par « + »).
+        case planMeeting
+    }
+
     let module: HubModule
     let items: [HubModuleSheetItem]
     /// Pastille d'en-tête (repas : « x/y prêts »).
     let status: Pill?
     /// Phrase « ce qui manque », localisée.
     let missing: String?
-    /// Action principale « Ajouter » : organisateur, événement modifiable, module doté d'un formulaire (repas).
-    let canAdd: Bool
+    /// Action principale (`primaryAction(for:isOrganizer:isReadOnly:)`).
+    let primary: Primary?
     let pendingSync: Bool
 
     /// Entrées conservées pour recalculer après un ajout local (`appendingMeal`).
     let raw: HubModuleSheetRaw
     let isOrganizer: Bool
     let isReadOnly: Bool
+
+    /// Ajout de repas depuis la sheet (organisateur, événement modifiable).
+    var canAdd: Bool { primary == .addMeal }
+
+    /// Action principale par module, mêmes règles que les écrans legacy :
+    /// repas, cagnotte (`canManagePayment`) et réunions (`canCreateMeetings`) pour l'organisateur d'un événement
+    /// non finalisé — les gardes des sheets 5b limitent déjà la phase à organisation/finalisé ;
+    /// « Voir les dépenses » est une consultation, ouverte à tous.
+    static func primaryAction(for module: HubModule, isOrganizer: Bool, isReadOnly: Bool) -> Primary? {
+        let canWrite = isOrganizer && !isReadOnly
+        switch module {
+        case .meals: return canWrite ? .addMeal : nil
+        case .budget: return .viewExpenses
+        case .payments: return canWrite ? .managePot : nil
+        case .meetings: return canWrite ? .planMeeting : nil
+        default: return nil
+        }
+    }
 
     static func make(
         raw: HubModuleSheetRaw,
@@ -112,8 +192,7 @@ struct HubModuleSheetData: Equatable {
         let text = SheetText(locale: locale, calendar: calendar)
         let items: [HubModuleSheetItem]
         var pill: Pill?
-        let missing: String?
-        var canAdd = false
+        var missing: String?
 
         switch raw {
         case .meals(let meals):
@@ -144,7 +223,6 @@ struct HubModuleSheetData: Equatable {
             missing = meals.isEmpty
                 ? text.format("hub.sheet.meals.empty")
                 : (unassigned > 0 ? text.plural("hub.sheet.meals.unassigned_count", unassigned) : nil)
-            canAdd = isOrganizer && !isReadOnly
 
         case .equipment(let equipment):
             items = equipment.map { item in
@@ -224,6 +302,114 @@ struct HubModuleSheetData: Equatable {
         case .photos:
             items = []
             missing = text.format("hub.tile.photos_hint")
+
+        case .budget(let budget):
+            let money = { HubSummaryText.euros($0, locale: locale) }
+            let amounts = { (actual: Double, estimated: Double) in
+                String(format: text.format("hub.sheet.budget.amounts_format"), money(actual), money(estimated))
+            }
+            guard let budget, budget.totalEstimated > 0 || budget.totalActual > 0 else {
+                items = []
+                missing = text.format("hub.sheet.budget.empty")
+                break
+            }
+            items = budget.categories
+                .filter { $0.estimated > 0 || $0.actual > 0 }
+                .map { category in
+                    let over = category.actual > category.estimated
+                    return text.item(
+                        module: .budget,
+                        id: category.key,
+                        title: text.format("budget.category.\(category.key)"),
+                        detail: amounts(category.actual, category.estimated),
+                        status: over ? .pending : nil,
+                        statusText: over ? text.format("hub.sheet.status.budget_over") : nil,
+                        names: []
+                    )
+                }
+            let over = budget.totalActual > budget.totalEstimated
+            pill = Pill(text: amounts(budget.totalActual, budget.totalEstimated), status: over ? .pending : .confirmed)
+            missing = over
+                ? String(format: text.format("hub.sheet.budget.over_format"), money(budget.totalActual - budget.totalEstimated))
+                : nil
+
+        case .payments(let pot, let tricount):
+            var cards: [HubModuleSheetItem] = []
+            if let pot {
+                let status = potStatus(pot.statusName)
+                pill = status.map { Pill(text: text.format($0.key), status: $0.status) }
+                let title = pot.title.trimmingCharacters(in: .whitespacesAndNewlines)
+                cards.append(text.item(
+                    module: .payments,
+                    id: "pot",
+                    title: title.isEmpty ? text.format("event.detail.organization.payment_pot_label") : title,
+                    // Même texte que la tuile du hub.
+                    detail: HubSummaryText.paymentPot(goalAmount: pot.goalAmount, currency: pot.currency, locale: locale),
+                    status: status?.status,
+                    statusText: status.map { text.format($0.key) },
+                    names: []
+                ))
+            } else {
+                missing = text.format("hub.sheet.payments.no_pot")
+            }
+            let ready = tricount == .notRequired || tricount == .linkVerified
+            cards.append(text.item(
+                module: .payments,
+                id: "tricount",
+                title: text.format("tricount.title"),
+                detail: text.format(tricountKey(tricount)),
+                status: ready ? .confirmed : .pending,
+                statusText: text.format(ready ? "hub.sheet.status.tricount_ready" : "hub.sheet.status.tricount_todo"),
+                names: []
+            ))
+            items = cards
+
+        case .meetings(let meetings):
+            let dated = meetings
+                .filter { $0.statusName != "CANCELLED" }
+                .enumerated()
+                .map { (offset: $0.offset, meeting: $0.element, date: HomeDateText.parseISO($0.element.startTime)) }
+                // Par date ; dates illisibles en dernier, ordre d'origine conservé.
+                .sorted { lhs, rhs in
+                    switch (lhs.date, rhs.date) {
+                    case let (l?, r?): return l == r ? lhs.offset < rhs.offset : l < r
+                    case (.some, nil): return true
+                    case (nil, .some): return false
+                    case (nil, nil): return lhs.offset < rhs.offset
+                    }
+                }
+            items = dated.map { entry in
+                let meeting = entry.meeting
+                return text.item(
+                    module: .meetings,
+                    id: meeting.id,
+                    title: meeting.title,
+                    detail: text.join([
+                        entry.date.map { text.when(instant: $0) } ?? (meeting.startTime.isEmpty ? nil : meeting.startTime),
+                        meetingPlatformName(meeting.platformName, locale: locale)
+                    ]),
+                    status: meeting.hasLink ? .confirmed : .pending,
+                    statusText: text.format(meeting.hasLink
+                                            ? "hub.sheet.status.meeting_link_ready"
+                                            : "hub.sheet.status.meeting_no_link"),
+                    names: []
+                )
+            }
+            // Même décompte que la tuile du hub (réunions non annulées), « à venir » = ni annulée ni terminée.
+            let counts = HubSummaryText.meetingCounts(statusNames: meetings.map(\.statusName))
+            let upcoming = meetings.filter { HubSummaryText.isUpcomingMeeting(statusName: $0.statusName) }
+            let withoutLink = upcoming.filter { !$0.hasLink }.count
+            if counts.upcoming > 0 {
+                pill = Pill(
+                    text: text.plural("hub.sheet.meetings.upcoming_count", counts.upcoming),
+                    status: withoutLink == 0 ? .confirmed : .pending
+                )
+            }
+            if counts.active == 0 {
+                missing = text.format("hub.sheet.meetings.empty")
+            } else if withoutLink > 0 {
+                missing = text.plural("hub.sheet.meetings.without_link_count", withoutLink)
+            }
         }
 
         return HubModuleSheetData(
@@ -231,7 +417,7 @@ struct HubModuleSheetData: Equatable {
             items: items,
             status: pill,
             missing: missing,
-            canAdd: canAdd,
+            primary: primaryAction(for: raw.module, isOrganizer: isOrganizer, isReadOnly: isReadOnly),
             pendingSync: pendingSync,
             raw: raw,
             isOrganizer: isOrganizer,
@@ -281,6 +467,45 @@ struct HubModuleSheetData: Equatable {
         }
     }
 
+    /// Cagnotte ouverte ou clôturée ; statut inconnu → pas de pastille.
+    static func potStatus(_ name: String) -> (key: String, status: WK.Status)? {
+        switch name {
+        case "ACTIVE": return ("hub.sheet.status.pot_open", .confirmed)
+        case "CLOSED": return ("hub.sheet.status.pot_closed", .confirmed)
+        default: return nil
+        }
+    }
+
+    /// Même ordre que `tricountSummaryValue` (ContentView) : non requis, lien vérifié, lien à vérifier, à décider.
+    static func tricountState(explicitNotNeeded: Bool?, complete: Bool, hasHandoff: Bool) -> HubModuleSheetRaw.Tricount {
+        if explicitNotNeeded == true { return .notRequired }
+        if complete { return .linkVerified }
+        if hasHandoff { return .linkToCheck }
+        return .undecided
+    }
+
+    /// Textes existants du résumé Tricount (sans le suffixe « détails finalisés » : la sheet a sa pastille).
+    static func tricountKey(_ state: HubModuleSheetRaw.Tricount) -> String {
+        switch state {
+        case .notRequired: return "event.detail.tricount.not_required"
+        case .linkVerified: return "event.detail.tricount.link_verified"
+        case .linkToCheck: return "event.detail.tricount.link_to_check"
+        case .undecided: return "event.detail.tricount.decide_before_expenses"
+        }
+    }
+
+    /// Mêmes noms que la ligne legacy (`MeetingRowView.platformDisplayName`).
+    static func meetingPlatformName(_ name: String, locale: Locale = WK.appLocale) -> String {
+        switch name {
+        case "ZOOM": return "Zoom"
+        case "GOOGLE_MEET": return "Google Meet"
+        case "FACETIME": return "FaceTime"
+        case "TEAMS": return "Teams"
+        case "WEBEX": return "Webex"
+        default: return WK.localizedFormat("meetings.platform_other", locale: locale)
+        }
+    }
+
     // MARK: - Accessibilité
 
     /// Personnes d'une carte avec leur rôle (« Responsables : Léa et Tom ») ; nil sans personne ou sans rôle.
@@ -307,6 +532,8 @@ struct HubModuleSheetData: Equatable {
         let calendar: Calendar
         /// Un seul analyseur de date par construction de sheet.
         private let dayFormatter: DateFormatter
+        /// Heure locale courte (« 18:00 », « 6:00 PM »).
+        private let timeFormatter: DateFormatter
 
         init(locale: Locale, calendar: Calendar) {
             self.locale = locale
@@ -317,6 +544,12 @@ struct HubModuleSheetData: Equatable {
             formatter.timeZone = calendar.timeZone
             formatter.dateFormat = "yyyy-MM-dd"
             dayFormatter = formatter
+            let time = DateFormatter()
+            time.locale = locale
+            time.calendar = calendar
+            time.timeZone = calendar.timeZone
+            time.setLocalizedDateFormatFromTemplate("jmm")
+            timeFormatter = time
         }
 
         func item(
@@ -352,6 +585,12 @@ struct HubModuleSheetData: Equatable {
             let day = dayFormatter.date(from: date).map { HomeDateText.short($0, locale: locale, calendar: calendar) }
                 ?? (date.isEmpty ? nil : date)
             return join([day, time.isEmpty ? nil : time])
+        }
+
+        /// Instant (réunion) : « sam. 3 oct. · 18:00 » dans le fuseau du calendrier.
+        func when(instant: Date) -> String {
+            join([HomeDateText.short(instant, locale: locale, calendar: calendar), timeFormatter.string(from: instant)])
+                ?? HomeDateText.short(instant, locale: locale, calendar: calendar)
         }
     }
 }
