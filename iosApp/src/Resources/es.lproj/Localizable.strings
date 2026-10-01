@@ -2413,3 +2413,5 @@
 "activity.feed.empty.all" = "Aún no hay actividad";
 "activity.feed.a11y.to_do" = "Pendiente";
 "activity.feed.unread" = "No leído";
+"activity.feed.general" = "General";
+"activity.feed.filter.label" = "Filtro";

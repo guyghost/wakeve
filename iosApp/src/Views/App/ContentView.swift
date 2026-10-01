@@ -655,8 +655,9 @@ struct AuthenticatedView: View {
 
     // MARK: - Activité de la refonte (couche 6, #47)
 
-    /// Entrée du fil d'activité → zone Événements. Le changement de zone ferme les sheets du hub
-    /// (`onChange` de `redesignRouter.zone`) : la navigation attend le tour suivant de la boucle principale.
+    /// Entrée du fil d'activité → zone Événements. Le changement de zone demande la fermeture des sheets
+    /// du hub (`onChange` de `redesignRouter.zone`) ; la navigation est différée dans une tâche `@MainActor`,
+    /// exécutée après la mise à jour en cours (sans attendre la fin de l'animation de fermeture).
     private func openActivityTarget(_ target: ActivityTarget) {
         redesignRouter.zone = .events
         Task { @MainActor in

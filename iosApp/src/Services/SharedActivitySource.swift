@@ -38,8 +38,13 @@ final class UserDefaultsActivitySeenStore: ActivitySeenStore {
         return stored.mapValues { Date(timeIntervalSince1970: $0) }
     }
 
+    /// Marqueurs conservés 90 jours : au-delà, l'événement est ancien ou supprimé.
+    static let retention: TimeInterval = 90 * 86_400
+
+    /// Écrit le marqueur et supprime ceux de plus de 90 jours avant cette date.
     func markSeen(eventId: String, at date: Date) {
-        var stored = defaults.dictionary(forKey: key) as? [String: Double] ?? [:]
+        let limit = date.addingTimeInterval(-Self.retention).timeIntervalSince1970
+        var stored = (defaults.dictionary(forKey: key) as? [String: Double] ?? [:]).filter { $0.value >= limit }
         stored[eventId] = date.timeIntervalSince1970
         defaults.set(stored, forKey: key)
     }

@@ -2435,3 +2435,5 @@
 "activity.feed.empty.all" = "Aucune activité pour l'instant";
 "activity.feed.a11y.to_do" = "À traiter";
 "activity.feed.unread" = "Non lu";
+"activity.feed.general" = "Général";
+"activity.feed.filter.label" = "Filtre";

@@ -80,8 +80,14 @@ struct ActivityFeedView: View {
         WK.localizedFormat(filter == .toDo ? "activity.feed.empty.todo" : "activity.feed.empty.all", locale: locale)
     }
 
+    /// Groupe sans événement connu : « Général » (notifications système comprises).
     static func groupTitle(_ group: ActivityEventGroup, locale: Locale = WK.appLocale) -> String {
-        group.title ?? WK.localizedFormat("inbox.general_conversation", locale: locale)
+        group.title ?? WK.localizedFormat("activity.feed.general", locale: locale)
+    }
+
+    /// Libellé du sélecteur (lu par VoiceOver) : il nomme le filtre, pas la zone.
+    static func filterLabel(locale: Locale = WK.appLocale) -> String {
+        WK.localizedFormat("activity.feed.filter.label", locale: locale)
     }
 
     var body: some View {
@@ -96,7 +102,7 @@ struct ActivityFeedView: View {
                     Text(Self.filterTitle(.toDo, count: viewModel.toDoCount)).tag(ActivityFilter.toDo)
                     Text(Self.filterTitle(.all, count: viewModel.toDoCount)).tag(ActivityFilter.all)
                 } label: {
-                    Text(String(localized: "wk.nav.activity"))
+                    Text(Self.filterLabel())
                 }
                 .pickerStyle(.segmented)
                 .wkAccessibilityID("activity.filter")
@@ -194,10 +200,20 @@ struct ActivityEntryRow: View {
 
     /// Date relative courte (« il y a 2 h »).
     static func relativeDate(_ date: Date, now: Date, locale: Locale = WK.appLocale) -> String {
+        relativeDateFormatter(for: locale).localizedString(for: date, relativeTo: now)
+    }
+
+    /// Un formateur par langue, réutilisé d'une ligne à l'autre (`NSCache` est sûr entre fils).
+    private static let relativeDateFormatters = NSCache<NSString, RelativeDateTimeFormatter>()
+
+    static func relativeDateFormatter(for locale: Locale) -> RelativeDateTimeFormatter {
+        let key = locale.identifier as NSString
+        if let cached = relativeDateFormatters.object(forKey: key) { return cached }
         let formatter = RelativeDateTimeFormatter()
         formatter.locale = locale
         formatter.unitsStyle = .short
-        return formatter.localizedString(for: date, relativeTo: now)
+        relativeDateFormatters.setObject(formatter, forKey: key)
+        return formatter
     }
 
     static func accessibilityLabel(for entry: ActivityEntry, now: Date, locale: Locale = WK.appLocale) -> String {

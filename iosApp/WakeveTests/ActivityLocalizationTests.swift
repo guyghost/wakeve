@@ -7,7 +7,8 @@ final class ActivityLocalizationTests: XCTestCase {
         "activity.feed.filter.todo_format", "activity.feed.filter.all",
         "activity.feed.vote_required", "activity.feed.ready_to_confirm", "activity.feed.rsvp_pending",
         "activity.feed.empty.todo", "activity.feed.empty.all",
-        "activity.feed.a11y.to_do", "activity.feed.unread"
+        "activity.feed.a11y.to_do", "activity.feed.unread",
+        "activity.feed.general", "activity.feed.filter.label"
     ]
     static let pluralKeys = ["activity.feed.messages_count"]
 

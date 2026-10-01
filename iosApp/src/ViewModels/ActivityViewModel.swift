@@ -51,7 +51,8 @@ final class ActivityViewModel: ObservableObject {
             regroup()
             state = .loaded
         } catch {
-            // Chargement annulé (zone quittée) : on garde l'état courant ; échec : données conservées.
+            // Annulation (tâche de la vue ou tirage pour rafraîchir interrompu) : rien n'est publié,
+            // l'état courant reste. Échec : données déjà chargées conservées, sinon état d'échec.
             guard token == generation, !(error is CancellationError) else { return }
             state = hasData ? .loaded : .failed
         }

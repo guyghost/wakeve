@@ -159,6 +159,20 @@ final class ActivityViewModelTests: XCTestCase {
         XCTAssertTrue(UserDefaultsActivitySeenStore(userId: "tom", defaults: defaults).lastSeenDates().isEmpty)
     }
 
+    /// Les marqueurs de plus de 90 jours sont supprimés à l'écriture (événements oubliés ou supprimés).
+    func testSeenStorePrunesMarkersOlderThanNinetyDaysWhenWriting() throws {
+        let suite = "ActivitySeenStoreTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = UserDefaultsActivitySeenStore(userId: "lea", defaults: defaults)
+        let day: TimeInterval = 86_400
+        store.markSeen(eventId: "old", at: fixedNow.addingTimeInterval(-91 * day))
+        store.markSeen(eventId: "recent", at: fixedNow.addingTimeInterval(-89 * day))
+        XCTAssertEqual(Set(store.lastSeenDates().keys), ["old", "recent"], "Moins de 90 j avant l'écriture : gardé.")
+        store.markSeen(eventId: "now", at: fixedNow)
+        XCTAssertEqual(Set(store.lastSeenDates().keys), ["recent", "now"], "Plus de 90 j avant l'écriture : supprimé.")
+    }
+
     // MARK: - Règles pures de la source
 
     func testEventIdIsReadFromNotificationDataJSON() {

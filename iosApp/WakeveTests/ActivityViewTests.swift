@@ -135,10 +135,29 @@ final class ActivityViewTests: XCTestCase {
 
     func testGeneralGroupTitleIsLocalized() {
         let general = ActivityEventGroup(eventId: nil, title: nil, entries: [], actionCount: 0, latestDate: nil, deadline: nil)
-        XCTAssertEqual(ActivityFeedView.groupTitle(general, locale: fr),
-                       WK.localizedFormat("inbox.general_conversation", locale: fr))
+        XCTAssertEqual(ActivityFeedView.groupTitle(general, locale: fr), "Général",
+                       "Libellé propre au fil, pas « Conversation générale » hérité de l'Inbox.")
+        XCTAssertEqual(ActivityFeedView.groupTitle(general, locale: Locale(identifier: "en")), "General")
+        XCTAssertEqual(ActivityFeedView.groupTitle(general, locale: Locale(identifier: "it")), "Generale")
+        XCTAssertEqual(ActivityFeedView.groupTitle(general, locale: Locale(identifier: "pt")), "Geral")
         let event = ActivityEventGroup(eventId: "e", title: "Brunch", entries: [], actionCount: 0, latestDate: nil, deadline: nil)
         XCTAssertEqual(ActivityFeedView.groupTitle(event, locale: fr), "Brunch")
+    }
+
+    func testPickerLabelNamesTheFilter() {
+        XCTAssertEqual(ActivityFeedView.filterLabel(locale: fr), "Filtre")
+        XCTAssertEqual(ActivityFeedView.filterLabel(locale: Locale(identifier: "en")), "Filter")
+        XCTAssertEqual(ActivityFeedView.filterLabel(locale: Locale(identifier: "es")), "Filtro")
+    }
+
+    func testRelativeDateFormatterIsCachedPerLocale() {
+        let first = ActivityEntryRow.relativeDateFormatter(for: fr)
+        XCTAssertTrue(first === ActivityEntryRow.relativeDateFormatter(for: Locale(identifier: "fr")))
+        XCTAssertFalse(first === ActivityEntryRow.relativeDateFormatter(for: Locale(identifier: "en")))
+        XCTAssertEqual(first.locale.identifier, "fr")
+        XCTAssertEqual(first.unitsStyle, .short)
+        XCTAssertEqual(ActivityEntryRow.relativeDate(now.addingTimeInterval(-7_200), now: now, locale: fr),
+                       first.localizedString(for: now.addingTimeInterval(-7_200), relativeTo: now))
     }
 
     // MARK: - Contrat de la vue
@@ -151,6 +170,7 @@ final class ActivityViewTests: XCTestCase {
         XCTAssertTrue(source.contains("WK.Status.actionNeeded.color"))
         XCTAssertTrue(source.contains(".refreshable"))
         XCTAssertTrue(source.contains("wk.nav.activity"))
+        XCTAssertTrue(source.contains("Text(Self.filterLabel())"), "Le libellé du sélecteur nomme le filtre.")
         XCTAssertTrue(source.contains("var reloadToken: Int = 0"))
         XCTAssertTrue(source.contains("var onRootStateChange: ((Bool) -> Void)? = nil"))
         XCTAssertTrue(source.contains(".onChange(of: reloadToken)"))
