@@ -29,6 +29,22 @@ final class EventCommentsRouteViewTests: XCTestCase {
         XCTAssertEqual(EventCommentsRouteView.checkContent(String(repeating: "a", count: 2_001)), .tooLong)
     }
 
+    /// Kotlin compte en unités UTF-16 (`String.length`) : 1 001 emojis (1 001 caractères Swift, 2 002 unités)
+    /// passeraient un décompte Swift puis feraient échouer l'`init` de `CommentRequest` (arrêt de l'app).
+    func testContentLengthIsCountedInUTF16LikeKotlin() {
+        XCTAssertEqual(EventCommentsRouteView.checkContent(String(repeating: "😀", count: 1_001)), .tooLong)
+        XCTAssertEqual(EventCommentsRouteView.checkContent(String(repeating: "😀", count: 1_000)),
+                       .valid(String(repeating: "😀", count: 1_000)))
+        XCTAssertEqual(EventCommentsRouteView.checkContent(String(repeating: "👨‍👩‍👧", count: 251)), .tooLong,
+                       "Une famille = 1 caractère Swift mais 8 unités UTF-16 (251 × 8 = 2 008).")
+    }
+
+    /// `isNotBlank` Kotlin tient aussi U+001C…U+001F pour des espaces : un tel texte serait refusé par l'`init`.
+    func testKotlinOnlyWhitespaceIsEmpty() {
+        XCTAssertEqual(EventCommentsRouteView.checkContent("\u{1C}\u{1F} \u{1D}"), .empty)
+        XCTAssertEqual(EventCommentsRouteView.checkContent("\u{1E}Salut\u{1F}"), .valid("Salut"))
+    }
+
     // MARK: - Droits (mêmes règles que le menu de `CommentItemView`)
 
     func testOnlyTheAuthorEditsTheAuthorOrOrganizerDeletesAndOnlyTheOrganizerPins() {

@@ -49,6 +49,28 @@ class CommentRepositoryWriteContractTest {
     }
 
     @Test
+    fun invalidEditFailsBeforeTouchingTheStoredComment() = runTest {
+        val repository = repositoryWithEvent()
+        val posted = repository.createComment(eventId, "user-1", "Léa", request("On part à 9 h"))
+
+        // Un texte trop long écrit en base rendrait le commentaire illisible (`Comment.init` refuse > 2 000).
+        assertFailsWith<IllegalArgumentException> {
+            repository.updateComment(posted.id, "😀".repeat(1_001))
+        }
+        assertFailsWith<IllegalArgumentException> {
+            repository.updateComment(posted.id, "a".repeat(2_001))
+        }
+        assertFailsWith<IllegalArgumentException> {
+            repository.updateComment(posted.id, "   ")
+        }
+
+        val stored = repository.getCommentById(posted.id)
+        assertEquals("On part à 9 h", stored?.content)
+        assertEquals(false, stored?.isEdited)
+        assertEquals(listOf(posted.id), repository.getTopLevelComments(eventId, CommentSection.GENERAL).map { it.id })
+    }
+
+    @Test
     fun replyToAMissingCommentFailsWithAnIllegalArgument() = runTest {
         val repository = repositoryWithEvent()
 

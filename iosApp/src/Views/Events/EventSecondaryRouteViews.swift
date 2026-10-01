@@ -358,7 +358,8 @@ struct EventCommentsRouteView: View {
     /// Écriture demandée depuis le menu d'un commentaire.
     enum WriteAction: Equatable { case reply, edit, delete, pin }
 
-    /// Contenu saisi, vérifié avant `CommentRequest` (dont l'`init` Kotlin rejette vide et > 2 000 caractères).
+    /// Contenu saisi, vérifié avant `CommentRequest` (dont l'`init` Kotlin rejette vide et > 2 000 unités UTF-16 :
+    /// une exception levée par un constructeur Kotlin arrête l'app).
     enum ContentCheck: Equatable {
         case valid(String)
         case empty
@@ -390,10 +391,15 @@ struct EventCommentsRouteView: View {
         }
     }
 
+    /// Espaces au sens de `Char.isWhitespace` Kotlin : ceux de Swift, plus U+001C…U+001F.
+    private static let kotlinWhitespace = CharacterSet.whitespacesAndNewlines
+        .union(CharacterSet(charactersIn: "\u{1C}\u{1D}\u{1E}\u{1F}"))
+
+    /// Longueur comptée comme Kotlin (`String.length`, unités UTF-16) : un emoji compte pour 2.
     static func checkContent(_ text: String) -> ContentCheck {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = text.trimmingCharacters(in: kotlinWhitespace)
         if trimmed.isEmpty { return .empty }
-        return trimmed.count > maxContentLength ? .tooLong : .valid(trimmed)
+        return trimmed.utf16.count > maxContentLength ? .tooLong : .valid(trimmed)
     }
 
     /// Mêmes règles que le menu de `CommentItemView` (`canEdit`, `canDelete`, `canPin`).
