@@ -808,6 +808,24 @@ class BudgetRepositoryTest {
     }
     
     @Test
+    fun testCreateBudgetItemWithEmptySharedByThrows() {
+        val budget = repository.createBudget("event-1")
+
+        val error = assertFailsWith<IllegalArgumentException> {
+            repository.createBudgetItem(
+                budgetId = budget.id,
+                category = BudgetCategory.MEALS,
+                name = "Courses",
+                description = "Supermarché",
+                estimatedCost = 80.0,
+                sharedBy = emptyList()
+            )
+        }
+        assertTrue(error.message.orEmpty().contains("shared by at least one participant"))
+        assertEquals(0, repository.getBudgetItems(budget.id).size)
+    }
+
+    @Test
     fun testMarkItemAsPaidWithZeroCost() {
         val budget = repository.createBudget("event-1")
         val item = repository.createBudgetItem(

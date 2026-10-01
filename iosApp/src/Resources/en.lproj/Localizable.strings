@@ -1321,6 +1321,8 @@
 "budget.add_sheet.add_action" = "Add expense";
 "budget.add_sheet.validation.name_required" = "The name is required.";
 "budget.add_sheet.validation.amount_required" = "Enter a valid amount.";
+"budget.add_item.error" = "Couldn't add the expense. Try again.";
+"budget.mark_paid.error" = "Couldn't mark the expense as paid. Try again.";
 
 // MARK: - Explore (Legacy)
 "explore.loading_events" = "Loading events...";

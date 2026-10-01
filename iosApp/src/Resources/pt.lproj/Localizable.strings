@@ -1204,6 +1204,8 @@
 "budget.add_sheet.add_action" = "Adicionar despesa";
 "budget.add_sheet.validation.name_required" = "O nome é obrigatório.";
 "budget.add_sheet.validation.amount_required" = "Introduza um montante válido.";
+"budget.add_item.error" = "Não foi possível adicionar a despesa. Tenta novamente.";
+"budget.mark_paid.error" = "Não foi possível marcar a despesa como paga. Tenta novamente.";
 
 // MARK: - Explore (Legacy)
 "explore.loading_events" = "A carregar eventos...";

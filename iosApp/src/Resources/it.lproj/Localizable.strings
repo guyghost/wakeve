@@ -1204,6 +1204,8 @@
 "budget.add_sheet.add_action" = "Aggiungi spesa";
 "budget.add_sheet.validation.name_required" = "Il nome è obbligatorio.";
 "budget.add_sheet.validation.amount_required" = "Inserisci un importo valido.";
+"budget.add_item.error" = "Impossibile aggiungere la spesa. Riprova.";
+"budget.mark_paid.error" = "Impossibile segnare la spesa come pagata. Riprova.";
 
 // MARK: - Explore (Legacy)
 "explore.loading_events" = "Caricamento eventi...";

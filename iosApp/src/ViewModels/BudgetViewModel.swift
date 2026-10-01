@@ -252,24 +252,54 @@ class BudgetViewModel: ObservableObject {
     ) {
         guard let budgetId = budgetId else { return }
         Task {
-            _ = budgetRepository.createBudgetItem(
-                budgetId: budgetId,
-                category: categoryUI.kmpCategory,
-                name: name,
-                description: description,
-                estimatedCost: estimatedCost,
-                sharedBy: sharedBy,
-                notes: ""
-            )
+            // BudgetCalculator rejects an item shared by nobody: default to the event's participants
+            // (organizer as fallback), like Android BudgetDetailScreen.
+            let resolvedSharedBy = sharedBy.isEmpty ? defaultSharedByForEvent() : sharedBy
+            do {
+                _ = try budgetRepository.createBudgetItem(
+                    budgetId: budgetId,
+                    category: categoryUI.kmpCategory,
+                    name: name,
+                    description: description,
+                    estimatedCost: estimatedCost,
+                    sharedBy: resolvedSharedBy,
+                    notes: ""
+                )
+            } catch {
+                errorMessage = String(localized: "budget.add_item.error")
+                return
+            }
             await loadBudget()
         }
     }
 
     func markItemAsPaid(itemId: String, actualCost: Double, paidBy: String) {
         Task {
-            _ = budgetRepository.markItemAsPaid(itemId: itemId, actualCost: actualCost, paidBy: paidBy)
+            do {
+                _ = try budgetRepository.markItemAsPaid(itemId: itemId, actualCost: actualCost, paidBy: paidBy)
+            } catch {
+                errorMessage = String(localized: "budget.mark_paid.error")
+                return
+            }
             await loadBudget()
         }
+    }
+
+    /// Participants sharing an expense when none were picked: the event's participants, else the organizer.
+    /// Blank ids are dropped and duplicates removed (order kept).
+    nonisolated static func defaultSharedBy(participants: [String], organizerId: String?) -> [String] {
+        var seen = Set<String>()
+        let cleaned = participants
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty && seen.insert($0).inserted }
+        if !cleaned.isEmpty { return cleaned }
+        let organizer = organizerId?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return organizer.isEmpty ? [] : [organizer]
+    }
+
+    private func defaultSharedByForEvent() -> [String] {
+        let event = RepositoryProvider.shared.databaseRepository.getEvent(id: eventId)
+        return Self.defaultSharedBy(participants: event?.participants ?? [], organizerId: event?.organizerId)
     }
 
     func deleteItem(itemId: String) {
