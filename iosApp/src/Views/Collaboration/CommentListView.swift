@@ -15,18 +15,7 @@ enum CommentSectionType: String, CaseIterable {
     case equipment
     case activity
     case budget
-    
-    /// Map to CommentSection_ if available, nil otherwise
-    var sharedValue: CommentSection_? {
-        switch self {
-        case .general: return .general
-        case .transport: return .transport
-        case .accommodation: return .accommodation
-        case .equipment: return .equipment
-        case .activity: return .activity
-        default: return nil
-        }
-    }
+    // Section du dépôt : `EventCommentsRouteView.repositorySection(for:)` (les 9 sections).
 }
 
 // CommentThread type is already defined in Shared framework

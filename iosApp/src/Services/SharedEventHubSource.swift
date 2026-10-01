@@ -194,7 +194,6 @@ struct SharedEventHubSource: EventHubSource {
         let isOrganizer = event.organizerId == viewerId
         let records = repository.getParticipantRecords(eventId: event.id)
         let states = (records ?? []).map { ParticipantAccessMapper.shared.fromRepositoryRecord(record: $0) }
-        let rows = ParticipantManagementPresentationMapper.shared.map(participants: states)
         let viewerState = states.first { $0.userId == viewerId }
         let viewerAccepted = isOrganizer || (viewerState?.role == .member && viewerState?.rsvp == .accepted)
         let hasDetailsAccess = OrganizationDetailsAccess.isGranted(
@@ -225,10 +224,10 @@ struct SharedEventHubSource: EventHubSource {
         }
         try Task.checkCancellation()
 
-        // Invités : même règle que la toile d'invitation (refusés exclus, confirmés = accès aux détails).
-        let guests = Self.guestCounts(zip(states, rows).map { state, row in
-            (declined: state.rsvp == .declined, confirmed: row.canAccessOrganizationDetails)
-        })
+        // Invités : même liste que la sheet (refusés exclus, confirmés = accès aux détails).
+        let guests = Self.guestCounts(
+            Self.guestEntries(records: records, participantIds: event.participants, organizerId: event.organizerId)
+        )
 
         let participantNames = event.participants.prefix(5).map(displayName)
 
@@ -370,6 +369,42 @@ struct SharedEventHubSource: EventHubSource {
         case "ORGANIZING": return .organizing
         default: return .finalized
         }
+    }
+
+    /// Invité de la tuile et de la sheet Invités (couche 5c).
+    struct GuestEntry: Equatable {
+        let id: String
+        let declined: Bool
+        /// Accès aux détails d'organisation (`ParticipantManagementPresentationMapper`).
+        let confirmed: Bool
+        let isOrganizer: Bool
+    }
+
+    /// Liste unique de la tuile et de la sheet : les enregistrements de participants (refusés à part,
+    /// confirmés = accès aux détails) ; sans enregistrement, les participants de l'événement — l'organisateur
+    /// confirmé (il a toujours accès, `OrganizationDetailsAccess`), les autres en attente.
+    static func guestEntries(
+        records: [ParticipantRepositoryRecord]?, participantIds: [String], organizerId: String
+    ) -> [GuestEntry] {
+        guard let records, !records.isEmpty else {
+            return participantIds.map { id in
+                GuestEntry(id: id, declined: false, confirmed: id == organizerId, isOrganizer: id == organizerId)
+            }
+        }
+        let states = records.map { ParticipantAccessMapper.shared.fromRepositoryRecord(record: $0) }
+        let rows = ParticipantManagementPresentationMapper.shared.map(participants: states)
+        return zip(states, rows).map { state, row in
+            GuestEntry(
+                id: state.userId,
+                declined: state.rsvp == .declined,
+                confirmed: row.canAccessOrganizationDetails,
+                isOrganizer: state.userId == organizerId || state.role == .organizer
+            )
+        }
+    }
+
+    static func guestCounts(_ entries: [GuestEntry]) -> (confirmed: Int, pending: Int) {
+        guestCounts(entries.map { (declined: $0.declined, confirmed: $0.confirmed) })
     }
 
     /// Refusés exclus ; confirmés = accès aux détails, les autres sont en attente.

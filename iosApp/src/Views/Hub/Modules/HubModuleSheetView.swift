@@ -120,6 +120,7 @@ struct HubModuleSheetView: View {
         case .managePot: key = "hub.sheet.payments.manage_pot"
         case .planMeeting: key = "hub.sheet.meetings.plan"
         case .organizeTransport: key = "hub.sheet.transport.organize"
+        case .viewTransport: key = "hub.sheet.transport.view"
         case .invite: key = "hub.sheet.participants.invite"
         }
         return WK.localizedFormat(key, locale: locale)

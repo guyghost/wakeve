@@ -2393,6 +2393,7 @@
 "hub.sheet.transport.no_plan" = "Ancora nessun piano di trasporto.";
 "hub.sheet.transport.choose" = "Nessun piano ancora scelto.";
 "hub.sheet.transport.organize" = "Organizza il trasporto";
+"hub.sheet.transport.view" = "Vedi il trasporto";
 "hub.sheet.status.transport_chosen" = "Piano scelto";
 "hub.sheet.status.transport_to_decide" = "Da decidere";
 "hub.sheet.status.transport_not_needed" = "Non necessario";

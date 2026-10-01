@@ -2415,6 +2415,7 @@
 "hub.sheet.transport.no_plan" = "Aucun plan de transport pour l'instant.";
 "hub.sheet.transport.choose" = "Aucun plan retenu pour l'instant.";
 "hub.sheet.transport.organize" = "Organiser le transport";
+"hub.sheet.transport.view" = "Voir le transport";
 "hub.sheet.status.transport_chosen" = "Plan choisi";
 "hub.sheet.status.transport_to_decide" = "À décider";
 "hub.sheet.status.transport_not_needed" = "Pas nécessaire";

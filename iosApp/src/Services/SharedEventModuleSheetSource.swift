@@ -52,17 +52,21 @@ struct SharedEventModuleSheetSource: EventModuleSheetSource {
 
         // Mêmes règles que les `case` legacy : `event.organizerId == userId`, `isFinalizedOrganizationState`,
         // la file d'envoi du flux (`hasPendingSync`) et, pour budget et cagnotte, la file de la phase 5
-        // (`BudgetViewModel.hasPendingSync`).
+        // (`BudgetViewModel.hasPendingSync`) ; pour le transport, sa propre file
+        // (`TransportPlanningViewModel.hasReplayablePendingSync`).
         let isOrganizer = event.organizerId == viewerId
         let isReadOnly = Self.isReadOnly(statusName: event.status.name)
         let phase5Pending = Self.readsPhase5PendingSync(for: module)
             && database.syncMetadataQueries.selectPending().executeAsList().contains { pending in
                 BudgetViewModel.isPhase5PendingSync(entityType: pending.entityType, entityId: pending.entityId, eventId: event.id)
             }
+        let transportPending = Self.readsTransportPendingSync(for: module)
+            && TransportRepositoryBridge(database: database).hasPendingTransportSync(eventId: event.id)
         let pendingSync = Self.hasPendingSync(
             module: module,
             workflowPending: !repository.getWorkflowOutbox(eventId: event.id).isEmpty,
-            phase5Pending: phase5Pending
+            phase5Pending: phase5Pending,
+            transportPending: transportPending
         )
         var names = NameCache { id in
             database.userQueries.selectUserById(id: id).executeAsOneOrNull()?.name
@@ -184,28 +188,14 @@ struct SharedEventModuleSheetSource: EventModuleSheetSource {
                 missingDepartureCount: validated.subtracting(departures).count
             ))
         case .participants:
-            // Même lecture et même règle que la tuile (`SharedEventHubSource.guestCounts`) ;
-            // sans enregistrement, les participants de l'événement sont en attente.
-            if let records = repository.getParticipantRecords(eventId: event.id), !records.isEmpty {
-                let states = records.map { ParticipantAccessMapper.shared.fromRepositoryRecord(record: $0) }
-                let rows = ParticipantManagementPresentationMapper.shared.map(participants: states)
-                raw = .participants(zip(states, rows).map { state, row in
-                    HubModuleSheetRaw.Guest(
-                        id: state.userId,
-                        name: names.name(for: state.userId) ?? state.userId,
-                        group: HubModuleSheetData.guestGroup(
-                            declined: state.rsvp == .declined, confirmed: row.canAccessOrganizationDetails
-                        ),
-                        isOrganizer: state.userId == event.organizerId || state.role == .organizer
-                    )
-                })
-            } else {
-                raw = .participants(event.participants.map { id in
-                    HubModuleSheetRaw.Guest(
-                        id: id, name: names.name(for: id) ?? id, group: .pending, isOrganizer: id == event.organizerId
-                    )
-                })
-            }
+            // Même liste que la tuile (`SharedEventHubSource.guestEntries`) : mêmes comptes, enregistrements
+            // ou non (sans enregistrement, l'organisateur est confirmé et les autres en attente).
+            let entries = SharedEventHubSource.guestEntries(
+                records: repository.getParticipantRecords(eventId: event.id),
+                participantIds: event.participants,
+                organizerId: event.organizerId
+            )
+            raw = .participants(Self.rawGuests(entries) { names.name(for: $0) ?? $0 })
         default:
             throw UnsupportedModule()
         }
@@ -256,8 +246,32 @@ struct SharedEventModuleSheetSource: EventModuleSheetSource {
         module == .budget || module == .payments
     }
 
-    static func hasPendingSync(module: HubModule, workflowPending: Bool, phase5Pending: Bool) -> Bool {
-        workflowPending || (readsPhase5PendingSync(for: module) && phase5Pending)
+    /// Le transport lit aussi sa file de synchro, comme son écran legacy.
+    static func readsTransportPendingSync(for module: HubModule) -> Bool {
+        module == .transport
+    }
+
+    /// File du flux pour tous ; s'y ajoute la file propre au module (phase 5 pour budget et cagnotte, transport).
+    static func hasPendingSync(
+        module: HubModule, workflowPending: Bool, phase5Pending: Bool, transportPending: Bool = false
+    ) -> Bool {
+        workflowPending
+            || (readsPhase5PendingSync(for: module) && phase5Pending)
+            || (readsTransportPendingSync(for: module) && transportPending)
+    }
+
+    /// Invités de la sheet, groupés comme la tuile les compte.
+    static func rawGuests(
+        _ entries: [SharedEventHubSource.GuestEntry], name: (String) -> String
+    ) -> [HubModuleSheetRaw.Guest] {
+        entries.map { entry in
+            HubModuleSheetRaw.Guest(
+                id: entry.id,
+                name: name(entry.id),
+                group: HubModuleSheetData.guestGroup(declined: entry.declined, confirmed: entry.confirmed),
+                isOrganizer: entry.isOrganizer
+            )
+        }
     }
 
     /// Participants confirmés comme `TransportPlanningViewModel.confirmedParticipantIds` : accès aux détails

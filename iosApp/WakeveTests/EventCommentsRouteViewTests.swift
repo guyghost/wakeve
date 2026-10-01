@@ -148,6 +148,14 @@ final class EventCommentsRouteViewTests: XCTestCase {
         return String(file[start.lowerBound..<end.lowerBound])
     }
 
+    /// `CommentSectionType.sharedValue` (5 sections sur 9) n'est plus lu : supprimé au profit de `repositorySection`.
+    func testCommentSectionHasASingleRepositoryMapping() throws {
+        let list = try String(contentsOf: URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("src/Views/Collaboration/CommentListView.swift"), encoding: .utf8)
+        XCTAssertFalse(list.contains("sharedValue"))
+    }
+
     /// Un seul `CommentRepository` par écran, gardé d'un rendu à l'autre.
     func testRouteHoldsOneRepository() throws {
         let route = try routeSource()

@@ -71,7 +71,7 @@ enum EventHubRouting {
         case .viewExpenses: return .budgetOverview
         case .managePot: return .paymentPot
         case .planMeeting: return .meetingList
-        case .organizeTransport: return .transportPlanning
+        case .organizeTransport, .viewTransport: return .transportPlanning
         // « Inviter » suit la route d'ajout, sensible au flag invitations (`fullScreenRoute`).
         case .invite: return nil
         }

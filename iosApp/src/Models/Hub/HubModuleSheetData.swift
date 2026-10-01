@@ -12,8 +12,8 @@ struct HubModuleSheetItem: Equatable, Identifiable {
     let statusText: String?
     /// Avatars : responsables, porteur ou inscrits.
     let assigneeNames: [String]
-    /// Libellé VoiceOver de la carte : titre, détail, statut, personnes avec leur rôle.
-    let accessibilityLabel: String
+    /// Libellé VoiceOver de la carte : titre, détail, statut, personnes avec leur rôle (invités : nom, groupe, rôle).
+    var accessibilityLabel: String
     /// Section de la carte (invités : « Confirmés »…) ; le rendu affiche ce titre à chaque changement. nil : sans sections.
     var sectionTitle: String? = nil
 }
@@ -187,8 +187,10 @@ struct HubModuleSheetData: Equatable {
         case managePot
         /// Écran réunions (création par « + »).
         case planMeeting
-        /// Écran transport ; il applique lui-même ses droits d'écriture.
+        /// Écran transport, organisateur d'un événement modifiable ; l'écran applique lui-même ses droits.
         case organizeTransport
+        /// Même écran, en consultation (participant, ou événement finalisé).
+        case viewTransport
         /// Route d'ajout d'invités, sensible au flag invitations (`EventHubRouting.fullScreenRoute`).
         case invite
     }
@@ -228,8 +230,8 @@ struct HubModuleSheetData: Equatable {
         case .budget: return .viewExpenses
         case .payments: return canWrite ? .managePot : nil
         case .meetings: return canWrite ? .planMeeting : nil
-        // Ouvert à tous ceux qui passent la garde transport, comme le `case` legacy.
-        case .transport: return .organizeTransport
+        // Ouvert à tous ceux qui passent la garde transport, comme le `case` legacy ; seul le libellé change.
+        case .transport: return canWrite ? .organizeTransport : .viewTransport
         // Même règle que l'entrée « Ajouter des participants » du hub : organisateur d'un événement non finalisé.
         case .participants: return canWrite ? .invite : nil
         default: return nil
@@ -560,7 +562,13 @@ struct HubModuleSheetData: Equatable {
                     statusText: guest.isOrganizer ? organizerText : nil,
                     names: [guest.name]
                 )
-                item.sectionTitle = text.format(guestSectionKey(guest.group))
+                let section = text.format(guestSectionKey(guest.group))
+                item.sectionTitle = section
+                // VoiceOver lit la carte seule : le groupe (titre de section) y figure.
+                item.accessibilityLabel = [guest.name, section, guest.isOrganizer ? organizerText : nil]
+                    .compactMap { $0 }
+                    .filter { !$0.isEmpty }
+                    .joined(separator: ", ")
                 return item
             }
             let confirmed = guests.filter { $0.group == .confirmed }.count

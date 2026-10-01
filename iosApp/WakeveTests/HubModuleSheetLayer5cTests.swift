@@ -122,14 +122,35 @@ final class HubModuleSheetLayer5cTests: XCTestCase {
         XCTAssertEqual(data.items.first?.detail, HubSummaryText.currency(0, code: "EUR", locale: fr))
     }
 
-    func testOrganizeTransportIsOfferedToEveryoneWithAccess() {
-        for (organizer, readOnly) in [(true, false), (false, false), (true, true), (false, true)] {
-            XCTAssertEqual(make(transport(), isOrganizer: organizer, isReadOnly: readOnly).primary, .organizeTransport)
+    /// L'écran transport s'ouvre pour tous ceux qui ont accès ; seul l'organisateur d'un événement modifiable
+    /// l'« organise », les autres le consultent.
+    func testTransportIsOrganizedByTheOrganizerAndViewedByOthers() {
+        XCTAssertEqual(make(transport(), isOrganizer: true, isReadOnly: false).primary, .organizeTransport)
+        for (organizer, readOnly) in [(false, false), (true, true), (false, true)] {
+            XCTAssertEqual(make(transport(), isOrganizer: organizer, isReadOnly: readOnly).primary, .viewTransport)
         }
         XCTAssertEqual(HubModuleSheetView.title(for: .organizeTransport, locale: fr), "Organiser le transport")
+        XCTAssertEqual(HubModuleSheetView.title(for: .viewTransport, locale: fr), "Voir le transport")
+        XCTAssertEqual(HubModuleSheetView.title(for: .viewTransport, locale: en), "View transport")
         XCTAssertEqual(EventHubRouting.fallback(for: .organizeTransport), .transportPlanning)
+        XCTAssertEqual(EventHubRouting.fallback(for: .viewTransport), .transportPlanning)
         XCTAssertEqual(HubModuleSheetView.primaryTitle(module: .transport, state: .loading, data: nil, canAddHint: false, locale: fr),
+                       "Voir le transport")
+        XCTAssertEqual(HubModuleSheetView.primaryTitle(module: .transport, state: .loading, data: nil, canAddHint: true, locale: fr),
                        "Organiser le transport")
+        XCTAssertEqual(HubModuleSheetView.secondaryActions(for: .transport, primary: .viewTransport), [.comments])
+    }
+
+    /// Même file que l'écran legacy (`TransportPlanningViewModel.hasReplayablePendingSync`).
+    func testTransportSheetReadsTheTransportPendingSync() {
+        XCTAssertTrue(SharedEventModuleSheetSource.readsTransportPendingSync(for: .transport))
+        XCTAssertFalse(SharedEventModuleSheetSource.readsTransportPendingSync(for: .meals))
+        XCTAssertTrue(SharedEventModuleSheetSource.hasPendingSync(
+            module: .transport, workflowPending: false, phase5Pending: false, transportPending: true))
+        XCTAssertFalse(SharedEventModuleSheetSource.hasPendingSync(
+            module: .meals, workflowPending: false, phase5Pending: false, transportPending: true))
+        XCTAssertFalse(SharedEventModuleSheetSource.hasPendingSync(
+            module: .transport, workflowPending: false, phase5Pending: true, transportPending: false))
     }
 
     /// Départs comptés sur les mêmes participants que l'écran legacy (organisateur compris).
@@ -189,9 +210,51 @@ final class HubModuleSheetLayer5cTests: XCTestCase {
         XCTAssertNil(data.items[0].status, "Rôle affiché en texte, sans pastille.")
         XCTAssertEqual(data.items[0].assigneeNames, ["Nom o"], "Avatar de la personne.")
         XCTAssertNil(data.items[1].statusText)
-        XCTAssertEqual(data.items[0].accessibilityLabel, "Nom o, Organisateur")
+        XCTAssertEqual(data.items[0].accessibilityLabel, "Nom o, Confirmés, Organisateur")
+        XCTAssertEqual(data.items[2].accessibilityLabel, "Nom p, En attente", "VoiceOver annonce le groupe de chaque invité.")
+        XCTAssertEqual(data.items[4].accessibilityLabel, "Nom d, Ont décliné")
         XCTAssertEqual(data.status, .init(text: "2 confirmés", status: .pending))
         XCTAssertEqual(data.missing, "2 invités en attente")
+    }
+
+    /// Sans enregistrement : l'organisateur est confirmé (il a toujours accès), les autres en attente ;
+    /// la tuile et la sheet lisent la même liste (`SharedEventHubSource.guestEntries`).
+    func testGuestsWithoutRecordsMatchBetweenTileAndSheet() {
+        for records in [nil, [ParticipantRepositoryRecord]()] {
+            let entries = SharedEventHubSource.guestEntries(records: records, participantIds: ["o", "a", "b"], organizerId: "o")
+            XCTAssertEqual(entries, [
+                .init(id: "o", declined: false, confirmed: true, isOrganizer: true),
+                .init(id: "a", declined: false, confirmed: false, isOrganizer: false),
+                .init(id: "b", declined: false, confirmed: false, isOrganizer: false)
+            ])
+            let tile = SharedEventHubSource.guestCounts(entries)
+            XCTAssertEqual(tile.confirmed, 1)
+            XCTAssertEqual(tile.pending, 2)
+            let sheet = make(.participants(SharedEventModuleSheetSource.rawGuests(entries) { "Nom \($0)" }))
+            XCTAssertEqual(sheet.status, .init(text: "1 confirmé", status: .pending))
+            XCTAssertEqual(sheet.missing, "2 invités en attente")
+            XCTAssertEqual(sheet.items.map(\.id), ["o", "a", "b"])
+        }
+    }
+
+    func testGuestEntriesFromRecordsKeepTheLegacyRule() {
+        func record(_ user: String, role: String, rsvp: String, validated: Int64) -> ParticipantRepositoryRecord {
+            ParticipantRepositoryRecord(id: "r-\(user)", eventId: "e", userId: user, role: role, rsvp: rsvp,
+                                        hasValidatedDate: validated, dateValidation: nil)
+        }
+        let entries = SharedEventHubSource.guestEntries(records: [
+            record("org", role: "ORGANIZER", rsvp: "ACCEPTED", validated: 0),
+            record("lea", role: "PARTICIPANT", rsvp: "ACCEPTED", validated: 1),
+            record("tom", role: "PARTICIPANT", rsvp: "PENDING", validated: 0),
+            record("max", role: "PARTICIPANT", rsvp: "DECLINED", validated: 0)
+        ], participantIds: ["ignored"], organizerId: "org")
+        XCTAssertEqual(entries.map(\.id), ["org", "lea", "tom", "max"])
+        XCTAssertEqual(entries.map(\.confirmed), [true, true, false, false])
+        XCTAssertEqual(entries.map(\.declined), [false, false, false, true])
+        XCTAssertEqual(entries.map(\.isOrganizer), [true, false, false, false])
+        let tile = SharedEventHubSource.guestCounts(entries)
+        XCTAssertEqual(tile.confirmed, 2)
+        XCTAssertEqual(tile.pending, 1)
     }
 
     func testEveryoneConfirmedHasAConfirmedPillAndNoMissingSentence() {
@@ -319,7 +382,7 @@ final class HubModuleSheetLayer5cTests: XCTestCase {
     }
 
     static var stringKeys = [
-        "hub.sheet.transport.no_plan", "hub.sheet.transport.choose", "hub.sheet.transport.organize",
+        "hub.sheet.transport.no_plan", "hub.sheet.transport.choose", "hub.sheet.transport.organize", "hub.sheet.transport.view",
         "hub.sheet.status.transport_chosen", "hub.sheet.status.transport_to_decide", "hub.sheet.status.transport_not_needed",
         "hub.sheet.participants.invite", "hub.sheet.participants.empty", "hub.sheet.participants.section.confirmed",
         "hub.sheet.participants.section.pending", "hub.sheet.participants.section.declined", "participants.role.organizer"
