@@ -99,7 +99,7 @@ Règles :
 | DRAFT | Date, Lieu, Invités (édition) |
 | POLLING | Date (vote), Lieu, Invités, Budget estimé |
 | CONFIRMED / COMPARING | Date, Scénarios, Invités, Budget |
-| ORGANIZING | Transport, Hébergement, Repas, Matériel, Activités, Budget, Réunions |
+| ORGANIZING | Transport, Hébergement, Repas, Matériel, Activités, Budget, Paiements, Réunions |
 | FINALIZED | Récap, Photos, Paiements/Tricount |
 
 - Carte contextuelle sous la grille pour l'action en cours (ex. vote rapide Oui/Peut-être/Non sur le créneau en tête).
@@ -303,7 +303,7 @@ Consignés après les couches 0-1 (proposition #47) ; ils font désormais partie
 ### Couche 4 (hub d'événement, 2026-09-30)
 
 - Sous `iosRedesign2026`, `case .eventDetail` ouvre `EventHubContainer` (via `eventHubContent(for:)`, hors de la tranche legacy) ; flag éteint, `EventDetailView` est inchangé. Chaîne : règles pures `EventHubModel` ← faits `EventHubFacts` lus hors du fil principal par `SharedEventHubSource` → `EventHubViewModel` → `EventHubView` (composants `WK` uniquement).
-- Modules par phase : brouillon date/lieu/invités ; sondage + budget ; confirmé et comparaison date/scénarios/invités/budget ; organisation transport/hébergement/repas/matériel/activités/budget/réunions ; finalisé récap/photos/paiements. Au plus une tuile mise en évidence (date pour vote/résultats/confirmation/ajout de dates, scénarios en comparaison).
+- Modules par phase : brouillon date/lieu/invités ; sondage + budget ; confirmé et comparaison date/scénarios/invités/budget ; organisation transport/hébergement/repas/matériel/activités/budget/paiements/réunions (paiements ajoutés en couche 5b) ; finalisé récap/photos/paiements. Au plus une tuile mise en évidence (date pour vote/résultats/confirmation/ajout de dates, scénarios en comparaison).
 - Vote rapide Oui/Peut-être/Non : ouvre `PollVotingView` (aucune soumission depuis le hub, le journal de bulletins n'accepte que des bulletins complets). La carte n'apparaît que si un créneau est en tête (`leadingSlotStart`), sinon seul le CTA « Voter » reste.
 - Transitions confirmé → organisation et organisation → finalisé : dans le hub, toujours après confirmation (`confirmationDialog`), via `EventLifecycleTransitionController` possédé par le conteneur (même chemin que `EventDetailView`) ; succès → relecture de l'événement et `eventHubReloadToken += 1`. Invité local : « Connecte-toi pour finaliser » reprend `authStateManager.signOut()`.
 - Règle « prêt à confirmer » partagée : `PollReadiness.readyToConfirm` est utilisée par `HomeEventFacts` et `EventHubFacts` (pas de copie) ; elle l'emporte sur le vote de l'organisateur, comme sur l'accueil.
@@ -339,10 +339,16 @@ Consignés après les couches 0-1 (proposition #47) ; ils font désormais partie
 - **Écarts** :
   - Les totaux du budget sont portés par la pastille d'en-tête, sans carte « Total » séparée.
   - La tuile Budget reste « estimé » (inchangée) ; la sheet ajoute le réel.
-  - « Gérer la cagnotte » n'est pas atteignable depuis le hub aujourd'hui : la tuile Paiements n'existe qu'en phase finalisée, donc en lecture seule (Tricount et Plein écran restent proposés). La règle est testée unitairement.
   - Budget et Réunions n'ont pas de tuile en phase finalisée : la sheet en lecture seule n'est vérifiée qu'en tests.
 - **Vérifié au simulateur** (iPhone 18 Pro, données QA + budget, cagnotte et réunions insérés en base) : tuile Budget verrouillée avant organisation ; passage en organisation ; sheets Budget (vide puis dépassement), Réunions (medium/large) ; « Voir les dépenses » → écran budget → retour hub ; « Planifier une réunion » → liste legacy → retour hub ; Paiements (finalisé) : « Tricount » → Tricount → Cagnotte → hub, « Plein écran » → cagnotte ; AX5 (detent large, pastilles empilées) ; sombre ; flag éteint → accueil et détail legacy inchangés. Captures `/tmp/wk-l5b-*.png`.
-- **Constats non corrigés (hors 5b)** : ajout d'une dépense dans l'écran legacy Budget → crash (exception Kotlin non déclarée dans `BudgetRepository.createBudgetItem` appelée par `BudgetViewModel.addItem`) ; lancement avec `--wakeve-qa-seed-invitation-experience --wakeve-qa-open-invitation-route library` parfois bloqué sur le chargement de l'accueil (sélecteur Ktor en attente, aucune trame app active) — relancer sans ces arguments charge l'accueil.
+- **Revue de la couche 5b (2026-10-01)** :
+  - Tuile Paiements ajoutée en organisation (entre Budget et Réunions) : « Gérer la cagnotte » est atteignable pendant l'organisation ; verrou inchangé (`canAccessOrganizationDashboard`).
+  - Cagnotte : tuile et sheet lisent la dernière cagnotte de l'événement, ouverte ou clôturée (`potQueries.selectByEvent`, la plus récente par `createdAt` via `HubSummaryText.latest`) ; une cagnotte clôturée garde « Clôturée » (pastille de la sheet, suffixe de la tuile).
+  - Réunions : une réunion terminée (`ENDED`, ou programmée dont l'heure est passée) n'a pas de pastille et affiche « Terminée » (`meetings.ended`) ; les réunions à venir passent avant les terminées, puis par date ; seules les réunions à venir comptent dans « N à venir » et « sans lien » ; titre vide → nom de la plateforme. L'instant courant est injecté (`now`) pour les tests.
+  - Budget : dépassement comparé en centimes (`HubModuleSheetData.isOverspent`) ; une dépense sans estimation est un dépassement. Action principale « Voir le budget » (`hub.sheet.budget.view`), sans « Plein écran » en doublon.
+  - Synchro en attente des sheets Budget et Paiements : file du flux, plus la file de la phase 5 avec le filtre de l'écran legacy (`BudgetViewModel.isPhase5PendingSync`).
+- **Constat corrigé hors couche** : l'ajout d'une dépense dans l'écran Budget ne plante plus (`sharedBy` vide remplacé par les participants de l'événement ou l'organisateur, exceptions Kotlin déclarées par `@Throws` et rattrapées) ; « 1 personnes » sous la dépense reste à accorder.
+- **Constats non corrigés (hors 5b)** : lancement avec `--wakeve-qa-seed-invitation-experience --wakeve-qa-open-invitation-route library` parfois bloqué sur le chargement de l'accueil (sélecteur Ktor en attente, aucune trame app active) — relancer sans ces arguments charge l'accueil.
 
 ### Décisions
 
