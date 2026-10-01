@@ -333,8 +333,9 @@ extension Comment_ {
         return authorId == currentUserId || isOrganizer
     }
     
+    /// Organisateur, sur un commentaire de premier niveau (une réponse ne s'affiche jamais épinglée).
     func canPin(_ currentUserId: String, _ isOrganizer: Bool) -> Bool {
-        return isOrganizer
+        return isOrganizer && parentCommentId == nil
     }
 }
 

@@ -1679,6 +1679,7 @@
 "comments.delete.message" = "Il ne sera plus visible par le groupe.";
 "comments.error.rejected" = "Ce message ne respecte pas les règles de la communauté. Reformule-le.";
 "comments.error.too_long" = "Ton message dépasse 2 000 caractères.";
+"comments.notice.pending_review" = "Ton message sera visible après vérification.";
 
 // MARK: - Onboarding (Extended)
 "onboarding.collaborate_desc" = "Invite tes amis et collègues. Chacun peut proposer des dates et voter pour ses préférences.";

@@ -1920,6 +1920,7 @@
 "comments.delete.message" = "El grupo ya no lo verá.";
 "comments.error.rejected" = "Este mensaje no respeta las normas de la comunidad. Reformúlalo.";
 "comments.error.too_long" = "Tu mensaje supera los 2000 caracteres.";
+"comments.notice.pending_review" = "Tu mensaje será visible después de la revisión.";
 "comments.empty.subtitle" = "Sé la primera persona en compartir algo útil con el grupo.";
 "comments.empty.title" = "Aún no hay mensajes";
 "comments.load_more_replies" = "Cargar más respuestas (%lld)";

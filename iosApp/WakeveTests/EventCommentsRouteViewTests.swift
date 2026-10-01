@@ -61,6 +61,41 @@ final class EventCommentsRouteViewTests: XCTestCase {
         XCTAssertFalse(permits(.pin, author: "me", organizer: false))
     }
 
+    /// L'épinglage ne vaut que pour un commentaire de premier niveau (les réponses ne s'affichent jamais épinglées).
+    func testOnlyTopLevelCommentsCanBePinned() {
+        XCTAssertTrue(EventCommentsRouteView.permits(.pin, authorId: "o", currentUserId: "me", isOrganizer: true, isReply: false))
+        XCTAssertFalse(EventCommentsRouteView.permits(.pin, authorId: "o", currentUserId: "me", isOrganizer: true, isReply: true))
+        XCTAssertTrue(EventCommentsRouteView.permits(.edit, authorId: "me", currentUserId: "me", isOrganizer: false, isReply: true))
+        XCTAssertTrue(EventCommentsRouteView.permits(.delete, authorId: "o", currentUserId: "me", isOrganizer: true, isReply: true))
+        // Même règle dans le menu de `CommentItemView`.
+        XCTAssertTrue(CommentFactory.make(parentCommentId: nil).canPin("me", true))
+        XCTAssertFalse(CommentFactory.make(parentCommentId: "parent").canPin("me", true))
+        XCTAssertFalse(CommentFactory.make(parentCommentId: nil).canPin("me", false))
+    }
+
+    // MARK: - Modération
+
+    /// Un message en attente de vérification n'est pas listé : une phrase le dit au lieu de le laisser disparaître.
+    func testPendingModerationIsExplained() {
+        XCTAssertNil(EventCommentsRouteView.noticeKey(afterWriteWith: .approved))
+        XCTAssertEqual(EventCommentsRouteView.noticeKey(afterWriteWith: .pendingReview), "comments.notice.pending_review")
+        XCTAssertEqual(EventCommentsRouteView.noticeKey(afterWriteWith: .hidden), "comments.notice.pending_review")
+        XCTAssertEqual(EventCommentsRouteView.noticeKey(afterWriteWith: nil), "comments.notice.pending_review",
+                       "Modification relue introuvable : `getCommentById` ne renvoie que les commentaires approuvés.")
+        XCTAssertEqual(WK.localizedFormat("comments.notice.pending_review", locale: Locale(identifier: "fr")),
+                       "Ton message sera visible après vérification.")
+        XCTAssertEqual(WK.localizedFormat("comments.notice.pending_review", locale: Locale(identifier: "en")),
+                       "Your message will be visible once it has been reviewed.")
+    }
+
+    // MARK: - Texte refusé conservé
+
+    func testRejectedTextGoesBackWhereItWasTyped() {
+        let draft = EventCommentsRouteView.Draft(commentId: "c1", kind: .edit)
+        XCTAssertEqual(EventCommentsRouteView.retry(for: nil, text: "Salut"), .composer("Salut"))
+        XCTAssertEqual(EventCommentsRouteView.retry(for: draft, text: "Salut"), .draft(draft, "Salut"))
+    }
+
     // MARK: - Erreurs
 
     func testErrorsAreLocalized() {
@@ -102,5 +137,32 @@ final class EventCommentsRouteViewTests: XCTestCase {
             XCTAssertTrue(route.contains(call), "Écriture manquante : \(call)")
         }
         XCTAssertFalse(route.contains("section.sharedValue"), "Toutes les sections passent par `repositorySection`.")
+    }
+
+    private func routeSource() throws -> String {
+        let file = try String(contentsOf: URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("src/Views/Events/EventSecondaryRouteViews.swift"), encoding: .utf8)
+        let start = try XCTUnwrap(file.range(of: "struct EventCommentsRouteView: View {"))
+        let end = try XCTUnwrap(file.range(of: "struct EventPhotosFollowUpRouteView", range: start.upperBound..<file.endIndex))
+        return String(file[start.lowerBound..<end.lowerBound])
+    }
+
+    /// Un seul `CommentRepository` par écran, gardé d'un rendu à l'autre.
+    func testRouteHoldsOneRepository() throws {
+        let route = try routeSource()
+        XCTAssertEqual(route.components(separatedBy: "createCommentRepository(").count - 1, 1)
+        XCTAssertTrue(route.contains("@StateObject private var store"))
+    }
+
+    /// Texte refusé rendu au champ de saisie ; alertes présentées après la fermeture de l'alerte de saisie.
+    func testRouteRestoresRejectedTextAndDefersAlerts() throws {
+        let route = try routeSource()
+        XCTAssertTrue(route.contains("restoredDraft: $restoredCommentText"))
+        XCTAssertTrue(route.contains("DispatchQueue.main.async"))
+        let list = try String(contentsOf: URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("src/Views/Collaboration/CommentListView.swift"), encoding: .utf8)
+        XCTAssertTrue(list.contains("var restoredDraft: Binding<String?> = .constant(nil)"), "Ajout rétrocompatible.")
     }
 }

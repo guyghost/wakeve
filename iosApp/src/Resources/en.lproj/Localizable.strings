@@ -1679,6 +1679,7 @@
 "comments.delete.message" = "The group will no longer see it.";
 "comments.error.rejected" = "This message doesn't follow the community guidelines. Please rephrase it.";
 "comments.error.too_long" = "Your message is longer than 2,000 characters.";
+"comments.notice.pending_review" = "Your message will be visible once it has been reviewed.";
 
 // MARK: - Onboarding (Extended)
 "onboarding.collaborate_desc" = "Invite your friends and colleagues. Everyone can suggest dates and vote for their preferences.";
