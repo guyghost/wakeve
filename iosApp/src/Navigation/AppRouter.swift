@@ -25,6 +25,15 @@ final class AppRouter {
 
     var zone: AppZone = .events
     var presentation: Presentation?
+    /// Filtre demandé par le dernier lien profond `wakeve://notifications` (couche 6) ;
+    /// `activityFilterRequest` change à chaque demande, même quand le filtre est identique.
+    private(set) var activityFilter: ActivityFilter = .toDo
+    private(set) var activityFilterRequest = 0
+
+    /// `filter=unread` → « Tout » (les non lues y figurent) ; sinon « À traiter ».
+    nonisolated static func activityFilter(for filter: String?) -> ActivityFilter {
+        filter == "unread" ? .all : .toDo
+    }
 
     nonisolated static func plan(for route: IosRoute) -> Plan {
         switch route {
@@ -46,6 +55,10 @@ final class AppRouter {
     /// - Returns: la route que l'aiguillage d'événements doit encore traiter, sinon `nil`.
     static func preRoute(_ route: IosRoute, redesignEnabled: Bool, router: AppRouter) -> IosRoute? {
         guard redesignEnabled else { return route }
+        if case .topLevel(.notifications(let filter)) = route {
+            router.activityFilter = activityFilter(for: filter)
+            router.activityFilterRequest += 1
+        }
         return router.apply(plan(for: route))
     }
 

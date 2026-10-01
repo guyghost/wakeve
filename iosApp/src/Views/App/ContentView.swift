@@ -189,6 +189,8 @@ struct AuthenticatedView: View {
     @State private var redesignRouter = AppRouter()
     @State private var activityAtRoot = true
     @State private var activityReloadToken = 0
+    /// Badge de la zone Activité de la refonte (couche 6, #47) : éléments « À traiter » + notifications non lues.
+    @State private var activityToDoCount = 0
     @State private var selectedTab: WakeveTab = .home
     @State private var currentView: AppView = .eventList
     @State private var selectedEvent: Event?
@@ -493,7 +495,7 @@ struct AuthenticatedView: View {
             router: redesignRouter,
             eventsAtRoot: currentView == .eventList,
             activityAtRoot: activityAtRoot,
-            activityBadge: unreadInboxCount,
+            activityBadge: activityToDoCount,
             userId: userId,
             userName: authStateManager.currentUser?.name,
             onCreate: beginRedesignEventCreation,
@@ -504,12 +506,14 @@ struct AuthenticatedView: View {
                     .environment(\.redesignBackAction, redesignToolbarBackAction)
             },
             activity: {
-                InboxView(
+                ActivityView(
                     userId: userId,
-                    onBack: { /* Activity is a shell zone, no back action needed */ },
-                    unreadCount: $unreadInboxCount,
+                    actionCount: $activityToDoCount,
                     reloadToken: activityReloadToken,
-                    onRootStateChange: { activityAtRoot = $0 }
+                    onRootStateChange: { activityAtRoot = $0 },
+                    initialFilter: redesignRouter.activityFilter,
+                    filterRequestID: redesignRouter.activityFilterRequest,
+                    onOpen: openActivityTarget
                 )
             }
         )
@@ -612,25 +616,51 @@ struct AuthenticatedView: View {
         }
     }
 
-    /// Même aiguillage que les liens profonds `.event(.pollVoting/.pollResults)` (gardes d'accès incluses),
-    /// sans toucher à l'état du service de liens profonds.
     private func handleHomeNextStep(_ step: HomeNextStep) {
+        openHomeAction(step.action, eventId: step.eventId)
+    }
+
+    /// Même aiguillage que les liens profonds `.event(.pollVoting/.pollResults)` (gardes d'accès incluses),
+    /// sans toucher à l'état du service de liens profonds. Partagé par l'accueil et l'Activité (couche 6).
+    private func openHomeAction(_ action: HomeNextStep.Action, eventId: String) {
         // Sans rollout invitation, le routeur retombe sur le détail : ouvrir directement l'écran de sondage.
         guard invitationExperienceRolloutEnabled else {
-            switch step.action {
-            case .vote: navigateInvitationDeepLink(eventId: step.eventId, destination: .pollVoting)
-            case .pollResults: navigateInvitationDeepLink(eventId: step.eventId, destination: .pollResults)
-            case .open: openEventFromHome(step.eventId)
+            switch action {
+            case .vote: navigateInvitationDeepLink(eventId: eventId, destination: .pollVoting)
+            case .pollResults: navigateInvitationDeepLink(eventId: eventId, destination: .pollResults)
+            case .open: openEventFromHome(eventId)
             }
             return
         }
-        switch step.action {
+        switch action {
         case .vote:
-            navigateInvitationDeepLink(eventId: step.eventId, route: .poll, intent: .mutate)
+            navigateInvitationDeepLink(eventId: eventId, route: .poll, intent: .mutate)
         case .pollResults:
-            navigateInvitationDeepLink(eventId: step.eventId, route: .poll, intent: .read)
+            navigateInvitationDeepLink(eventId: eventId, route: .poll, intent: .read)
         case .open:
-            openEventFromHome(step.eventId)
+            openEventFromHome(eventId)
+        }
+    }
+
+    // MARK: - Activité de la refonte (couche 6, #47)
+
+    /// Entrée du fil d'activité → zone Événements. Le changement de zone ferme les sheets du hub
+    /// (`onChange` de `redesignRouter.zone`) : la navigation attend le tour suivant de la boucle principale.
+    private func openActivityTarget(_ target: ActivityTarget) {
+        redesignRouter.zone = .events
+        Task { @MainActor in
+            switch target {
+            case .hub(let eventId):
+                openEventFromHome(eventId)
+            case .vote(let eventId):
+                openHomeAction(.vote, eventId: eventId)
+            case .pollResults(let eventId):
+                openHomeAction(.pollResults, eventId: eventId)
+            case .comments(let eventId):
+                // Même route (et mêmes gardes) que le lien profond `.event(.comments)`.
+                selectedCommentSection = .general
+                navigateInvitationDeepLink(eventId: eventId, destination: .comments)
+            }
         }
     }
 

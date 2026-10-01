@@ -42,15 +42,17 @@ final class RedesignShellTests: XCTestCase {
         XCTAssertTrue(body.contains("reloadToken: activityReloadToken"))
         XCTAssertTrue(body.contains("activityReloadToken += 1"))
 
-        let inbox = try String(
+        // Couche 6 : la zone Activité affiche `ActivityView` (InboxView reste sur le chemin legacy).
+        XCTAssertTrue(body.contains("ActivityView("))
+        let activity = try String(
             contentsOf: URL(fileURLWithPath: #filePath)
                 .deletingLastPathComponent().deletingLastPathComponent()
-                .appendingPathComponent("src/Views/Inbox/InboxView.swift"),
+                .appendingPathComponent("src/Views/Activity/ActivityView.swift"),
             encoding: .utf8
         )
-        XCTAssertTrue(inbox.contains("var reloadToken: Int = 0"))
-        XCTAssertTrue(inbox.contains("var onRootStateChange: ((Bool) -> Void)? = nil"))
-        XCTAssertTrue(inbox.contains(".onChange(of: reloadToken)"))
+        XCTAssertTrue(activity.contains("var reloadToken: Int = 0"))
+        XCTAssertTrue(activity.contains("var onRootStateChange: ((Bool) -> Void)? = nil"))
+        XCTAssertTrue(activity.contains(".onChange(of: reloadToken)"))
     }
 
     func testHeaderShowsOnlyAtEventsRoot() {

@@ -1,0 +1,94 @@
+import XCTest
+@testable import Wakeve
+
+/// Branchement de `ActivityView` dans la zone Activité du shell (couche 6, #47).
+@MainActor
+final class ActivityShellWiringTests: XCTestCase {
+
+    private func contentViewSource() throws -> String {
+        try String(contentsOf: URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("src/Views/App/ContentView.swift"), encoding: .utf8)
+    }
+
+    private func slice(after anchor: String, length: Int) throws -> String {
+        let source = try contentViewSource()
+        guard let start = source.range(of: anchor) else {
+            XCTFail("\(anchor) introuvable")
+            return ""
+        }
+        return String(source[start.lowerBound...].prefix(length))
+    }
+
+    // MARK: - Filtre du lien profond
+
+    func testNotificationsDeepLinkFilterMapsToActivityFilter() {
+        XCTAssertEqual(AppRouter.activityFilter(for: "unread"), .all)
+        XCTAssertEqual(AppRouter.activityFilter(for: nil), .toDo)
+        XCTAssertEqual(AppRouter.activityFilter(for: "other"), .toDo)
+    }
+
+    func testPreRouteRequestsTheActivityFilterOnlyUnderTheFlag() {
+        let router = AppRouter()
+        XCTAssertEqual(router.activityFilter, .toDo)
+        let request = router.activityFilterRequest
+
+        XCTAssertNil(AppRouter.preRoute(.topLevel(.notifications(filter: "unread")), redesignEnabled: true, router: router))
+        XCTAssertEqual(router.zone, .activity)
+        XCTAssertEqual(router.activityFilter, .all)
+        XCTAssertEqual(router.activityFilterRequest, request + 1, "Chaque lien profond est une nouvelle demande.")
+
+        XCTAssertNil(AppRouter.preRoute(.topLevel(.notifications(filter: nil)), redesignEnabled: true, router: router))
+        XCTAssertEqual(router.activityFilter, .toDo)
+        XCTAssertEqual(router.activityFilterRequest, request + 2)
+
+        let legacy = AppRouter()
+        XCTAssertEqual(AppRouter.preRoute(.topLevel(.notifications(filter: "unread")), redesignEnabled: false, router: legacy),
+                       .topLevel(.notifications(filter: "unread")))
+        XCTAssertEqual(legacy.activityFilter, .toDo, "Flag éteint : routeur intact.")
+        XCTAssertEqual(legacy.activityFilterRequest, 0)
+
+        XCTAssertEqual(AppRouter.preRoute(.event(.detail(eventId: "e")), redesignEnabled: true, router: router),
+                       .event(.detail(eventId: "e")))
+        XCTAssertEqual(router.activityFilterRequest, request + 2, "Les autres routes ne touchent pas au filtre.")
+    }
+
+    // MARK: - Shell
+
+    func testActivityZoneShowsTheActivityFeedWithItsOwnBadge() throws {
+        let body = try slice(after: "private var redesignChrome: some View", length: 2500)
+        XCTAssertTrue(body.contains("ActivityView("))
+        XCTAssertFalse(body.contains("InboxView("), "InboxView reste sur le chemin legacy uniquement.")
+        XCTAssertTrue(body.contains("activityBadge: activityToDoCount"))
+        XCTAssertTrue(body.contains("actionCount: $activityToDoCount"))
+        XCTAssertTrue(body.contains("initialFilter: redesignRouter.activityFilter"))
+        XCTAssertTrue(body.contains("filterRequestID: redesignRouter.activityFilterRequest"))
+        XCTAssertTrue(body.contains("onOpen: openActivityTarget"))
+        let source = try contentViewSource()
+        XCTAssertTrue(source.contains("@State private var activityToDoCount = 0"))
+        XCTAssertTrue(source.contains(".badge(unreadInboxCount)"), "Le badge legacy garde le compteur de l'Inbox.")
+    }
+
+    func testOpeningAnActivityTargetSwitchesZoneThenNavigatesOnTheNextTurn() throws {
+        let body = try slice(after: "private func openActivityTarget(_ target: ActivityTarget)", length: 1500)
+        guard let zone = body.range(of: "redesignRouter.zone = .events"),
+              let deferred = body.range(of: "Task { @MainActor in") else {
+            return XCTFail("Zone puis navigation différée attendues")
+        }
+        XCTAssertLessThan(zone.lowerBound, deferred.lowerBound, "Le changement de zone précède la navigation.")
+        XCTAssertTrue(body.contains("openEventFromHome(eventId)"), "Hub : même ouverture que l'accueil.")
+        XCTAssertTrue(body.contains("openHomeAction(.vote, eventId: eventId)"))
+        XCTAssertTrue(body.contains("openHomeAction(.pollResults, eventId: eventId)"))
+        XCTAssertTrue(body.contains("selectedCommentSection = .general"))
+        XCTAssertTrue(body.contains("navigateInvitationDeepLink(eventId: eventId, destination: .comments)"),
+                      "Commentaires : même route (et mêmes gardes) que le lien profond.")
+    }
+
+    func testHomeNextStepAndActivityShareOnePollRoute() throws {
+        let body = try slice(after: "private func handleHomeNextStep(_ step: HomeNextStep)", length: 400)
+        XCTAssertTrue(body.contains("openHomeAction(step.action, eventId: step.eventId)"))
+        let action = try slice(after: "private func openHomeAction(_ action: HomeNextStep.Action, eventId: String)", length: 1200)
+        XCTAssertTrue(action.contains("guard invitationExperienceRolloutEnabled else"))
+        XCTAssertTrue(action.contains("destination: .pollVoting"))
+        XCTAssertTrue(action.contains("route: .poll, intent: .mutate"))
+    }
+}
