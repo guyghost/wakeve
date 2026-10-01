@@ -54,6 +54,12 @@ struct ActivityEntry: Identifiable, Equatable {
     let date: Date?
     /// `nil` : rien à ouvrir (notification générale ou événement inconnu localement).
     let target: ActivityTarget?
+
+    /// Identifiant de la notification d'origine (`notification.<id>`), sinon `nil`.
+    var notificationId: String? {
+        guard case .notification = kind, id.hasPrefix(ActivityFeed.notificationPrefix) else { return nil }
+        return String(id.dropFirst(ActivityFeed.notificationPrefix.count))
+    }
 }
 
 struct ActivityEventGroup: Identifiable, Equatable {
@@ -73,6 +79,7 @@ struct ActivityEventGroup: Identifiable, Equatable {
 /// Règles pures du fil d'activité.
 enum ActivityFeed {
     static let generalGroupId = "activity.general"
+    static let notificationPrefix = "notification."
 
     /// Entrées d'action d'un événement (« À traiter »), dans l'ordre d'affichage.
     static func actionEntries(for item: ActivityEventFacts) -> [ActivityEntry] {
@@ -180,7 +187,7 @@ enum ActivityFeed {
 
     private static func notificationEntry(_ note: ActivityNotification, target: ActivityTarget?) -> ActivityEntry {
         ActivityEntry(
-            id: "notification.\(note.id)", eventId: target?.eventId,
+            id: notificationPrefix + note.id, eventId: target?.eventId,
             kind: .notification(title: note.title, message: note.message, isRead: note.isRead),
             needsAction: false, date: note.date, target: target
         )
