@@ -339,6 +339,8 @@ struct ActivityPlanningRouteView: View {
     }
 }
 
+/// Route `.comments` : lit les fils de la section et branche les écritures de `CommentListView` sur le
+/// dépôt Kotlin (couche 5c, #47). Chaque écriture relit la liste ; un refus s'affiche, sans arrêter l'app.
 struct EventCommentsRouteView: View {
     let event: Event
     let section: CommentSectionType
@@ -347,6 +349,68 @@ struct EventCommentsRouteView: View {
     let onBack: () -> Void
 
     @State private var comments: [CommentThread] = []
+    /// Réponse ou modification en cours de saisie (alerte avec champ de texte).
+    @State private var draft: Draft?
+    @State private var draftText = ""
+    @State private var pendingDeleteId: String?
+    @State private var errorMessage: String?
+
+    /// Écriture demandée depuis le menu d'un commentaire.
+    enum WriteAction: Equatable { case reply, edit, delete, pin }
+
+    /// Contenu saisi, vérifié avant `CommentRequest` (dont l'`init` Kotlin rejette vide et > 2 000 caractères).
+    enum ContentCheck: Equatable {
+        case valid(String)
+        case empty
+        case tooLong
+    }
+
+    struct Draft: Equatable {
+        enum Kind: Equatable { case reply(authorName: String), edit }
+        let commentId: String
+        let kind: Kind
+    }
+
+    static let maxContentLength = 2_000
+
+    // MARK: - Règles pures (testées)
+
+    /// Section du dépôt pour chaque section de l'app : aucune ne retombe sur « toutes les sections ».
+    static func repositorySection(for section: CommentSectionType) -> CommentSection_ {
+        switch section {
+        case .general: return .general
+        case .scenario: return .scenario
+        case .poll: return .poll
+        case .transport: return .transport
+        case .accommodation: return .accommodation
+        case .meal: return .meal
+        case .equipment: return .equipment
+        case .activity: return .activity
+        case .budget: return .budget
+        }
+    }
+
+    static func checkContent(_ text: String) -> ContentCheck {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return .empty }
+        return trimmed.count > maxContentLength ? .tooLong : .valid(trimmed)
+    }
+
+    /// Mêmes règles que le menu de `CommentItemView` (`canEdit`, `canDelete`, `canPin`).
+    static func permits(_ action: WriteAction, authorId: String, currentUserId: String, isOrganizer: Bool) -> Bool {
+        switch action {
+        case .reply: return true
+        case .edit: return authorId == currentUserId
+        case .delete: return authorId == currentUserId || isOrganizer
+        case .pin: return isOrganizer
+        }
+    }
+
+    static func errorKey(isModerationRejection: Bool) -> String {
+        isModerationRejection ? "comments.error.rejected" : "common.error_generic"
+    }
+
+    // MARK: - Corps
 
     var body: some View {
         CommentListView(
@@ -356,16 +420,163 @@ struct EventCommentsRouteView: View {
             mentionableUsers: event.participants,
             currentUserId: currentUserId,
             isOrganizer: isOrganizer,
-            onNavigateBack: onBack
+            onNavigateBack: onBack,
+            onAddComment: { text, _ in post(text, parentId: nil) },
+            onReply: { commentId, authorName in
+                draftText = ""
+                draft = Draft(commentId: commentId, kind: .reply(authorName: authorName))
+            },
+            onEdit: { commentId, content in
+                guard allowed(.edit, commentId: commentId) else { return }
+                draftText = content
+                draft = Draft(commentId: commentId, kind: .edit)
+            },
+            onDelete: { commentId in
+                guard allowed(.delete, commentId: commentId) else { return }
+                pendingDeleteId = commentId
+            },
+            onPin: { commentId, pinned in setPinned(commentId, pinned: pinned) }
         )
         .onAppear(perform: loadComments)
+        .alert(draftTitle, isPresented: draftBinding) {
+            TextField(draftPlaceholder, text: $draftText)
+            Button(String(localized: "common.cancel"), role: .cancel) { draft = nil }
+            Button(String(localized: draft?.kind == .edit ? "common.save" : "comment.action.reply")) { submitDraft() }
+        }
+        .alert(String(localized: "comments.delete.title"), isPresented: deleteBinding) {
+            Button(String(localized: "common.cancel"), role: .cancel) { pendingDeleteId = nil }
+            Button(String(localized: "common.delete"), role: .destructive) { confirmDelete() }
+        } message: {
+            Text(String(localized: "comments.delete.message"))
+        }
+        .alert(errorMessage ?? "", isPresented: errorBinding) {
+            Button(String(localized: "common.ok"), role: .cancel) { errorMessage = nil }
+        }
+    }
+
+    private var draftTitle: String {
+        switch draft?.kind {
+        case .reply(let authorName)?:
+            return String(format: String(localized: "comments.reply.title_format"), authorName)
+        default:
+            return String(localized: "comments.edit.title")
+        }
+    }
+
+    private var draftPlaceholder: String {
+        String(localized: draft?.kind == .edit ? "comments.edit.placeholder" : "comments.reply.placeholder")
+    }
+
+    private var draftBinding: Binding<Bool> {
+        Binding(get: { draft != nil }, set: { if !$0 { draft = nil } })
+    }
+
+    private var deleteBinding: Binding<Bool> {
+        Binding(get: { pendingDeleteId != nil }, set: { if !$0 { pendingDeleteId = nil } })
+    }
+
+    private var errorBinding: Binding<Bool> {
+        Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })
+    }
+
+    // MARK: - Lecture et écritures
+
+    private var repository: CommentRepository {
+        IosFactory.shared.createCommentRepository(database: RepositoryProvider.shared.database)
     }
 
     private func loadComments() {
-        let repository = IosFactory.shared.createCommentRepository(database: RepositoryProvider.shared.database)
-        let sharedSection = section.sharedValue
-        let topLevel = repository.getTopLevelComments(eventId: event.id, section: sharedSection, sectionItemId: nil)
+        let repository = repository
+        let topLevel = repository.getTopLevelComments(
+            eventId: event.id, section: Self.repositorySection(for: section), sectionItemId: nil
+        )
         comments = topLevel.compactMap { repository.getCommentThread(commentId: $0.id) }
+    }
+
+    /// Auteur du commentaire lu dans le dépôt (le menu peut être obsolète) ; refus silencieux sinon.
+    private func allowed(_ action: WriteAction, commentId: String) -> Bool {
+        guard let comment = repository.getCommentById(commentId: commentId) else { return false }
+        return Self.permits(action, authorId: comment.authorId, currentUserId: currentUserId, isOrganizer: isOrganizer)
+    }
+
+    private func submitDraft() {
+        guard let draft else { return }
+        self.draft = nil
+        switch draft.kind {
+        case .reply: post(draftText, parentId: draft.commentId)
+        case .edit: edit(draft.commentId, text: draftText)
+        }
+    }
+
+    private func post(_ text: String, parentId: String?) {
+        guard let content = validated(text) else { return }
+        let repository = repository
+        // Nom enregistré sur le compte, sinon l'identifiant (même repli que les sheets du hub).
+        let storedName = repository.getUserDisplayName(userId: currentUserId)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let authorName = storedName.isEmpty ? currentUserId : storedName
+        let request = CommentRequest(
+            section: Self.repositorySection(for: section),
+            sectionItemId: nil,
+            content: content,
+            parentCommentId: parentId
+        )
+        Task { @MainActor in
+            do {
+                _ = try await repository.createComment(
+                    eventId: event.id,
+                    authorId: currentUserId,
+                    authorName: authorName,
+                    request: request,
+                    usernameToUserIdMap: [:]
+                )
+            } catch {
+                show(error)
+            }
+            loadComments()
+        }
+    }
+
+    private func edit(_ commentId: String, text: String) {
+        guard allowed(.edit, commentId: commentId), let content = validated(text) else { return }
+        do {
+            _ = try repository.updateComment(commentId: commentId, content: content)
+        } catch {
+            show(error)
+        }
+        loadComments()
+    }
+
+    private func confirmDelete() {
+        guard let commentId = pendingDeleteId else { return }
+        pendingDeleteId = nil
+        guard allowed(.delete, commentId: commentId) else { return }
+        // Suppression douce : le fil reste cohérent et le commentaire disparaît de la liste.
+        _ = repository.softDeleteComment(commentId: commentId)
+        loadComments()
+    }
+
+    private func setPinned(_ commentId: String, pinned: Bool) {
+        guard allowed(.pin, commentId: commentId) else { return }
+        _ = pinned
+            ? repository.pinComment(commentId: commentId)
+            : repository.unpinComment(commentId: commentId)
+        loadComments()
+    }
+
+    private func validated(_ text: String) -> String? {
+        switch Self.checkContent(text) {
+        case .valid(let content): return content
+        case .empty: return nil
+        case .tooLong:
+            errorMessage = String(localized: "comments.error.too_long")
+            return nil
+        }
+    }
+
+    private func show(_ error: Error) {
+        let rejected = (error as NSError).kotlinException is ModerationRejectedException
+        errorMessage = String(localized: String.LocalizationValue(Self.errorKey(isModerationRejection: rejected)))
     }
 }
 

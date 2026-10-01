@@ -1912,6 +1912,14 @@
 
 // MARK: - Release parity additions
 "comments.add_placeholder" = "Aggiungi un messaggio...";
+"comments.reply.title_format" = "Rispondi a %@";
+"comments.reply.placeholder" = "La tua risposta";
+"comments.edit.title" = "Modifica messaggio";
+"comments.edit.placeholder" = "Il tuo messaggio";
+"comments.delete.title" = "Eliminare questo messaggio?";
+"comments.delete.message" = "Il gruppo non lo vedrà più.";
+"comments.error.rejected" = "Questo messaggio non rispetta le regole della community. Riformulalo.";
+"comments.error.too_long" = "Il tuo messaggio supera i 2000 caratteri.";
 "comments.empty.subtitle" = "Sii la prima persona a condividere qualcosa di utile con il gruppo.";
 "comments.empty.title" = "Ancora nessun messaggio";
 "comments.load_more_replies" = "Carica altre risposte (%lld)";

@@ -299,8 +299,8 @@ private func ISO8601DateFormatter() -> DateFormatter {
 
 extension Comment_ {
     // Properties are already in camelCase in the generated Swift header
-    var isPinned: Bool { false } // Pinned comments are not in the current shared schema.
-    
+    // (`isPinned` comes from the shared model: pinning is persisted by `CommentRepository`).
+
     var isDeleted: Bool { content == "[Deleted]" || content == "[deleted]" }
 
     var moderationStatusString: String {
@@ -379,6 +379,4 @@ extension Comment_ {
     .background(WakeveScreenBackground(style: .grouped))
 }
 #endif
-extension CommentThread {
-    var hasMoreReplies: Bool { comment.replyCount > Int32(replies.count) }
-}
+// `CommentThread.hasMoreReplies` comes from the shared model: `getCommentThread` loads every reply.

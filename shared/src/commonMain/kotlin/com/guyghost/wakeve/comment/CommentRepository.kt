@@ -14,6 +14,7 @@ import com.guyghost.wakeve.models.Mention
 import com.guyghost.wakeve.moderation.ModerationPolicy
 import com.guyghost.wakeve.moderation.ModerationRejectedException
 import com.guyghost.wakeve.moderation.ModerationStatus
+import kotlinx.coroutines.CancellationException
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.minus
@@ -71,7 +72,10 @@ class CommentRepository(
      * @param request Comment creation request
      * @param usernameToUserIdMap Map of username to user ID for mention resolution
      * @return Created Comment
+     * @throws ModerationRejectedException content rejected by moderation (an [IllegalArgumentException])
+     * @throws IllegalArgumentException parent comment not found
      */
+    @Throws(IllegalArgumentException::class, CancellationException::class)
     suspend fun createComment(
         eventId: String,
         authorId: String,
@@ -817,7 +821,10 @@ class CommentRepository(
     
     /**
      * Update a comment.
+     *
+     * @throws ModerationRejectedException content rejected by moderation (an [IllegalArgumentException])
      */
+    @Throws(IllegalArgumentException::class)
     fun updateComment(commentId: String, content: String): Comment? {
         val moderationResult = moderationPolicy.evaluate(content)
         if (moderationResult.status == ModerationStatus.REJECTED) {

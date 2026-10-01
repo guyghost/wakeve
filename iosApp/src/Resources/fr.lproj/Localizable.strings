@@ -1671,6 +1671,14 @@
 "comments.section.budget" = "Messages budget";
 "comments.load_more_replies" = "Charger plus de réponses (%lld)";
 "comments.add_placeholder" = "Ajouter un message...";
+"comments.reply.title_format" = "Répondre à %@";
+"comments.reply.placeholder" = "Ta réponse";
+"comments.edit.title" = "Modifier le message";
+"comments.edit.placeholder" = "Ton message";
+"comments.delete.title" = "Supprimer ce message ?";
+"comments.delete.message" = "Il ne sera plus visible par le groupe.";
+"comments.error.rejected" = "Ce message ne respecte pas les règles de la communauté. Reformule-le.";
+"comments.error.too_long" = "Ton message dépasse 2 000 caractères.";
 
 // MARK: - Onboarding (Extended)
 "onboarding.collaborate_desc" = "Invite tes amis et collègues. Chacun peut proposer des dates et voter pour ses préférences.";

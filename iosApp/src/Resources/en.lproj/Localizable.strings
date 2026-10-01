@@ -1671,6 +1671,14 @@
 "comments.section.budget" = "Budget messages";
 "comments.load_more_replies" = "Load more replies (%lld)";
 "comments.add_placeholder" = "Add a message...";
+"comments.reply.title_format" = "Reply to %@";
+"comments.reply.placeholder" = "Your reply";
+"comments.edit.title" = "Edit message";
+"comments.edit.placeholder" = "Your message";
+"comments.delete.title" = "Delete this message?";
+"comments.delete.message" = "The group will no longer see it.";
+"comments.error.rejected" = "This message doesn't follow the community guidelines. Please rephrase it.";
+"comments.error.too_long" = "Your message is longer than 2,000 characters.";
 
 // MARK: - Onboarding (Extended)
 "onboarding.collaborate_desc" = "Invite your friends and colleagues. Everyone can suggest dates and vote for their preferences.";
