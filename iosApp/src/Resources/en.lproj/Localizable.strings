@@ -2387,3 +2387,9 @@
 "hub.sheet.meetings.plan" = "Schedule a meeting";
 "hub.sheet.status.meeting_link_ready" = "Link ready";
 "hub.sheet.status.meeting_no_link" = "No link";
+"hub.sheet.transport.no_plan" = "No transport plan yet.";
+"hub.sheet.transport.choose" = "No plan chosen yet.";
+"hub.sheet.transport.organize" = "Organize transport";
+"hub.sheet.status.transport_chosen" = "Plan chosen";
+"hub.sheet.status.transport_to_decide" = "To decide";
+"hub.sheet.status.transport_not_needed" = "Not needed";

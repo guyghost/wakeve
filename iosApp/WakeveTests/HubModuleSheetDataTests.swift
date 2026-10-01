@@ -619,7 +619,7 @@ final class HubModuleSheetDataTests: XCTestCase {
             let expected = EventHubRouting.sheetModules.contains(module) && module != .photos
             XCTAssertEqual(SharedEventModuleSheetSource.readsDatabase(for: module), expected, "\(module)")
         }
-        XCTAssertFalse(SharedEventModuleSheetSource.readsDatabase(for: .transport))
+        XCTAssertTrue(SharedEventModuleSheetSource.readsDatabase(for: .transport))
         XCTAssertFalse(SharedEventModuleSheetSource.readsDatabase(for: .photos))
     }
 

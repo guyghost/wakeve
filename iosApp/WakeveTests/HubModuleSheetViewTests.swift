@@ -11,14 +11,15 @@ final class HubModuleSheetViewTests: XCTestCase {
 
     func testSimpleModulesOpenInSheetsAndOthersKeepTheirScreens() {
         XCTAssertEqual(EventHubRouting.sheetModules, [
-            .meals, .equipment, .activities, .accommodation, .photos, .budget, .payments, .meetings
+            .meals, .equipment, .activities, .accommodation, .photos, .budget, .payments, .meetings, .transport
         ])
         for rollout in [true, false] {
             for phase in [EventHubFacts.Phase.organizing, .finalized, .confirmed] {
                 for module in EventHubRouting.sheetModules {
                     XCTAssertEqual(EventHubRouting.route(for: module, phase: phase, invitationRollout: rollout), .sheet(module), "\(module) \(phase)")
                 }
-                XCTAssertEqual(EventHubRouting.route(for: .transport, phase: phase, invitationRollout: rollout), .screen(.transportPlanning))
+                // Date, Lieu, Scénarios et Récap restent des écrans pleins (vote, résultats, comparaison).
+                XCTAssertEqual(EventHubRouting.route(for: .scenarios, phase: phase, invitationRollout: rollout), .screen(.scenarioList))
             }
         }
     }
@@ -27,7 +28,7 @@ final class HubModuleSheetViewTests: XCTestCase {
     func testEachSheetUsesTheGuardOfItsLegacyCase() {
         for module in HubModule.allCases {
             let expected: EventHubRouting.SheetGuard = [.budget, .payments, .meetings].contains(module)
-                ? .organizationDashboard : .detailedPlanning
+                ? .organizationDashboard : (module == .transport ? .transportPlanning : .detailedPlanning)
             XCTAssertEqual(EventHubRouting.sheetGuard(for: module), expected, "\(module)")
         }
     }
@@ -53,7 +54,8 @@ final class HubModuleSheetViewTests: XCTestCase {
         let expected: [HubModule: AppView] = [
             .meals: .mealPlanning, .equipment: .equipmentChecklist, .activities: .activityPlanning,
             .accommodation: .accommodation, .photos: .eventPhotos,
-            .budget: .budgetOverview, .payments: .paymentPot, .meetings: .meetingList
+            .budget: .budgetOverview, .payments: .paymentPot, .meetings: .meetingList,
+            .transport: .transportPlanning
         ]
         for module in HubModule.allCases {
             XCTAssertEqual(EventHubRouting.fullScreenFallback(for: module), expected[module], "\(module)")

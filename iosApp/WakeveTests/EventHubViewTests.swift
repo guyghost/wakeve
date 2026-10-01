@@ -153,13 +153,14 @@ final class EventHubViewTests: XCTestCase {
 
     func testModuleScreens() {
         let expected: [HubModule: AppView] = [
-            .location: .scenarioList, .scenarios: .scenarioList, .transport: .transportPlanning
+            .location: .scenarioList, .scenarios: .scenarioList
         ]
-        // Couches 5a et 5b : ces modules s'ouvrent en sheet, l'écran legacy reste le repli plein écran.
+        // Couches 5a, 5b et 5c : ces modules s'ouvrent en sheet, l'écran legacy reste le repli plein écran.
         let sheets: [HubModule: AppView] = [
             .accommodation: .accommodation, .meals: .mealPlanning, .equipment: .equipmentChecklist,
             .activities: .activityPlanning, .photos: .eventPhotos,
-            .budget: .budgetOverview, .meetings: .meetingList, .payments: .paymentPot
+            .budget: .budgetOverview, .meetings: .meetingList, .payments: .paymentPot,
+            .transport: .transportPlanning
         ]
         for rollout in [true, false] {
             for (module, view) in expected {

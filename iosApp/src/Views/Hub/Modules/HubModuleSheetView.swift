@@ -95,7 +95,9 @@ struct HubModuleSheetView: View {
     /// « Commentaires » là où l'écran legacy en a ; « Tricount » pour la cagnotte.
     static func secondaryActions(for module: HubModule) -> [SecondaryAction] {
         if module == .payments { return [.tricount, .fullScreen] }
+        // Budget et transport : l'action principale ouvre déjà l'écran plein.
         if module == .budget { return [] }
+        if module == .transport { return [.comments] }
         return EventHubRouting.commentSection(for: module) == nil ? [.fullScreen] : [.fullScreen, .comments]
     }
 
@@ -111,6 +113,7 @@ struct HubModuleSheetView: View {
         case .viewExpenses: key = "hub.sheet.budget.view"
         case .managePot: key = "hub.sheet.payments.manage_pot"
         case .planMeeting: key = "hub.sheet.meetings.plan"
+        case .organizeTransport: key = "hub.sheet.transport.organize"
         }
         return WK.localizedFormat(key, locale: locale)
     }

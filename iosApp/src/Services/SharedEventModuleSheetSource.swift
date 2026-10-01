@@ -157,6 +157,32 @@ struct SharedEventModuleSheetSource: EventModuleSheetSource {
                     hasLink: Self.hasMeetingLink(meeting.meetingLink)
                 )
             })
+        case .transport:
+            // Lecture seule, sans `TransportPlanningViewModel` (possédé par `AuthenticatedView`) : mêmes lectures
+            // synchrones que l'écran legacy (`makeState` : plans, plan retenu ; participants confirmés selon
+            // `ParticipantManagementPresentationMapper`, comme sa liste « départs à compléter »).
+            let bridge = TransportRepositoryBridge(database: database)
+            let validated = Set(Self.confirmedParticipantIds(
+                records: repository.getParticipantRecords(eventId: event.id), fallback: event.participants
+            ))
+            let departures = Set(database.transportQueries.selectDepartureLocationsByEvent(event_id: event.id)
+                .executeAsList().map(\.participant_id))
+            raw = .transport(HubModuleSheetRaw.Transport(
+                plans: bridge.getPlansByEvent(eventId: event.id).map { plan in
+                    HubModuleSheetRaw.TransportPlan(
+                        id: plan.id,
+                        optimizationName: plan.optimizationType.name,
+                        totalCost: plan.totalGroupCost,
+                        currency: plan.participantRoutes.values.first?.currency ?? "EUR",
+                        durationMinutes: Self.longestRouteMinutes(plan.participantRoutes.values.map { Int($0.totalDurationMinutes) })
+                    )
+                },
+                selectedPlanId: bridge.getSelectedPlanId(eventId: event.id),
+                notNeeded: database.transportQueries.selectTransportEventStatus(event_id: event.id)
+                    .executeAsOneOrNull()?.transport_not_needed == 1,
+                confirmedCount: validated.count,
+                missingDepartureCount: validated.subtracting(departures).count
+            ))
         default:
             throw UnsupportedModule()
         }
@@ -209,6 +235,22 @@ struct SharedEventModuleSheetSource: EventModuleSheetSource {
 
     static func hasPendingSync(module: HubModule, workflowPending: Bool, phase5Pending: Bool) -> Bool {
         workflowPending || (readsPhase5PendingSync(for: module) && phase5Pending)
+    }
+
+    /// Participants confirmés comme `TransportPlanningViewModel.confirmedParticipantIds` : accès aux détails
+    /// d'organisation, ou les participants de l'événement sans enregistrement.
+    static func confirmedParticipantIds(records: [ParticipantRepositoryRecord]?, fallback: [String]) -> [String] {
+        guard let records, !records.isEmpty else { return fallback }
+        let states = records.map { ParticipantAccessMapper.shared.fromRepositoryRecord(record: $0) }
+        return ParticipantManagementPresentationMapper.shared
+            .map(participants: states)
+            .filter { $0.canAccessOrganizationDetails }
+            .map { $0.userIdOrEmail }
+    }
+
+    /// Durée d'un plan : son trajet le plus long (0 si inconnue).
+    static func longestRouteMinutes(_ minutes: [Int]) -> Int {
+        minutes.max() ?? 0
     }
 
     /// Lien de réunion généré : non vide une fois les espaces retirés.

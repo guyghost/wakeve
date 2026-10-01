@@ -304,12 +304,16 @@ struct SharedEventHubSource: EventHubSource {
             let count = ScenarioRepository(db: database).getScenariosByEventId(eventId: event.id).count
             return count > 0 ? HubSummaryText.scenarios(count, locale: locale) : nil
         case .transport:
+            // Même règle que la pastille de la sheet Transport (couche 5c).
             let transport = TransportRepositoryBridge(database: database)
-            if transport.getSelectedPlanId(eventId: event.id) != nil {
-                return WK.localizedFormat("transport.plan.selected", locale: locale)
-            }
-            let count = transport.getPlansByEvent(eventId: event.id).count
-            return count > 0 ? HubSummaryText.options(count, locale: locale) : nil
+            let planIds = transport.getPlansByEvent(eventId: event.id).map(\.id)
+            let state = HubModuleSheetData.transportState(
+                planIds: planIds,
+                selectedPlanId: transport.getSelectedPlanId(eventId: event.id),
+                notNeeded: database.transportQueries.selectTransportEventStatus(event_id: event.id)
+                    .executeAsOneOrNull()?.transport_not_needed == 1
+            )
+            return HubModuleSheetData.transportSummary(state, planCount: planIds.count, locale: locale)
         case .accommodation:
             let count = AccommodationRepository(db: database).getAccommodationsByEventId(eventId: event.id).count
             return count > 0 ? HubSummaryText.options(count, locale: locale) : nil

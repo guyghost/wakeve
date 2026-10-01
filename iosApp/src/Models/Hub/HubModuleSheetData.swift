@@ -105,6 +105,28 @@ enum HubModuleSheetRaw: Equatable {
         let hasLink: Bool
     }
 
+    /// Plan de transport proposé (`TransportRepositoryBridge.getPlansByEvent`).
+    struct TransportPlan: Equatable {
+        let id: String
+        /// `OptimizationType` : COST_MINIMIZE, TIME_MINIMIZE, BALANCED.
+        let optimizationName: String
+        let totalCost: Double
+        let currency: String
+        /// Trajet le plus long du plan, en minutes (0 = inconnu).
+        let durationMinutes: Int
+    }
+
+    /// Transport lu sans `TransportPlanningViewModel` (couche 5c) : plans, plan retenu, « non requis », départs.
+    struct Transport: Equatable {
+        let plans: [TransportPlan]
+        let selectedPlanId: String?
+        let notNeeded: Bool
+        /// Participants confirmés (même liste que l'écran legacy, `confirmedParticipantIds`).
+        let confirmedCount: Int
+        /// Participants confirmés sans lieu de départ.
+        let missingDepartureCount: Int
+    }
+
     case meals([Meal])
     case equipment([EquipmentItem])
     case activities([Activity])
@@ -114,6 +136,7 @@ enum HubModuleSheetRaw: Equatable {
     case budget(Budget?)
     case payments(pot: PaymentPot?, tricount: Tricount)
     case meetings([Meeting])
+    case transport(Transport)
 
     var module: HubModule {
         switch self {
@@ -125,6 +148,7 @@ enum HubModuleSheetRaw: Equatable {
         case .budget: return .budget
         case .payments: return .payments
         case .meetings: return .meetings
+        case .transport: return .transport
         }
     }
 }
@@ -146,6 +170,14 @@ struct HubModuleSheetData: Equatable {
         case managePot
         /// Écran réunions (création par « + »).
         case planMeeting
+        /// Écran transport ; il applique lui-même ses droits d'écriture.
+        case organizeTransport
+    }
+
+    /// État du transport, dans l'ordre de l'écran legacy (`transportStatusText`) : non requis, plan retenu,
+    /// plans à départager, aucun plan. Partagé par la pastille de la sheet et la tuile du hub.
+    enum TransportState: Equatable {
+        case notNeeded, chosen, toDecide, noPlan
     }
 
     let module: HubModule
@@ -177,6 +209,8 @@ struct HubModuleSheetData: Equatable {
         case .budget: return .viewExpenses
         case .payments: return canWrite ? .managePot : nil
         case .meetings: return canWrite ? .planMeeting : nil
+        // Ouvert à tous ceux qui passent la garde transport, comme le `case` legacy.
+        case .transport: return .organizeTransport
         default: return nil
         }
     }
@@ -428,6 +462,66 @@ struct HubModuleSheetData: Equatable {
             } else if withoutLink > 0 {
                 missing = text.plural("hub.sheet.meetings.without_link_count", withoutLink)
             }
+
+        case .transport(let transport):
+            let state = transportState(
+                planIds: transport.plans.map(\.id), selectedPlanId: transport.selectedPlanId, notNeeded: transport.notNeeded
+            )
+            pill = transportPill(state, locale: locale)
+            let chosenText = text.format("hub.sheet.status.transport_chosen")
+            var cards: [HubModuleSheetItem] = []
+            if state != .notNeeded {
+                let shown = state == .chosen ? transport.plans.filter { $0.id == transport.selectedPlanId } : transport.plans
+                cards = shown.map { plan in
+                    let chosen = state == .chosen
+                    return text.item(
+                        module: .transport,
+                        id: plan.id,
+                        title: transportOptimizationTitle(plan.optimizationName, locale: locale),
+                        detail: text.join([
+                            HubSummaryText.currency(plan.totalCost, code: plan.currency, locale: locale),
+                            transportDuration(minutes: plan.durationMinutes, locale: locale)
+                        ]),
+                        status: chosen ? .confirmed : nil,
+                        statusText: chosen ? chosenText : nil,
+                        names: []
+                    )
+                }
+                // Départs : utiles tant qu'aucun plan n'est retenu (le plan se calcule à partir d'eux).
+                if state != .chosen, transport.confirmedCount > 0 {
+                    let missingCount = transport.missingDepartureCount
+                    cards.append(text.item(
+                        module: .transport,
+                        id: "departures",
+                        title: text.format("transport.route.departures_title"),
+                        detail: missingCount == 0
+                            ? text.format("transport.readiness.all_departures_ready")
+                            : String(
+                                format: text.format(missingCount == 1
+                                                    ? "transport.readiness.missing_departure_singular_format"
+                                                    : "transport.readiness.missing_departure_plural_format"),
+                                locale: locale, missingCount
+                            ),
+                        status: missingCount == 0 ? .confirmed : .pending,
+                        statusText: missingCount == 0
+                            ? text.format("transport.participants.ready")
+                            : String(
+                                format: text.format(missingCount == 1
+                                                    ? "transport.participants.to_complete_singular_format"
+                                                    : "transport.participants.to_complete_plural_format"),
+                                locale: locale, missingCount
+                            ),
+                        names: []
+                    ))
+                }
+            }
+            items = cards
+            switch state {
+            case .notNeeded: missing = text.format("transport.readiness.not_required")
+            case .noPlan: missing = text.format("hub.sheet.transport.no_plan")
+            case .toDecide: missing = text.format("hub.sheet.transport.choose")
+            case .chosen: missing = nil
+            }
         }
 
         return HubModuleSheetData(
@@ -455,6 +549,58 @@ struct HubModuleSheetData: Equatable {
             raw: .meals(meals + [meal]), isOrganizer: isOrganizer, isReadOnly: isReadOnly,
             pendingSync: pendingSync, locale: locale, calendar: calendar
         )
+    }
+
+    // MARK: - Transport
+
+    static func transportState(planIds: [String], selectedPlanId: String?, notNeeded: Bool) -> TransportState {
+        if notNeeded { return .notNeeded }
+        if let selectedPlanId, planIds.contains(selectedPlanId) { return .chosen }
+        return planIds.isEmpty ? .noPlan : .toDecide
+    }
+
+    /// « Plan choisi » / « À décider » / « Pas nécessaire » (neutre) ; aucun plan → pas de pastille.
+    static func transportPill(_ state: TransportState, locale: Locale = WK.appLocale) -> Pill? {
+        switch state {
+        case .chosen:
+            return Pill(text: WK.localizedFormat("hub.sheet.status.transport_chosen", locale: locale), status: .confirmed)
+        case .toDecide:
+            return Pill(text: WK.localizedFormat("hub.sheet.status.transport_to_decide", locale: locale), status: .pending)
+        case .notNeeded:
+            return Pill(text: WK.localizedFormat("hub.sheet.status.transport_not_needed", locale: locale), status: .draft)
+        case .noPlan:
+            return nil
+        }
+    }
+
+    /// Résumé de la tuile Transport : texte de la pastille, ou le nombre d'options tant qu'aucun plan n'est retenu.
+    static func transportSummary(_ state: TransportState, planCount: Int, locale: Locale = WK.appLocale) -> String? {
+        switch state {
+        case .toDecide: return HubSummaryText.options(planCount, locale: locale)
+        case .chosen, .notNeeded, .noPlan: return transportPill(state, locale: locale)?.text
+        }
+    }
+
+    /// Mêmes libellés que l'écran legacy (`TransportPlanningOptimizationType.title`).
+    static func transportOptimizationTitle(_ name: String, locale: Locale = WK.appLocale) -> String {
+        switch name {
+        case "COST_MINIMIZE": return WK.localizedFormat("transport.optimization.cost", locale: locale)
+        case "TIME_MINIMIZE": return WK.localizedFormat("transport.optimization.time", locale: locale)
+        default: return WK.localizedFormat("transport.optimization.balanced", locale: locale)
+        }
+    }
+
+    /// « 1 h 35 min » ; durée inconnue → nil.
+    static func transportDuration(minutes: Int, locale: Locale = WK.appLocale) -> String? {
+        guard minutes > 0 else { return nil }
+        let formatter = DateComponentsFormatter()
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = locale
+        formatter.calendar = calendar
+        // Court : « 1 h 35 min » en français (l'abrégé colle les unités).
+        formatter.unitsStyle = .short
+        formatter.allowedUnits = minutes >= 60 ? [.hour, .minute] : [.minute]
+        return formatter.string(from: TimeInterval(minutes * 60))
     }
 
     // MARK: - Statuts

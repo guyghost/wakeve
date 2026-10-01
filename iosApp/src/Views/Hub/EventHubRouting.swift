@@ -30,16 +30,15 @@ enum EventHubRouting {
             // Sans rollout : la date retenue et les réponses de chacun (`PollResultsView`, sans garde).
             return .screen(invitationRollout ? .eventInformation : .pollResults)
         case .location, .scenarios: return .screen(.scenarioList)
-        case .transport: return .screen(.transportPlanning)
-        case .accommodation, .meals, .equipment, .activities, .photos, .budget, .meetings, .payments:
+        case .transport, .accommodation, .meals, .equipment, .activities, .photos, .budget, .meetings, .payments:
             // Retiré de `sheetModules` : retour à son écran legacy.
             return .screen(fullScreenFallback(for: module) ?? .eventDetail)
         }
     }
 
-    /// Modules convertis en sheet (couche 5a, puis budget, cagnotte et réunions en 5b, #47).
+    /// Modules convertis en sheet (couche 5a, puis budget, cagnotte et réunions en 5b, transport en 5c, #47).
     static let sheetModules: Set<HubModule> = [
-        .meals, .equipment, .activities, .accommodation, .photos, .budget, .payments, .meetings
+        .meals, .equipment, .activities, .accommodation, .photos, .budget, .payments, .meetings, .transport
     ]
 
     /// Garde d'accès du `case` legacy de chaque module, appliquée avant de présenter sa sheet.
@@ -48,11 +47,14 @@ enum EventHubRouting {
         case detailedPlanning
         /// `canAccessOrganizationDashboard` (budget, réunions ; cagnotte : même règle écrite en ligne).
         case organizationDashboard
+        /// `canAccessTransportPlanning` (confirmé, organisation, finalisé).
+        case transportPlanning
     }
 
     static func sheetGuard(for module: HubModule) -> SheetGuard {
         switch module {
         case .budget, .payments, .meetings: return .organizationDashboard
+        case .transport: return .transportPlanning
         default: return .detailedPlanning
         }
     }
@@ -64,6 +66,7 @@ enum EventHubRouting {
         case .viewExpenses: return .budgetOverview
         case .managePot: return .paymentPot
         case .planMeeting: return .meetingList
+        case .organizeTransport: return .transportPlanning
         }
     }
 
@@ -78,6 +81,7 @@ enum EventHubRouting {
         case .budget: return .budgetOverview
         case .payments: return .paymentPot
         case .meetings: return .meetingList
+        case .transport: return .transportPlanning
         default: return nil
         }
     }
@@ -96,6 +100,7 @@ enum EventHubRouting {
         case .equipment: return .equipment
         case .activities: return .activity
         case .accommodation: return .accommodation
+        case .transport: return .transport
         default: return nil
         }
     }

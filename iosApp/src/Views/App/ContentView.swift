@@ -729,6 +729,7 @@ struct AuthenticatedView: View {
             switch EventHubRouting.sheetGuard(for: module) {
             case .detailedPlanning: accessGranted = canAccessDetailedPlanning(for: event)
             case .organizationDashboard: accessGranted = canAccessOrganizationDashboard(for: event)
+            case .transportPlanning: accessGranted = canAccessTransportPlanning(for: event)
             }
             switch EventHubRouting.sheetRoute(for: module, accessGranted: accessGranted) {
             case .sheet?: hubSheet.present(module, eventId: event.id)
