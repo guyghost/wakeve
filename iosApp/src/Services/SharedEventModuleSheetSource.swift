@@ -32,6 +32,7 @@ struct SharedEventModuleSheetSource: EventModuleSheetSource {
         // fils — l'app lit déjà cette base depuis `Dispatchers.Default`.
         let locale = WK.appLocale
         if let immediate = Self.immediateData(for: module, locale: locale) { return immediate }
+        guard Self.readsDatabase(for: module) else { throw UnsupportedModule() }
         let reader = self
         let work = Task.detached(priority: .userInitiated) {
             try reader.data(module: module, eventId: eventId, viewerId: viewerId, locale: locale)
@@ -103,6 +104,47 @@ struct SharedEventModuleSheetSource: EventModuleSheetSource {
                     bookingStatusName: option.bookingStatus.name
                 )
             })
+        case .budget:
+            // Lecture seule du dépôt, comme la tuile : `BudgetViewModel.load()` créerait un budget absent.
+            raw = .budget(BudgetRepository(db: database).getBudgetByEventId(eventId: event.id).map { budget in
+                Self.rawBudget(
+                    totalEstimated: budget.totalEstimated, totalActual: budget.totalActual,
+                    transport: (budget.transportEstimated, budget.transportActual),
+                    accommodation: (budget.accommodationEstimated, budget.accommodationActual),
+                    meals: (budget.mealsEstimated, budget.mealsActual),
+                    activities: (budget.activitiesEstimated, budget.activitiesActual),
+                    equipment: (budget.equipmentEstimated, budget.equipmentActual),
+                    other: (budget.otherEstimated, budget.otherActual)
+                )
+            })
+        case .payments:
+            // Mêmes lectures que `paymentPotSummaryValue` / `tricountSummaryValue` (ContentView).
+            let pot = PaymentPotRepository(db: database).getActivePotForEvent(eventId: event.id)
+            let readiness = TricountHandoffRepository(db: database).getPaymentReadiness(eventId: event.id)
+            raw = .payments(
+                pot: pot.map { pot in
+                    HubModuleSheetRaw.PaymentPot(
+                        title: pot.title, goalAmount: pot.goalAmount, currency: pot.currency, statusName: pot.status
+                    )
+                },
+                tricount: HubModuleSheetData.tricountState(
+                    explicitNotNeeded: readiness.handoff?.explicitNotNeeded,
+                    complete: readiness.complete,
+                    hasHandoff: readiness.handoff != nil
+                )
+            )
+        case .meetings:
+            // Même requête que la tuile Réunions du hub.
+            raw = .meetings(database.meetingQueries.selectByEventId(eventId: event.id).executeAsList().map { meeting in
+                HubModuleSheetRaw.Meeting(
+                    id: meeting.id,
+                    title: meeting.title,
+                    startTime: meeting.startTime,
+                    platformName: meeting.platform,
+                    statusName: meeting.status,
+                    hasLink: Self.hasMeetingLink(meeting.meetingLink)
+                )
+            })
         default:
             throw UnsupportedModule()
         }
@@ -119,6 +161,38 @@ struct SharedEventModuleSheetSource: EventModuleSheetSource {
     static func immediateData(for module: HubModule, locale: Locale) -> HubModuleSheetData? {
         guard module == .photos else { return nil }
         return HubModuleSheetData.make(raw: .photos, isOrganizer: false, isReadOnly: false, pendingSync: false, locale: locale)
+    }
+
+    /// Lecture en base seulement pour un module routé en sheet (`EventHubRouting.sheetModules`), hors photos.
+    static func readsDatabase(for module: HubModule) -> Bool {
+        module != .photos && EventHubRouting.sheetModules.contains(module)
+    }
+
+    /// Budget (`Budget_`) converti, catégories dans l'ordre de `BudgetOverviewView`.
+    static func rawBudget(
+        totalEstimated: Double,
+        totalActual: Double,
+        transport: (Double, Double),
+        accommodation: (Double, Double),
+        meals: (Double, Double),
+        activities: (Double, Double),
+        equipment: (Double, Double),
+        other: (Double, Double)
+    ) -> HubModuleSheetRaw.Budget {
+        let amounts: [(String, (Double, Double))] = [
+            ("transport", transport), ("accommodation", accommodation), ("meals", meals),
+            ("activities", activities), ("equipment", equipment), ("other", other)
+        ]
+        return HubModuleSheetRaw.Budget(
+            totalEstimated: totalEstimated,
+            totalActual: totalActual,
+            categories: amounts.map { .init(key: $0.0, estimated: $0.1.0, actual: $0.1.1) }
+        )
+    }
+
+    /// Lien de réunion généré : non vide une fois les espaces retirés.
+    static func hasMeetingLink(_ link: String) -> Bool {
+        !link.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     /// Même règle que `isFinalizedOrganizationState` (ContentView) : seul un événement finalisé est en lecture seule.

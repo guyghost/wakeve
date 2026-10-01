@@ -490,6 +490,34 @@ final class HubModuleSheetDataTests: XCTestCase {
         }
     }
 
+    func testSourceReadsTheDatabaseOnlyForModulesRoutedToSheets() {
+        for module in HubModule.allCases {
+            let expected = EventHubRouting.sheetModules.contains(module) && module != .photos
+            XCTAssertEqual(SharedEventModuleSheetSource.readsDatabase(for: module), expected, "\(module)")
+        }
+        XCTAssertFalse(SharedEventModuleSheetSource.readsDatabase(for: .transport))
+        XCTAssertFalse(SharedEventModuleSheetSource.readsDatabase(for: .photos))
+    }
+
+    func testBudgetIsConvertedInTheLegacyCategoryOrder() {
+        let raw = SharedEventModuleSheetSource.rawBudget(
+            totalEstimated: 60, totalActual: 21,
+            transport: (1, 2), accommodation: (3, 4), meals: (5, 6),
+            activities: (7, 8), equipment: (9, 10), other: (35, -9)
+        )
+        XCTAssertEqual(raw.totalEstimated, 60)
+        XCTAssertEqual(raw.totalActual, 21)
+        XCTAssertEqual(raw.categories.map(\.key), ["transport", "accommodation", "meals", "activities", "equipment", "other"])
+        XCTAssertEqual(raw.categories.map(\.estimated), [1, 3, 5, 7, 9, 35])
+        XCTAssertEqual(raw.categories.map(\.actual), [2, 4, 6, 8, 10, -9])
+    }
+
+    func testMeetingHasALinkOnlyWhenItIsNotBlank() {
+        XCTAssertTrue(SharedEventModuleSheetSource.hasMeetingLink("https://zoom.us/j/123"))
+        XCTAssertFalse(SharedEventModuleSheetSource.hasMeetingLink(""))
+        XCTAssertFalse(SharedEventModuleSheetSource.hasMeetingLink("  \n"))
+    }
+
     func testNamesAreResolvedOncePerLoadAndFallBackToTheIdentifier() {
         var lookups: [String] = []
         var names = SharedEventModuleSheetSource.NameCache { id in
