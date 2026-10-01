@@ -91,9 +91,11 @@ struct HubModuleSheetView: View {
 
     // MARK: - Règles de présentation (testées)
 
-    /// « Plein écran » partout ; « Commentaires » là où l'écran legacy en a ; « Tricount » pour la cagnotte.
+    /// « Plein écran » partout, sauf le budget dont l'action principale ouvre déjà l'écran plein ;
+    /// « Commentaires » là où l'écran legacy en a ; « Tricount » pour la cagnotte.
     static func secondaryActions(for module: HubModule) -> [SecondaryAction] {
         if module == .payments { return [.tricount, .fullScreen] }
+        if module == .budget { return [] }
         return EventHubRouting.commentSection(for: module) == nil ? [.fullScreen] : [.fullScreen, .comments]
     }
 
@@ -106,7 +108,7 @@ struct HubModuleSheetView: View {
         let key: String
         switch primary {
         case .addMeal: key = "hub.sheet.meals.add"
-        case .viewExpenses: key = "hub.sheet.budget.view_expenses"
+        case .viewExpenses: key = "hub.sheet.budget.view"
         case .managePot: key = "hub.sheet.payments.manage_pot"
         case .planMeeting: key = "hub.sheet.meetings.plan"
         }
@@ -296,6 +298,13 @@ struct HubModuleSheetItemCard: View {
                 .fixedSize(horizontal: false, vertical: true)
             if let detail = item.detail {
                 Text(detail)
+                    .font(WK.Typo.caption)
+                    .foregroundStyle(WK.Colors.textMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if item.status == nil, let statusText = item.statusText {
+                // État sans pastille (réunion terminée) : texte discret, jamais la couleur seule.
+                Text(statusText)
                     .font(WK.Typo.caption)
                     .foregroundStyle(WK.Colors.textMuted)
                     .fixedSize(horizontal: false, vertical: true)

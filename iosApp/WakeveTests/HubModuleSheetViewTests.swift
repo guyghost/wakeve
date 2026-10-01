@@ -86,7 +86,8 @@ final class HubModuleSheetViewTests: XCTestCase {
         XCTAssertEqual(HubModuleSheetView.secondaryActions(for: .meals), [.fullScreen, .comments])
         XCTAssertEqual(HubModuleSheetView.secondaryActions(for: .accommodation), [.fullScreen, .comments])
         XCTAssertEqual(HubModuleSheetView.secondaryActions(for: .photos), [.fullScreen])
-        XCTAssertEqual(HubModuleSheetView.secondaryActions(for: .budget), [.fullScreen])
+        // « Voir le budget » ouvre déjà l'écran plein : pas de doublon « Plein écran » (revue 5b).
+        XCTAssertEqual(HubModuleSheetView.secondaryActions(for: .budget), [])
         XCTAssertEqual(HubModuleSheetView.secondaryActions(for: .payments), [.tricount, .fullScreen])
         XCTAssertEqual(HubModuleSheetView.secondaryActions(for: .meetings), [.fullScreen])
     }
@@ -99,8 +100,8 @@ final class HubModuleSheetViewTests: XCTestCase {
             HubModuleSheetView.primaryTitle(module: module, state: state, data: data, canAddHint: hint, locale: fr)
         }
         // Consultation ouverte à tous, dès la première image.
-        XCTAssertEqual(title(.budget, .loading, nil, hint: false), "Voir les dépenses")
-        XCTAssertEqual(title(.budget, .loaded, data(.budget(nil), organizer: false, readOnly: true), hint: false), "Voir les dépenses")
+        XCTAssertEqual(title(.budget, .loading, nil, hint: false), "Voir le budget")
+        XCTAssertEqual(title(.budget, .loaded, data(.budget(nil), organizer: false, readOnly: true), hint: false), "Voir le budget")
         XCTAssertEqual(title(.payments, .loading, nil, hint: true), "Gérer la cagnotte")
         XCTAssertNil(title(.payments, .loading, nil, hint: false))
         XCTAssertNil(title(.payments, .loaded, data(.payments(pot: nil, tricount: .undecided), organizer: true, readOnly: true), hint: true))
@@ -331,6 +332,29 @@ final class HubModuleSheetViewTests: XCTestCase {
         XCTAssertGreaterThan(card.height, WK.Size.minTapTarget + WK.Size.avatar, "\(card)")
     }
 
+    func testEndedMeetingCardShowsItsEndedTextWithoutAStatusPill() throws {
+        let fixedNow = HomeDateText.parseISO("2026-10-01T00:00:00Z")!
+        let data = HubModuleSheetData.make(
+            raw: .meetings([
+                .init(id: "past", title: "Bilan", startTime: "2026-09-20T18:00:00Z", platformName: "ZOOM",
+                      statusName: "ENDED", hasLink: true)
+            ]),
+            isOrganizer: true, isReadOnly: false, pendingSync: false, locale: fr, now: fixedNow
+        )
+        let item = try XCTUnwrap(data.items.first)
+        XCTAssertNil(item.status)
+        XCTAssertEqual(item.statusText, "Terminée")
+        // Sans pastille, le texte « Terminée » reste affiché : la carte dépasse titre + détail.
+        let ended = fittingSize(HubModuleSheetItemCard(item: item), width: 375, dynamicType: .large)
+        let bare = HubModuleSheetItem(id: item.id, title: item.title, detail: item.detail, status: nil, statusText: nil,
+                                      assigneeNames: [], accessibilityLabel: item.accessibilityLabel)
+        let withoutText = fittingSize(HubModuleSheetItemCard(item: bare), width: 375, dynamicType: .large)
+        XCTAssertGreaterThan(ended.height, withoutText.height, "ended \(ended), sans texte \(withoutText)")
+        let ax5 = fittingSize(HubModuleSheetItemCard(item: item), width: 375, dynamicType: .accessibility5)
+        XCTAssertLessThanOrEqual(ax5.width, 375, "\(ax5)")
+        XCTAssertTrue(item.accessibilityLabel.contains("Terminée"))
+    }
+
     // MARK: - Contrat source
 
     private func source(_ path: String) throws -> String {
@@ -345,7 +369,7 @@ final class HubModuleSheetViewTests: XCTestCase {
                        "arrow.up.left.and.arrow.down.right", "bubble.left", "hub.sheet.open_full", "hub.sheet.comments",
                        "hub.sheet.meals.add", "common.retry", ".task(id: eventId)",
                        "let mealParticipants: () -> [ParticipantModel]", "canAddHint: canAddHint",
-                       "hub.sheet.budget.view_expenses", "hub.sheet.payments.manage_pot", "hub.sheet.meetings.plan",
+                       "hub.sheet.budget.view", "hub.sheet.payments.manage_pot", "hub.sheet.meetings.plan",
                        "tricount.title"] {
             XCTAssertTrue(view.contains(anchor), anchor)
         }

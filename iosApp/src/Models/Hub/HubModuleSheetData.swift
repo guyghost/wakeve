@@ -77,7 +77,7 @@ enum HubModuleSheetRaw: Equatable {
         let categories: [Category]
     }
 
-    /// Cagnotte active (`PaymentPotRepository.getActivePotForEvent`).
+    /// Dernière cagnotte de l'événement, ouverte ou clôturée (`potQueries.selectByEvent`).
     struct PaymentPot: Equatable {
         let title: String
         let goalAmount: Double
@@ -187,7 +187,8 @@ struct HubModuleSheetData: Equatable {
         isReadOnly: Bool,
         pendingSync: Bool,
         locale: Locale = WK.appLocale,
-        calendar: Calendar = .current
+        calendar: Calendar = .current,
+        now: Date = Date()
     ) -> HubModuleSheetData {
         let text = SheetText(locale: locale, calendar: calendar)
         let items: [HubModuleSheetItem]
@@ -316,7 +317,7 @@ struct HubModuleSheetData: Equatable {
             items = budget.categories
                 .filter { $0.estimated > 0 || $0.actual > 0 }
                 .map { category in
-                    let over = category.actual > category.estimated
+                    let over = isOverspent(actual: category.actual, estimated: category.estimated)
                     return text.item(
                         module: .budget,
                         id: category.key,
@@ -327,10 +328,11 @@ struct HubModuleSheetData: Equatable {
                         names: []
                     )
                 }
-            let over = budget.totalActual > budget.totalEstimated
+            let over = isOverspent(actual: budget.totalActual, estimated: budget.totalEstimated)
             pill = Pill(text: amounts(budget.totalActual, budget.totalEstimated), status: over ? .pending : .confirmed)
+            let overCents = cents(budget.totalActual) - cents(budget.totalEstimated)
             missing = over
-                ? String(format: text.format("hub.sheet.budget.over_format"), money(budget.totalActual - budget.totalEstimated))
+                ? String(format: text.format("hub.sheet.budget.over_format"), money(Double(overCents) / 100))
                 : nil
 
         case .payments(let pot, let tricount):
@@ -365,12 +367,23 @@ struct HubModuleSheetData: Equatable {
             items = cards
 
         case .meetings(let meetings):
+            // À venir d'abord, terminées ensuite ; dans chaque groupe par date, dates illisibles en dernier,
+            // ordre d'origine conservé.
             let dated = meetings
                 .filter { $0.statusName != "CANCELLED" }
                 .enumerated()
-                .map { (offset: $0.offset, meeting: $0.element, date: HomeDateText.parseISO($0.element.startTime)) }
-                // Par date ; dates illisibles en dernier, ordre d'origine conservé.
+                .map { entry in
+                    (
+                        offset: entry.offset,
+                        meeting: entry.element,
+                        date: HomeDateText.parseISO(entry.element.startTime),
+                        upcoming: HubSummaryText.isUpcomingMeeting(
+                            statusName: entry.element.statusName, startTime: entry.element.startTime, now: now
+                        )
+                    )
+                }
                 .sorted { lhs, rhs in
+                    if lhs.upcoming != rhs.upcoming { return lhs.upcoming }
                     switch (lhs.date, rhs.date) {
                     case let (l?, r?): return l == r ? lhs.offset < rhs.offset : l < r
                     case (.some, nil): return true
@@ -380,28 +393,33 @@ struct HubModuleSheetData: Equatable {
                 }
             items = dated.map { entry in
                 let meeting = entry.meeting
+                let platform = meetingPlatformName(meeting.platformName, locale: locale)
+                let title = meeting.title.trimmingCharacters(in: .whitespacesAndNewlines)
+                let status: WK.Status? = entry.upcoming ? (meeting.hasLink ? .confirmed : .pending) : nil
+                let statusKey = !entry.upcoming
+                    ? "meetings.ended"
+                    : (meeting.hasLink ? "hub.sheet.status.meeting_link_ready" : "hub.sheet.status.meeting_no_link")
                 return text.item(
                     module: .meetings,
                     id: meeting.id,
-                    title: meeting.title,
+                    title: title.isEmpty ? platform : meeting.title,
                     detail: text.join([
                         entry.date.map { text.when(instant: $0) } ?? (meeting.startTime.isEmpty ? nil : meeting.startTime),
-                        meetingPlatformName(meeting.platformName, locale: locale)
+                        platform
                     ]),
-                    status: meeting.hasLink ? .confirmed : .pending,
-                    statusText: text.format(meeting.hasLink
-                                            ? "hub.sheet.status.meeting_link_ready"
-                                            : "hub.sheet.status.meeting_no_link"),
+                    status: status,
+                    statusText: text.format(statusKey),
                     names: []
                 )
             }
-            // Même décompte que la tuile du hub (réunions non annulées), « à venir » = ni annulée ni terminée.
+            // Même décompte que la tuile du hub (réunions non annulées) ; « à venir » = ni annulée ni terminée,
+            // une réunion programmée dont l'heure est passée comptant comme terminée.
             let counts = HubSummaryText.meetingCounts(statusNames: meetings.map(\.statusName))
-            let upcoming = meetings.filter { HubSummaryText.isUpcomingMeeting(statusName: $0.statusName) }
+            let upcoming = dated.filter(\.upcoming).map(\.meeting)
             let withoutLink = upcoming.filter { !$0.hasLink }.count
-            if counts.upcoming > 0 {
+            if !upcoming.isEmpty {
                 pill = Pill(
-                    text: text.plural("hub.sheet.meetings.upcoming_count", counts.upcoming),
+                    text: text.plural("hub.sheet.meetings.upcoming_count", upcoming.count),
                     status: withoutLink == 0 ? .confirmed : .pending
                 )
             }
@@ -440,6 +458,16 @@ struct HubModuleSheetData: Equatable {
     }
 
     // MARK: - Statuts
+
+    /// Montant en centimes : les comparaisons ignorent les résidus des `Double` (0,1 + 0,2).
+    static func cents(_ amount: Double) -> Int64 {
+        Int64((amount * 100).rounded())
+    }
+
+    /// Dépassement au centime près ; une dépense sans estimation (estimé 0) est un dépassement.
+    static func isOverspent(actual: Double, estimated: Double) -> Bool {
+        cents(actual) > cents(estimated)
+    }
 
     static func mealStatus(_ name: String) -> WK.Status? {
         switch name {

@@ -10,6 +10,9 @@ final class HubModuleSheetDataTests: XCTestCase {
         return calendar
     }
 
+    /// Instant figé : les réunions du 3 octobre restent « à venir » quel que soit le jour du test.
+    private let fixedNow = HomeDateText.parseISO("2026-10-01T00:00:00Z")!
+
     private func make(
         _ raw: HubModuleSheetRaw,
         isOrganizer: Bool = true,
@@ -18,7 +21,7 @@ final class HubModuleSheetDataTests: XCTestCase {
     ) -> HubModuleSheetData {
         HubModuleSheetData.make(
             raw: raw, isOrganizer: isOrganizer, isReadOnly: isReadOnly, pendingSync: pendingSync,
-            locale: fr, calendar: utc
+            locale: fr, calendar: utc, now: fixedNow
         )
     }
 
@@ -281,6 +284,28 @@ final class HubModuleSheetDataTests: XCTestCase {
         XCTAssertEqual(data.items.map(\.title), ["Repas", "Autre"])
     }
 
+    func testBudgetOverspendIsComparedInCentsIgnoringFloatResidue() {
+        // 0,1 + 0,2 = 0,30000000000000004 : pas de faux dépassement.
+        let data = make(.budget(budget(estimated: 0.3, actual: 0.1 + 0.2, categories: [
+            .init(key: "meals", estimated: 0.3, actual: 0.1 + 0.2)
+        ])))
+        XCTAssertEqual(data.status?.status, .confirmed)
+        XCTAssertNil(data.missing)
+        XCTAssertEqual(data.items.map(\.status), [nil])
+        XCTAssertEqual(HubModuleSheetData.isOverspent(actual: 0.1 + 0.2, estimated: 0.3), false)
+        XCTAssertEqual(HubModuleSheetData.isOverspent(actual: 10.004, estimated: 10), false, "Moins d'un centime.")
+        XCTAssertEqual(HubModuleSheetData.isOverspent(actual: 10.01, estimated: 10), true)
+    }
+
+    func testSpendingWithoutEstimateIsAnOverspend() {
+        let data = make(.budget(budget(estimated: 0, actual: 50, categories: [
+            .init(key: "meals", estimated: 0, actual: 50)
+        ])))
+        XCTAssertEqual(data.status, .init(text: "Réel \(euros(50)) / estimé \(euros(0))", status: .pending))
+        XCTAssertEqual(data.missing, "Le réel dépasse l'estimé de \(euros(50)).")
+        XCTAssertEqual(data.items.map(\.statusText), ["Dépassé"])
+    }
+
     func testMissingOrEmptyBudgetSaysThereIsNone() {
         for raw in [HubModuleSheetRaw.budget(nil), .budget(budget(estimated: 0, actual: 0, categories: []))] {
             let data = make(raw)
@@ -332,6 +357,61 @@ final class HubModuleSheetDataTests: XCTestCase {
         XCTAssertEqual(make(.payments(pot: pot(status: "CLOSED"), tricount: .undecided)).status,
                        .init(text: "Clôturée", status: .confirmed))
         XCTAssertNil(make(.payments(pot: pot(status: "UNKNOWN"), tricount: .undecided)).status)
+    }
+
+    func testClosedPotStaysListedAsClosed() {
+        let data = make(.payments(pot: pot(status: "CLOSED"), tricount: .linkVerified))
+        XCTAssertEqual(data.items.map(\.id), ["pot", "tricount"])
+        XCTAssertEqual(data.items[0].statusText, "Clôturée")
+        XCTAssertNil(data.missing, "Une cagnotte clôturée n'est pas « aucune cagnotte ».")
+    }
+
+    func testLatestPotOfAnyStatusIsRead() {
+        typealias Row = (id: String, createdAt: String)
+        let rows: [Row] = [
+            (id: "old", createdAt: "2026-09-01T10:00:00Z"),
+            (id: "closed", createdAt: "2026-09-20T10:00:00Z"),
+            (id: "mid", createdAt: "2026-09-10T10:00:00Z")
+        ]
+        XCTAssertEqual(HubSummaryText.latest(rows, createdAt: \.createdAt)?.id, "closed")
+        XCTAssertNil(HubSummaryText.latest([Row](), createdAt: \.createdAt))
+        // Même instant : le dernier lu l'emporte.
+        let tied: [Row] = [(id: "a", createdAt: "2026-09-01T10:00:00Z"), (id: "b", createdAt: "2026-09-01T10:00:00Z")]
+        XCTAssertEqual(HubSummaryText.latest(tied, createdAt: \.createdAt)?.id, "b")
+    }
+
+    func testHubTileAndSheetReadTheLatestPot() throws {
+        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        let hub = try String(contentsOf: root.appendingPathComponent("src/Services/SharedEventHubSource.swift"), encoding: .utf8)
+        let sheet = try String(contentsOf: root.appendingPathComponent("src/Services/SharedEventModuleSheetSource.swift"), encoding: .utf8)
+        for source in [hub, sheet] {
+            XCTAssertTrue(source.contains("potQueries.selectByEvent(eventId:"))
+            XCTAssertTrue(source.contains("HubSummaryText.latest("))
+            XCTAssertFalse(source.contains("getActivePotForEvent"), "Une cagnotte clôturée doit rester visible.")
+        }
+    }
+
+    func testClosedPotTileSaysItIsClosed() {
+        XCTAssertEqual(HubSummaryText.paymentPot(goalAmount: 400, currency: "EUR", isClosed: true, locale: fr),
+                       "Objectif \(euros(400)) · Clôturée")
+        XCTAssertEqual(HubSummaryText.paymentPot(goalAmount: 400, currency: "EUR", isClosed: false, locale: fr),
+                       "Objectif \(euros(400))")
+    }
+
+    func testBudgetAndPaymentsSheetsShowTheLegacyPendingSync() {
+        // Même filtre que `BudgetViewModel.hasPendingSync` : types de la phase 5, identifiant lié à l'événement.
+        XCTAssertTrue(BudgetViewModel.isPhase5PendingSync(entityType: "budget_item", entityId: "e1:item", eventId: "e1"))
+        XCTAssertTrue(BudgetViewModel.isPhase5PendingSync(entityType: "payment_pot", entityId: "e1", eventId: "e1"))
+        XCTAssertFalse(BudgetViewModel.isPhase5PendingSync(entityType: "meeting", entityId: "e1", eventId: "e1"))
+        XCTAssertFalse(BudgetViewModel.isPhase5PendingSync(entityType: "budget", entityId: "e2", eventId: "e1"))
+        for module in [HubModule.budget, .payments] {
+            XCTAssertTrue(SharedEventModuleSheetSource.hasPendingSync(module: module, workflowPending: false, phase5Pending: true))
+            XCTAssertTrue(SharedEventModuleSheetSource.hasPendingSync(module: module, workflowPending: true, phase5Pending: false))
+            XCTAssertFalse(SharedEventModuleSheetSource.hasPendingSync(module: module, workflowPending: false, phase5Pending: false))
+        }
+        XCTAssertFalse(SharedEventModuleSheetSource.hasPendingSync(module: .meetings, workflowPending: false, phase5Pending: true))
+        XCTAssertFalse(SharedEventModuleSheetSource.readsPhase5PendingSync(for: .meals))
+        XCTAssertTrue(SharedEventModuleSheetSource.readsPhase5PendingSync(for: .payments))
     }
 
     func testNoPotSaysSoAndKeepsTheTricountCard() {
@@ -431,6 +511,50 @@ final class HubModuleSheetDataTests: XCTestCase {
             XCTAssertNil(data.status)
             XCTAssertEqual(data.missing, "Aucune réunion prévue pour l'instant.")
         }
+    }
+
+    func testEndedMeetingsSayEndedWithoutStatusAndComeAfterUpcomingOnes() {
+        let data = make(.meetings([
+            meeting("old", start: "2026-09-25T18:00:00Z", status: "ENDED"),
+            meeting("next", start: "2026-10-05T09:00:00Z"),
+            meeting("missed", start: "2026-09-30T18:00:00Z", link: false),
+            meeting("soon", start: "2026-10-02T09:00:00Z", link: false)
+        ]))
+        XCTAssertEqual(data.items.map(\.id), ["soon", "next", "old", "missed"])
+        XCTAssertEqual(data.items.map(\.status), [.pending, .confirmed, nil, nil])
+        XCTAssertEqual(data.items.map(\.statusText), ["Sans lien", "Lien prêt", "Terminée", "Terminée"])
+        // La réunion programmée dont l'heure est passée ne compte plus comme « à venir ».
+        XCTAssertEqual(data.status, .init(text: "2 à venir", status: .pending))
+        XCTAssertEqual(data.missing, "1 réunion sans lien")
+    }
+
+    func testAPastScheduledMeetingIsNotUpcomingButAStartedOneIs() {
+        let now = fixedNow
+        XCTAssertFalse(HubSummaryText.isUpcomingMeeting(statusName: "SCHEDULED", startTime: "2026-09-30T23:59:00Z", now: now))
+        XCTAssertTrue(HubSummaryText.isUpcomingMeeting(statusName: "SCHEDULED", startTime: "2026-10-01T00:01:00Z", now: now))
+        XCTAssertTrue(HubSummaryText.isUpcomingMeeting(statusName: "STARTED", startTime: "2026-09-30T23:59:00Z", now: now))
+        XCTAssertTrue(HubSummaryText.isUpcomingMeeting(statusName: "SCHEDULED", startTime: "bientôt", now: now),
+                      "Date illisible : le statut fait foi.")
+        XCTAssertFalse(HubSummaryText.isUpcomingMeeting(statusName: "ENDED", startTime: "2026-10-05T09:00:00Z", now: now))
+        XCTAssertFalse(HubSummaryText.isUpcomingMeeting(statusName: "CANCELLED", startTime: "2026-10-05T09:00:00Z", now: now))
+        XCTAssertNil(make(.meetings([meeting("missed", start: "2026-09-30T18:00:00Z")])).status, "Rien à venir : pas de pastille.")
+    }
+
+    func testBlankMeetingTitleFallsBackToThePlatformName() {
+        let raw = HubModuleSheetRaw.Meeting(id: "m", title: "  ", startTime: "2026-10-03T18:00:00Z",
+                                            platformName: "GOOGLE_MEET", statusName: "SCHEDULED", hasLink: true)
+        XCTAssertEqual(make(.meetings([raw])).items[0].title, "Google Meet")
+    }
+
+    func testMeetingTimeIsShownInTheCalendarTimeZone() {
+        var paris = Calendar(identifier: .gregorian)
+        paris.timeZone = TimeZone(identifier: "Europe/Paris")!
+        let data = HubModuleSheetData.make(
+            raw: .meetings([meeting("a", start: "2026-10-03T18:00:00Z", platform: "ZOOM")]),
+            isOrganizer: true, isReadOnly: false, pendingSync: false, locale: fr, calendar: paris, now: fixedNow
+        )
+        let parisDay = HomeDateText.short(HomeDateText.parseISO("2026-10-03T18:00:00Z")!, locale: fr, calendar: paris)
+        XCTAssertEqual(data.items[0].detail, "\(parisDay) · 20:00 · Zoom")
     }
 
     func testOnlyAnOrganizerOfAnEditableEventPlansAMeeting() {
@@ -546,7 +670,7 @@ final class HubModuleSheetDataTests: XCTestCase {
         "hub.sheet.a11y.meal_responsibles_format", "hub.sheet.a11y.activity_registered_format",
         "hub.sheet.a11y.equipment_brought_by_format",
         "hub.sheet.budget.empty", "hub.sheet.budget.amounts_format", "hub.sheet.budget.over_format",
-        "hub.sheet.budget.view_expenses", "hub.sheet.status.budget_over",
+        "hub.sheet.budget.view", "hub.sheet.status.budget_over",
         "hub.sheet.payments.no_pot", "hub.sheet.payments.manage_pot",
         "hub.sheet.status.pot_open", "hub.sheet.status.pot_closed",
         "hub.sheet.status.tricount_ready", "hub.sheet.status.tricount_todo",
@@ -569,7 +693,7 @@ final class HubModuleSheetDataTests: XCTestCase {
         "event.detail.payment_pot.define_before_share", "event.detail.payment_pot.define_goal",
         "event.detail.payment_pot.goal_format", "event.detail.tricount.not_required",
         "event.detail.tricount.link_verified", "event.detail.tricount.link_to_check",
-        "event.detail.tricount.decide_before_expenses"
+        "event.detail.tricount.decide_before_expenses", "meetings.ended"
     ]
 
     func testEverySheetKeyExistsInEveryLanguage() throws {

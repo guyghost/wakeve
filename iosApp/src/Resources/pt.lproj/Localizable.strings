@@ -2369,7 +2369,7 @@
 "hub.sheet.budget.empty" = "Ainda não há orçamento.";
 "hub.sheet.budget.amounts_format" = "Real %1$@ / estimado %2$@";
 "hub.sheet.budget.over_format" = "O gasto real excede o estimado em %@.";
-"hub.sheet.budget.view_expenses" = "Ver as despesas";
+"hub.sheet.budget.view" = "Ver o orçamento";
 "hub.sheet.status.budget_over" = "Excedido";
 "hub.sheet.payments.no_pot" = "Ainda não há vaquinha.";
 "hub.sheet.payments.manage_pot" = "Gerir a vaquinha";

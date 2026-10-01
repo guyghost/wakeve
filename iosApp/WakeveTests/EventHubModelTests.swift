@@ -43,8 +43,15 @@ final class EventHubModelTests: XCTestCase {
         XCTAssertEqual(EventHubModel.modules(for: .confirmed), [.date, .scenarios, .participants, .budget])
         XCTAssertEqual(EventHubModel.modules(for: .comparing), [.date, .scenarios, .participants, .budget])
         XCTAssertEqual(EventHubModel.modules(for: .organizing),
-                       [.transport, .accommodation, .meals, .equipment, .activities, .budget, .meetings])
+                       [.transport, .accommodation, .meals, .equipment, .activities, .budget, .payments, .meetings])
         XCTAssertEqual(EventHubModel.modules(for: .finalized), [.recap, .photos, .payments])
+    }
+
+    func testPaymentsTileIsReachableWhileOrganizing() {
+        // La cagnotte se prépare pendant l'organisation (revue couche 5b) : tuile ouverte avec les droits.
+        let organizer = EventHubModel(facts: facts(phase: .organizing, isOrganizer: true))
+        XCTAssertEqual(tile(.payments, in: organizer)?.isLocked, false)
+        XCTAssertTrue(EventHubModel.summarizedModules(for: facts(phase: .organizing, isOrganizer: true)).contains(.payments))
     }
 
     func testTilesFollowThePhaseModules() {
@@ -201,7 +208,7 @@ final class EventHubModelTests: XCTestCase {
 
     func testConfirmedParticipantWithoutAccessHasOrganizationTilesLocked() {
         let model = EventHubModel(facts: facts(phase: .organizing, hasDetailsAccess: false))
-        for module in [HubModule.transport, .accommodation, .meals, .equipment, .activities, .budget, .meetings] {
+        for module in [HubModule.transport, .accommodation, .meals, .equipment, .activities, .budget, .payments, .meetings] {
             XCTAssertEqual(tile(module, in: model)?.isLocked, true, "\(module) devrait être verrouillé")
         }
     }

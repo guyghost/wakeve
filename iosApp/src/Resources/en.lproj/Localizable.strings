@@ -2367,7 +2367,7 @@
 "hub.sheet.budget.empty" = "No budget yet.";
 "hub.sheet.budget.amounts_format" = "Actual %1$@ / estimated %2$@";
 "hub.sheet.budget.over_format" = "Spending is %@ over the estimate.";
-"hub.sheet.budget.view_expenses" = "See expenses";
+"hub.sheet.budget.view" = "See budget";
 "hub.sheet.status.budget_over" = "Over";
 "hub.sheet.payments.no_pot" = "No money pot yet.";
 "hub.sheet.payments.manage_pot" = "Manage the pot";

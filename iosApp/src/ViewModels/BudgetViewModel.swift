@@ -315,18 +315,24 @@ class BudgetViewModel: ObservableObject {
 
     private static func hasPendingSync(eventId: String) -> Bool {
         RepositoryProvider.shared.database.syncMetadataQueries.selectPending().executeAsList().contains { pending in
-            let phase5Types = [
-                "budget",
-                "budget_item",
-                "expense",
-                "settlement",
-                "payment",
-                "payment_pot",
-                "tricount",
-                "tricount_handoff"
-            ]
-            return phase5Types.contains(pending.entityType) &&
-                (pending.entityId == eventId || pending.entityId.hasPrefix("\(eventId):") || pending.entityId.contains(eventId))
+            isPhase5PendingSync(entityType: pending.entityType, entityId: pending.entityId, eventId: eventId)
         }
+    }
+
+    /// Entrée en attente de synchro liée au budget, aux paiements ou à Tricount de l'événement
+    /// (filtre partagé avec les sheets du hub).
+    nonisolated static func isPhase5PendingSync(entityType: String, entityId: String, eventId: String) -> Bool {
+        let phase5Types = [
+            "budget",
+            "budget_item",
+            "expense",
+            "settlement",
+            "payment",
+            "payment_pot",
+            "tricount",
+            "tricount_handoff"
+        ]
+        return phase5Types.contains(entityType) &&
+            (entityId == eventId || entityId.hasPrefix("\(eventId):") || entityId.contains(eventId))
     }
 }

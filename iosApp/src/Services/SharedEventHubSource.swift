@@ -73,6 +73,14 @@ enum HubSummaryText {
         statusName != "CANCELLED" && statusName != "ENDED"
     }
 
+    /// « À venir » d'après le statut et l'heure : une réunion encore programmée dont le début est passé
+    /// est traitée comme terminée ; une date illisible laisse le statut faire foi.
+    static func isUpcomingMeeting(statusName: String, startTime: String, now: Date) -> Bool {
+        guard isUpcomingMeeting(statusName: statusName) else { return false }
+        if statusName == "SCHEDULED", let start = HomeDateText.parseISO(startTime), start < now { return false }
+        return true
+    }
+
     /// Même décompte pour la tuile Réunions et la sheet.
     static func meetingCounts(statusNames: [String]) -> MeetingCounts {
         MeetingCounts(
@@ -102,15 +110,36 @@ enum HubSummaryText {
 
     /// Même logique que `paymentPotSummaryValue` (ContentView), sans le suffixe « détails finalisés »
     /// (le statut du hub le dit déjà).
-    static func paymentPot(goalAmount: Double?, currency code: String?, locale: Locale) -> String {
+    static func paymentPot(goalAmount: Double?, currency code: String?, isClosed: Bool = false, locale: Locale) -> String {
         guard let goalAmount else {
             return WK.localizedFormat("event.detail.payment_pot.define_before_share", locale: locale)
         }
-        guard goalAmount > 0 else {
-            return WK.localizedFormat("event.detail.payment_pot.define_goal", locale: locale)
+        let summary: String
+        if goalAmount > 0 {
+            let amount = currency(goalAmount, code: code ?? "EUR", locale: locale)
+            summary = String(format: WK.localizedFormat("event.detail.payment_pot.goal_format", locale: locale), amount)
+        } else {
+            summary = WK.localizedFormat("event.detail.payment_pot.define_goal", locale: locale)
         }
-        let amount = currency(goalAmount, code: code ?? "EUR", locale: locale)
-        return String(format: WK.localizedFormat("event.detail.payment_pot.goal_format", locale: locale), amount)
+        guard isClosed else { return summary }
+        // Cagnotte clôturée : l'état reste lisible sur la tuile.
+        return String(
+            format: WK.localizedFormat("hub.summary.format", locale: locale),
+            summary, WK.localizedFormat("hub.sheet.status.pot_closed", locale: locale)
+        )
+    }
+
+    /// Élément le plus récent d'après sa date de création ISO 8601 (cagnotte de l'événement, quel que soit
+    /// son statut) ; à égalité, le dernier lu l'emporte.
+    static func latest<T>(_ items: [T], createdAt: (T) -> String) -> T? {
+        func isNotOlder(_ lhs: String, than rhs: String) -> Bool {
+            if let l = HomeDateText.parseISO(lhs), let r = HomeDateText.parseISO(rhs) { return l >= r }
+            return lhs >= rhs
+        }
+        return items.reduce(nil as T?) { best, item in
+            guard let best else { return item }
+            return isNotOlder(createdAt(item), than: createdAt(best)) ? item : best
+        }
     }
 }
 
@@ -303,8 +332,13 @@ struct SharedEventHubSource: EventHubSource {
             let count = HubSummaryText.meetingCounts(statusNames: statuses).active
             return count > 0 ? HubSummaryText.plural("hub.meetings_count", count, locale: locale) : nil
         case .payments:
-            let pot = PaymentPotRepository(db: database).getActivePotForEvent(eventId: event.id)
-            return HubSummaryText.paymentPot(goalAmount: pot?.goalAmount, currency: pot?.currency, locale: locale)
+            // Dernière cagnotte, ouverte ou clôturée (même lecture que la sheet).
+            let pot = HubSummaryText.latest(
+                database.potQueries.selectByEvent(eventId: event.id).executeAsList(), createdAt: { $0.createdAt }
+            )
+            return HubSummaryText.paymentPot(
+                goalAmount: pot?.goalAmount, currency: pot?.currency, isClosed: pot?.status == "CLOSED", locale: locale
+            )
         case .recap, .photos:
             return nil
         }

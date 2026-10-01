@@ -2369,7 +2369,7 @@
 "hub.sheet.budget.empty" = "Ancora nessun budget.";
 "hub.sheet.budget.amounts_format" = "Effettivo %1$@ / stimato %2$@";
 "hub.sheet.budget.over_format" = "La spesa effettiva supera la stima di %@.";
-"hub.sheet.budget.view_expenses" = "Vedi le spese";
+"hub.sheet.budget.view" = "Vedi il budget";
 "hub.sheet.status.budget_over" = "Superato";
 "hub.sheet.payments.no_pot" = "Ancora nessuna colletta.";
 "hub.sheet.payments.manage_pot" = "Gestisci la colletta";

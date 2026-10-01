@@ -111,7 +111,7 @@ struct EventHubModel: Equatable {
         case .draft: return [.date, .location, .participants]
         case .polling: return [.date, .location, .participants, .budget]
         case .confirmed, .comparing: return [.date, .scenarios, .participants, .budget]
-        case .organizing: return [.transport, .accommodation, .meals, .equipment, .activities, .budget, .meetings]
+        case .organizing: return [.transport, .accommodation, .meals, .equipment, .activities, .budget, .payments, .meetings]
         case .finalized: return [.recap, .photos, .payments]
         }
     }

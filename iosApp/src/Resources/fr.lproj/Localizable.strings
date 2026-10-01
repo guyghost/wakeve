@@ -2391,7 +2391,7 @@
 "hub.sheet.budget.empty" = "Aucun budget pour l'instant.";
 "hub.sheet.budget.amounts_format" = "Réel %1$@ / estimé %2$@";
 "hub.sheet.budget.over_format" = "Le réel dépasse l'estimé de %@.";
-"hub.sheet.budget.view_expenses" = "Voir les dépenses";
+"hub.sheet.budget.view" = "Voir le budget";
 "hub.sheet.status.budget_over" = "Dépassé";
 "hub.sheet.payments.no_pot" = "Aucune cagnotte pour l'instant.";
 "hub.sheet.payments.manage_pot" = "Gérer la cagnotte";

@@ -51,10 +51,19 @@ struct SharedEventModuleSheetSource: EventModuleSheetSource {
         try Task.checkCancellation()
 
         // Mêmes règles que les `case` legacy : `event.organizerId == userId`, `isFinalizedOrganizationState`,
-        // et la file d'envoi du flux (`hasPendingSync`).
+        // la file d'envoi du flux (`hasPendingSync`) et, pour budget et cagnotte, la file de la phase 5
+        // (`BudgetViewModel.hasPendingSync`).
         let isOrganizer = event.organizerId == viewerId
         let isReadOnly = Self.isReadOnly(statusName: event.status.name)
-        let pendingSync = !repository.getWorkflowOutbox(eventId: event.id).isEmpty
+        let phase5Pending = Self.readsPhase5PendingSync(for: module)
+            && database.syncMetadataQueries.selectPending().executeAsList().contains { pending in
+                BudgetViewModel.isPhase5PendingSync(entityType: pending.entityType, entityId: pending.entityId, eventId: event.id)
+            }
+        let pendingSync = Self.hasPendingSync(
+            module: module,
+            workflowPending: !repository.getWorkflowOutbox(eventId: event.id).isEmpty,
+            phase5Pending: phase5Pending
+        )
         var names = NameCache { id in
             database.userQueries.selectUserById(id: id).executeAsOneOrNull()?.name
         }
@@ -118,8 +127,11 @@ struct SharedEventModuleSheetSource: EventModuleSheetSource {
                 )
             })
         case .payments:
-            // Mêmes lectures que `paymentPotSummaryValue` / `tricountSummaryValue` (ContentView).
-            let pot = PaymentPotRepository(db: database).getActivePotForEvent(eventId: event.id)
+            // Dernière cagnotte de l'événement, ouverte ou clôturée (même lecture que la tuile) ;
+            // Tricount : même lecture que `tricountSummaryValue` (ContentView).
+            let pot = HubSummaryText.latest(
+                database.potQueries.selectByEvent(eventId: event.id).executeAsList(), createdAt: { $0.createdAt }
+            )
             let readiness = TricountHandoffRepository(db: database).getPaymentReadiness(eventId: event.id)
             raw = .payments(
                 pot: pot.map { pot in
@@ -188,6 +200,15 @@ struct SharedEventModuleSheetSource: EventModuleSheetSource {
             totalActual: totalActual,
             categories: amounts.map { .init(key: $0.0, estimated: $0.1.0, actual: $0.1.1) }
         )
+    }
+
+    /// Budget et cagnotte lisent aussi la file de synchro de la phase 5, comme leurs écrans legacy.
+    static func readsPhase5PendingSync(for module: HubModule) -> Bool {
+        module == .budget || module == .payments
+    }
+
+    static func hasPendingSync(module: HubModule, workflowPending: Bool, phase5Pending: Bool) -> Bool {
+        workflowPending || (readsPhase5PendingSync(for: module) && phase5Pending)
     }
 
     /// Lien de réunion généré : non vide une fois les espaces retirés.
