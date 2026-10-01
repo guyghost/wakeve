@@ -9,7 +9,11 @@ enum OrganizationDetailsAccess {
         if organizerId == viewerId {
             return true
         }
+        return isGrantedToParticipant(viewerId: viewerId, records: records)
+    }
 
+    /// Accès d'un participant (hors organisateur) : ligne confirmée dans les enregistrements.
+    static func isGrantedToParticipant(viewerId: String, records: [ParticipantRepositoryRecord]?) -> Bool {
         guard let records, !records.isEmpty else {
             return false
         }

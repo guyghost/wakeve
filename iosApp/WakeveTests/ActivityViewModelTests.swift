@@ -70,7 +70,6 @@ final class ActivityViewModelTests: XCTestCase {
         await vm.reload()
         XCTAssertEqual(vm.state, .loaded)
         XCTAssertEqual(vm.toDoCount, 2)
-        XCTAssertEqual(vm.badgeCount, 3, "2 actions + 1 notification non lue")
         XCTAssertEqual(Set(vm.groups.compactMap(\.eventId)), ["vote", "invite"])
 
         vm.filter = .all
@@ -130,16 +129,19 @@ final class ActivityViewModelTests: XCTestCase {
         XCTAssertTrue(vm.groups.isEmpty)
     }
 
-    func testMarkReadUpdatesTheNotificationAndTheBadge() async {
-        let source = StubSource(.success(snapshot(events: [raw("e1")], notes: [note("n1", event: "e1")])))
+    /// Le badge suit « À traiter » : marquer lue une notification ne le change pas.
+    func testMarkReadUpdatesTheNotificationButLeavesTheBadge() async {
+        let source = StubSource(.success(snapshot(events: [raw("e1", voted: false)], notes: [note("n1", event: "e1")])))
         let vm = makeVM(source)
         await vm.reload()
-        XCTAssertEqual(vm.badgeCount, 1)
+        XCTAssertEqual(vm.toDoCount, 1)
+        vm.filter = .all
+        XCTAssertEqual(vm.groups.first?.entries.last?.kind, .notification(title: "n1", message: "n1", isRead: false),
+                       "Non lue, mise en avant sous « Tout ».")
         vm.markRead(notificationId: "n1")
         XCTAssertEqual(source.marked, ["n1"])
-        XCTAssertEqual(vm.badgeCount, 0)
-        vm.filter = .all
-        XCTAssertEqual(vm.groups.first?.entries.first?.kind, .notification(title: "n1", message: "n1", isRead: true))
+        XCTAssertEqual(vm.toDoCount, 1, "Le badge ne compte que les actions.")
+        XCTAssertEqual(vm.groups.first?.entries.last?.kind, .notification(title: "n1", message: "n1", isRead: true))
         vm.markRead(notificationId: "n1")
         XCTAssertEqual(source.marked, ["n1"], "Une notification déjà lue n'est pas réécrite.")
     }
@@ -173,6 +175,21 @@ final class ActivityViewModelTests: XCTestCase {
         let seen = fixedNow.addingTimeInterval(-3_600)
         XCTAssertEqual(SharedActivitySource.messagesSinceISO(lastSeen: seen, ownLastCommentISO: nil, now: fixedNow),
                        "2026-10-01T09:00:00.000Z")
+    }
+
+    /// Mêmes règles que l'écran des commentaires (`canAccessDetailedPlanning`) : date retenue, puis
+    /// organisateur ou participant confirmé. Sinon la ligne messages ouvrirait un refus d'accès.
+    func testMessagesAreCountedOnlyWhereTheViewerCanReadComments() {
+        for status in ["CONFIRMED", "COMPARING", "ORGANIZING", "FINALIZED"] {
+            XCTAssertTrue(SharedActivitySource.canReadComments(statusName: status, isOwner: true, participantGranted: false))
+            XCTAssertTrue(SharedActivitySource.canReadComments(statusName: status, isOwner: false, participantGranted: true))
+            XCTAssertFalse(SharedActivitySource.canReadComments(statusName: status, isOwner: false, participantGranted: false),
+                           "Invité non confirmé : pas d'accès aux commentaires.")
+        }
+        for status in ["DRAFT", "POLLING", "CANCELLED", "UNKNOWN"] {
+            XCTAssertFalse(SharedActivitySource.canReadComments(statusName: status, isOwner: true, participantGranted: true),
+                           "\(status) : commentaires fermés.")
+        }
     }
 
     func testOwnLaterCommentMovesTheBoundAndIsNeverCounted() {

@@ -11,10 +11,8 @@ final class ActivityViewModel: ObservableObject {
         didSet { if filter != oldValue { regroup() } }
     }
     @Published private(set) var groups: [ActivityEventGroup] = []
-    /// Compteur du segment « À traiter (n) ».
+    /// Compteur du segment « À traiter (n) », aussi badge de la zone Activité (actions seulement).
     @Published private(set) var toDoCount = 0
-    /// Badge de la zone Activité : actions + notifications non lues.
-    @Published private(set) var badgeCount = 0
 
     private let viewerId: String
     private let source: ActivitySource
@@ -81,6 +79,5 @@ final class ActivityViewModel: ObservableObject {
     private func regroup() {
         groups = ActivityFeed.build(facts: facts, notifications: notifications, newMessages: newMessages, filter: filter)
         toDoCount = ActivityFeed.toDoCount(facts: facts)
-        badgeCount = ActivityFeed.badgeCount(facts: facts, notifications: notifications)
     }
 }

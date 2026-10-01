@@ -68,6 +68,19 @@ final class ActivityShellWiringTests: XCTestCase {
         XCTAssertTrue(source.contains(".badge(unreadInboxCount)"), "Le badge legacy garde le compteur de l'Inbox.")
     }
 
+    /// Les deux zones restent montées : le badge se recharge quand l'accueil ou le hub changent, au
+    /// retour à la liste et au retour au premier plan (un vote fait ailleurs fait baisser le badge).
+    func testActivityBadgeReloadsWhenEventsChangeElsewhere() throws {
+        let body = try slice(after: "private var redesignChrome: some View", length: 4000)
+        XCTAssertTrue(body.contains(".onChange(of: eventsHomeReloadToken) { _, _ in activityReloadToken += 1 }"))
+        XCTAssertTrue(body.contains(".onChange(of: eventHubReloadToken) { _, _ in activityReloadToken += 1 }"))
+        XCTAssertTrue(body.contains(".onChange(of: currentView) { _, view in\n            if view == .eventList { activityReloadToken += 1 }"))
+        XCTAssertTrue(body.contains(".onChange(of: scenePhase) { _, phase in\n            if phase == .active { activityReloadToken += 1 }"))
+        let source = try contentViewSource()
+        XCTAssertTrue(source.contains("@Environment(\\.scenePhase) private var scenePhase"))
+        XCTAssertTrue(source.contains("/// Badge de la zone Activité de la refonte (couche 6, #47) : éléments « À traiter » (actions seulement)."))
+    }
+
     func testOpeningAnActivityTargetSwitchesZoneThenNavigatesOnTheNextTurn() throws {
         let body = try slice(after: "private func openActivityTarget(_ target: ActivityTarget)", length: 1500)
         guard let zone = body.range(of: "redesignRouter.zone = .events"),

@@ -5,7 +5,7 @@ import SwiftUI
 /// Mêmes paramètres de shell que `InboxView` ; toujours à sa racine (aucun détail poussé).
 struct ActivityView: View {
     @StateObject private var viewModel: ActivityViewModel
-    /// Badge de la barre flottante : éléments « À traiter » + notifications non lues.
+    /// Badge de la barre flottante : éléments « À traiter » (actions seulement, spec §5.4).
     @Binding var actionCount: Int
     var reloadToken: Int = 0
     var onRootStateChange: ((Bool) -> Void)? = nil
@@ -46,7 +46,7 @@ struct ActivityView: View {
                 Task { await viewModel.reload() }
             }
             .onChange(of: filterRequestID) { _, _ in viewModel.filter = initialFilter }
-            .onChange(of: viewModel.badgeCount, initial: true) { _, count in actionCount = count }
+            .onChange(of: viewModel.toDoCount, initial: true) { _, count in actionCount = count }
     }
 
     private func open(_ entry: ActivityEntry) {

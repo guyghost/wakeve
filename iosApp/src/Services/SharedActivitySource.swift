@@ -109,15 +109,27 @@ struct SharedActivitySource: ActivitySource {
         repository: DatabaseEventRepository,
         database: WakeveDb
     ) throws -> ActivitySnapshot {
-        // Invitation en attente : membre (pas organisateur) dont le RSVP est PENDING, comme le hub.
+        // Une seule lecture des participants par événement : invitation en attente (membre non
+        // organisateur dont le RSVP est PENDING, comme le hub) et accès aux commentaires.
         var rsvpPending = Set<String>()
-        for event in events where !event.isOrganizer && !event.isPast && !event.readOnly {
+        var commentsReadable = Set<String>()
+        for event in events {
             try Task.checkCancellation()
-            let viewer = (repository.getParticipantRecords(eventId: event.id) ?? [])
-                .map { ParticipantAccessMapper.shared.fromRepositoryRecord(record: $0) }
-                .first { $0.userId == viewerId }
-            if viewer?.role == .member && viewer?.rsvp == .pending {
-                rsvpPending.insert(event.id)
+            let needsRSVP = !event.isOrganizer && !event.isPast && !event.readOnly
+            let needsAccess = !event.isOwner && commentsOpen(statusName: event.statusName)
+            let records = needsRSVP || needsAccess ? repository.getParticipantRecords(eventId: event.id) : nil
+            if needsRSVP {
+                let viewer = (records ?? [])
+                    .map { ParticipantAccessMapper.shared.fromRepositoryRecord(record: $0) }
+                    .first { $0.userId == viewerId }
+                if viewer?.role == .member && viewer?.rsvp == .pending {
+                    rsvpPending.insert(event.id)
+                }
+            }
+            let granted = needsAccess
+                && OrganizationDetailsAccess.isGrantedToParticipant(viewerId: viewerId, records: records)
+            if canReadComments(statusName: event.statusName, isOwner: event.isOwner, participantGranted: granted) {
+                commentsReadable.insert(event.id)
             }
         }
 
@@ -136,13 +148,14 @@ struct SharedActivitySource: ActivitySource {
                 )
             }
 
-        // Commentaires des autres dans la section générale, celle qu'ouvre la ligne messages : la borne
+        // Événements dont les commentaires sont lisibles (`canReadComments`) seulement. Commentaires des
+        // autres dans la section générale, celle qu'ouvre la ligne messages : la borne
         // avance jusqu'à son propre dernier commentaire de la même section (le compte ne filtre pas
         // l'auteur ; on a vu le fil en y écrivant). Requêtes à une seule ligne : les statistiques par
         // participant regroupent aussi par nom d'auteur, et un auteur renommé y donnait plusieurs lignes
         // (exception Kotlin non rattrapable côté Swift).
         var newMessages: [String: Int] = [:]
-        for event in events {
+        for event in events where commentsReadable.contains(event.id) {
             try Task.checkCancellation()
             let own = database.commentQueries
                 .selectLastCommentAtByAuthorInSection(event_id: event.id, author_id: viewerId, section: messagesSection)
@@ -167,6 +180,18 @@ struct SharedActivitySource: ActivitySource {
     /// Section comptée (`CommentSection.GENERAL.name`) : la ligne messages ouvre les commentaires généraux.
     static let messagesSection = "GENERAL"
 
+    /// Statuts où l'écran des commentaires s'ouvre (`canAccessDetailedPlanning` de `ContentView`).
+    static func commentsOpen(statusName: String) -> Bool {
+        ["CONFIRMED", "COMPARING", "ORGANIZING", "FINALIZED"].contains(statusName)
+    }
+
+    /// Messages comptés seulement si le spectateur peut lire les commentaires, même règle que l'écran
+    /// (`canAccessDetailedPlanning`) : date retenue, puis organisateur ou participant confirmé
+    /// (`OrganizationDetailsAccess`). Sinon la ligne messages mènerait à un refus d'accès.
+    static func canReadComments(statusName: String, isOwner: Bool, participantGranted: Bool) -> Bool {
+        commentsOpen(statusName: statusName) && (isOwner || participantGranted)
+    }
+
     /// `eventId` du JSON `data` d'une notification (valeur textuelle ou numérique).
     static func eventId(fromData data: String?) -> String? {
         guard let data,
@@ -188,8 +213,8 @@ struct SharedActivitySource: ActivitySource {
     }()
 
     /// Borne stricte (`created_at > borne`, chaînes ISO UTC comparées comme en base) : dernière
-    /// consultation, sinon 7 jours ; son propre commentaire plus récent la remplace, chaîne exacte
-    /// conservée pour qu'il ne soit jamais compté.
+    /// consultation, sinon 7 jours ; son propre commentaire plus récent dans la même section (générale,
+    /// celle qui est comptée) la remplace, chaîne exacte conservée pour qu'il ne soit jamais compté.
     static func messagesSinceISO(lastSeen: Date?, ownLastCommentISO: String?, now: Date) -> String {
         let base = lastSeen ?? now.addingTimeInterval(-defaultLookback)
         if let own = ownLastCommentISO, let ownDate = HomeDateText.parseISO(own), ownDate >= base {

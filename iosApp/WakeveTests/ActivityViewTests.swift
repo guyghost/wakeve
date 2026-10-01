@@ -155,6 +155,8 @@ final class ActivityViewTests: XCTestCase {
         XCTAssertTrue(source.contains("var onRootStateChange: ((Bool) -> Void)? = nil"))
         XCTAssertTrue(source.contains(".onChange(of: reloadToken)"))
         XCTAssertTrue(source.contains("@Binding var actionCount: Int"))
+        XCTAssertTrue(source.contains(".onChange(of: viewModel.toDoCount, initial: true)"), "Badge = « À traiter (n) ».")
+        XCTAssertFalse(source.contains("badgeCount"))
         XCTAssertTrue(source.contains("viewModel.markSeen(eventId:"), "Ouvrir les messages met à jour le marqueur.")
         XCTAssertTrue(source.contains("@ScaledMetric(relativeTo: .body) private var dotSize"),
                       "Le point d'action suit Dynamic Type (minuscule en AX5 sinon).")

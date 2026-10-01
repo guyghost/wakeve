@@ -186,10 +186,11 @@ struct AuthenticatedView: View {
     let userId: String
     @AppStorage("iosInvitationExperienceV1") private var iosInvitationExperienceV1 = false
     @AppStorage(FeatureFlags.redesign2026Key) private var iosRedesign2026 = false
+    @Environment(\.scenePhase) private var scenePhase
     @State private var redesignRouter = AppRouter()
     @State private var activityAtRoot = true
     @State private var activityReloadToken = 0
-    /// Badge de la zone Activité de la refonte (couche 6, #47) : éléments « À traiter » + notifications non lues.
+    /// Badge de la zone Activité de la refonte (couche 6, #47) : éléments « À traiter » (actions seulement).
     @State private var activityToDoCount = 0
     @State private var selectedTab: WakeveTab = .home
     @State private var currentView: AppView = .eventList
@@ -542,6 +543,16 @@ struct AuthenticatedView: View {
                     NotificationPreferencesView(userId: userId)
                 }
             }
+        }
+        // Badge à jour quand un événement change ailleurs (vote depuis le hub, transition de cycle de vie),
+        // au retour à la liste et au retour au premier plan.
+        .onChange(of: eventsHomeReloadToken) { _, _ in activityReloadToken += 1 }
+        .onChange(of: eventHubReloadToken) { _, _ in activityReloadToken += 1 }
+        .onChange(of: currentView) { _, view in
+            if view == .eventList { activityReloadToken += 1 }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { activityReloadToken += 1 }
         }
     }
 

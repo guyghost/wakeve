@@ -169,7 +169,9 @@ final class ActivityFeedTests: XCTestCase {
 
     // MARK: - Compteurs
 
-    func testBadgeCountsActionsAndUnreadNotifications() {
+    /// Badge de la zone = « À traiter (n) » (spec §5.4) : les notifications non lues ne comptent pas,
+    /// elles restent mises en avant sous « Tout ».
+    func testBadgeIsTheToDoCountAndIgnoresUnreadNotifications() {
         let input: [ActivityEventFacts] = [
             facts("vote", voted: false),
             facts("rsvp", accepted: false, voted: false, rsvpPending: true),
@@ -177,8 +179,13 @@ final class ActivityFeedTests: XCTestCase {
         ]
         let notes = [note("u1", event: "quiet"), note("u2", event: nil), note("r", event: "quiet", read: true)]
         XCTAssertEqual(ActivityFeed.toDoCount(facts: input), 2)
-        XCTAssertEqual(ActivityFeed.badgeCount(facts: input, notifications: notes), 4)
-        XCTAssertEqual(ActivityFeed.badgeCount(facts: [], notifications: []), 0)
+        XCTAssertEqual(ActivityFeed.toDoCount(facts: []), 0)
+        let all = ActivityFeed.build(facts: input, notifications: notes, newMessages: [:], filter: .all)
+        let unread = all.flatMap(\.entries).filter(ActivityEntryRow.isUnread).map(\.id)
+        XCTAssertEqual(Set(unread), ["notification.u1", "notification.u2"], "Non lues toujours mises en avant sous « Tout ».")
+        let source = try? String(contentsOf: URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .deletingLastPathComponent().appendingPathComponent("src/Models/Activity/ActivityFeed.swift"), encoding: .utf8)
+        XCTAssertFalse(source?.contains("badgeCount") ?? true, "Un seul compteur : « À traiter ».")
     }
 
     func testTargetsExposeTheirEvent() {

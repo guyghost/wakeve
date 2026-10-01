@@ -148,14 +148,10 @@ enum ActivityFeed {
         return groups
     }
 
-    /// Nombre d'éléments affichés sous « À traiter ».
+    /// Nombre d'éléments affichés sous « À traiter », aussi badge de la zone Activité (spec §5.4 :
+    /// actions seulement ; les notifications non lues restent mises en avant sous « Tout »).
     static func toDoCount(facts: [ActivityEventFacts]) -> Int {
         facts.reduce(0) { $0 + actionEntries(for: $1).count }
-    }
-
-    /// Badge de la zone Activité : actions réelles + notifications non lues.
-    static func badgeCount(facts: [ActivityEventFacts], notifications: [ActivityNotification]) -> Int {
-        toDoCount(facts: facts) + notifications.filter { !$0.isRead }.count
     }
 
     // MARK: - Tri
