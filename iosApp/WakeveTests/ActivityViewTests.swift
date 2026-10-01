@@ -156,5 +156,7 @@ final class ActivityViewTests: XCTestCase {
         XCTAssertTrue(source.contains(".onChange(of: reloadToken)"))
         XCTAssertTrue(source.contains("@Binding var actionCount: Int"))
         XCTAssertTrue(source.contains("viewModel.markSeen(eventId:"), "Ouvrir les messages met à jour le marqueur.")
+        XCTAssertTrue(source.contains("@ScaledMetric(relativeTo: .body) private var dotSize"),
+                      "Le point d'action suit Dynamic Type (minuscule en AX5 sinon).")
     }
 }

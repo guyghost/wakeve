@@ -165,6 +165,7 @@ struct ActivityEntryRow: View {
     let entry: ActivityEntry
     let now: Date
     let onOpen: () -> Void
+    @ScaledMetric(relativeTo: .body) private var dotSize: CGFloat = WK.Space.xs
 
     static func title(for entry: ActivityEntry, locale: Locale = WK.appLocale) -> String {
         switch entry.kind {
@@ -229,7 +230,7 @@ struct ActivityEntryRow: View {
         HStack(alignment: .firstTextBaseline, spacing: WK.Space.xs) {
             Circle()
                 .fill(entry.needsAction ? WK.Status.actionNeeded.color : Color.clear)
-                .frame(width: WK.Space.xs, height: WK.Space.xs)
+                .frame(width: dotSize, height: dotSize)
             VStack(alignment: .leading, spacing: WK.Space.xxxs) {
                 Text(Self.title(for: entry))
                     .font(WK.Typo.body)
