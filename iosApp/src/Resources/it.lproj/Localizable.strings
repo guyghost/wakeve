@@ -2402,3 +2402,14 @@
 "hub.sheet.participants.section.confirmed" = "Confermati";
 "hub.sheet.participants.section.pending" = "In attesa";
 "hub.sheet.participants.section.declined" = "Hanno rifiutato";
+
+/* Activité de la refonte (couche 6, #47) */
+"activity.feed.filter.todo_format" = "Da fare (%d)";
+"activity.feed.filter.all" = "Tutto";
+"activity.feed.vote_required" = "Voto: manca il tuo voto";
+"activity.feed.ready_to_confirm" = "Hanno votato tutti, scegli la data";
+"activity.feed.rsvp_pending" = "Rispondi all'invito";
+"activity.feed.empty.todo" = "Niente da fare per ora";
+"activity.feed.empty.all" = "Nessuna attività per ora";
+"activity.feed.a11y.to_do" = "Da fare";
+"activity.feed.unread" = "Non letto";

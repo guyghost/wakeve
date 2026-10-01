@@ -2400,3 +2400,14 @@
 "hub.sheet.participants.section.confirmed" = "Confirmed";
 "hub.sheet.participants.section.pending" = "Pending";
 "hub.sheet.participants.section.declined" = "Declined";
+
+/* Activité de la refonte (couche 6, #47) */
+"activity.feed.filter.todo_format" = "To do (%d)";
+"activity.feed.filter.all" = "All";
+"activity.feed.vote_required" = "Vote: yours is missing";
+"activity.feed.ready_to_confirm" = "Everyone voted, pick the date";
+"activity.feed.rsvp_pending" = "Reply to the invitation";
+"activity.feed.empty.todo" = "Nothing to do right now";
+"activity.feed.empty.all" = "No activity yet";
+"activity.feed.a11y.to_do" = "To do";
+"activity.feed.unread" = "Unread";

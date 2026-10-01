@@ -2424,3 +2424,14 @@
 "hub.sheet.participants.section.confirmed" = "Confirmés";
 "hub.sheet.participants.section.pending" = "En attente";
 "hub.sheet.participants.section.declined" = "Ont décliné";
+
+/* Activité de la refonte (couche 6, #47) */
+"activity.feed.filter.todo_format" = "À traiter (%d)";
+"activity.feed.filter.all" = "Tout";
+"activity.feed.vote_required" = "Vote : il manque ton vote";
+"activity.feed.ready_to_confirm" = "Tout le monde a voté, choisis la date";
+"activity.feed.rsvp_pending" = "Réponds à l'invitation";
+"activity.feed.empty.todo" = "Rien à traiter pour l'instant";
+"activity.feed.empty.all" = "Aucune activité pour l'instant";
+"activity.feed.a11y.to_do" = "À traiter";
+"activity.feed.unread" = "Non lu";

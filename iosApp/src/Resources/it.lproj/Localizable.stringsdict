@@ -290,5 +290,21 @@
             <string>%d invitati in attesa</string>
         </dict>
     </dict>
+    <key>activity.feed.messages_count</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@count@</string>
+        <key>count</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>one</key>
+            <string>%d nuovo messaggio</string>
+            <key>other</key>
+            <string>%d nuovi messaggi</string>
+        </dict>
+    </dict>
 </dict>
 </plist>
