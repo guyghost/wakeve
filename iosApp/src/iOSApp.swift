@@ -30,12 +30,7 @@ struct iOSApp: App {
         }
     }
 
-    @ViewBuilder
     private var appRoot: some View {
-        normalAppRoot
-    }
-
-    private var normalAppRoot: some View {
         ContentView()
             .environmentObject(authStateManager)
             .environmentObject(authService)

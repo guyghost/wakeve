@@ -340,43 +340,6 @@ struct WakeveAIGenerationRequest: Equatable, Sendable {
     }
 }
 
-enum EventDraftSection: Equatable, Sendable {
-    case title(String)
-    case description(String)
-    case dateOptions([DateOption])
-    case checklist([ChecklistItem])
-    case suggestedPolls([PollSuggestion])
-    case completed(EventDraft)
-    case failed(String)
-}
-
-struct SmartEventDraftState: Equatable {
-    enum Phase: Equatable {
-        case idle
-        case checkingAvailability
-        case unavailable(WakeveAIAvailability)
-        case preparing
-        case streaming
-        case ready(EventDraft)
-        case failed(String)
-        case cancelled
-    }
-
-    var phrase: String = ""
-    var phase: Phase = .idle
-    var streamedTitle: String = ""
-    var streamedDescription: String = ""
-    var streamedDateOptions: [DateOption] = []
-    var streamedChecklist: [ChecklistItem] = []
-    var streamedPolls: [PollSuggestion] = []
-    var metrics: WakeveAIMetrics?
-    var metadata: WakeveAIInteractionMetadata?
-
-    var canGenerate: Bool {
-        phrase.trimmingCharacters(in: .whitespacesAndNewlines).count >= 6
-    }
-}
-
 extension EventDraft {
     static let empty = EventDraft(
         title: "",

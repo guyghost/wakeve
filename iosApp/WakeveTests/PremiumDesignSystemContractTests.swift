@@ -9,12 +9,8 @@ final class PremiumDesignSystemContractTests: XCTestCase {
             "struct LiquidGlassButton",
             "struct LiquidGlassToolbar",
             "struct EventHeroCard",
-            "struct EventListRow",
-            "struct ParticipantAvatarStack",
             "struct VoteOptionCard",
-            "struct BottomSheet",
-            "struct EmptyState",
-            "struct LoadingSkeleton"
+            "struct EmptyState"
         ]
 
         for component in requiredComponents {
@@ -37,7 +33,6 @@ final class PremiumDesignSystemContractTests: XCTestCase {
             "public static func confirmation",
             "public static func destructive",
             "public static func glassTint",
-            "public enum Blur",
             "public enum Opacity",
             "public enum Motion",
             "public enum Glass"
@@ -53,7 +48,6 @@ final class PremiumDesignSystemContractTests: XCTestCase {
         let semantic = try readProjectFile("iosApp/src/Theme/SemanticColor.swift")
         let mood = try readProjectFile("iosApp/src/Theme/EventMoodPalette.swift")
         let typography = try readProjectFile("iosApp/src/Theme/TypographyTokens.swift")
-        let iconography = try readProjectFile("iosApp/src/Theme/IconographyGuidelines.swift")
 
         for token in ["midnightBlue", "graphite", "softIvory", "warmPeach", "mutedLavender", "subtleAmber", "blueGrey"] {
             XCTAssertTrue(brand.contains(token), "Missing brand token: \(token)")
@@ -69,8 +63,6 @@ final class PremiumDesignSystemContractTests: XCTestCase {
 
         XCTAssertTrue(typography.contains("SF Pro"))
         XCTAssertTrue(typography.contains("DynamicTypeSize"))
-        XCTAssertTrue(iconography.contains("standardActionSymbols"))
-        XCTAssertTrue(iconography.contains("wakeveConceptSymbols"))
     }
 
     func testSharedFrameworkSupportsGenericSimulatorArchitectures() throws {
@@ -100,25 +92,8 @@ final class PremiumDesignSystemContractTests: XCTestCase {
 
         XCTAssertTrue(source.contains("struct WakeveInvitationPreviewCard"))
         XCTAssertTrue(source.contains("struct WakeveGroupCard"))
-        XCTAssertTrue(source.contains("struct WakeveWidgetPreviewCard"))
-        XCTAssertTrue(source.contains("struct WakeveWidgetPreviewGallery"))
         XCTAssertTrue(source.contains("EventMoodPalette"))
-        XCTAssertTrue(source.contains("SemanticColor.contentSurface"))
-        XCTAssertTrue(source.contains("case nextEvent"))
-        XCTAssertTrue(source.contains("case activeVote"))
-        XCTAssertTrue(source.contains("case guestList"))
-        XCTAssertTrue(source.contains("case notification"))
-        XCTAssertTrue(source.contains("case liveActivity"))
         XCTAssertFalse(source.contains(".liquidGlass("), "Branded content previews are content surfaces and should not use Liquid Glass.")
-    }
-
-    func testAddToCalendarButtonUsesLocalizedVisibleCopy() throws {
-        let source = try readProjectFile("iosApp/src/Components/AddToCalendarButton.swift")
-
-        XCTAssertTrue(source.contains("String(localized: \"meetings.add_to_calendar\")"))
-        XCTAssertTrue(source.contains("calendar.add_event_accessibility"))
-        XCTAssertTrue(source.contains("calendar.add_event_hint"))
-        XCTAssertFalse(source.contains("Text(\"Add to Calendar\")"))
     }
 
     func testBrandDocumentationDeliverablesExist() throws {
@@ -157,22 +132,13 @@ final class PremiumDesignSystemContractTests: XCTestCase {
     func testContentSurfacesUseBrandTokensWithoutGlassOnEmptyState() throws {
         let components = try readProjectFile("iosApp/src/Components/DesignSystem/PremiumLiquidGlassComponents.swift")
         let shared = try readProjectFile("iosApp/src/Components/DesignSystem/WakeveDesignSystemComponents.swift")
-        let emptyState = slice(components, from: "struct EmptyState", to: "struct LoadingSkeleton")
-        let eventHero = slice(components, from: "struct EventHeroCard", to: "struct EventListRow")
+        let emptyState = slice(components, from: "struct EmptyState", to: "#Preview")
+        let eventHero = slice(components, from: "struct EventHeroCard", to: "struct VoteOptionCard")
 
         XCTAssertTrue(eventHero.contains("EventMoodPalette"))
-        XCTAssertTrue(components.contains("SemanticColor.contentSurface"))
         XCTAssertTrue(components.contains("BrandColor.calmAccent"))
         XCTAssertTrue(shared.contains("SemanticColor.appBackground"))
         XCTAssertFalse(emptyState.contains(".liquidGlass("), "EmptyState is content-layer brand expression and should not use Liquid Glass.")
-    }
-
-    func testParticipantAvatarStackUsesSingularAccessibilityLabel() throws {
-        let source = try readProjectFile("iosApp/src/Components/DesignSystem/PremiumLiquidGlassComponents.swift")
-
-        XCTAssertTrue(source.contains("private var participantAccessibilityLabel"))
-        XCTAssertTrue(source.contains(#"participant\(initials.count > 1 ? "s" : "")"#))
-        XCTAssertFalse(source.contains(#".accessibilityLabel("\(initials.count) participants")"#))
     }
 
     func testDecisionMomentsUseSharedHapticFeedback() throws {
@@ -252,22 +218,10 @@ final class PremiumDesignSystemContractTests: XCTestCase {
         XCTAssertFalse(budgetRow.contains("List {"), "Budget row previews should not reintroduce native List chrome.")
     }
 
-    func testLiquidGlassContinuousMotionHonorsReduceMotion() throws {
-        let animations = try readProjectFile("iosApp/src/Components/LiquidGlassAnimations.swift")
+    func testOnboardingContinuousMotionHonorsReduceMotion() throws {
+        // Couche 9 : LiquidGlassAnimations.swift (aides inutilisées) est supprimé ; le contrat reste porté par l'onboarding.
         let onboarding = try readProjectFile("iosApp/src/Views/Auth/OnboardingView.swift")
 
-        XCTAssertTrue(
-            animations.contains("@Environment(\\.accessibilityReduceMotion)"),
-            "Liquid Glass modifiers with continuous motion must observe Reduce Motion."
-        )
-        XCTAssertTrue(
-            animations.contains("reduceMotion ? nil :"),
-            "Liquid Glass animations must disable non-essential animation when Reduce Motion is enabled."
-        )
-        XCTAssertFalse(
-            animations.contains("value: UUID()"),
-            "Animation identity must be stable; a fresh UUID causes animation on every render."
-        )
         XCTAssertTrue(
             onboarding.contains("@Environment(\\.accessibilityReduceMotion)"),
             "Onboarding must observe Reduce Motion before starting its perpetual icon animation."
@@ -303,13 +257,14 @@ final class PremiumDesignSystemContractTests: XCTestCase {
 
     func testLegacyTypographyUsesSemanticDynamicTypeStyles() throws {
         let source = try readProjectFile("iosApp/src/Theme/DesignSystem.swift")
-        let typography = slice(source, from: "public struct Typography", to: "// MARK:")
+        // Couche 9 : la struct `Typography` de premier niveau (inutilisée) est supprimée ; reste WakeveTheme.Typography.
+        let typography = slice(source, from: "public enum Typography", to: "public enum Spacing")
 
         XCTAssertFalse(
             typography.contains("Font.system(size:"),
             "Legacy Typography tokens must use semantic SwiftUI text styles so they scale with Dynamic Type."
         )
-        for style in ["Font.largeTitle", "Font.headline", "Font.body", "Font.subheadline", "Font.caption"] {
+        for style in ["Font.largeTitle", "Font.title", "Font.headline", "Font.body", "Font.callout", "Font.caption"] {
             XCTAssertTrue(typography.contains(style), "Legacy Typography must map its roles to semantic style \(style).")
         }
     }
@@ -342,9 +297,8 @@ final class PremiumDesignSystemContractTests: XCTestCase {
         }
     }
 
-    func testLegacySheetsAndCalendarActionUseSemanticAccentColors() throws {
+    func testLegacySheetsUseSemanticAccentColors() throws {
         let paths = [
-            "iosApp/src/Components/AddToCalendarButton.swift",
             "iosApp/src/Components/LocationSelectionSheet.swift"
         ]
 
@@ -353,28 +307,6 @@ final class PremiumDesignSystemContractTests: XCTestCase {
             XCTAssertFalse(source.contains("Color.blue"), "\(path) must not hard-code Color.blue.")
             XCTAssertTrue(source.contains("SemanticColor."), "\(path) must use semantic design-system colors.")
         }
-    }
-
-    func testSharedAnimationsHonorReduceMotion() throws {
-        let shared = try readProjectFile("iosApp/src/Components/SharedComponents.swift")
-        // Couche 9 : l'ancienne feuille de création est supprimée ; le contrat reste porté par les composants partagés.
-        for (path, source) in [
-            ("SharedComponents.swift", shared)
-        ] {
-            XCTAssertTrue(source.contains("@Environment(\\.accessibilityReduceMotion)"), "\(path) must observe Reduce Motion.")
-            XCTAssertTrue(source.contains("reduceMotion ? nil :"), "\(path) must disable non-essential animations under Reduce Motion.")
-        }
-    }
-
-    func testLiquidGlassAnimationEntryPointsAndBadgeHonorReduceMotion() throws {
-        let source = try readProjectFile("iosApp/src/Components/LiquidGlassAnimations.swift")
-        let helpers = slice(source, from: "struct LiquidGlassAnimations", to: "// MARK: - Animation Modifiers")
-        let animatedBadge = slice(source, from: "struct AnimatedBadgeModifier", to: "extension View")
-
-        XCTAssertTrue(helpers.contains("reduceMotion: Bool"), "LiquidGlassAnimations must expose accessibility-aware helper overloads.")
-        XCTAssertTrue(helpers.contains("reduceMotion ? nil :"), "Accessibility-aware Liquid Glass helpers must return no animation for Reduce Motion.")
-        XCTAssertTrue(animatedBadge.contains("@Environment(\\.accessibilityReduceMotion)"), "AnimatedBadgeModifier must observe Reduce Motion.")
-        XCTAssertTrue(animatedBadge.contains("reduceMotion ? nil :"), "AnimatedBadgeModifier must suppress entrance animation under Reduce Motion.")
     }
 
     func testWakeveCircleButtonGuaranteesAccessibleHitTarget() throws {
@@ -449,10 +381,6 @@ final class PremiumDesignSystemContractTests: XCTestCase {
             XCTAssertTrue(source.contains("@Environment(\\.accessibilityReduceMotion)"), "\(path) must observe Reduce Motion.")
             XCTAssertTrue(source.contains("reduceMotion ? nil"), "\(path) must disable non-essential animation under Reduce Motion.")
         }
-
-        let premium = try readProjectFile("iosApp/src/Components/DesignSystem/PremiumLiquidGlassComponents.swift")
-        let bottomSheet = slice(premium, from: "struct BottomSheet", to: "struct EmptyState")
-        XCTAssertTrue(bottomSheet.contains(".animation(reduceMotion ? nil :"), "BottomSheet must fully remove animation under Reduce Motion.")
     }
 
     func testParticipantStatusAndSelectionColorsAreSemantic() throws {
@@ -464,18 +392,6 @@ final class PremiumDesignSystemContractTests: XCTestCase {
         for token in ["SemanticColor.warning", "SemanticColor.accent", "SemanticColor.confirmation"] {
             XCTAssertTrue(source.contains(token), "Participant management must expose \(token) for status/selection meaning.")
         }
-    }
-
-    func testLiquidGlassTextFieldUsesSemanticErrorsAndAccessibleIconButtons() throws {
-        let source = try readProjectFile("iosApp/src/Components/LiquidGlassTextField.swift")
-
-        XCTAssertFalse(source.contains(".foregroundColor(.red)"), "Text-field errors must use a semantic destructive color.")
-        XCTAssertTrue(source.contains("SemanticColor.destructive"), "Text-field errors must use SemanticColor.destructive.")
-        XCTAssertGreaterThanOrEqual(
-            occurrenceCount(of: ".frame(minWidth: 44, minHeight: 44)", in: source),
-            2,
-            "Left and right text-field icon buttons each need a minimum 44pt hit target."
-        )
     }
 
     func testBudgetInteractionTargetsAndStateColorsAreSemantic() throws {

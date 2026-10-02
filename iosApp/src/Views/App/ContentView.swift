@@ -240,9 +240,6 @@ struct AuthenticatedView: View {
     @State private var selectedBudget: Budget_?
     @StateObject private var transportPlanningViewModel = TransportPlanningViewModel()
 
-    // Notifications state
-    @State private var showNotificationPreferencesSheet = false
-
     // Get auth state from environment
     @EnvironmentObject var authStateManager: AuthStateManager
     @EnvironmentObject private var deepLinkService: DeepLinkService
@@ -258,11 +255,6 @@ struct AuthenticatedView: View {
         // Shell de la refonte (zones Événements / Activité) ; les actions ponctuelles
         // comme la création restent contextuelles (＋, sheets).
         redesignChrome
-        .sheet(isPresented: $showNotificationPreferencesSheet) {
-            NavigationStack {
-                NotificationPreferencesView(userId: userId)
-            }
-        }
         .fullScreenCover(isPresented: $showCreateEventFlow) {
             CreateEventFlow(
                 userId: userId,
@@ -578,7 +570,7 @@ struct AuthenticatedView: View {
         showCreateEventFlow = true
     }
 
-    /// « Lancer le sondage » réussi : checklist du modèle conservée, hub de l'événement en sondage.
+    /// « Lancer le sondage » réussi : hub de l'événement en sondage.
     private func finishCreateEventFlow(_ event: Event, context: EventCreationContext) {
         persistCreationContext(context, for: event)
         showCreateEventFlow = false

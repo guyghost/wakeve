@@ -68,13 +68,14 @@ final class CreateEventFlowWiringTests: XCTestCase {
         return String(source[lower.lowerBound..<upper.lowerBound])
     }
 
-    func testFlowCoverIsAddedAfterTheNotificationPreferencesSheet() throws {
+    func testFlowCoverIsInstalledOnTheShellRoot() throws {
         let source = try contentView
         XCTAssertTrue(source.contains("@State private var showCreateEventFlow = false"))
         XCTAssertTrue(source.contains("@State private var createFlowDraftId: String?"))
-        let notification = try XCTUnwrap(source.range(of: ".sheet(isPresented: $showNotificationPreferencesSheet)"))
-        let cover = try XCTUnwrap(source.range(of: ".fullScreenCover(isPresented: $showCreateEventFlow)"))
-        XCTAssertLessThan(notification.lowerBound, cover.lowerBound, "Tranches des tests d'ancrage intactes.")
+        // Couche 9 : la feuille legacy des préférences de notification (jamais ouverte) est supprimée ;
+        // le cover s'accroche directement au chrome de la refonte.
+        let chrome = try XCTUnwrap(source.range(of: "        redesignChrome\n        .fullScreenCover(isPresented: $showCreateEventFlow)"))
+        XCTAssertFalse(chrome.isEmpty)
         let block = slice(source, from: ".fullScreenCover(isPresented: $showCreateEventFlow)", to: ".sheet(item: $invitationStudioPreview)")
         XCTAssertTrue(block.contains("CreateEventFlow("))
         XCTAssertTrue(block.contains("draftEventId: createFlowDraftId"))

@@ -113,8 +113,7 @@ struct CreateEventFlow: View {
             }
             onLaunched(event, EventCreationContext(
                 potentialLocationName: nil,
-                sourceScenario: form.scenarioId.flatMap(CreateEventForm.scenario(withID:)),
-                preparedChecklist: form.preparedChecklist
+                sourceScenario: form.scenarioId.flatMap(CreateEventForm.scenario(withID:))
             ))
         case .failed(let message):
             bannerMessage = message

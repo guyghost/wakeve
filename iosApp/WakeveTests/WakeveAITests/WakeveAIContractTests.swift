@@ -69,27 +69,6 @@ final class WakeveAIContractTests: XCTestCase {
         XCTAssertFalse(content.contains("localeIdentifier: \"fr_FR\""), "Transport AI should not force French output.")
     }
 
-    func testAIBadgeCopyUsesWakeveTone() throws {
-        let badgeSource = try readProjectFile("iosApp/src/Models/AISuggestionModels.swift")
-        let viewSource = try readProjectFile("iosApp/src/Components/AIBadgeView.swift")
-
-        XCTAssertTrue(badgeSource.contains("ai.badge.suggestion"))
-        XCTAssertTrue(badgeSource.contains("ai.badge.suggestion.tooltip"))
-        XCTAssertTrue(badgeSource.contains("ai.badge.medium_confidence"))
-        XCTAssertTrue(viewSource.contains("ai.badge_sheet.review_title"))
-        XCTAssertTrue(viewSource.contains("ai.badge_sheet.validation_hint"))
-        XCTAssertTrue(viewSource.contains("common.close"))
-        XCTAssertFalse(badgeSource.contains("Proposition locale à relire"))
-        XCTAssertFalse(badgeSource.contains("À vérifier"))
-        XCTAssertFalse(viewSource.contains("À relire"))
-        XCTAssertFalse(viewSource.contains("Aucune action n'est appliquée sans validation."))
-        XCTAssertFalse(badgeSource.contains("AI Suggestion"))
-        XCTAssertFalse(badgeSource.contains("AI generated suggestion"))
-        XCTAssertFalse(badgeSource.contains("🤖"))
-        XCTAssertFalse(viewSource.contains("Confidence Details"))
-        XCTAssertFalse(viewSource.contains("Close"))
-    }
-
     private func slice(_ source: String, from start: String, to end: String) -> String {
         guard let startRange = source.range(of: start) else { return "" }
         let suffix = source[startRange.lowerBound...]

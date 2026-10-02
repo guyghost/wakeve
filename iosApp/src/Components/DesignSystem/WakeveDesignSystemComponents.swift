@@ -202,43 +202,6 @@ struct WakeveGlassControl<Content: View>: View {
     }
 }
 
-// MARK: - Event Panel
-
-struct WakeveEventPanel<Content: View>: View {
-    @Environment(\.colorScheme) private var colorScheme
-
-    let cornerRadius: CGFloat
-    let padding: CGFloat
-    let content: Content
-
-    init(
-        cornerRadius: CGFloat = WakeveTheme.Radius.xl,
-        padding: CGFloat = WakeveTheme.Spacing.lg,
-        @ViewBuilder content: () -> Content
-    ) {
-        self.cornerRadius = cornerRadius
-        self.padding = padding
-        self.content = content()
-    }
-
-    var body: some View {
-        content
-            .padding(padding)
-            .background(panelFill)
-            .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .stroke(WakeveTheme.ColorToken.cardBorder(for: colorScheme), lineWidth: 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-    }
-
-    private var panelFill: Color {
-        colorScheme == .dark
-            ? WakeveTheme.ColorToken.eventNightElevated.opacity(0.82)
-            : WakeveTheme.ColorToken.appLightElevated.opacity(0.94)
-    }
-}
-
 // MARK: - Action Button
 
 struct WakeveActionButton: View {
@@ -607,58 +570,6 @@ struct WakeveHeroCard<Content: View>: View {
     }
 }
 
-// MARK: - Search Field
-
-struct WakeveSearchField: View {
-    @Environment(\.colorScheme) private var colorScheme
-
-    let placeholder: String
-    @Binding var text: String
-    let trailingSystemImage: String?
-    let trailingAction: (() -> Void)?
-
-    init(
-        placeholder: String,
-        text: Binding<String>,
-        trailingSystemImage: String? = nil,
-        trailingAction: (() -> Void)? = nil
-    ) {
-        self.placeholder = placeholder
-        self._text = text
-        self.trailingSystemImage = trailingSystemImage
-        self.trailingAction = trailingAction
-    }
-
-    var body: some View {
-        HStack(spacing: WakeveTheme.Spacing.sm) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundColor(.white.opacity(colorScheme == .dark ? 0.86 : 0.58))
-
-            TextField(placeholder, text: $text)
-                .font(WakeveTheme.Typography.rowTitle)
-                .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
-                .textFieldStyle(.plain)
-
-            if let trailingSystemImage {
-                Button {
-                    trailingAction?()
-                } label: {
-                    Image(systemName: trailingSystemImage)
-                        .font(.system(size: 24, weight: .medium))
-                        .foregroundColor(.white.opacity(colorScheme == .dark ? 0.9 : 0.62))
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(trailingSystemImage == "mic" ? String(localized: "common.dictation") : String(localized: "common.search_action_accessibility"))
-            }
-        }
-        .padding(.horizontal, WakeveTheme.Spacing.lg)
-        .frame(height: 56)
-        .background(colorScheme == .dark ? WakeveTheme.ColorToken.searchFieldDark : WakeveTheme.ColorToken.searchFieldLight)
-        .clipShape(Capsule())
-    }
-}
-
 // MARK: - Avatar
 
 struct WakeveAvatar: View {
@@ -723,83 +634,6 @@ struct WakeveAvatar: View {
     }
 }
 
-struct WakeveStackedAvatars: View {
-    let initials: [String]
-
-    var body: some View {
-        HStack(spacing: -14) {
-            ForEach(Array(initials.prefix(4).enumerated()), id: \.offset) { index, value in
-                WakeveAvatar(initials: value, size: 54)
-                    .overlay(Circle().stroke(Color.white.opacity(0.18), lineWidth: 3))
-                    .zIndex(Double(initials.count - index))
-            }
-        }
-        .accessibilityLabel(String.localizedStringWithFormat(String(localized: "participants.count_accessibility"), initials.count))
-    }
-}
-
-// MARK: - Rows and Sections
-
-struct WakeveSectionHeader: View {
-    let title: String
-
-    var body: some View {
-        Text(title)
-            .font(WakeveTheme.Typography.section)
-            .foregroundColor(.primary)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, WakeveTheme.Spacing.page)
-            .accessibilityAddTraits(.isHeader)
-    }
-}
-
-struct WakeveListRow<Leading: View, Trailing: View>: View {
-    let title: String
-    let subtitle: String?
-    let leading: Leading
-    let trailing: Trailing
-
-    init(
-        title: String,
-        subtitle: String? = nil,
-        @ViewBuilder leading: () -> Leading,
-        @ViewBuilder trailing: () -> Trailing
-    ) {
-        self.title = title
-        self.subtitle = subtitle
-        self.leading = leading()
-        self.trailing = trailing()
-    }
-
-    var body: some View {
-        HStack(spacing: WakeveTheme.Spacing.md) {
-            leading
-                .frame(width: 68, height: 68)
-
-            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
-                Text(title)
-                    .font(WakeveTheme.Typography.rowTitle)
-                    .foregroundColor(.primary)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.82)
-
-                if let subtitle {
-                    Text(subtitle)
-                        .font(WakeveTheme.Typography.metadata)
-                        .foregroundColor(.secondary)
-                        .lineLimit(2)
-                }
-            }
-
-            Spacer(minLength: WakeveTheme.Spacing.sm)
-
-            trailing
-        }
-        .padding(.vertical, WakeveTheme.Spacing.sm)
-        .contentShape(Rectangle())
-    }
-}
-
 // MARK: - Vote Control
 
 struct WakeveSegmentedVoteControl: View {
@@ -845,21 +679,6 @@ struct WakeveSegmentedVoteControl: View {
     ZStack {
         WakeveScreenBackground(style: .event)
         VStack(spacing: 20) {
-            WakeveSearchField(placeholder: "Trouver des contacts", text: .constant(""), trailingSystemImage: "mic")
-            WakeveGlassCard {
-                WakeveListRow(
-                    title: "Tous les amis",
-                    subtitle: "Total : 23",
-                    leading: {
-                        Image(systemName: "person.2.fill")
-                            .font(.system(size: 34, weight: .bold))
-                            .foregroundColor(.white.opacity(0.82))
-                    },
-                    trailing: {
-                        WakeveStackedAvatars(initials: ["A", "J", "M"])
-                    }
-                )
-            }
             WakeveActionButton("Continuer") {}
             WakeveSegmentedVoteControl(selectedVote: .yes) { _ in }
         }

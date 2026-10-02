@@ -258,7 +258,6 @@ final class CreateEventFlowModelTests: XCTestCase {
         XCTAssertEqual(form.eventTypeName, scenario.eventType)
         XCTAssertEqual(form.scenarioId, CreateEventForm.scenarioID(scenario))
         XCTAssertEqual(form.checklist, scenario.checklistItems)
-        XCTAssertEqual(form.preparedChecklist.map(\.title), Array(scenario.checklistItems.prefix(5)))
         XCTAssertTrue(form.errors(for: .what).isEmpty)
     }
 

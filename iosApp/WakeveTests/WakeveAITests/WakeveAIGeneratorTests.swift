@@ -2,43 +2,6 @@ import XCTest
 @testable import Wakeve
 
 final class WakeveAIGeneratorTests: XCTestCase {
-    func testEventDraftGeneratorStreamsExpectedSectionsFromFakeClient() async throws {
-        let generator = EventDraftGenerator(
-            availabilityProvider: FixedWakeveAIAvailabilityService(availability: .available),
-            client: FakeWakeveAIClient(),
-            timeoutSeconds: 2
-        )
-
-        var sections: [EventDraftSection] = []
-        for try await section in generator.generate(request: WakeveAIGenerationRequest(userInput: "Week-end à Marrakech avec 8 amis début juillet")) {
-            sections.append(section)
-        }
-
-        XCTAssertTrue(sections.contains { if case .title("Week-end Marrakech") = $0 { return true }; return false })
-        XCTAssertTrue(sections.contains { if case .description = $0 { return true }; return false })
-        XCTAssertTrue(sections.contains { if case .dateOptions = $0 { return true }; return false })
-        XCTAssertTrue(sections.contains { if case .checklist = $0 { return true }; return false })
-        XCTAssertTrue(sections.contains { if case .suggestedPolls = $0 { return true }; return false })
-        XCTAssertTrue(sections.contains { if case .completed = $0 { return true }; return false })
-    }
-
-    func testEventDraftGeneratorFallsBackWhenAvailabilityIsUnsupported() async {
-        let generator = EventDraftGenerator(
-            availabilityProvider: FixedWakeveAIAvailabilityService(availability: .unsupportedDevice),
-            client: nil,
-            timeoutSeconds: 2
-        )
-
-        do {
-            for try await _ in generator.generate(request: WakeveAIGenerationRequest(userInput: "Diner simple")) {}
-            XCTFail("Expected unavailable error")
-        } catch WakeveAIError.unavailable(let availability) {
-            XCTAssertEqual(availability, .unsupportedDevice)
-        } catch {
-            XCTFail("Unexpected error: \(error)")
-        }
-    }
-
     func testPromptCatalogUsesSpecializedVersionedPrompts() {
         XCTAssertEqual(WakeveAIPromptCatalog.eventDraft(userInput: "Road trip", localeIdentifier: "fr_FR").id, "event_draft_v1")
         XCTAssertEqual(WakeveAIPromptCatalog.pollSuggestions(context: "Event", localeIdentifier: "fr_FR").id, "poll_suggestions_v1")
@@ -113,23 +76,6 @@ final class WakeveAIGeneratorTests: XCTestCase {
         XCTAssertEqual(transport.coordinationIdeas.count, 1)
         XCTAssertFalse(transport.groupMessageDraft.isEmpty)
     }
-
-    func testEventDraftGeneratorReportsTimeout() async {
-        let generator = EventDraftGenerator(
-            availabilityProvider: FixedWakeveAIAvailabilityService(availability: .available),
-            client: SlowWakeveAIClient(),
-            timeoutSeconds: 0.01
-        )
-
-        do {
-            for try await _ in generator.generate(request: WakeveAIGenerationRequest(userInput: "Road trip entre amis")) {}
-            XCTFail("Expected timeout error")
-        } catch WakeveAIError.timedOut {
-            XCTAssertTrue(true)
-        } catch {
-            XCTFail("Unexpected error: \(error)")
-        }
-    }
 }
 
 private struct FakeWakeveAIClient: WakeveAIClientProtocol {
@@ -192,25 +138,6 @@ private struct FakeWakeveAIClient: WakeveAIClientProtocol {
             coordinationIdeas: ["Regrouper par ville"],
             groupMessageDraft: "Ajoutez votre ville de départ pour coordonner les trajets."
         )
-    }
-}
-
-private struct SlowWakeveAIClient: WakeveAIClientProtocol {
-    func generateEventDraft(prompt: WakeveAIPrompt, request: WakeveAIGenerationRequest) async throws -> EventDraft {
-        try await Task.sleep(nanoseconds: 200_000_000)
-        return .empty
-    }
-
-    func generatePollSuggestions(prompt: WakeveAIPrompt, knownFacts: WakeveAIKnownFacts) async throws -> [PollSuggestion] { [] }
-    func generateChecklist(prompt: WakeveAIPrompt, knownFacts: WakeveAIKnownFacts) async throws -> [ChecklistItem] { [] }
-    func generateInvitationMessages(prompt: WakeveAIPrompt, knownFacts: WakeveAIKnownFacts) async throws -> InvitationMessageSet {
-        InvitationMessageSet(simple: "a", warm: "b", shortWhatsApp: "c")
-    }
-    func generateEventSummary(prompt: WakeveAIPrompt, knownFacts: WakeveAIKnownFacts) async throws -> EventSummary {
-        EventSummary(decided: [], missing: [], recommendedNextAction: "Action")
-    }
-    func generateTransportSuggestions(prompt: WakeveAIPrompt, knownFacts: WakeveAIKnownFacts) async throws -> TransportCoordinationSuggestion {
-        TransportCoordinationSuggestion(missingDetails: [], coordinationIdeas: [], groupMessageDraft: "Message")
     }
 }
 

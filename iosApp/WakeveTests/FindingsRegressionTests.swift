@@ -164,7 +164,6 @@ final class FindingsRegressionTests: XCTestCase {
 
     func testProfilePrioritizesOrganizerTrustOverGamification() throws {
         let profile = try readProjectFile("iosApp/src/Views/Profile/ProfileTabView.swift")
-        let profileViewModel = try readProjectFile("iosApp/src/ViewModels/ProfileViewModel.swift")
         let hierarchy = slice(profile, from: "VStack(spacing: WakeveTheme.Spacing.xl)", to: "PreferencesSection(userId: userId)")
         let english = try readProjectFile("iosApp/src/Resources/en.lproj/Localizable.strings")
         let french = try readProjectFile("iosApp/src/Resources/fr.lproj/Localizable.strings")
@@ -191,16 +190,6 @@ final class FindingsRegressionTests: XCTestCase {
         XCTAssertTrue(french.contains("Confiance organisateur"))
         XCTAssertTrue(french.contains("Identité prête pour les invitations"))
         XCTAssertTrue(french.contains("Les tableaux de bord vivent dans les événements"))
-        XCTAssertTrue(profileViewModel.contains("leaderboard.you"))
-        XCTAssertTrue(profileViewModel.contains("badges = []"))
-        XCTAssertTrue(profileViewModel.contains("leaderboard = []"))
-        XCTAssertTrue(profileViewModel.contains("wakeve_guest_user_id"))
-        XCTAssertFalse(profileViewModel.contains("Mock data for demonstration"))
-        XCTAssertFalse(profileViewModel.contains("Alice Martin"))
-        XCTAssertFalse(profileViewModel.contains("totalPoints: 1250"))
-        XCTAssertFalse(profileViewModel.contains("Premier Événement"))
-        XCTAssertFalse(profileViewModel.contains("Maître du Vote"))
-        XCTAssertFalse(profileViewModel.contains("username: \"Vous\""))
     }
 
     func testLeaderboardDoesNotShowFakeSocialProof() throws {

@@ -313,104 +313,6 @@ struct EventHeroCard<Content: View>: View {
     }
 }
 
-struct EventListRow: View {
-    @Environment(\.colorScheme) private var colorScheme
-
-    let title: String
-    let subtitle: String
-    let dateLabel: String
-    let participantInitials: [String]
-    let nextActionHint: String?
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: WakeveTheme.Spacing.md) {
-                VStack(spacing: 2) {
-                    Text(dateLabel)
-                        .font(TypographyTokens.caption)
-                        .foregroundColor(SemanticColor.warning(for: colorScheme))
-                        .multilineTextAlignment(.center)
-                        .lineLimit(2)
-                }
-                .frame(width: 58, height: 58)
-                .background(SemanticColor.badge(for: colorScheme))
-                .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
-
-                VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
-                    Text(title)
-                        .font(TypographyTokens.headline)
-                        .foregroundColor(SemanticColor.primaryText(for: colorScheme))
-                        .lineLimit(2)
-
-                    Text(subtitle)
-                        .font(TypographyTokens.callout)
-                        .foregroundColor(SemanticColor.secondaryText(for: colorScheme))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.78)
-
-                    if let nextActionHint {
-                        Text(nextActionHint)
-                            .font(TypographyTokens.caption)
-                            .foregroundColor(SemanticColor.selectedState(for: colorScheme))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.78)
-                    }
-                }
-
-                Spacer(minLength: WakeveTheme.Spacing.sm)
-
-                ParticipantAvatarStack(initials: participantInitials, size: 30, maxVisible: 3)
-            }
-            .padding(WakeveTheme.Spacing.md)
-            .background(SemanticColor.contentSurface(for: colorScheme))
-            .overlay(
-                RoundedRectangle(cornerRadius: WakeveTheme.Radius.xl, style: .continuous)
-                    .stroke(SemanticColor.border(for: colorScheme), lineWidth: 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.xl, style: .continuous))
-        }
-        .buttonStyle(.plain)
-        .accessibilityElement(children: .combine)
-    }
-}
-
-struct ParticipantAvatarStack: View {
-    let initials: [String]
-    let size: CGFloat
-    let maxVisible: Int
-
-    init(initials: [String], size: CGFloat = 34, maxVisible: Int = 4) {
-        self.initials = initials
-        self.size = size
-        self.maxVisible = maxVisible
-    }
-
-    var body: some View {
-        HStack(spacing: -size * 0.32) {
-            ForEach(Array(initials.prefix(maxVisible).enumerated()), id: \.offset) { index, value in
-                WakeveAvatar(initials: value, size: size)
-                    .overlay(Circle().stroke(Color.white.opacity(0.34), lineWidth: 1.5))
-                    .zIndex(Double(maxVisible - index))
-            }
-
-            if initials.count > maxVisible {
-                Text("+\(initials.count - maxVisible)")
-                    .font(WakeveTheme.Typography.tiny)
-                    .foregroundColor(.white)
-                    .frame(width: size, height: size)
-                    .background(Color.black.opacity(0.34))
-                    .clipShape(Circle())
-            }
-        }
-        .accessibilityLabel(participantAccessibilityLabel)
-    }
-
-    private var participantAccessibilityLabel: String {
-        "\(initials.count) participant\(initials.count > 1 ? "s" : "")"
-    }
-}
-
 struct VoteOptionCard: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -513,57 +415,6 @@ struct VoteOptionCard: View {
     }
 }
 
-struct BottomSheet<Content: View>: View {
-    @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    let isPresented: Bool
-    let onDismiss: () -> Void
-    let content: Content
-
-    init(
-        isPresented: Bool,
-        onDismiss: @escaping () -> Void,
-        @ViewBuilder content: () -> Content
-    ) {
-        self.isPresented = isPresented
-        self.onDismiss = onDismiss
-        self.content = content()
-    }
-
-    var body: some View {
-        if isPresented {
-            ZStack(alignment: .bottom) {
-                Color.black.opacity(WakeveTheme.Opacity.scrim)
-                    .ignoresSafeArea()
-                    .onTapGesture(perform: onDismiss)
-
-                VStack(spacing: WakeveTheme.Spacing.lg) {
-                    Capsule()
-                        .fill(WakeveTheme.ColorToken.secondaryText(for: colorScheme).opacity(0.34))
-                        .frame(width: 42, height: 5)
-                        .padding(.top, WakeveTheme.Spacing.sm)
-
-                    content
-                }
-                .padding(WakeveTheme.Spacing.lg)
-                .frame(maxWidth: .infinity)
-                .background(WakeveTheme.ColorToken.secondaryBackground(for: colorScheme))
-                .clipShape(
-                    UnevenRoundedRectangle(
-                        topLeadingRadius: WakeveTheme.Glass.bottomSheetRadius,
-                        topTrailingRadius: WakeveTheme.Glass.bottomSheetRadius,
-                        style: .continuous
-                    )
-                )
-                .liquidGlass(cornerRadius: WakeveTheme.Glass.bottomSheetRadius)
-            }
-            .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
-            .animation(reduceMotion ? nil : WakeveTheme.Motion.sheetSpring, value: isPresented)
-        }
-    }
-}
-
 struct EmptyState: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -625,67 +476,6 @@ struct EmptyState: View {
     }
 }
 
-struct LoadingSkeleton: View {
-    @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    let rows: Int
-    let showsHero: Bool
-
-    init(rows: Int = 3, showsHero: Bool = true) {
-        self.rows = rows
-        self.showsHero = showsHero
-    }
-
-    var body: some View {
-        VStack(spacing: WakeveTheme.Spacing.md) {
-            if showsHero {
-                skeletonBlock(height: 220, radius: WakeveTheme.Radius.panel)
-            }
-
-            ForEach(0..<rows, id: \.self) { _ in
-                HStack(spacing: WakeveTheme.Spacing.md) {
-                    skeletonBlock(width: 58, height: 58, radius: WakeveTheme.Radius.md)
-
-                    VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xs) {
-                        skeletonBlock(height: 16, radius: WakeveTheme.Radius.sm)
-                        skeletonBlock(width: 180, height: 12, radius: WakeveTheme.Radius.sm)
-                    }
-
-                    Spacer()
-                }
-                .padding(WakeveTheme.Spacing.md)
-                .background(SemanticColor.contentSurface(for: colorScheme))
-                .overlay(
-                    RoundedRectangle(cornerRadius: WakeveTheme.Radius.xl, style: .continuous)
-                        .stroke(SemanticColor.border(for: colorScheme), lineWidth: 1)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.xl, style: .continuous))
-            }
-        }
-        .redacted(reason: .placeholder)
-        .modifier(SkeletonMotionModifier(isEnabled: !reduceMotion))
-    }
-
-    private func skeletonBlock(width: CGFloat? = nil, height: CGFloat, radius: CGFloat) -> some View {
-        RoundedRectangle(cornerRadius: radius, style: .continuous)
-            .fill(SemanticColor.separator(for: colorScheme).opacity(colorScheme == .dark ? 0.86 : 0.72))
-            .frame(width: width, height: height)
-    }
-}
-
-private struct SkeletonMotionModifier: ViewModifier {
-    let isEnabled: Bool
-
-    func body(content: Content) -> some View {
-        if isEnabled {
-            content.shimmerEffect()
-        } else {
-            content
-        }
-    }
-}
-
 #Preview("Premium Liquid Glass Components") {
     ZStack {
         WakeveScreenBackground(style: .event)
@@ -700,20 +490,9 @@ private struct SkeletonMotionModifier: ViewModifier {
 
                 EventHeroCard(title: "Diner a Lyon", subtitle: "Vendredi soir", metadata: "Prochain")
 
-                EventListRow(
-                    title: "Week-end amis",
-                    subtitle: "Annecy",
-                    dateLabel: "12 Jun",
-                    participantInitials: ["A", "J", "M"],
-                    nextActionHint: "Vote en cours",
-                    action: {}
-                )
-
                 VoteOptionCard(vote: .yes, title: "Oui", subtitle: "Ce creneau me convient", isSelected: true, action: {})
 
                 EmptyState(title: "Aucun evenement", subtitle: "Cree ton premier moment partage.", actionTitle: "Creer", action: {})
-
-                LoadingSkeleton(rows: 2)
             }
             .padding()
         }
