@@ -106,6 +106,56 @@ struct WKGallery: View {
     }
 }
 
+/// Galerie du mode immersif (couche 8) : chaque ambiance, avec carte, pastilles et CTA.
+struct WKImmersiveGallery: View {
+    var mood: EventMoodPalette.Mood = .evening
+
+    var body: some View {
+        let palette = EventMoodPalette.palette(for: mood)
+        let tokens = WK.Mood(palette: palette)
+        WKImmersiveScaffold(
+            mood: tokens,
+            primary: .init(title: "Itinéraire", systemImage: "arrow.triangle.turn.up.right.diamond") {},
+            secondary: .init(title: "Voir l'événement") {},
+            onClose: {}
+        ) {
+            Text("C'est aujourd'hui · \(palette.name)").font(WK.Typo.caption).foregroundStyle(tokens.textSecondary)
+            Text("19:30").font(WK.Typo.display).foregroundStyle(tokens.textPrimary)
+            Text("Week-end à Annecy").font(WK.Typo.title).foregroundStyle(tokens.textPrimary)
+            WKImmersiveCard(mood: tokens) {
+                Text("Gare d'Annecy").font(WK.Typo.headline).foregroundStyle(tokens.textPrimary)
+                Text("Place de la Gare, 74000 Annecy").font(WK.Typo.caption).foregroundStyle(tokens.textSecondary)
+            }
+            ViewThatFits {
+                HStack { pills(tokens) }
+                VStack(alignment: .leading) { pills(tokens) }
+            }
+        }
+    }
+
+    @ViewBuilder private func pills(_ tokens: WK.Mood) -> some View {
+        WKImmersivePill(text: "Plan choisi", systemImage: "car", mood: tokens)
+        WKImmersivePill(text: "Dîner · 20:00", systemImage: "fork.knife", mood: tokens)
+        WKImmersivePill(text: "6 confirmés", systemImage: "person.2", mood: tokens)
+    }
+}
+
+#Preview("Immersif") {
+    TabView {
+        ForEach(EventMoodPalette.Mood.allCases) { mood in
+            WKImmersiveGallery(mood: mood)
+        }
+    }
+    .tabViewStyle(.page)
+}
+#Preview("Immersif AX5") { WKImmersiveGallery(mood: .beach).dynamicTypeSize(.accessibility5) }
+#Preview("Immersif Reduce Transparency") {
+    WKImmersiveGallery(mood: .birthday).environment(\._accessibilityReduceTransparency, true)
+}
+#Preview("Immersif Increase Contrast") {
+    WKImmersiveGallery(mood: .family).environment(\._colorSchemeContrast, .increased)
+}
+
 #Preview("Mood immersif") {
     let mood = WK.Mood(palette: .palette(for: .evening))
     return VStack(alignment: .leading, spacing: WK.Space.xs) {

@@ -203,6 +203,9 @@ enum WK {
         let textSecondary: Color
         let pillStroke: Color
         let accent: Color
+        /// CTA blanc (`WKImmersiveButton`) et son texte.
+        let cta: Color
+        let onCta: Color
 
         init(palette: EventMoodPalette) {
             background = palette.secondary(for: .dark)
@@ -211,6 +214,8 @@ enum WK {
             textSecondary = Color(uiColor: WK.uiColor(0xC9D3D1))
             pillStroke = Color(uiColor: WK.uiColor(0xFFFFFF, alpha: 0.45))
             accent = palette.accent(for: .dark)
+            cta = Color(uiColor: WK.uiColor(0xFFFFFF))
+            onCta = Color(uiColor: WK.uiColor(0x1C1C1E))
         }
     }
 }

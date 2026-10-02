@@ -187,6 +187,16 @@ final class WKTokensTests: XCTestCase {
         }
     }
 
+    /// CTA blanc du mode immersif : texte ≥ 7:1 sur le bouton, bouton ≥ 3:1 sur le fond de chaque ambiance.
+    func testImmersiveWhiteCallToActionIsReadableAndStandsOut() {
+        for mood in EventMoodPalette.Mood.allCases {
+            let m = WK.Mood(palette: .palette(for: mood))
+            XCTAssertTrue(rgb(m.cta, .dark) == (0xFF, 0xFF, 0xFF), "CTA blanc (\(mood))")
+            XCTAssertGreaterThanOrEqual(contrast(m.onCta, m.cta, .dark), 7, "\(mood)")
+            XCTAssertGreaterThanOrEqual(contrast(m.cta, m.background, .dark), 3, "\(mood)")
+        }
+    }
+
     /// Contour des pastilles : indice non textuel ≥ 3:1 sur le fond (WCAG 1.4.11).
     func testImmersivePillStrokeIsVisibleOnItsBackground() {
         for mood in EventMoodPalette.Mood.allCases {
