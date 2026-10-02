@@ -122,7 +122,7 @@ final class EventHubAITests: XCTestCase {
     }
 
     func testPartialFailuresKeepTheOtherSuggestions() async {
-        let model = EventHubAIModel(makeClient: { FakeClient(fails: ["summary", "invitation"]) })
+        let model = EventHubAIModel(makeClient: { FakeClient(fails: ["summary", "invitation"]) }, makeFallback: nil)
         await model.generate(facts: facts(phase: .organizing, isOrganizer: true))
         guard case .loaded(let result) = model.state else { return XCTFail("\(model.state)") }
         XCTAssertNil(result.summary)
@@ -131,9 +131,19 @@ final class EventHubAITests: XCTestCase {
     }
 
     func testEverythingFailingShowsTheFailure() async {
-        let model = EventHubAIModel(makeClient: { FakeClient(fails: ["summary", "polls", "checklist", "invitation"]) })
+        let model = EventHubAIModel(makeClient: { FakeClient(fails: ["summary", "polls", "checklist", "invitation"]) }, makeFallback: nil)
         await model.generate(facts: facts(phase: .draft, isOrganizer: true))
         XCTAssertEqual(model.state, .failed)
+    }
+
+    /// Foundation Models annoncé disponible mais en échec (constaté au simulateur) : repli heuristique par partie.
+    func testFailingPartsFallBackToTheHeuristicClient() async {
+        let model = EventHubAIModel(makeClient: { FakeClient(fails: ["summary", "invitation"]) })
+        await model.generate(facts: facts(phase: .organizing, isOrganizer: true))
+        guard case .loaded(let result) = model.state else { return XCTFail("\(model.state)") }
+        XCTAssertEqual(result.checklist.map(\.title), ["Prévoir le gâteau"], "Partie réussie : gardée.")
+        XCTAssertNotNil(result.summary, "Partie en échec : client heuristique.")
+        XCTAssertNotNil(result.invitation)
     }
 
     func testHeuristicClientProducesSuggestions() async {

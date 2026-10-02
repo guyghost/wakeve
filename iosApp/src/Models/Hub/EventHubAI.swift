@@ -105,12 +105,19 @@ final class EventHubAIModel: ObservableObject {
     @Published private(set) var state: State = .idle
 
     private let makeClient: @Sendable () -> WakeveAIClientProtocol
+    /// Repli par partie quand le client principal échoue (Foundation Models annoncé disponible mais en échec ou
+    /// hors délai) : le client heuristique local, comme l'ancien panneau. nil : pas de repli.
+    private let makeFallback: (@Sendable () -> WakeveAIClientProtocol)?
     private var generation = 0
 
-    init(makeClient: @escaping @Sendable () -> WakeveAIClientProtocol = {
-        WakeveAIClientFactory.makeDefault(availability: WakeveAIAvailabilityService().currentAvailability())
-    }) {
+    init(
+        makeClient: @escaping @Sendable () -> WakeveAIClientProtocol = {
+            WakeveAIClientFactory.makeDefault(availability: WakeveAIAvailabilityService().currentAvailability())
+        },
+        makeFallback: (@Sendable () -> WakeveAIClientProtocol)? = { HeuristicWakeveAIClient() }
+    ) {
         self.makeClient = makeClient
+        self.makeFallback = makeFallback
     }
 
     var isLoading: Bool { state == .loading }
@@ -124,8 +131,13 @@ final class EventHubAIModel: ObservableObject {
         let context = EventHubAI.context(for: facts)
         let localeIdentifier = WK.appLocale.identifier
         let makeClient = self.makeClient
+        let makeFallback = self.makeFallback
         let work = Task.detached(priority: .userInitiated) {
-            await Self.run(sections: sections, context: context, localeIdentifier: localeIdentifier, client: makeClient())
+            let primary = await Self.run(sections: sections, context: context, localeIdentifier: localeIdentifier, client: makeClient())
+            let missing = Self.missingSections(sections, in: primary)
+            guard let makeFallback, !missing.isEmpty else { return primary }
+            let fallback = await Self.run(sections: missing, context: context, localeIdentifier: localeIdentifier, client: makeFallback())
+            return Self.merging(primary, fallback)
         }
         let result = await work.value
         guard token == generation else { return }
@@ -162,6 +174,26 @@ final class EventHubAIModel: ObservableObject {
             polls: polls ?? [],
             checklist: checklist ?? [],
             invitation: invitation
+        )
+    }
+
+    nonisolated static func missingSections(_ sections: [EventHubAI.Section], in result: EventHubAIResult) -> [EventHubAI.Section] {
+        sections.filter { section in
+            switch section {
+            case .summary: return result.summary == nil
+            case .polls: return result.polls.isEmpty
+            case .checklist: return result.checklist.isEmpty
+            case .invitation: return result.invitation == nil
+            }
+        }
+    }
+
+    nonisolated static func merging(_ primary: EventHubAIResult, _ fallback: EventHubAIResult) -> EventHubAIResult {
+        EventHubAIResult(
+            summary: primary.summary ?? fallback.summary,
+            polls: primary.polls.isEmpty ? fallback.polls : primary.polls,
+            checklist: primary.checklist.isEmpty ? fallback.checklist : primary.checklist,
+            invitation: primary.invitation ?? fallback.invitation
         )
     }
 
