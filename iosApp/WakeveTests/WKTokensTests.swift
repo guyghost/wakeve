@@ -141,4 +141,57 @@ final class WKTokensTests: XCTestCase {
             XCTAssertGreaterThanOrEqual(contrast(m.textSecondary, m.background, .dark), 4.5, "\(mood)")
         }
     }
+
+    // MARK: - Mode immersif (couche 8)
+
+    /// Couleur translucide posée sur un fond opaque (rendu réel d'une carte ou d'un contour).
+    private func composite(_ top: Color, over bottom: Color) -> Color {
+        let t = UIColor(top).resolvedColor(with: UITraitCollection(userInterfaceStyle: .dark))
+        let b = UIColor(bottom).resolvedColor(with: UITraitCollection(userInterfaceStyle: .dark))
+        var tr: CGFloat = 0, tg: CGFloat = 0, tb: CGFloat = 0, ta: CGFloat = 0
+        var br: CGFloat = 0, bg: CGFloat = 0, bb: CGFloat = 0, ba: CGFloat = 0
+        t.getRed(&tr, green: &tg, blue: &tb, alpha: &ta)
+        b.getRed(&br, green: &bg, blue: &bb, alpha: &ba)
+        func mix(_ x: CGFloat, _ y: CGFloat) -> CGFloat { x * ta + y * (1 - ta) }
+        return Color(uiColor: UIColor(red: mix(tr, br), green: mix(tg, bg), blue: mix(tb, bb), alpha: 1))
+    }
+
+    /// Le fond n'est plus presque noir : la teinte de l'événement se voit (luminance relative ≥ 0,02).
+    func testImmersiveMoodBackgroundIsVisiblyTinted() {
+        for mood in EventMoodPalette.Mood.allCases {
+            let m = WK.Mood(palette: .palette(for: mood))
+            XCTAssertGreaterThanOrEqual(luminance(m.background, .dark), 0.02, "\(mood) : fond trop proche du noir")
+        }
+    }
+
+    /// Deux ambiances différentes ont des fonds distincts (au moins un canal écarté de 12/255).
+    func testImmersiveMoodsHaveDistinctBackgrounds() {
+        let moods = EventMoodPalette.Mood.allCases
+        for (index, a) in moods.enumerated() {
+            for b in moods[(index + 1)...] {
+                let ca = rgb(WK.Mood(palette: .palette(for: a)).background, .dark)
+                let cb = rgb(WK.Mood(palette: .palette(for: b)).background, .dark)
+                let gap = max(abs(ca.0 - cb.0), abs(ca.1 - cb.1), abs(ca.2 - cb.2))
+                XCTAssertGreaterThanOrEqual(gap, 12, "\(a) et \(b) : fonds trop proches (\(gap))")
+            }
+        }
+    }
+
+    /// Texte sur une carte immersive (`surface` translucide sur le fond) : mêmes seuils que sur le fond.
+    func testImmersiveMoodTextIsReadableOnItsSurface() {
+        for mood in EventMoodPalette.Mood.allCases {
+            let m = WK.Mood(palette: .palette(for: mood))
+            let surface = composite(m.surface, over: m.background)
+            XCTAssertGreaterThanOrEqual(contrast(m.textPrimary, surface, .dark), 7, "\(mood)")
+            XCTAssertGreaterThanOrEqual(contrast(m.textSecondary, surface, .dark), 4.5, "\(mood)")
+        }
+    }
+
+    /// Contour des pastilles : indice non textuel ≥ 3:1 sur le fond (WCAG 1.4.11).
+    func testImmersivePillStrokeIsVisibleOnItsBackground() {
+        for mood in EventMoodPalette.Mood.allCases {
+            let m = WK.Mood(palette: .palette(for: mood))
+            XCTAssertGreaterThanOrEqual(contrast(composite(m.pillStroke, over: m.background), m.background, .dark), 3, "\(mood)")
+        }
+    }
 }

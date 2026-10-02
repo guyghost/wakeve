@@ -190,9 +190,14 @@ enum WK {
 
     // MARK: - Mode immersif
 
-    /// Ambiance sombre teintée par la palette de l'événement (invitation, jour J).
+    /// Ambiance sombre teintée par la palette de l'événement (invitation, jour J), toujours sombre.
+    /// Fond = couleur secondaire sombre de la palette (couche 8) : teinte visible et distincte d'une
+    /// ambiance à l'autre (l'ancienne primaire assombrie de 72 % était presque noire). Contrastes garantis
+    /// par `WKTokensTests` pour chaque ambiance : texte principal ≥ 7:1 et secondaire ≥ 4,5:1 sur le fond
+    /// et sur `surface`, contour des pastilles ≥ 3:1.
     struct Mood {
         let background: Color
+        /// Carte posée sur le fond : blanc translucide (pas de matériau, donc rien à remplacer sous Reduce Transparency).
         let surface: Color
         let textPrimary: Color
         let textSecondary: Color
@@ -200,21 +205,13 @@ enum WK {
         let accent: Color
 
         init(palette: EventMoodPalette) {
-            let tint = UIColor(palette.primary(for: .dark))
-            background = Color(uiColor: WK.darkened(tint, towardsBlackBy: 0.72))
-            surface = Color(uiColor: WK.uiColor(0xFFFFFF, alpha: 0.08))
-            textPrimary = Color(uiColor: WK.uiColor(0xF2F7F6))
-            textSecondary = Color(uiColor: WK.uiColor(0xB8C4C2))
-            pillStroke = Color(uiColor: WK.uiColor(0xFFFFFF, alpha: 0.25))
+            background = palette.secondary(for: .dark)
+            surface = Color(uiColor: WK.uiColor(0xFFFFFF, alpha: 0.06))
+            textPrimary = Color(uiColor: WK.uiColor(0xFFFFFF))
+            textSecondary = Color(uiColor: WK.uiColor(0xC9D3D1))
+            pillStroke = Color(uiColor: WK.uiColor(0xFFFFFF, alpha: 0.45))
             accent = palette.accent(for: .dark)
         }
-    }
-
-    static func darkened(_ color: UIColor, towardsBlackBy amount: CGFloat) -> UIColor {
-        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-        color.getRed(&r, green: &g, blue: &b, alpha: &a)
-        let keep = 1 - amount
-        return UIColor(red: r * keep, green: g * keep, blue: b * keep, alpha: 1)
     }
 }
 
