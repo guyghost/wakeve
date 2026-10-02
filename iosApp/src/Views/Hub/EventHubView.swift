@@ -508,6 +508,8 @@ struct EventHubContainer: View {
     @StateObject private var viewModel: EventHubViewModel
     /// Checklist de l'événement gardée sur l'appareil (modèle choisi à la création, suggestions ajoutées).
     @StateObject private var checklist: EventChecklistModel
+    /// Suggestions IA, générées à la demande.
+    @StateObject private var ai = EventHubAIModel()
     @State private var lifecycleController: EventLifecycleTransitionController?
     @State private var lifecycleError: String?
     @State private var lifecycleInFlight = false
@@ -582,7 +584,12 @@ struct EventHubContainer: View {
             onWillReload: { lifecycleError = nil },
             onOpenEventDay: onOpenEventDay,
             supplements: { facts in
-                AnyView(EventHubSupplements(facts: facts, checklist: checklist))
+                AnyView(EventHubSupplements(
+                    facts: facts,
+                    checklist: checklist,
+                    ai: ai,
+                    onAddDates: { onPrimary(.addDates) }
+                ))
             }
         )
         .onChange(of: reloadToken) { _, _ in

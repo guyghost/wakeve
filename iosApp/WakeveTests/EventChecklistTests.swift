@@ -160,7 +160,8 @@ final class EventChecklistTests: XCTestCase {
     func testHubOwnsTheChecklistAndRendersItWithWKComponents() throws {
         let hub = try source("src/Views/Hub/EventHubView.swift")
         XCTAssertTrue(hub.contains("@StateObject private var checklist: EventChecklistModel"))
-        XCTAssertTrue(hub.contains("EventHubSupplements(facts: facts, checklist: checklist"))
+        XCTAssertTrue(hub.contains("AnyView(EventHubSupplements("))
+        XCTAssertTrue(hub.contains("checklist: checklist,"))
         let supplements = try source("src/Views/Hub/EventHubSupplements.swift")
         XCTAssertTrue(supplements.contains("EventHubChecklistCard.isVisible(items: checklist.items, facts: facts)"))
         XCTAssertTrue(supplements.contains("EventHubChecklistCard("))
