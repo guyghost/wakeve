@@ -231,6 +231,9 @@ struct AuthenticatedView: View {
     @State private var showEventCreationSheet = false
     @State private var eventCreationScenario: EventScenario?
     @State private var preparedCreationChecklists: [String: [ChecklistItem]] = [:]
+    /// Flux de création de la refonte (couche 7, #47) et brouillon à reprendre (nil : nouveau).
+    @State private var showCreateEventFlow = false
+    @State private var createFlowDraftId: String?
     
     // New state variables for PRD features
     @State private var showScenarioList = false
@@ -283,6 +286,17 @@ struct AuthenticatedView: View {
             NavigationStack {
                 NotificationPreferencesView(userId: userId)
             }
+        }
+        .fullScreenCover(isPresented: $showCreateEventFlow) {
+            CreateEventFlow(
+                userId: userId,
+                draftEventId: createFlowDraftId,
+                initialScenario: eventCreationScenario,
+                onClose: closeCreateEventFlow,
+                onLaunched: { event, context in
+                    finishCreateEventFlow(event, context: context)
+                }
+            )
         }
         .sheet(item: $invitationStudioPreview) { preview in
             InvitationStudioPreviewSheet(preview: preview)
@@ -591,20 +605,39 @@ struct AuthenticatedView: View {
         return { currentView = destination }
     }
 
-    /// Mirrors the `.eventCreate` deep-link branch so the ＋ button follows the
-    /// same rollout rules as the legacy entry points.
+    /// ＋ de la refonte : ouvre toujours le flux 4 questions (couche 7, #47), que le flag invitations
+    /// soit allumé ou non ; le studio n'est plus un point d'entrée de création. Le lien profond
+    /// `.eventCreate` garde son aiguillage.
     private func beginRedesignEventCreation() {
         redesignRouter.zone = .events
         eventCreationScenario = nil
-        if invitationExperienceRolloutEnabled {
-            selectedEvent = nil
-            selectedCreationBaseRevision = nil
-            selectedCreationArtwork = nil
-            showEventCreationSheet = false
-            currentView = .eventCreation
-        } else {
-            showEventCreationSheet = true
-        }
+        openCreateEventFlow(draftEventId: nil)
+    }
+
+    private func openCreateEventFlow(draftEventId: String?) {
+        createFlowDraftId = draftEventId
+        showCreateEventFlow = true
+    }
+
+    /// « Lancer le sondage » réussi : checklist du modèle conservée, hub de l'événement en sondage.
+    private func finishCreateEventFlow(_ event: Event, context: EventCreationContext) {
+        persistCreationContext(context, for: event)
+        showCreateEventFlow = false
+        createFlowDraftId = nil
+        eventCreationScenario = nil
+        redesignRouter.zone = .events
+        selectedTab = .home
+        selectedEvent = event
+        currentView = .eventDetail
+        eventsHomeReloadToken += 1
+    }
+
+    /// Fermeture : le brouillon (s'il existe) est déjà enregistré ; l'accueil le montre.
+    private func closeCreateEventFlow() {
+        showCreateEventFlow = false
+        createFlowDraftId = nil
+        eventCreationScenario = nil
+        eventsHomeReloadToken += 1
     }
 
     // MARK: - Accueil de la refonte (couche 3, #47)
@@ -676,8 +709,20 @@ struct AuthenticatedView: View {
         }
     }
 
-    /// Reprend le chemin « modifier un brouillon » de la bibliothèque ; sans rollout invitation, ouvre le détail.
+    /// Brouillon créé hors studio (aucun reçu d'invitation, `CreateFlowEntry`) : flux 4 questions (couche 7).
+    /// Sinon chemin « modifier un brouillon » de la bibliothèque ; sans rollout invitation, ouvre le détail.
     private func editDraftFromHome(_ id: String) {
+        if iosRedesign2026,
+           CreateFlowEntry.draftRoute(
+               status: repository.getEvent(id: id)?.status,
+               hasInvitationReceipt: CreateFlowEntry.hasInvitationReceipt(
+                   eventId: id,
+                   database: RepositoryProvider.shared.database
+               )
+           ) == .createFlow {
+            openCreateEventFlow(draftEventId: id)
+            return
+        }
         guard invitationExperienceRolloutEnabled, let event = repository.getEvent(id: id) else {
             openEventFromHome(id)
             return
