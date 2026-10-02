@@ -434,7 +434,6 @@ final class HubModuleSheetViewTests: XCTestCase {
         let preRoute = try XCTUnwrap(handler.range(of: "AppRouter.preRoute("))
         XCTAssertLessThan(dismissCall.lowerBound, preRoute.lowerBound, "La sheet se ferme avant le pré-aiguillage.")
         XCTAssertTrue(handler.contains("redesignRouter.presentation = hubSheet.routerPresentation(redesignRouter.presentation)"))
-        XCTAssertTrue(content.contains(".onChange(of: iosRedesign2026) { _, _ in dismissHubModuleSheet() releaseHubSheetHost() }"))
         XCTAssertTrue(content.contains(".onChange(of: selectedEvent?.id) { _, id in hubSheet.selectedEventChanged(to: id) }"))
         XCTAssertTrue(content.contains(".onChange(of: currentView) { _, view in if view != .eventDetail { releaseHubSheetHost() } }"))
         XCTAssertTrue(content.contains(".onChange(of: redesignRouter.zone) { _, zone in dismissHubModuleSheet()"))

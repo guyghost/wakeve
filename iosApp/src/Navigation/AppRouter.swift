@@ -50,11 +50,9 @@ final class AppRouter {
         }
     }
 
-    /// Pré-aiguillage des deep links : flag éteint, la route est rendue telle
-    /// quelle (routeur intact) ; flag allumé, le plan est appliqué au shell.
+    /// Pré-aiguillage des deep links : le plan est appliqué au shell.
     /// - Returns: la route que l'aiguillage d'événements doit encore traiter, sinon `nil`.
-    static func preRoute(_ route: IosRoute, redesignEnabled: Bool, router: AppRouter) -> IosRoute? {
-        guard redesignEnabled else { return route }
+    static func preRoute(_ route: IosRoute, router: AppRouter) -> IosRoute? {
         if case .topLevel(.notifications(let filter)) = route {
             router.activityFilter = activityFilter(for: filter)
             router.activityFilterRequest += 1

@@ -1,7 +1,7 @@
 import Shared
 import SwiftUI
 
-/// Hub d'un événement sous `iosRedesign2026` (couche 4, #47) : hero teinté, tuiles de modules
+/// Hub d'un événement (couche 4, #47) : hero teinté, tuiles de modules
 /// filtrées par statut, vote rapide et action principale. Les tuiles ouvrent les écrans existants.
 struct EventHubView: View {
     enum MenuAction: Equatable { case info, addParticipants, report, support }

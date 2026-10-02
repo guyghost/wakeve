@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Accueil de la zone Événements sous `iosRedesign2026` (couche 3, #47) :
+/// Accueil de la zone Événements (couche 3, #47) :
 /// « Prochaine étape », grille d'événements, section « Passés » repliée, état vide et synchro discrète.
 struct EventsHomeView: View {
     @ObservedObject var viewModel: EventsHomeViewModel

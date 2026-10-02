@@ -185,7 +185,6 @@ struct ErrorView: View {
 struct AuthenticatedView: View {
     let userId: String
     @AppStorage("iosInvitationExperienceV1") private var iosInvitationExperienceV1 = false
-    @AppStorage(FeatureFlags.redesign2026Key) private var iosRedesign2026 = false
     @Environment(\.scenePhase) private var scenePhase
     @State private var redesignRouter = AppRouter()
     @State private var activityAtRoot = true
@@ -266,9 +265,9 @@ struct AuthenticatedView: View {
     }
 
     var body: some View {
-        // Main tabs are destinations only. One-off actions such as Create Event
-        // stay contextual in Home, toolbars, or sheets.
-        shellChrome
+        // Shell de la refonte (zones Événements / Activité) ; les actions ponctuelles
+        // comme la création restent contextuelles (＋, sheets).
+        redesignChrome
         .fullScreenCover(isPresented: $showEventCreationSheet) {
             CreateEventSheet(
                 userId: userId,
@@ -340,11 +339,6 @@ struct AuthenticatedView: View {
             openQAInvitationLandingIfRequested()
         }
 #endif
-        .onChange(of: iosRedesign2026) { _, _ in redesignRouter = AppRouter() }
-        .onChange(of: iosRedesign2026) { _, _ in
-            dismissHubModuleSheet()
-            releaseHubSheetHost()
-        }
         .onChange(of: selectedEvent?.id) { _, id in hubSheet.selectedEventChanged(to: id) }
         .onChange(of: currentView) { _, view in
             if view != .eventDetail { releaseHubSheetHost() }
@@ -493,16 +487,7 @@ struct AuthenticatedView: View {
         selectedTab == .home && currentView != .eventList ? .hidden : .visible
     }
 
-    // MARK: - Shell (legacy tabs vs redesign 2026, proposition #47)
-
-    @ViewBuilder
-    private var shellChrome: some View {
-        if iosRedesign2026 {
-            redesignChrome
-        } else {
-            legacyTabChrome
-        }
-    }
+    // MARK: - Shell (proposition #47)
 
     private var legacyTabChrome: some View {
             TabView(selection: $selectedTab) {
@@ -635,16 +620,13 @@ struct AuthenticatedView: View {
         return { currentView = destination }
     }
 
-    /// ＋ de la refonte (et « Créer » de l'accueil vide) : flux 4 questions (couche 7, #47) seulement
-    /// rollout invitation éteint ; allumé, le studio reste le point d'entrée tant que le flux ne
-    /// synchronise pas les événements (Swarm DAO #48). Le lien profond `.eventCreate` garde son aiguillage.
+    /// ＋ (et « Créer » de l'accueil vide, lien profond `.eventCreate`) : flux 4 questions (couche 7, #47)
+    /// seulement rollout invitation éteint ; allumé, le studio reste le point d'entrée tant que le flux ne
+    /// synchronise pas les événements (Swarm DAO #48).
     private func beginRedesignEventCreation() {
         redesignRouter.zone = .events
         eventCreationScenario = nil
-        switch CreateFlowEntry.newEventRoute(
-            redesign: iosRedesign2026,
-            invitationRollout: invitationExperienceRolloutEnabled
-        ) {
+        switch CreateFlowEntry.newEventRoute(invitationRollout: invitationExperienceRolloutEnabled) {
         case .createFlow:
             openCreateEventFlow(draftEventId: nil)
         case .studio:
@@ -653,8 +635,6 @@ struct AuthenticatedView: View {
             selectedCreationArtwork = nil
             showEventCreationSheet = false
             currentView = .eventCreation
-        case .legacySheet:
-            showEventCreationSheet = true
         }
     }
 
@@ -761,8 +741,7 @@ struct AuthenticatedView: View {
     /// Sinon chemin « modifier un brouillon » de la bibliothèque ; sans rollout invitation, ouvre le détail.
     private func editDraftFromHome(_ id: String) {
         let draft = repository.getEvent(id: id)
-        if iosRedesign2026,
-           CreateFlowEntry.draftRoute(
+        if CreateFlowEntry.draftRoute(
                status: draft?.status,
                planningMode: draft?.planningMode,
                hasInvitationReceipt: CreateFlowEntry.hasInvitationReceipt(
@@ -788,7 +767,7 @@ struct AuthenticatedView: View {
 
     // MARK: - Hub d'événement de la refonte (couche 4, #47)
 
-    /// Hub sous `iosRedesign2026` ; mêmes routes et gardes que le détail legacy (`EventDetailView`).
+    /// Hub d'événement ; mêmes routes et gardes que le détail legacy (`EventDetailView`).
     private func eventHubContent(for event: Event) -> some View {
         EventHubContainer(
             eventId: event.id,
@@ -880,7 +859,7 @@ struct AuthenticatedView: View {
 
     // MARK: - Mode immersif de la refonte (couche 8, #47)
 
-    /// Invitation reçue sous `iosRedesign2026` (couche 8, #47), à la place du hub tant que `invitationLandingEventId`
+    /// Invitation reçue (couche 8, #47), à la place du hub tant que `invitationLandingEventId`
     /// désigne l'événement. « Voir l'événement » efface le marqueur (le hub prend le relais) ; « Voter » suit la route
     /// du hub ; fermer revient à la liste, comme le retour du hub.
     private func invitationLandingContent(for event: Event) -> some View {
@@ -905,9 +884,8 @@ struct AuthenticatedView: View {
         .id(event.id)
     }
 
-    /// Jour J en plein écran (hub « C'est aujourd'hui », accueil « Voir le jour J »), sous la refonte seulement.
+    /// Jour J en plein écran (hub « C'est aujourd'hui », accueil « Voir le jour J »).
     private func openEventDay(_ eventId: String) {
-        guard iosRedesign2026 else { return }
         invitationLandingEventId = InvitationLandingRoute.marker(invitationLandingEventId, opening: eventId)
         dismissHubModuleSheet()
         eventDayPresentation = EventDayPresentation(id: eventId)
@@ -1068,7 +1046,7 @@ struct AuthenticatedView: View {
             }
             
         case .eventDetail:
-            if iosRedesign2026, let event = selectedEvent {
+            if let event = selectedEvent {
                 if InvitationLandingRoute.showsLanding(
                     marker: invitationLandingEventId, eventId: event.id, organizerId: event.organizerId, viewerId: userId
                 ) {
@@ -1082,6 +1060,8 @@ struct AuthenticatedView: View {
                 }
             } else if let event = selectedEvent,
                let artwork = invitationExperienceProjectionRepository.artwork(eventId: event.id) {
+                // Détail legacy inatteignable depuis la couche 9 (le hub est la seule surface) ;
+                // supprimé avec `EventDetailView` en passe B.
                 EventDetailView(
                     event: event,
                     artwork: artwork,
@@ -1842,34 +1822,17 @@ struct AuthenticatedView: View {
 #endif
     }
 
-    @ViewBuilder
     private var invitationExperienceRootContent: some View {
-        if iosRedesign2026 {
-            EventsHomeContainer(
-                userId: userId,
-                reloadToken: eventsHomeReloadToken,
-                onOpenEvent: { id in openEventFromHome(id) },
-                onNextStep: { step in handleHomeNextStep(step) },
-                onCreate: { beginRedesignEventCreation() },
-                onEditDraft: { id in editDraftFromHome(id) },
-                onDelete: { id in requestDeleteFromHome(id) },
-                invitationRollout: invitationExperienceRolloutEnabled
-            )
-        } else if invitationExperienceRolloutEnabled {
-            eventLibraryContent
-        } else {
-            EventListView(
-                repository: repository,
-                onEventSelected: { event in
-                    selectedEvent = event
-                    currentView = .eventDetail
-                },
-                onCreateEvent: {
-                    eventCreationScenario = nil
-                    showEventCreationSheet = true
-                }
-            )
-        }
+        EventsHomeContainer(
+            userId: userId,
+            reloadToken: eventsHomeReloadToken,
+            onOpenEvent: { id in openEventFromHome(id) },
+            onNextStep: { step in handleHomeNextStep(step) },
+            onCreate: { beginRedesignEventCreation() },
+            onEditDraft: { id in editDraftFromHome(id) },
+            onDelete: { id in requestDeleteFromHome(id) },
+            invitationRollout: invitationExperienceRolloutEnabled
+        )
     }
 
     // MARK: - Tab Content
@@ -2026,7 +1989,7 @@ struct AuthenticatedView: View {
     private func handleDeepLinkNavigation(_ route: IosRoute) {
         invitationLandingEventId = nil
         dismissHubModuleSheet()
-        let shellRoute = AppRouter.preRoute(route, redesignEnabled: iosRedesign2026, router: redesignRouter)
+        let shellRoute = AppRouter.preRoute(route, router: redesignRouter)
         // Profil / réglages attendent la fermeture de la sheet du hub (`finishHubModuleSheet`).
         redesignRouter.presentation = hubSheet.routerPresentation(redesignRouter.presentation)
         guard let route = shellRoute else {
@@ -2058,15 +2021,8 @@ struct AuthenticatedView: View {
             selectedTab = .home
             currentView = .organizerDashboard
         case .eventCreate:
-            selectedTab = .home
-            eventCreationScenario = nil
-            if invitationExperienceRolloutEnabled {
-                showEventCreationSheet = false
-                currentView = .eventCreation
-            } else {
-                currentView = .eventList
-                showEventCreationSheet = true
-            }
+            // Même aiguillage que ＋ : flux 4 questions, ou studio sous le rollout invitation.
+            beginRedesignEventCreation()
         case .event(.detail(let eventId)):
             navigateInvitationDeepLink(eventId: eventId, action: .showDetails)
         case .event(.pollVoting(let eventId)):

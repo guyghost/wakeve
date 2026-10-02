@@ -15,16 +15,13 @@ enum CreateFlowEntry {
         case createFlow
         /// Studio d'invitation (`currentView = .eventCreation`), synchronisé par son outbox.
         case studio
-        /// Ancienne feuille (`CreateEventSheet`).
-        case legacySheet
     }
 
-    /// ＋ et « Créer » de l'accueil vide. Décision du 2026-10-02 : le flux n'envoie pas encore les
+    /// ＋, « Créer » de l'accueil vide et lien profond `.eventCreate`. Décision du 2026-10-02 : le flux n'envoie pas encore les
     /// événements au serveur (lacune du code partagé, Swarm DAO #48) ; il ne remplace donc le point
     /// d'entrée que lorsque le rollout invitation est éteint. Rollout allumé : studio, comme avant la couche 7.
-    static func newEventRoute(redesign: Bool, invitationRollout: Bool) -> NewEventRoute {
-        if invitationRollout { return .studio }
-        return redesign ? .createFlow : .legacySheet
+    static func newEventRoute(invitationRollout: Bool) -> NewEventRoute {
+        invitationRollout ? .studio : .createFlow
     }
 
     enum DraftRoute: Equatable {

@@ -101,22 +101,27 @@ final class RedesignShellTests: XCTestCase {
         )
     }
 
-    func testAuthenticatedViewBranchesOnTheRedesignFlag() throws {
+    /// Couche 9 : la refonte est le seul shell ; plus de flag `iosRedesign2026`.
+    func testAuthenticatedViewInstallsTheRedesignShellUnconditionally() throws {
         let source = try contentViewSource()
-        XCTAssertTrue(source.contains("@AppStorage(FeatureFlags.redesign2026Key) private var iosRedesign2026 = false"))
+        XCTAssertFalse(source.contains("iosRedesign2026"), "Le flag de la refonte est retiré.")
+        XCTAssertFalse(source.contains("FeatureFlags"))
+        guard let body = source.range(of: "    var body: some View {\n        // Shell de la refonte") else {
+            return XCTFail("body d'AuthenticatedView introuvable")
+        }
+        XCTAssertTrue(String(source[body.lowerBound...].prefix(300)).contains("redesignChrome"))
         XCTAssertTrue(source.contains("RedesignShellView("))
-        XCTAssertTrue(source.contains("TabView(selection: $selectedTab)"), "Le chemin legacy reste intact tant que le flag est éteint.")
         XCTAssertTrue(source.contains("@State private var redesignRouter = AppRouter()"))
     }
 
-    func testDeepLinksGoThroughTheRouterWhenRedesignIsOn() throws {
+    func testDeepLinksGoThroughTheRouter() throws {
         let source = try contentViewSource()
         guard let start = source.range(of: "private func handleDeepLinkNavigation(_ route: IosRoute)") else {
             return XCTFail("handleDeepLinkNavigation introuvable")
         }
         let body = String(source[start.lowerBound...].prefix(1200))
         XCTAssertTrue(
-            body.contains("AppRouter.preRoute(route, redesignEnabled: iosRedesign2026, router: redesignRouter)"),
+            body.contains("AppRouter.preRoute(route, router: redesignRouter)"),
             "Toute route passe d'abord par le pré-aiguillage du routeur."
         )
     }
@@ -131,19 +136,15 @@ final class RedesignShellTests: XCTestCase {
         XCTAssertFalse(body.contains("showNotificationPreferencesSheet"), "Plus de relais vers la feuille legacy.")
     }
 
-    func testFlippingTheFlagResetsTheShellRouter() throws {
-        let source = try contentViewSource()
-        XCTAssertTrue(source.contains(".onChange(of: iosRedesign2026) { _, _ in redesignRouter = AppRouter() }"))
-    }
-
     func testRedesignRootInstallsTheNewHome() throws {
         let source = try contentViewSource()
         guard let start = source.range(of: "private var invitationExperienceRootContent") else { return XCTFail() }
         let slice = String(source[start.lowerBound...].prefix(1500))
-        XCTAssertTrue(slice.contains("if iosRedesign2026"), "La nouvelle racine est prioritaire sous le flag.")
-        // Conteneur propriétaire du modèle de vue, qui rend `EventsHomeView`.
+        // Conteneur propriétaire du modèle de vue, qui rend `EventsHomeView` : seule racine (couche 9).
         XCTAssertTrue(slice.contains("EventsHomeContainer("))
-        XCTAssertTrue(slice.contains("invitationExperienceRolloutEnabled"), "Le chemin legacy reste en place.")
+        XCTAssertTrue(slice.contains("invitationRollout: invitationExperienceRolloutEnabled"))
+        XCTAssertFalse(slice.contains("EventListView("), "Plus de liste legacy.")
+        XCTAssertFalse(slice.contains("eventLibraryContent"), "Plus de bibliothèque legacy.")
     }
 
     func testShellHeaderShowsTheWordmark() throws {
@@ -177,18 +178,15 @@ final class RedesignShellTests: XCTestCase {
 
     // MARK: - Hub d'événement (couche 4)
 
-    func testEventDetailOpensTheHubUnderTheFlagAndKeepsTheLegacyDetail() throws {
+    func testEventDetailOpensTheHub() throws {
         let source = try contentViewSource()
         guard let start = source.range(of: "case .eventDetail:"),
               let end = source.range(of: "case .eventAudience:", range: start.upperBound..<source.endIndex) else {
             return XCTFail("Tranche case .eventDetail introuvable")
         }
         let slice = String(source[start.upperBound..<end.lowerBound])
-        XCTAssertTrue(slice.contains("if iosRedesign2026, let event = selectedEvent"), "Le hub est prioritaire sous le flag.")
+        XCTAssertTrue(slice.hasPrefix("\n            if let event = selectedEvent {"), "Le hub est la surface de détail (couche 9).")
         XCTAssertTrue(slice.contains("eventHubContent(for: event)"))
-        for anchor in ["EventDetailView(", "artwork:", "onCanvasAction:", "InvitationExperienceRouteRequestCanvasAction"] {
-            XCTAssertTrue(slice.contains(anchor), "Le détail legacy reste intact : \(anchor)")
-        }
         XCTAssertFalse(slice.contains("ArtworkNone.shared"))
         XCTAssertFalse(slice.contains("invitationQAArtwork"))
         XCTAssertFalse(slice.contains("EventHubContainer("), "Les callbacks du hub vivent hors de la tranche legacy.")
@@ -230,9 +228,17 @@ final class RedesignShellTests: XCTestCase {
         XCTAssertEqual(RedesignBackRoute.destination(from: .eventAudience, organizationAccess: false), .eventDetail)
     }
 
+    /// Couche 9 : `wakeve://leaderboard` n'a pas de retour propre ; sans cette route, l'utilisateur reste bloqué.
+    func testLeaderboardDeepLinkReturnsToTheEventsRoot() {
+        XCTAssertEqual(RedesignBackRoute.destination(from: .leaderboard, organizationAccess: true), .eventList)
+        XCTAssertEqual(RedesignBackRoute.destination(from: .leaderboard, organizationAccess: false), .eventList)
+        XCTAssertFalse(RedesignBackRoute.needsOrganizationAccess(.leaderboard))
+        XCTAssertEqual(RedesignBackRoute.placement(for: .leaderboard), .inset)
+    }
+
     func testBackRouteStaysOffScreensThatAlreadyHaveABackControl() {
         // Écrans avec leur propre retour (onBack/onDone/onReturn) ou racine : pas de second bouton.
-        for view in [AppView.eventList, .eventDetail, .eventCreation, .eventInformation, .eventArchive,
+        for view in [AppView.eventList, .eventDetail, .eventCreation, .eventInformation, .eventArchive, .organizerDashboard,
                      .participantManagement, .pollVoting, .pollResults, .scenarioList, .accommodation,
                      .mealPlanning, .equipmentChecklist, .activityPlanning, .transportPlanning, .eventPhotos] {
             XCTAssertNil(RedesignBackRoute.destination(from: view, organizationAccess: true), "\(view)")

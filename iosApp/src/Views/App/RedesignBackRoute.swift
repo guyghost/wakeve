@@ -1,8 +1,8 @@
 import SwiftUI
 
 /// Retour des écrans atteints depuis le hub qui n'ont pas de contrôle de retour propre (couche 4, #47).
-/// Sous `iosRedesign2026`, la barre flottante disparaît hors racine : sans ce retour, l'utilisateur
-/// resterait bloqué. Les `case` legacy de `homeTabContent` restent inchangés.
+/// La barre flottante disparaît hors racine : sans ce retour, l'utilisateur resterait bloqué.
+/// Les `case` de `homeTabContent` restent inchangés.
 enum RedesignBackRoute {
     enum Placement: Equatable {
         /// Rangée posée en inset haut par le shell : écrans sans pile de navigation interne poussée.
@@ -19,6 +19,9 @@ enum RedesignBackRoute {
         switch view {
         case .eventAudience:
             return .eventDetail
+        case .leaderboard:
+            // Lien profond `wakeve://leaderboard` (couche 9) : l'écran n'a pas de retour propre.
+            return .eventList
         case .budgetOverview, .meetingList, .paymentPot:
             return organizationAccess ? .eventDetail : nil
         case .budgetDetail:
@@ -53,7 +56,7 @@ private struct RedesignBackActionKey: EnvironmentKey {
 }
 
 extension EnvironmentValues {
-    /// Retour vers le hub fourni par le shell de la refonte ; nil hors refonte (écran legacy inchangé).
+    /// Retour vers le hub fourni par le shell ; nil quand l'écran porte son propre retour.
     var redesignBackAction: (() -> Void)? {
         get { self[RedesignBackActionKey.self] }
         set { self[RedesignBackActionKey.self] = newValue }

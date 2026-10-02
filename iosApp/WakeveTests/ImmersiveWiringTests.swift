@@ -22,8 +22,8 @@ final class ImmersiveWiringTests: XCTestCase {
     func testRedesignShowsTheLandingInsteadOfTheHubForTheInvitedEvent() throws {
         let source = try contentView
         let detail = slice(source, from: "case .eventDetail:", to: "case .eventAudience:")
-        XCTAssertTrue(detail.contains("if iosRedesign2026, let event = selectedEvent"))
-        let redesign = slice(detail, from: "if iosRedesign2026, let event = selectedEvent", to: "} else if let event = selectedEvent")
+        XCTAssertTrue(detail.contains("if let event = selectedEvent {"))
+        let redesign = slice(detail, from: "if let event = selectedEvent {", to: "} else if let event = selectedEvent")
         let flat = redesign.split(whereSeparator: \.isWhitespace).joined(separator: " ")
         XCTAssertTrue(flat.contains(
             "if InvitationLandingRoute.showsLanding( marker: invitationLandingEventId, eventId: event.id, organizerId: event.organizerId, viewerId: userId ) {"
@@ -33,7 +33,6 @@ final class ImmersiveWiringTests: XCTestCase {
         // Organisateur marqué : le hub efface le marqueur.
         XCTAssertTrue(redesign.contains(".task(id: invitationLandingEventId)"))
         XCTAssertTrue(flat.contains("if invitationLandingEventId == event.id { invitationLandingEventId = nil }"))
-        XCTAssertTrue(detail.contains("isInvitationLanding: invitationLandingEventId == event.id"), "Détail legacy inchangé.")
     }
 
     func testLandingActionsClearTheLandingThroughTheirOwnPath() throws {
@@ -100,10 +99,10 @@ final class EventDayWiringTests: XCTestCase {
         XCTAssertTrue(block.contains("viewEventFromEventDay("))
     }
 
-    func testEventDayOpensOnlyUnderTheRedesign() throws {
+    func testEventDayOpensFromTheShell() throws {
         let source = try contentView
         let open = slice(source, from: "private func openEventDay(_ eventId: String)", to: "private func viewEventFromEventDay(")
-        XCTAssertTrue(open.contains("guard iosRedesign2026 else"))
+        XCTAssertFalse(open.contains("guard"), "Plus de flag de refonte à vérifier (couche 9).")
         XCTAssertTrue(open.contains("eventDayPresentation = EventDayPresentation(id: eventId)"))
         let view = slice(source, from: "private func viewEventFromEventDay(", to: "/// Sheet présentée")
         XCTAssertTrue(view.contains("eventDayPresentation = nil"))

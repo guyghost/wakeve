@@ -27,27 +27,21 @@ final class ActivityShellWiringTests: XCTestCase {
         XCTAssertEqual(AppRouter.activityFilter(for: "other"), .toDo)
     }
 
-    func testPreRouteRequestsTheActivityFilterOnlyUnderTheFlag() {
+    func testPreRouteRequestsTheActivityFilter() {
         let router = AppRouter()
         XCTAssertEqual(router.activityFilter, .toDo)
         let request = router.activityFilterRequest
 
-        XCTAssertNil(AppRouter.preRoute(.topLevel(.notifications(filter: "unread")), redesignEnabled: true, router: router))
+        XCTAssertNil(AppRouter.preRoute(.topLevel(.notifications(filter: "unread")), router: router))
         XCTAssertEqual(router.zone, .activity)
         XCTAssertEqual(router.activityFilter, .all)
         XCTAssertEqual(router.activityFilterRequest, request + 1, "Chaque lien profond est une nouvelle demande.")
 
-        XCTAssertNil(AppRouter.preRoute(.topLevel(.notifications(filter: nil)), redesignEnabled: true, router: router))
+        XCTAssertNil(AppRouter.preRoute(.topLevel(.notifications(filter: nil)), router: router))
         XCTAssertEqual(router.activityFilter, .toDo)
         XCTAssertEqual(router.activityFilterRequest, request + 2)
 
-        let legacy = AppRouter()
-        XCTAssertEqual(AppRouter.preRoute(.topLevel(.notifications(filter: "unread")), redesignEnabled: false, router: legacy),
-                       .topLevel(.notifications(filter: "unread")))
-        XCTAssertEqual(legacy.activityFilter, .toDo, "Flag éteint : routeur intact.")
-        XCTAssertEqual(legacy.activityFilterRequest, 0)
-
-        XCTAssertEqual(AppRouter.preRoute(.event(.detail(eventId: "e")), redesignEnabled: true, router: router),
+        XCTAssertEqual(AppRouter.preRoute(.event(.detail(eventId: "e")), router: router),
                        .event(.detail(eventId: "e")))
         XCTAssertEqual(router.activityFilterRequest, request + 2, "Les autres routes ne touchent pas au filtre.")
     }

@@ -86,27 +86,25 @@ final class CreateEventFlowWiringTests: XCTestCase {
     /// Décision du 2026-10-02 : le flux ne synchronise pas encore les événements (Swarm DAO #48) ;
     /// avec le rollout invitation, le studio (synchronisé) reste le point d'entrée.
     func testNewEventRouteFollowsTheInvitationRollout() {
-        XCTAssertEqual(CreateFlowEntry.newEventRoute(redesign: true, invitationRollout: false), .createFlow)
-        XCTAssertEqual(CreateFlowEntry.newEventRoute(redesign: true, invitationRollout: true), .studio,
+        XCTAssertEqual(CreateFlowEntry.newEventRoute(invitationRollout: false), .createFlow)
+        XCTAssertEqual(CreateFlowEntry.newEventRoute(invitationRollout: true), .studio,
                        "Rollout invitation allumé : le studio reste le point d'entrée (#48).")
-        XCTAssertEqual(CreateFlowEntry.newEventRoute(redesign: false, invitationRollout: true), .studio)
-        XCTAssertEqual(CreateFlowEntry.newEventRoute(redesign: false, invitationRollout: false), .legacySheet)
     }
 
     func testPlusFollowsTheNewEventRoute() throws {
         let source = try contentView
         let begin = slice(source, from: "private func beginRedesignEventCreation()", to: "private func openCreateEventFlow(")
         XCTAssertTrue(begin.contains("CreateFlowEntry.newEventRoute("))
-        XCTAssertTrue(begin.contains("redesign: iosRedesign2026"))
         XCTAssertTrue(begin.contains("invitationRollout: invitationExperienceRolloutEnabled"))
         XCTAssertTrue(begin.contains("openCreateEventFlow(draftEventId: nil)"))
         XCTAssertTrue(begin.contains("currentView = .eventCreation"), "Rollout allumé : studio, comme avant la couche 7.")
         XCTAssertTrue(begin.contains("selectedCreationBaseRevision = nil"))
-        XCTAssertTrue(begin.contains("showEventCreationSheet = true"))
+        XCTAssertFalse(begin.contains("showEventCreationSheet = true"), "Plus d'ancienne feuille (couche 9).")
 
+        // Couche 9 : le lien profond `.eventCreate` suit l'aiguillage de ＋.
         let deepLink = slice(source, from: "case .eventCreate:", to: "case .event(.detail")
-        XCTAssertTrue(deepLink.contains("currentView = .eventCreation"), "Lien profond `.eventCreate` inchangé.")
-        XCTAssertTrue(deepLink.contains("showEventCreationSheet = true"))
+        XCTAssertTrue(deepLink.contains("beginRedesignEventCreation()"))
+        XCTAssertFalse(deepLink.contains("showEventCreationSheet = true"))
     }
 
     func testHomeEmptyStateCreateUsesThePlusRoute() throws {
