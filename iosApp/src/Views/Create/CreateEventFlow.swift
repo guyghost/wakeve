@@ -349,6 +349,11 @@ struct CreateFlowFieldError: View {
     let message: String
     var accessibilityID: String? = nil
 
+    /// Indice VoiceOver du champ en erreur (clé de localisation) : l'erreur est lue avec le champ. Vide sinon.
+    static func hint(_ errorKey: String?, locale: Locale = WK.appLocale) -> String {
+        errorKey.map { WK.localizedFormat($0, locale: locale) } ?? ""
+    }
+
     static func accessibilityText(_ message: String, locale: Locale = WK.appLocale) -> String {
         String(format: WK.localizedFormat("create_flow.a11y.error_format", locale: locale), locale: locale, message)
     }

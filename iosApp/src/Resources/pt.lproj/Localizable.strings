@@ -2417,7 +2417,6 @@
 "activity.feed.filter.label" = "Filtro";
 
 /* Création de la refonte (couche 7, #47) */
-"create_flow.title" = "Novo evento";
 "create_flow.question.what" = "Qual é o teu evento?";
 "create_flow.question.who" = "Quantos vão ser?";
 "create_flow.question.place" = "Onde poderia ser?";

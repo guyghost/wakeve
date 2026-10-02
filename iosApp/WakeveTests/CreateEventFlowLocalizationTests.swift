@@ -4,7 +4,6 @@ import XCTest
 /// Textes du flux de création (couche 7, #47) : présents dans les 5 langues, français au tutoiement.
 final class CreateEventFlowLocalizationTests: XCTestCase {
     static let stringKeys = [
-        "create_flow.title",
         "create_flow.question.what", "create_flow.question.who",
         "create_flow.question.place", "create_flow.question.time",
         "create_flow.subtitle.what", "create_flow.subtitle.who",
@@ -34,7 +33,7 @@ final class CreateEventFlowLocalizationTests: XCTestCase {
     static let reusedKeys = [
         "create_event.validation.title_required", "create_event.validation.slot_required",
         "participants.start_poll.action", "participants.start_poll.requires_slot",
-        "events.all_day", "common.close", "common.back", "common.cancel", "common.add"
+        "common.close", "common.back", "common.cancel", "common.add"
     ]
 
     private var resources: URL {
@@ -61,6 +60,26 @@ final class CreateEventFlowLocalizationTests: XCTestCase {
         for key in keys {
             XCTAssertTrue(strings.contains("\"\(key)\" ="), key)
         }
+    }
+
+    /// Aucune clé `create_flow.*` orpheline : chaque clé des fichiers de texte est utilisée par le code
+    /// (en entier, ou par un préfixe dynamique : questions, sous-titres par étape).
+    func testEveryCreateFlowKeyIsUsed() throws {
+        let strings = try String(contentsOf: resources.appendingPathComponent("en.lproj/Localizable.strings"), encoding: .utf8)
+        let keys = strings.split(separator: "\n")
+            .filter { $0.hasPrefix("\"create_flow.") }
+            .compactMap { $0.split(separator: "\"").first.map(String.init) }
+        let sources = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("src")
+        let code = try ["Views/Create/CreateEventFlow.swift", "Views/Create/CreateEventFlowSteps.swift",
+                        "Models/Create/CreateEventFlowModel.swift", "ViewModels/EventDraftFlowController.swift"]
+            .map { try String(contentsOf: sources.appendingPathComponent($0), encoding: .utf8) }
+            .joined(separator: "\n")
+        let dynamicPrefixes = ["create_flow.question.", "create_flow.subtitle."]
+        for key in keys where !dynamicPrefixes.contains(where: key.hasPrefix) {
+            XCTAssertTrue(code.contains("\"\(key)\""), "Clé inutilisée : \(key)")
+        }
+        XCTAssertFalse(keys.contains("create_flow.title"), "Titre jamais affiché : clé retirée.")
     }
 
     func testFrenchCopyAsksTheFourQuestionsWithTutoiement() {

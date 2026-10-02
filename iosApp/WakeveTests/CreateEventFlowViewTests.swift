@@ -89,6 +89,15 @@ final class CreateEventFlowViewTests: XCTestCase {
         XCTAssertEqual(CreateFlowFieldError.accessibilityText("Add a title", locale: Locale(identifier: "en")), "Error: Add a title")
     }
 
+    func testFieldsInErrorCarryTheErrorAsAccessibilityHint() throws {
+        XCTAssertEqual(CreateFlowFieldError.hint("create_event.validation.title_required", locale: fr),
+                       WK.localizedFormat("create_event.validation.title_required", locale: fr))
+        XCTAssertEqual(CreateFlowFieldError.hint(nil, locale: fr), "")
+        let steps = try source("src/Views/Create/CreateEventFlowSteps.swift")
+        XCTAssertGreaterThanOrEqual(steps.components(separatedBy: ".accessibilityHint(CreateFlowFieldError.hint(error))").count - 1, 3,
+                                    "Champ de texte, interrupteur et stepper d'un effectif.")
+    }
+
     func testAnnouncementListsTheVisibleErrorsInFieldOrder() {
         var form = CreateEventForm()
         form.eventTypeName = CreateEventForm.customTypeName

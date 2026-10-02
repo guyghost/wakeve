@@ -25,7 +25,9 @@ final class CreateEventFlowWiringTests: XCTestCase {
 
     func testInvitationReceiptIsTheStudioMarker() async throws {
         let database = RepositoryProvider.shared.database
-        let controller = EventDraftFlowController(userId: "flow-wiring-\(UUID().uuidString.prefix(8))")
+        let owner = "flow-wiring-\(UUID().uuidString.prefix(8))"
+        addTeardownBlock { await CreateFlowTestCleanup.removeEvents(organizedBy: owner) }
+        let controller = EventDraftFlowController(userId: owner)
         var form = CreateEventForm()
         form.title = "Apéro"
         form.description = "Sur le toit"

@@ -35,9 +35,7 @@ final class EventDraftFlowController: ObservableObject {
     }
 
     @Published private(set) var eventId: String?
-    @Published private(set) var lastSavedAt: Date?
     @Published private(set) var isSaving = false
-    @Published private(set) var errorMessage: String?
     /// « Brouillon enregistré » : vrai après une reprise ou un enregistrement réussi, faux après un échec d'écriture.
     @Published private(set) var isDraftSaved = false
 
@@ -103,7 +101,8 @@ final class EventDraftFlowController: ObservableObject {
     /// Dépôt de la même base, sans `SyncManager` — comme `CreateEventViewModel`
     /// (`createEventStateMachine(database:)`). Avec le gestionnaire de synchro, chaque écriture attend
     /// `triggerSync()` (≈ 7 s de nouvelles tentatives quand le serveur est injoignable) avant son toast :
-    /// « Continuer » resterait bloqué. La création garde sa ligne `syncMetadata` (écrite dans la transaction).
+    /// « Continuer » resterait bloqué. Les événements du flux restent locaux, comme ceux de l'ancienne
+    /// feuille : la ligne `syncMetadata` de création n'est jamais transportée (Swarm DAO #48).
     nonisolated static func localRepository() -> EventRepositoryInterface {
         DatabaseEventRepository(db: RepositoryProvider.shared.database, syncManager: nil)
     }
@@ -141,7 +140,7 @@ final class EventDraftFlowController: ObservableObject {
     func save(step: CreateEventFlowStep, form: CreateEventForm) async -> SaveResult {
         guard !isSaving else { return .failed(saveFailedMessage) }
         if let key = form.errors(for: step).values.sorted().first {
-            return fail(String(localized: String.LocalizationValue(key)))
+            return .failed(String(localized: String.LocalizationValue(key)))
         }
         isSaving = true
         defer { isSaving = false }
@@ -154,15 +153,13 @@ final class EventDraftFlowController: ObservableObject {
         if let eventId {
             succeeded = await update(eventId: eventId, step: step, form: form)
         } else {
-            guard form.isValid(.what) else { return fail(saveFailedMessage) }
+            guard form.isValid(.what) else { return .failed(saveFailedMessage) }
             succeeded = await create(form: form)
         }
         guard succeeded else {
             isDraftSaved = false
-            return fail(saveFailedMessage)
+            return .failed(saveFailedMessage)
         }
-        errorMessage = nil
-        lastSavedAt = now()
         isDraftSaved = true
         return .saved
     }
@@ -177,7 +174,7 @@ final class EventDraftFlowController: ObservableObject {
         let date = now()
         // Identifiant gardé d'une tentative à l'autre : une création expirée qui aboutit plus tard
         // fait échouer la nouvelle tentative (même clé) au lieu de créer un doublon.
-        let id = pendingCreationId ?? "event-\(Int(date.timeIntervalSince1970 * 1000))"
+        let id = pendingCreationId ?? "event-\(UUID().uuidString)"
         pendingCreationId = id
         let deadline = Calendar.current.date(byAdding: .day, value: 7, to: date) ?? date
         let event = WakeveEvent(
@@ -289,10 +286,7 @@ final class EventDraftFlowController: ObservableObject {
     /// `minimumVotingDays` jours de vote : l'échéance est repoussée avant le lancement.
     func launch() async -> LaunchResult {
         guard let eventId else { return .failed(saveFailedMessage) }
-        guard await refreshDeadline(eventId: eventId) else {
-            errorMessage = saveFailedMessage
-            return .failed(saveFailedMessage)
-        }
+        guard await refreshDeadline(eventId: eventId) else { return .failed(saveFailedMessage) }
         let starter = EventPollStartController(eventId: eventId, userId: userId, repository: repository)
         let outcome = await withCheckedContinuation { (continuation: CheckedContinuation<EventPollStartController.Outcome, Never>) in
             starter.start { continuation.resume(returning: $0) }
@@ -300,10 +294,8 @@ final class EventDraftFlowController: ObservableObject {
         withExtendedLifetime(starter) {}
         switch outcome {
         case .started:
-            errorMessage = nil
             return .launched(eventId)
         case .failed(let message):
-            errorMessage = message
             return .failed(message)
         }
     }
@@ -422,11 +414,6 @@ final class EventDraftFlowController: ObservableObject {
     // MARK: - Outils
 
     private var saveFailedMessage: String { String(localized: "create_flow.error.save_failed") }
-
-    private func fail(_ message: String) -> SaveResult {
-        errorMessage = message
-        return .failed(message)
-    }
 
     private struct Counts: Equatable {
         var min: Int?

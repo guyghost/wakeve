@@ -159,6 +159,7 @@ struct CreateFlowCountRow: View {
             }
             .tint(WK.Colors.accent)
             .frame(minHeight: WK.Size.minTapTarget)
+            .accessibilityHint(CreateFlowFieldError.hint(error))
             .accessibilityIdentifier("\(accessibilityID).toggle")
 
             if let current = value {
@@ -171,6 +172,7 @@ struct CreateFlowCountRow: View {
                 .frame(minHeight: WK.Size.minTapTarget)
                 .accessibilityLabel(title)
                 .accessibilityValue(Text(current, format: .number))
+                .accessibilityHint(CreateFlowFieldError.hint(error))
                 .accessibilityIdentifier("\(accessibilityID).stepper")
             } else {
                 Text(String(localized: "create_flow.field.count_unset"))
@@ -536,6 +538,7 @@ struct CreateFlowTextField: View {
                     }
                 }
                 .accessibilityLabel(label)
+                .accessibilityHint(CreateFlowFieldError.hint(error))
                 .accessibilityIdentifier(accessibilityID)
             if let error {
                 CreateFlowFieldError(message: localized(error), accessibilityID: "\(accessibilityID).error")

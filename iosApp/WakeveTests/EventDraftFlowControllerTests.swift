@@ -2,8 +2,27 @@ import XCTest
 import Shared
 @testable import Wakeve
 
+/// Supprime les événements créés par un test (le partagé n'expose pas de base en mémoire à Swift :
+/// les tests utilisent la base de l'app hôte et nettoient derrière eux).
+enum CreateFlowTestCleanup {
+    @MainActor
+    static func removeEvents(organizedBy organizerId: String) async {
+        let database = RepositoryProvider.shared.database
+        // Sans `SyncManager` : la suppression n'attend pas les tentatives de synchro (≈ 7 s).
+        let repository = DatabaseEventRepository(db: database, syncManager: nil)
+        for event in repository.getAllEvents() where event.organizerId == organizerId {
+            database.invitationExperienceQueries.deleteEventOperationReceiptsByEventId(event_id: event.id)
+            _ = try? await repository.deleteEvent(eventId: event.id)
+            if repository.getEvent(id: event.id) != nil {
+                database.eventQueries.deleteEvent(id: event.id)
+            }
+        }
+    }
+}
+
 /// Persistance étape par étape du flux de création (couche 7, #47), avec la vraie machine d'état
-/// et le vrai dépôt SQLDelight de l'app hôte (identifiants d'organisateur uniques par test).
+/// et le vrai dépôt SQLDelight de l'app hôte (identifiants d'organisateur uniques par test, événements
+/// supprimés en fin de test).
 @MainActor
 final class EventDraftFlowControllerTests: XCTestCase {
     private let repository = RepositoryProvider.shared.repository
@@ -12,6 +31,11 @@ final class EventDraftFlowControllerTests: XCTestCase {
 
     override func setUp() async throws {
         userId = "flow-test-\(UUID().uuidString.prefix(8))"
+    }
+
+    override func tearDown() async throws {
+        await CreateFlowTestCleanup.removeEvents(organizedBy: userId)
+        XCTAssertTrue(flowEvents().isEmpty, "La base de l'app hôte ne garde aucun brouillon de test.")
     }
 
     private func makeController() -> EventDraftFlowController {
@@ -88,7 +112,7 @@ final class EventDraftFlowControllerTests: XCTestCase {
     func testFirstValidSaveCreatesTheDraft() async throws {
         let controller = makeController()
         XCTAssertNil(controller.eventId)
-        XCTAssertNil(controller.lastSavedAt)
+        XCTAssertFalse(controller.isDraftSaved)
 
         var form = whatForm()
         form.eventTypeName = "BIRTHDAY"
@@ -102,7 +126,10 @@ final class EventDraftFlowControllerTests: XCTestCase {
         XCTAssertEqual(event.status, .draft)
         XCTAssertEqual(event.organizerId, userId)
         XCTAssertEqual(event.eventType, Shared.EventType.birthday)
-        XCTAssertNotNil(controller.lastSavedAt)
+        XCTAssertTrue(eventId.hasPrefix("event-"))
+        XCTAssertNotNil(UUID(uuidString: String(eventId.dropFirst("event-".count))),
+                        "Identifiant `event-<UUID>` : aucune collision à la milliseconde.")
+        XCTAssertTrue(controller.isDraftSaved)
         XCTAssertFalse(controller.isSaving)
         XCTAssertTrue(
             database.invitationExperienceQueries.selectOperationReceiptsByEventId(event_id: eventId).executeAsList().isEmpty,
@@ -125,9 +152,10 @@ final class EventDraftFlowControllerTests: XCTestCase {
     func testInvalidStepIsNeverSavedAndCreatesNothing() async {
         let controller = makeController()
         let result = await controller.save(step: .what, form: CreateEventForm())
-        guard case .failed = result else { return XCTFail("Une étape invalide doit échouer : \(result)") }
+        XCTAssertEqual(result, .failed(String(localized: "create_event.validation.title_required")),
+                       "Une étape invalide échoue avec la première erreur.")
         XCTAssertNil(controller.eventId, "Rien de saisi : aucun brouillon créé.")
-        XCTAssertNotNil(controller.errorMessage)
+        XCTAssertFalse(controller.isDraftSaved)
     }
 
     // MARK: - Mises à jour (révision relue)
