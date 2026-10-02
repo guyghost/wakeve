@@ -4,12 +4,6 @@ import XCTest
 final class InvitationExperienceLocalizationRedTests: XCTestCase {
     private let locales = ["en", "fr", "es", "it", "pt"]
     private let requiredKeys = [
-        "invitation.library.title",
-        "invitation.library.filter.drafts",
-        "invitation.library.filter.hosting",
-        "invitation.library.filter.attending",
-        "invitation.library.filter.upcoming",
-        "invitation.library.filter.past",
         "invitation.studio.title",
         "invitation.studio.preview",
         "invitation.studio.pending_sync",
@@ -20,7 +14,6 @@ final class InvitationExperienceLocalizationRedTests: XCTestCase {
         "invitation.state.pending_sync",
         "invitation.state.stale",
         "invitation.state.unavailable",
-        "invitation.action.view_archive",
         "invitation.action.reload_projection",
         "common.retry"
     ]

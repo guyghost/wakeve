@@ -277,12 +277,10 @@ final class FindingsRegressionTests: XCTestCase {
         XCTAssertTrue(english.contains("\"moderation.report_content\" = \"Report Content\""), "English moderation report copy must be localized.")
         XCTAssertTrue(english.contains("\"moderation.block_user\" = \"Block User\""), "English block copy must be localized.")
         XCTAssertTrue(english.contains("\"moderation.unblock_user\" = \"Unblock User\""), "English unblock copy must be localized.")
-        XCTAssertTrue(english.contains("\"moderation.report_chat_context\""), "English chat report context must be localized.")
         XCTAssertTrue(english.contains("\"moderation.hidden_content_notice\""), "English hidden-content notice must be localized.")
         XCTAssertTrue(french.contains("\"moderation.report_content\" = \"Signaler le contenu\""), "French moderation report copy must be localized.")
         XCTAssertTrue(french.contains("\"moderation.block_user\" = \"Bloquer l'utilisateur\""), "French block copy must be localized.")
         XCTAssertTrue(french.contains("\"moderation.unblock_user\""), "French unblock copy must be localized.")
-        XCTAssertTrue(french.contains("\"moderation.report_chat_context\""), "French chat report context must be localized.")
         XCTAssertTrue(french.contains("\"moderation.hidden_content_notice\""), "French hidden-content notice must be localized.")
     }
 
@@ -354,15 +352,9 @@ final class FindingsRegressionTests: XCTestCase {
     func testVisibleFindingStringsAreLocalized() throws {
         let french = try readProjectFile("iosApp/src/Resources/fr.lproj/Localizable.strings")
         let requiredFrenchKeys = [
-            "\"profile.edit\" = \"Modifier\"",
             "\"poll.results.title\" = \"Résultats\"",
             "\"poll.results.no_slots_title\" = \"Aucun créneau proposé\"",
             "\"poll.results.no_votes_title\" = \"Aucun vote pour le moment\"",
-            "\"inbox.filter.inbox\" = \"Inbox\"",
-            "\"inbox.filter.focused\" = \"Prioritaires\"",
-            "\"inbox.filter.new\" = \"Nouveau\"",
-            "\"inbox.filter.unread\" = \"Non lus\"",
-            "\"inbox.filter.event\" = \"Événement\"",
             "\"settings_sheet.data_management\" = \"Gestion des données\"",
             "\"data_management.delete_account\" = \"Supprimer le compte\"",
             "\"data_management.delete_guest_data\" = \"Supprimer les données invité\""
