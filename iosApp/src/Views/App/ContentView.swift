@@ -337,6 +337,7 @@ struct AuthenticatedView: View {
 #if DEBUG
         .task {
             await prepareInvitationExperienceQALaunch()
+            openQAInvitationLandingIfRequested()
         }
 #endif
         .onChange(of: iosRedesign2026) { _, _ in redesignRouter = AppRouter() }
@@ -446,6 +447,21 @@ struct AuthenticatedView: View {
                 for: event
             )
         }
+    }
+
+    /// QA (couche 8, DEBUG seulement) : `--wakeve-qa-open-invitation-landing <eventId>` ouvre l'invitation reçue
+    /// comme après `resolveInvitationDeepLink`, sans la résolution serveur du jeton (serveur local souvent injoignable).
+    static let qaInvitationLandingArgument = "--wakeve-qa-open-invitation-landing"
+
+    private func openQAInvitationLandingIfRequested() {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let index = arguments.firstIndex(of: Self.qaInvitationLandingArgument),
+              arguments.indices.contains(index + 1),
+              let event = repository.getEvent(id: arguments[index + 1]) else { return }
+        selectedEvent = event
+        selectedTab = .home
+        invitationLandingEventId = event.id
+        currentView = .eventDetail
     }
 
     private func invitationQAArtwork(for eventId: String) async -> (any Artwork)? {

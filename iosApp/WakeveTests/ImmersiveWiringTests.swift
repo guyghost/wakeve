@@ -98,3 +98,20 @@ final class EventDayWiringTests: XCTestCase {
         XCTAssertTrue(home.contains("invitationRollout: invitationExperienceRolloutEnabled"))
     }
 }
+
+/// Argument de lancement QA de l'invitation reçue (couche 8) : DEBUG seulement.
+final class InvitationLandingQALaunchTests: XCTestCase {
+    func testLandingLaunchArgumentIsDebugOnly() throws {
+        let source = try String(contentsOf: URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .deletingLastPathComponent().appendingPathComponent("src/Views/App/ContentView.swift"), encoding: .utf8)
+        let argument = try XCTUnwrap(source.range(of: "\"--wakeve-qa-open-invitation-landing\""))
+        let before = source[..<argument.lowerBound]
+        let lastIf = try XCTUnwrap(before.range(of: "#if DEBUG", options: .backwards))
+        XCTAssertNil(before[lastIf.upperBound...].range(of: "#endif"), "L'argument vit dans un bloc #if DEBUG.")
+        let call = try XCTUnwrap(source.range(of: "openQAInvitationLandingIfRequested()\n"))
+        let beforeCall = source[..<call.lowerBound]
+        let callIf = try XCTUnwrap(beforeCall.range(of: "#if DEBUG", options: .backwards))
+        XCTAssertNil(beforeCall[callIf.upperBound...].range(of: "#endif"))
+        XCTAssertEqual(source.components(separatedBy: "\"--wakeve-qa-open-invitation-landing\"").count - 1, 1)
+    }
+}
