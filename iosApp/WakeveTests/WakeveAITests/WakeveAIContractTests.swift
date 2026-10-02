@@ -143,59 +143,6 @@ final class WakeveAIContractTests: XCTestCase {
         XCTAssertFalse(parser.contains("Locale(identifier: \"fr_FR\")"), "Smart draft date parsing must respect the user's locale instead of forcing French.")
     }
 
-    func testCreatedEventDetailSeedsPreparedChecklistFromCreationContext() throws {
-        let source = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
-        let creationCover = slice(source, from: ".fullScreenCover(isPresented: $showEventCreationSheet)", to: "// MARK: - Shell (proposition #47)")
-        let detail = slice(source, from: "struct EventDetailView: View", to: "private var topControls")
-
-        XCTAssertTrue(source.contains("@State private var preparedCreationChecklists: [String: [ChecklistItem]]"))
-        XCTAssertTrue(creationCover.contains("persistCreationContext(context, for: event)"))
-        XCTAssertTrue(source.contains("preparedCreationChecklists[event.id] = context.preparedChecklist"))
-        XCTAssertTrue(source.contains("preparedCreationChecklist: preparedCreationChecklists[event.id] ?? []"))
-        XCTAssertTrue(detail.contains("let preparedCreationChecklist: [ChecklistItem]"))
-        XCTAssertTrue(detail.contains("seedPreparedCreationChecklistIfNeeded()"))
-        XCTAssertTrue(source.contains("eventAIChecklist = preparedCreationChecklist"))
-    }
-
-    func testEventDetailExposesReviewableAISuggestions() throws {
-        let source = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
-        let content = slice(source, from: "struct EventDetailView: View", to: "private struct EventDetailHeroMetric")
-
-        XCTAssertTrue(content.contains("eventAISuggestionPanel"))
-        XCTAssertTrue(content.contains("PollSuggestionGenerator"))
-        XCTAssertTrue(content.contains("ChecklistGenerator"))
-        XCTAssertTrue(content.contains("InvitationMessageGenerator"))
-        XCTAssertTrue(content.contains("EventSummaryGenerator"))
-        XCTAssertTrue(source.contains("event.detail.ai.review_subtitle"))
-        XCTAssertTrue(source.contains("event.detail.ai.polls_title"))
-        XCTAssertTrue(source.contains("event.detail.ai.summary_title"))
-        XCTAssertTrue(source.contains("event.detail.ai.decided_title"))
-        XCTAssertTrue(source.contains("event.detail.ai.ignore_action"))
-        XCTAssertTrue(source.contains("event.detail.ai.error_unavailable"))
-        XCTAssertTrue(source.contains("event.detail.ai.priority.high"))
-        XCTAssertTrue(source.contains("event.detail.ai.priority.medium"))
-        XCTAssertTrue(source.contains("event.detail.ai.priority.low"))
-        XCTAssertTrue(source.contains("common.edit"))
-        XCTAssertTrue(source.contains("common.apply"))
-        XCTAssertFalse(source.contains("Prépare les prochaines actions"))
-        XCTAssertFalse(source.contains("Sondages proposés"))
-        XCTAssertFalse(source.contains("La suggestion n'est pas disponible pour le moment."))
-        XCTAssertFalse(source.contains("Text(\"\\(item.category.rawValue) · \\(item.priority.rawValue)\")"))
-        XCTAssertFalse(source.contains("EventAIReviewBox(title: \"Résumé\""))
-        XCTAssertFalse(source.contains("Label(\"Appliqué\""))
-        XCTAssertFalse(source.contains("Label(\"Ignoré\""))
-        XCTAssertFalse(content.contains("LanguageModelSession("), "Event detail views must not own Foundation Models sessions.")
-    }
-
-    func testEventDetailAIUsesCurrentUserLocale() throws {
-        let source = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
-        let generation = slice(source, from: "private func generateEventAISuggestions()", to: "private func updateInvitationDraft")
-
-        XCTAssertTrue(generation.contains("let localeIdentifier = Locale.autoupdatingCurrent.identifier"))
-        XCTAssertTrue(generation.contains("localeIdentifier: localeIdentifier"))
-        XCTAssertFalse(generation.contains("localeIdentifier: \"fr_FR\""), "Event detail AI should not force French output.")
-    }
-
     func testTransportPlanningExposesReviewableTransportHelper() throws {
         let source = try readProjectFile("iosApp/src/Views/Events/TransportPlanningView.swift")
         let content = slice(source, from: "struct TransportPlanningView: View", to: "private struct TransportPlanningWakeveAIContextProvider")

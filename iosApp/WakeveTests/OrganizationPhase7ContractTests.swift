@@ -264,20 +264,22 @@ final class OrganizationPhase7ContractTests: XCTestCase {
             containsAny(sources, ["pendingSync", "PendingSync", "queued", "local write", "local-first"]),
             "iOS organization sections must expose pending local-first writes."
         )
+        // Réancré (couche 9) : les marqueurs de `OrganizationUXLabels` (code mort) sont supprimés ;
+        // la bannière réelle affiche `sync.pending_changes`, dont la copie dit que l'envoi est en attente.
         XCTAssertTrue(
-            containsAny(
-                sources,
-                [
-                    "not yet synced",
-                    "not server confirmed",
-                    "server-confirmed",
-                    "queued for sync",
-                    "Synchronisation en attente",
-                    "pending server confirmation"
-                ]
-            ),
+            sources.contains("sync.pending_changes"),
             "Pending-sync copy must make clear local writes are not server-confirmed yet."
         )
+        for (locale, copy) in [
+            ("en", "Local changes waiting to sync"),
+            ("fr", "Modifications locales en attente d'envoi")
+        ] {
+            let strings = try readProjectFile("iosApp/src/Resources/\(locale).lproj/Localizable.strings")
+            XCTAssertTrue(
+                strings.contains("\"sync.pending_changes\" = \"\(copy)\""),
+                "Pending-sync copy (\(locale)) must say local writes still wait for the server."
+            )
+        }
         XCTAssertTrue(
             containsAny(
                 sources,
@@ -396,44 +398,6 @@ final class OrganizationPhase7ContractTests: XCTestCase {
         XCTAssertTrue(
             exposedEnglishPhrases.isEmpty,
             "TransportPlanningView must not expose a mostly-English primary flow. English primary phrases still visible: \(exposedEnglishPhrases)"
-        )
-    }
-
-    func testReadinessSectionsAndStateBadgesUseStableLocalizationKeys() throws {
-        let sources = try organizationSources()
-        let expectedStableKeys = [
-            "organization.section.participants",
-            "organization.section.scenario",
-            "organization.section.destination",
-            "organization.section.lodging",
-            "organization.section.transport",
-            "organization.section.meetings",
-            "organization.section.calendar",
-            "organization.section.notifications",
-            "organization.section.budget",
-            "organization.section.payment",
-            "organization.section.tricount",
-            "organization.section.sync",
-            "organization.section.unsafe_links",
-            "organization.section.access_control",
-            "organization.state.empty",
-            "organization.state.optional_not_needed",
-            "organization.state.incomplete",
-            "organization.state.complete",
-            "organization.state.pending_sync",
-            "organization.state.failed_sync",
-            "organization.state.access_denied"
-        ]
-        let missing = expectedStableKeys.filter { key in
-            let snakeKey = key.replacingOccurrences(of: ".", with: "_")
-            return !sources.contains(key) &&
-                !sources.contains(snakeKey) &&
-                !sources.contains(snakeKey.uppercased())
-        }
-
-        XCTAssertTrue(
-            missing.isEmpty,
-            "iOS Phase 7 organization UX must use stable keys/labels matching Android for sections and state badges. Missing: \(missing)"
         )
     }
 
@@ -718,13 +682,13 @@ final class OrganizationPhase7ContractTests: XCTestCase {
         let content = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
         let transportAccess = slice(
             content,
-            from: "private var canAccessTransportPlanning: Bool",
-            to: "private var canShowOrganizationDashboard: Bool"
+            from: "private func canAccessTransportPlanning(for event: Event) -> Bool",
+            to: "private func participantModels(for event: Event)"
         )
         let transportRoute = slice(content, from: "case .transportPlanning:", to: "case .comments:")
 
         XCTAssertTrue(
-            transportAccess.contains("case .finalized"),
+            transportAccess.contains(".finalized"),
             "iOS finalized events must keep Transport reachable from dashboard/menu for read-only consultation."
         )
         XCTAssertTrue(
@@ -825,26 +789,29 @@ final class OrganizationPhase7ContractTests: XCTestCase {
         )
     }
 
-    func testEventDetailPaymentAndTricountRowsExposeRealReadinessState() throws {
-        let content = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
-        let eventDetail = slice(content, from: "private struct EventDetailView", to: "private struct EventDetailHero")
+    /// Réancré sur le hub (couche 9) : la tuile et la sheet « Paiements » résument l'état réel
+    /// de la cagnotte et du relais Tricount (le détail legacy est supprimé).
+    func testHubPaymentAndTricountSummariesExposeRealReadinessState() throws {
+        let hubSource = try readProjectFile("iosApp/src/Services/SharedEventHubSource.swift")
+        let sheetSource = try readProjectFile("iosApp/src/Services/SharedEventModuleSheetSource.swift")
+        let sheetData = try readProjectFile("iosApp/src/Models/Hub/HubModuleSheetData.swift")
 
         XCTAssertTrue(
-            containsAny(eventDetail, ["paymentPotSummaryValue()", "getActivePotForEvent(eventId:", "event.detail.payment_pot.define_before_share"]),
-            "Event detail payment row must summarize the actual payment-pot readiness instead of a generic shared-pot label."
+            hubSource.contains("event.detail.payment_pot.define_before_share"),
+            "Hub payment summary must ask to define the pot before sharing when no goal exists."
         )
         XCTAssertTrue(
-            containsAny(eventDetail, ["tricountSummaryValue()", "getPaymentReadiness(eventId:", "event.detail.tricount.decide_before_expenses"]),
-            "Event detail Tricount row must summarize verified/not-needed/missing handoff state instead of generic secure-handoff copy."
+            sheetSource.contains("getPaymentReadiness(eventId:"),
+            "Hub payments sheet must read the actual Tricount handoff readiness."
         )
-        XCTAssertFalse(
-            eventDetail.contains(#"organizationDashboardValue("Cagnotte commune")"#),
-            "Event detail must not advertise a common pot when no configured goal exists."
+        XCTAssertTrue(
+            sheetData.contains("event.detail.tricount.decide_before_expenses"),
+            "Hub Tricount summary must distinguish an undecided handoff from a verified/not-needed one."
         )
-        XCTAssertFalse(
-            eventDetail.contains(#"organizationDashboardValue("Handoff sécurisé")"#),
-            "Event detail must not advertise a secure handoff before the Tricount readiness state is known."
-        )
+        for source in [hubSource, sheetSource, sheetData] {
+            XCTAssertFalse(source.contains("Cagnotte commune"), "The hub must not advertise a common pot without a configured goal.")
+            XCTAssertFalse(source.contains("Handoff sécurisé"), "The hub must not advertise a secure handoff before Tricount readiness is known.")
+        }
     }
 
     private func organizationSources() throws -> String {

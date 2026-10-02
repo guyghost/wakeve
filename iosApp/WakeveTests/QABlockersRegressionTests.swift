@@ -68,14 +68,17 @@ final class QABlockersRegressionTests: XCTestCase {
 
     // MARK: - IOS-2: organizers can reach ORGANIZING and FINALIZED
 
-    func testEventDetailDispatchesLifecycleTransitions() throws {
+    func testEventHubDispatchesLifecycleTransitions() throws {
         let controller = readProjectFileIfPresent("iosApp/src/ViewModels/EventLifecycleTransitionController.swift")
         let contentView = readProjectFileIfPresent("iosApp/src/Views/App/ContentView.swift")
 
         XCTAssertTrue(controller.contains("EventManagementContractIntentTransitionToOrganizing"))
         XCTAssertTrue(controller.contains("EventManagementContractIntentMarkAsFinalized"))
-        XCTAssertTrue(contentView.contains("EventLifecycleTransitionController"))
-        XCTAssertTrue(contentView.contains("onLifecycleChanged"), "The parent must reload the event after a transition")
+        // Réancré sur le hub (couche 9) : le détail legacy est supprimé.
+        let hub = readProjectFileIfPresent("iosApp/src/Views/Hub/EventHubView.swift")
+        XCTAssertTrue(hub.contains("EventLifecycleTransitionController("))
+        XCTAssertTrue(hub.contains("onLifecycleChanged()"), "The hub must notify its parent after a transition")
+        XCTAssertTrue(contentView.contains("onLifecycleChanged:"), "The parent must reload the event after a transition")
     }
 
     func testFinalizationBlockersAreExplainedInPlainLanguage() {

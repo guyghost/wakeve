@@ -22,37 +22,24 @@ final class OrganizationPhase5ContractTests: XCTestCase {
         )
     }
 
-    func testEventDetailOrganizingDashboardExposesPhase5EntriesForAuthorizedUsers() throws {
-        let source = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
-        let eventDetail = slice(
-            source,
-            from: "struct EventDetailView: View",
-            to: "struct OrganizerChip: View"
-        )
+    /// Réancré sur le hub (couche 9) : le détail legacy est supprimé ; en ORGANIZING le hub expose
+    /// réunions, budget/dépenses et paiements (cagnotte + Tricount) sous la garde d'accès existante.
+    func testEventHubOrganizingModulesExposePhase5EntriesForAuthorizedUsers() throws {
+        let model = try readProjectFile("iosApp/src/Models/Hub/EventHubModel.swift")
+        let routing = try readProjectFile("iosApp/src/Views/Hub/EventHubRouting.swift")
+        let organizingModules = slice(model, from: "case .organizing: return [", to: "\n")
 
+        XCTAssertTrue(organizingModules.contains(".meetings"), "ORGANIZING hub must expose a meetings entry point.")
+        XCTAssertTrue(organizingModules.contains(".budget"), "ORGANIZING hub must expose budget and expenses entry points.")
+        XCTAssertTrue(organizingModules.contains(".payments"), "ORGANIZING hub must expose the payment pot / Tricount entry point.")
+        XCTAssertTrue(routing.contains("case .payments: return .paymentPot"), "The payments module must open the payment pot route.")
         XCTAssertTrue(
-            eventDetail.contains(".organizing"),
-            "EventDetailView must explicitly expose Phase 5 organization actions from ORGANIZING workflow state."
+            model.contains("hasDetailsAccess"),
+            "The hub must receive confirmed-attendee access before showing Phase 5 details to non-organizers."
         )
         XCTAssertTrue(
-            containsAny(eventDetail, ["onOpenMeetings", "MeetingListView", "Reunions", "Meetings"]),
-            "ORGANIZING event detail must expose a meetings entry point."
-        )
-        XCTAssertTrue(
-            containsAny(eventDetail, ["onOpenBudget", "BudgetOverviewView", "BudgetDetailView", "Depenses", "Expenses"]),
-            "ORGANIZING event detail must expose budget and expenses entry points."
-        )
-        XCTAssertTrue(
-            containsAny(eventDetail, ["onOpenPayment", "PaymentPot", "Cagnotte", "Pot commun"]),
-            "ORGANIZING event detail must expose a payment pot entry point."
-        )
-        XCTAssertTrue(
-            containsAny(eventDetail, ["onOpenTricount", "Tricount"]),
-            "ORGANIZING event detail must expose a Tricount handoff entry point."
-        )
-        XCTAssertTrue(
-            containsAny(eventDetail, ["isParticipantConfirmed", "canAccessOrganizationDetails", "participantAccess"]),
-            "EventDetailView must receive or compute confirmed-attendee access before showing Phase 5 details to non-organizers."
+            model.contains("return !access || ![.organizing, .finalized].contains(facts.phase)"),
+            "Budget, meetings and payments tiles must stay locked outside ORGANIZING/FINALIZED or without access."
         )
     }
 

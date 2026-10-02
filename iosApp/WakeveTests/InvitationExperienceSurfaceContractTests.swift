@@ -27,8 +27,9 @@ final class InvitationExperienceSurfaceContractTests: XCTestCase {
             )
         }
 
+        // Couche 9 : le hub (`EventHubContainer`) remplace le canvas du détail legacy.
         let detail = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
-        XCTAssertTrue(detail.contains("EventDetailInvitationCanvas("))
+        XCTAssertTrue(detail.contains("EventHubContainer("))
     }
 
     func testProductionRootActuallyRoutesToEveryInvitationSurfaceThroughTypedPreflight() throws {
@@ -111,30 +112,28 @@ final class InvitationExperienceSurfaceContractTests: XCTestCase {
         )
     }
 
-    func testCanvasActionsIncludingEditDraftReturnToTheTypedRootRouter() throws {
+    /// Réancré (couche 9) : le canvas du détail legacy est supprimé ; l'ouverture et la reprise de brouillon
+    /// depuis l'accueil passent toujours par le routeur typé.
+    func testHomeOpenAndEditDraftReturnToTheTypedRootRouter() throws {
         let root = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
-        let detailInstallation = sourceSlice(
+        let openEvent = sourceSlice(
             root,
-            from: "EventDetailView(",
-            to: "case .eventAudience:"
+            from: "private func openEventFromHome(",
+            to: "private func handleHomeNextStep("
         )
-        let canvasDispatch = sourceSlice(
+        let editDraft = sourceSlice(
             root,
-            from: "private func performCanvasAction(",
-            to: "private func scrollToProgressiveDetails"
+            from: "private func editDraftFromHome(",
+            to: "// MARK: - Hub d'événement de la refonte"
         )
 
         XCTAssertTrue(
-            detailInstallation.contains("onCanvasAction:"),
-            "The canvas must return its typed action to AuthenticatedView instead of choosing owners inside EventDetailView."
+            openEvent.contains("InvitationExperienceRouteRequestCanvasAction(action: .showDetails)"),
+            "Opening an event must resolve through InvitationExperienceRouter before navigation."
         )
         XCTAssertTrue(
-            detailInstallation.contains("InvitationExperienceRouteRequestCanvasAction"),
-            "The installed canvas callback must resolve through InvitationExperienceRouter before navigation."
-        )
-        XCTAssertFalse(
-            canvasDispatch.contains("case .editDraft:\n            scrollToProgressiveDetails"),
-            "EDIT_DRAFT currently scrolls local details instead of opening the guarded draft editor destination."
+            editDraft.contains("InvitationExperienceRouteRequestCanvasAction(action: .editDraft)"),
+            "EDIT_DRAFT must open the guarded draft editor destination through the typed router."
         )
     }
 
@@ -437,8 +436,8 @@ final class InvitationExperienceSurfaceContractTests: XCTestCase {
     }
 
     func testNewSurfacesContainNoLocalCredentialPassOrRedeemSubstitute() throws {
-        let canvas = try readProjectFile("iosApp/src/Views/Events/EventDetailInvitationCanvas.swift")
-        let combined = (surfacePaths.map(readProjectFileIfPresent) + [canvas]).joined(separator: "\n")
+        // Couche 9 : le canvas du détail legacy est supprimé ; le contrat reste porté par les surfaces.
+        let combined = surfacePaths.map(readProjectFileIfPresent).joined(separator: "\n")
 
         for forbidden in [
             "import PassKit",
@@ -459,36 +458,6 @@ final class InvitationExperienceSurfaceContractTests: XCTestCase {
                 "The six new surfaces must not own local invitation credentials, passes, QR, or redeem: \(forbidden)"
             )
         }
-    }
-
-    func testCanvasReadyShareCapabilityRetainsAndRevalidatesEveryBindingDimension() throws {
-        let canvas = try readProjectFile("iosApp/src/Views/Events/EventDetailInvitationCanvas.swift")
-        let capability = sourceSlice(
-            canvas,
-            from: "enum EventDetailInvitationShareCapability",
-            to: "enum EventDetailInvitationCanvasLifecycleTone"
-        )
-        let filter = sourceSlice(
-            canvas,
-            from: "private func filteredShareCapability",
-            to: "private func syncDecoration"
-        )
-
-        XCTAssertTrue(
-            capability.contains("EventDetailInvitationShareBinding"),
-            "A ready server payload must retain its event/actor/revision/capability binding even while production sharing is hidden."
-        )
-        for dimension in ["eventId", "actorId", "accessRevision", "capabilityId"] {
-            XCTAssertTrue(
-                canvas.contains("let \(dimension)"),
-                "The Swift share binding drops \(dimension)."
-            )
-            XCTAssertTrue(
-                filter.contains(dimension),
-                "Share-time preflight never revalidates \(dimension)."
-            )
-        }
-        XCTAssertTrue(capability.contains("serverIssuedPayload"))
     }
 
     func testInformationAndArchiveDoNotExposeTechnicalMetadataOrOpenAccountSettingsForEventWrites() throws {
@@ -942,6 +911,25 @@ final class InvitationExperienceSurfaceContractTests: XCTestCase {
             return ""
         }
         return String(source[startRange.lowerBound..<endRange.lowerBound])
+    }
+
+    /// Réancré depuis `EventDetailInvitationCanvasContractTests` (canvas supprimé en couche 9) :
+    /// le moteur d'illustration partagé borne chaque recadrage et respecte le point focal.
+    func testSharedArtworkRendererBoundsEveryFillCropAndHonorsFocalAlignment() throws {
+        let artworkSource = try readProjectFile(
+            "iosApp/src/Views/Invitations/InvitationArtworkView.swift"
+        )
+        let sharedArtwork = sourceSlice(
+            artworkSource,
+            from: "struct InvitationArtworkView: View",
+            to: "private var fallback: some View"
+        )
+
+        XCTAssertFalse(sharedArtwork.isEmpty, "InvitationArtworkView must stay the shared artwork renderer.")
+        XCTAssertTrue(sharedArtwork.contains(".scaledToFill()"))
+        XCTAssertTrue(sharedArtwork.contains(".clipped()"))
+        XCTAssertTrue(sharedArtwork.contains("focalAlignment(focalPoint)"))
+        XCTAssertTrue(sharedArtwork.contains("crop == .fit"))
     }
 
     private func readProjectFileIfPresent(_ relativePath: String) -> String {

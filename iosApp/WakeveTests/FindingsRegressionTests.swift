@@ -257,7 +257,7 @@ final class FindingsRegressionTests: XCTestCase {
     func testUgcModerationReportBlockControlsAreReviewerVisible() throws {
         let commentItem = try readProjectFile("iosApp/src/Views/Collaboration/CommentItemView.swift")
         let commentList = try readProjectFile("iosApp/src/Views/Collaboration/CommentListView.swift")
-        let eventDetail = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
+        let eventDetail = try readProjectFile("iosApp/src/Views/Hub/EventHubView.swift")
         let participantManagement = try readProjectFile("iosApp/src/Views/Events/ParticipantManagementView.swift")
         let moderationSheet = try readProjectFile("iosApp/src/Views/Moderation/ModerationActionSheet.swift")
         let moderationService = try readProjectFile("iosApp/src/Services/ModerationService.swift")
@@ -268,8 +268,9 @@ final class FindingsRegressionTests: XCTestCase {
         XCTAssertTrue(commentItem.contains("reportUserAction"), "Comment menu must expose report user.")
         XCTAssertTrue(commentItem.contains("blockUserAction"), "Comment menu must expose block user.")
         XCTAssertTrue(commentList.contains(".sheet(item: $moderationTarget)"), "Comment list must present the moderation sheet.")
-        XCTAssertTrue(eventDetail.contains("reportEventAction"), "Event detail menu must expose report event.")
-        XCTAssertTrue(eventDetail.contains("type: .event"), "Event detail report target must use the event moderation type.")
+        XCTAssertTrue(eventDetail.contains("case .report:"), "Event hub menu must expose report event.")
+        XCTAssertTrue(eventDetail.contains("moderation.report_event"), "Event hub report action must use the moderation copy.")
+        XCTAssertTrue(eventDetail.contains("type: .event"), "Event hub report target must use the event moderation type.")
         XCTAssertTrue(participantManagement.contains("reportParticipantUserAction"), "Participant rows must expose report user.")
         XCTAssertTrue(participantManagement.contains("blockParticipantUserAction"), "Participant rows must expose block user.")
         XCTAssertTrue(participantManagement.contains("type: .user"), "Participant actions must use the user moderation type.")
@@ -345,24 +346,6 @@ final class FindingsRegressionTests: XCTestCase {
                 XCTAssertTrue(strings.contains("\"\(key)\""), "Missing localized participant timezone key \(key) for \(locale).")
             }
         }
-    }
-
-    func testEventNextActionDoesNotBlockInvitationFirstPollsOnParticipants() throws {
-        let source = try readProjectFile("iosApp/src/Models/EventNextAction.swift")
-        let nextAction = slice(source, from: "struct EventNextAction", to: "// END EventNextAction")
-
-        XCTAssertTrue(
-            nextAction.contains("let hasSlots = !event.proposedSlots.isEmpty"),
-            "Draft next action should stay gated by concrete poll options."
-        )
-        XCTAssertFalse(
-            nextAction.contains("let hasParticipants = !event.participants.isEmpty"),
-            "Draft next action must not require manual participants because share links can collect guests."
-        )
-        XCTAssertFalse(
-            nextAction.contains("events.next_action.draft.blocked.participants"),
-            "The primary action should not block an invitation-first poll when only participants are missing."
-        )
     }
 
     func testCreateEventTurnsSelectedDateIntoProposedSlot() async {

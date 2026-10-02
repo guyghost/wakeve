@@ -418,9 +418,8 @@ final class PremiumDesignSystemContractTests: XCTestCase {
         )
     }
 
-    func testContentViewMeetsLegacyTypographyColorMotionAndAITargetContracts() throws {
+    func testContentViewMeetsLegacyTypographyColorAndMotionContracts() throws {
         let source = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
-        let eventAIActionButton = slice(source, from: "private struct EventAIActionButton", to: "private struct EventAIList")
         let fixedFontCount = occurrenceCount(of: ".font(.system(size:", in: source)
 
         XCTAssertLessThanOrEqual(
@@ -432,10 +431,6 @@ final class PremiumDesignSystemContractTests: XCTestCase {
         XCTAssertFalse(source.contains(".foregroundColor(.orange)"), "ContentView must use a semantic warning token.")
         XCTAssertTrue(source.contains("@Environment(\\.accessibilityReduceMotion)"), "The root ContentView must observe Reduce Motion.")
         XCTAssertTrue(source.contains("reduceMotion ? nil :"), "Root loading/onboarding state motion must be disabled under Reduce Motion.")
-        XCTAssertTrue(
-            eventAIActionButton.contains(".frame(minHeight: 44)"),
-            "EventAIActionButton must preserve its compact visual style while exposing a minimum 44pt hit target."
-        )
     }
 
     func testSecondaryScreensStayWithinFixedTypographyBudgets() throws {

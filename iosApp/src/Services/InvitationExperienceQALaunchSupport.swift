@@ -18,7 +18,6 @@ enum InvitationExperienceQALaunchRoute: Equatable {
 final class InvitationExperienceQALaunchSupport {
     static let seedArgument = "--wakeve-qa-seed-invitation-experience"
     static let openRouteArgument = "--wakeve-qa-open-invitation-route"
-    static let reduceTransparencyArgument = "--wakeve-qa-reduce-transparency"
     /// Invitation reçue (couche 8) : organisée par Noé Bernard, réponse du spectateur en attente. À ouvrir avec
     /// `--wakeve-qa-open-invitation-landing qa-invitation-received`.
     static let receivedInvitationEventId = Seed.receivedInvitation

@@ -32,23 +32,8 @@ struct iOSApp: App {
 
     @ViewBuilder
     private var appRoot: some View {
-        #if DEBUG
-        debugAppRoot
-        #else
         normalAppRoot
-        #endif
     }
-
-    #if DEBUG
-    @ViewBuilder
-    private var debugAppRoot: some View {
-        if ProcessInfo.processInfo.arguments.contains("--wakeve-qa-invitation-canvas") {
-            EventDetailInvitationCanvasQAView()
-        } else {
-            normalAppRoot
-        }
-    }
-    #endif
 
     private var normalAppRoot: some View {
         ContentView()

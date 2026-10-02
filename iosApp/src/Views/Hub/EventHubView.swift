@@ -578,7 +578,7 @@ struct EventHubContainer: View {
         }
     }
 
-    /// Même chemin que `EventDetailView.performLifecycleTransition` : la machine à états reste seule
+    /// Via `EventLifecycleTransitionController` : la machine à états reste seule
     /// propriétaire de l'écriture du statut.
     private func performLifecycleTransition(to target: EventLifecycleTransitionController.Target) {
         guard !lifecycleInFlight else { return }

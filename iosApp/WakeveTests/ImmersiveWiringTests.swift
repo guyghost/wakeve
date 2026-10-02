@@ -23,7 +23,7 @@ final class ImmersiveWiringTests: XCTestCase {
         let source = try contentView
         let detail = slice(source, from: "case .eventDetail:", to: "case .eventAudience:")
         XCTAssertTrue(detail.contains("if let event = selectedEvent {"))
-        let redesign = slice(detail, from: "if let event = selectedEvent {", to: "} else if let event = selectedEvent")
+        let redesign = detail
         let flat = redesign.split(whereSeparator: \.isWhitespace).joined(separator: " ")
         XCTAssertTrue(flat.contains(
             "if InvitationLandingRoute.showsLanding( marker: invitationLandingEventId, eventId: event.id, organizerId: event.organizerId, viewerId: userId ) {"
@@ -116,7 +116,7 @@ final class EventDayWiringTests: XCTestCase {
         let action = slice(source, from: "private func openHomeAction(_ action: HomeNextStep.Action, eventId: String)", to: "// MARK: - Activité de la refonte")
         XCTAssertEqual(action.components(separatedBy: "case .eventDay: openEventDay(eventId)").count - 1, 2,
                        "Avec et sans rollout invitation.")
-        let home = slice(source, from: "EventsHomeContainer(", to: "} else if invitationExperienceRolloutEnabled")
+        let home = slice(source, from: "EventsHomeContainer(", to: "private func persistCreationContext(")
         XCTAssertTrue(home.contains("invitationRollout: invitationExperienceRolloutEnabled"))
     }
 }

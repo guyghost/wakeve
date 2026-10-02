@@ -1,7 +1,7 @@
 import SwiftUI
 import Shared
 
-/// ViewModel for the EventDetailView.
+/// ViewModel du détail d'événement (suppression depuis Infos via `deleteInformationEventThroughOwner`).
 ///
 /// Manages the state and intents for displaying detailed information about a single event.
 /// Uses the shared Kotlin state machine to handle all business logic.
