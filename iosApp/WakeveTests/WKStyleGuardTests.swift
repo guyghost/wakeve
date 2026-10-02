@@ -1,7 +1,7 @@
 import XCTest
 
 /// Garde-fou de la refonte (#47) : aucun style en dur dans les composants WK,
-/// et les compteurs de Views/ ne peuvent que baisser (cliquet). À la couche 9, baseline = 0.
+/// et les compteurs de Views/ ne peuvent que baisser (cliquet).
 final class WKStyleGuardTests: XCTestCase {
 
     private struct Rule {
@@ -22,13 +22,16 @@ final class WKStyleGuardTests: XCTestCase {
         Rule(name: "littéral hexadécimal 0xRRGGBB", regex: try! NSRegularExpression(pattern: #"0x[0-9A-Fa-f]{6}"#))
     ]
 
-    /// Baseline mesurée après la couche 0 (2026-09-28), complétée à la revue finale de la couche 1.
-    /// Baisser ces valeurs quand un écran est migré.
+    /// Baseline mesurée à la couche 9 (2026-10-02), après la suppression du code legacy
+    /// (couche 0 : 65 / 87 / 68 / 13 / 6). Elle reste non nulle : les écrans plein écran de repli
+    /// conservés (sondage, participants, scénarios, transport, budget, réunions, profil…) utilisent
+    /// encore l'ancien design system. Le passage à 0 est reporté à un chantier de restylage séparé
+    /// de ces écrans. Baisser ces valeurs quand un écran est migré.
     private let viewsBaseline: [String: Int] = [
-        "Color(hex:": 65,
-        ".font(.system(size:": 87,
-        "cornerRadius littéral": 68,
-        ".cornerRadius(": 13,
+        "Color(hex:": 14,
+        ".font(.system(size:": 48,
+        "cornerRadius littéral": 44,
+        ".cornerRadius(": 3,
         "Color(red:": 6
     ]
 
