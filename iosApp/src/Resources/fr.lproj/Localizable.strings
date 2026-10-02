@@ -1492,6 +1492,9 @@
 "hub.ai.copy" = "Copier";
 "hub.ai.copied" = "Message copié";
 "hub.ai.share" = "Partager";
+"hub.weather.title_format" = "Météo · %@";
+"hub.weather.rain_format" = "Pluie : %d %%";
+"hub.weather.unavailable" = "La météo est indisponible pour le moment.";
 "hub.summary.format" = "%1$@ · %2$@";
 "hub.summary.meals_progress_format" = "%1$d/%2$d repas prêts";
 "hub.primary.vote" = "Voter";

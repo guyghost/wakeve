@@ -13,6 +13,8 @@ struct EventDayView: View {
     let onDirections: () -> Void
     let onViewEvent: () -> Void
     let onClose: () -> Void
+    /// Météo du jour (revue couche 9) : affichée seulement quand une prévision est disponible.
+    var weather: EventWeatherState = .hidden
 
     var body: some View {
         let mood = WK.Mood(palette: model.palette)
@@ -69,6 +71,9 @@ struct EventDayView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
+            if case .available(let display) = weather {
+                EventDayWeatherCard(display: display, mood: mood)
+            }
             if !model.pills.isEmpty {
                 VStack(alignment: .leading, spacing: WK.Space.xs) {
                     ForEach(model.pills) { pill in
@@ -94,6 +99,36 @@ struct EventDayView: View {
         .accessibilityElement()
         .accessibilityLabel(model.mapLabel ?? model.placeName)
         .wkAccessibilityID(Self.mapAccessibilityID)
+    }
+}
+
+/// Météo du jour J, variante immersive (texte clair sur `mood.surface`).
+struct EventDayWeatherCard: View {
+    static let accessibilityID = "immersive.eventDay.weather"
+
+    let display: EventWeatherDisplay
+    let mood: WK.Mood
+
+    var body: some View {
+        WKImmersiveCard(mood: mood) {
+            HStack(alignment: .top, spacing: WK.Space.sm) {
+                Image(systemName: display.symbolName)
+                    .font(WK.Typo.title)
+                    .foregroundStyle(mood.accent)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: WK.Space.xxs) {
+                    Text(display.condition)
+                        .font(WK.Typo.headline)
+                        .foregroundStyle(mood.textPrimary)
+                    Text("\(EventWeatherText.temperatures(display)) · \(EventWeatherText.rain(display))")
+                        .font(WK.Typo.caption)
+                        .foregroundStyle(mood.textSecondary)
+                }
+                .fixedSize(horizontal: false, vertical: true)
+            }
+            .accessibilityElement(children: .combine)
+        }
+        .wkAccessibilityID(Self.accessibilityID)
     }
 }
 
@@ -154,6 +189,9 @@ final class EventDayViewModel: ObservableObject {
 /// Présenté en plein écran depuis le hub (« C'est aujourd'hui ») ou l'accueil (« Voir le jour J »).
 struct EventDayContainer: View {
     @StateObject private var viewModel: EventDayViewModel
+    /// Météo du jour (le jour J est toujours dans la fenêtre du fournisseur).
+    @StateObject private var weather = EventWeatherModel()
+    private let eventId: String
     let onViewEvent: () -> Void
     let onClose: () -> Void
 
@@ -162,6 +200,7 @@ struct EventDayContainer: View {
     /// L'écran s'ouvre seulement quand `isEventDay` l'a autorisé (hub, accueil) ; il ne revérifie pas la règle.
     init(eventId: String, userId: String, onViewEvent: @escaping () -> Void, onClose: @escaping () -> Void) {
         _viewModel = StateObject(wrappedValue: EventDayViewModel(eventId: eventId, viewerId: userId, source: SharedEventDaySource()))
+        self.eventId = eventId
         self.onViewEvent = onViewEvent
         self.onClose = onClose
     }
@@ -177,7 +216,8 @@ struct EventDayContainer: View {
                         }
                     },
                     onViewEvent: onViewEvent,
-                    onClose: onClose
+                    onClose: onClose,
+                    weather: weather.state
                 )
             } else {
                 placeholder
@@ -186,6 +226,7 @@ struct EventDayContainer: View {
         // Mode immersif toujours sombre : barre d'état claire sur le fond teinté.
         .preferredColorScheme(.dark)
         .task { await viewModel.reload() }
+        .task { await weather.load(eventId: eventId, targetDate: Date()) }
     }
 
     private var placeholder: some View {

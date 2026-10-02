@@ -510,6 +510,8 @@ struct EventHubContainer: View {
     @StateObject private var checklist: EventChecklistModel
     /// Suggestions IA, générées à la demande.
     @StateObject private var ai = EventHubAIModel()
+    /// Météo du jour retenu (fenêtre de 10 jours, lieu résolvable).
+    @StateObject private var weather = EventWeatherModel()
     @State private var lifecycleController: EventLifecycleTransitionController?
     @State private var lifecycleError: String?
     @State private var lifecycleInFlight = false
@@ -586,6 +588,7 @@ struct EventHubContainer: View {
             supplements: { facts in
                 AnyView(EventHubSupplements(
                     facts: facts,
+                    weather: weather.state,
                     checklist: checklist,
                     ai: ai,
                     onAddDates: { onPrimary(.addDates) }
@@ -601,6 +604,21 @@ struct EventHubContainer: View {
             checklist.reload()
         }
         .onAppear { checklist.reload() }
+        .task(id: weatherTarget) {
+            await weather.load(eventId: eventId, targetDate: weatherTarget)
+        }
+    }
+
+    /// Jour dont la météo s'affiche, nil hors règle ou hors fenêtre du fournisseur.
+    private var weatherTarget: Date? {
+        guard let facts = viewModel.facts else { return nil }
+        return EventWeatherRule.loadTarget(
+            phase: facts.phase,
+            hasAccess: facts.hasDetailsAccess,
+            slotStart: facts.retainedSlot?.start,
+            finalDate: facts.finalDate,
+            now: Date()
+        )
     }
 
     /// Via `EventLifecycleTransitionController` : la machine à états reste seule

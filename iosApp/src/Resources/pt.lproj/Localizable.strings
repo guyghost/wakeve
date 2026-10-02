@@ -1468,6 +1468,9 @@
 "hub.ai.copy" = "Copiar";
 "hub.ai.copied" = "Mensagem copiada";
 "hub.ai.share" = "Compartilhar";
+"hub.weather.title_format" = "Clima · %@";
+"hub.weather.rain_format" = "Chuva: %d%%";
+"hub.weather.unavailable" = "O clima não está disponível no momento.";
 "hub.summary.format" = "%1$@ · %2$@";
 "hub.summary.meals_progress_format" = "%1$d/%2$d refeições prontas";
 "hub.primary.vote" = "Votar";

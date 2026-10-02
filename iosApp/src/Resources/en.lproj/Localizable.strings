@@ -1468,6 +1468,9 @@
 "hub.ai.copy" = "Copy";
 "hub.ai.copied" = "Message copied";
 "hub.ai.share" = "Share";
+"hub.weather.title_format" = "Weather · %@";
+"hub.weather.rain_format" = "Rain: %d%%";
+"hub.weather.unavailable" = "Weather is unavailable right now.";
 "hub.summary.format" = "%1$@ · %2$@";
 "hub.summary.meals_progress_format" = "%1$d/%2$d meals ready";
 "hub.primary.vote" = "Vote";
