@@ -113,7 +113,7 @@ final class ParityRouteInventoryContractTests: XCTestCase {
         let eventCreation = caseBlock(".eventCreation", in: homeContent)
         XCTAssertTrue(eventCreation.contains("invitationExperienceRolloutEnabled"))
         XCTAssertTrue(eventCreation.contains("EventCreationStudioView("))
-        XCTAssertTrue(eventCreation.contains("invitationExperienceLegacyCreationFallback"))
+        XCTAssertTrue(eventCreation.contains("creationFallbackWithoutStudio"))
         XCTAssertFalse(
             eventCreation.contains("showEventCreationSheet = true"),
             "The routed Studio destination must not also present the legacy creation sheet."

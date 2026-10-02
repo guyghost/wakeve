@@ -221,8 +221,6 @@ struct AuthenticatedView: View {
     private let invitationExperienceRouter = InvitationExperienceRouter()
     private let invitationDeepLinkResolver = InvitationDeepLinkResolver()
     @StateObject private var directInviteProductionOwner = DirectInviteProductionOwner()
-    @State private var showEventCreationSheet = false
-    @State private var eventCreationScenario: EventScenario?
     /// Flux de création de la refonte (couche 7, #47) et brouillon à reprendre (nil : nouveau).
     @State private var showCreateEventFlow = false
     @State private var createFlowDraftId: String?
@@ -260,20 +258,6 @@ struct AuthenticatedView: View {
         // Shell de la refonte (zones Événements / Activité) ; les actions ponctuelles
         // comme la création restent contextuelles (＋, sheets).
         redesignChrome
-        .fullScreenCover(isPresented: $showEventCreationSheet) {
-            CreateEventSheet(
-                userId: userId,
-                userName: authStateManager.currentUser?.name,
-                initialScenario: eventCreationScenario
-            ) { event, context in
-                // The state machine already committed the event. This owner only
-                // persists the auxiliary creation context and navigates.
-                persistCreationContext(context, for: event)
-                selectedEvent = event
-                currentView = event.planningMode == .scenarioMatrix ? .scenarioList : .participantManagement
-                eventCreationScenario = nil
-            }
-        }
         .sheet(isPresented: $showNotificationPreferencesSheet) {
             NavigationStack {
                 NotificationPreferencesView(userId: userId)
@@ -283,7 +267,6 @@ struct AuthenticatedView: View {
             CreateEventFlow(
                 userId: userId,
                 draftEventId: createFlowDraftId,
-                initialScenario: eventCreationScenario,
                 onClose: closeCreateEventFlow,
                 onLaunched: { event, context in
                     finishCreateEventFlow(event, context: context)
@@ -579,7 +562,6 @@ struct AuthenticatedView: View {
     /// synchronise pas les événements (Swarm DAO #48).
     private func beginRedesignEventCreation() {
         redesignRouter.zone = .events
-        eventCreationScenario = nil
         switch CreateFlowEntry.newEventRoute(invitationRollout: invitationExperienceRolloutEnabled) {
         case .createFlow:
             openCreateEventFlow(draftEventId: nil)
@@ -587,7 +569,6 @@ struct AuthenticatedView: View {
             selectedEvent = nil
             selectedCreationBaseRevision = nil
             selectedCreationArtwork = nil
-            showEventCreationSheet = false
             currentView = .eventCreation
         }
     }
@@ -602,7 +583,6 @@ struct AuthenticatedView: View {
         persistCreationContext(context, for: event)
         showCreateEventFlow = false
         createFlowDraftId = nil
-        eventCreationScenario = nil
         redesignRouter.zone = .events
         selectedEvent = event
         currentView = .eventDetail
@@ -613,7 +593,6 @@ struct AuthenticatedView: View {
     private func closeCreateEventFlow() {
         showCreateEventFlow = false
         createFlowDraftId = nil
-        eventCreationScenario = nil
         eventsHomeReloadToken += 1
     }
 
@@ -994,7 +973,7 @@ struct AuthenticatedView: View {
             } else if let event = selectedEvent {
                 rolloutReadOnlyFallback(for: event)
             } else {
-                invitationExperienceLegacyCreationFallback
+                creationFallbackWithoutStudio
             }
             
         case .eventDetail:
@@ -1993,12 +1972,14 @@ struct AuthenticatedView: View {
             }
     }
 
-    private var invitationExperienceLegacyCreationFallback: some View {
+    /// Studio demandé sans rollout invitation (rollout éteint en cours de route) : le flux
+    /// 4 questions remplace l'ancienne feuille de création (supprimée en couche 9).
+    private var creationFallbackWithoutStudio: some View {
         ProgressView()
             .accessibilityLabel(String(localized: "common.loading"))
             .task {
                 currentView = .eventList
-                showEventCreationSheet = true
+                openCreateEventFlow(draftEventId: nil)
             }
     }
 

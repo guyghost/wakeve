@@ -300,7 +300,7 @@ struct CreateEventForm: Equatable {
         checklist = []
     }
 
-    /// Checklist préparée remise à l'événement créé (mêmes règles que `CreateEventSheet`).
+    /// Checklist préparée remise à l'événement créé (mêmes règles que l'ancienne `CreateEventSheet`, supprimée en couche 9).
     var preparedChecklist: [ChecklistItem] {
         Array(checklist.prefix(5)).map { ChecklistItem(title: $0, category: .guests, priority: .medium) }
     }

@@ -279,21 +279,10 @@ final class PremiumDesignSystemContractTests: XCTestCase {
     }
 
     func testCompactSheetControlsExposeMinimumTouchTargets() throws {
-        let eventInfo = try readProjectFile("iosApp/src/Components/EventInfoSheet.swift")
-        let backgroundPicker = try readProjectFile("iosApp/src/Components/BackgroundPickerSheet.swift")
+        // Couche 9 : EventInfoSheet et BackgroundPickerSheet sont supprimées avec l'ancienne feuille de création.
         let locationPicker = try readProjectFile("iosApp/src/Components/LocationSelectionSheet.swift")
         let minimumHitFrame = ".frame(minWidth: 44, minHeight: 44)"
 
-        XCTAssertGreaterThanOrEqual(
-            eventInfo.components(separatedBy: minimumHitFrame).count - 1,
-            1,
-            "EventInfoSheet confirmation control needs a minimum 44pt hit frame."
-        )
-        XCTAssertGreaterThanOrEqual(
-            backgroundPicker.components(separatedBy: minimumHitFrame).count - 1,
-            1,
-            "BackgroundPickerSheet close control needs a minimum 44pt hit frame."
-        )
         XCTAssertGreaterThanOrEqual(
             locationPicker.components(separatedBy: minimumHitFrame).count - 1,
             2,
@@ -327,7 +316,6 @@ final class PremiumDesignSystemContractTests: XCTestCase {
 
     func testHighTrafficScreensStayWithinFixedTypographyMigrationBudgets() throws {
         let budgets = [
-            ("iosApp/src/Views/Events/CreateEventSheet.swift", 16),
             ("iosApp/src/Views/Polls/PollResultsView.swift", 5),
             ("iosApp/src/Views/Polls/PollVotingView.swift", 3)
         ]
@@ -357,7 +345,6 @@ final class PremiumDesignSystemContractTests: XCTestCase {
     func testLegacySheetsAndCalendarActionUseSemanticAccentColors() throws {
         let paths = [
             "iosApp/src/Components/AddToCalendarButton.swift",
-            "iosApp/src/Components/EventInfoSheet.swift",
             "iosApp/src/Components/LocationSelectionSheet.swift"
         ]
 
@@ -368,13 +355,11 @@ final class PremiumDesignSystemContractTests: XCTestCase {
         }
     }
 
-    func testSharedAndCreateEventAnimationsHonorReduceMotion() throws {
+    func testSharedAnimationsHonorReduceMotion() throws {
         let shared = try readProjectFile("iosApp/src/Components/SharedComponents.swift")
-        let createEvent = try readProjectFile("iosApp/src/Views/Events/CreateEventSheet.swift")
-
+        // Couche 9 : l'ancienne feuille de création est supprimée ; le contrat reste porté par les composants partagés.
         for (path, source) in [
-            ("SharedComponents.swift", shared),
-            ("CreateEventSheet.swift", createEvent)
+            ("SharedComponents.swift", shared)
         ] {
             XCTAssertTrue(source.contains("@Environment(\\.accessibilityReduceMotion)"), "\(path) must observe Reduce Motion.")
             XCTAssertTrue(source.contains("reduceMotion ? nil :"), "\(path) must disable non-essential animations under Reduce Motion.")
@@ -437,8 +422,7 @@ final class PremiumDesignSystemContractTests: XCTestCase {
         let budgets = [
             ("iosApp/src/Views/Auth/LoginView.swift", 4),
             ("iosApp/src/Views/Events/ParticipantManagementView.swift", 4),
-            ("iosApp/src/Views/Profile/ProfileTabView.swift", 5),
-            ("iosApp/src/Components/BackgroundPickerSheet.swift", 4)
+            ("iosApp/src/Views/Profile/ProfileTabView.swift", 5)
         ]
 
         for (path, budget) in budgets {
@@ -449,9 +433,6 @@ final class PremiumDesignSystemContractTests: XCTestCase {
                 "\(path) exceeds its fixed-font decorative/icon budget of \(budget)."
             )
         }
-
-        let backgroundPicker = try readProjectFile("iosApp/src/Components/BackgroundPickerSheet.swift")
-        XCTAssertTrue(backgroundPicker.contains("WakeveTheme.Typography"), "Background picker text must use shared typography roles.")
     }
 
     func testSecondaryMotionAndLegalControlsHonorAccessibilitySettings() throws {

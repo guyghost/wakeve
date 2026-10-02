@@ -145,9 +145,7 @@ final class OrganizationPhase7ContractTests: XCTestCase {
 
     func testScenarioEmptyStateIsActionableForManualAndMatrixPlanning() throws {
         let scenarioView = try readProjectFile("iosApp/src/Views/Events/ScenarioOrganizationView.swift")
-        let contentView = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
         let emptyState = slice(scenarioView, from: "private var emptyState", to: "@ViewBuilder\n    private var bottomComparisonBar")
-        let createFlow = slice(contentView, from: ".fullScreenCover(isPresented: $showEventCreationSheet)", to: ".sheet(isPresented: $showNotificationPreferencesSheet)")
 
         XCTAssertTrue(emptyState.contains("showCreateScenarioSheet = true"))
         XCTAssertTrue(scenarioView.contains("CreateScenarioOptionSheet("))
@@ -159,7 +157,7 @@ final class OrganizationPhase7ContractTests: XCTestCase {
         XCTAssertTrue(emptyState.contains("scenario.create_option"))
         XCTAssertTrue(scenarioView.contains("scenario.generate_options"))
         XCTAssertTrue(scenarioView.contains("scenario.matrix_publish.ready_title"))
-        XCTAssertTrue(createFlow.contains("event.planningMode == .scenarioMatrix ? .scenarioList : .participantManagement"))
+        // Couche 9 : la création en mode scénarios hors studio (ancienne feuille) est une perte assumée.
     }
 
     func testScenarioDecisionSurfacesBudgetBeforeFinalSelection() throws {

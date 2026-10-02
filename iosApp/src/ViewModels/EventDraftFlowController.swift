@@ -98,7 +98,7 @@ final class EventDraftFlowController: ObservableObject {
         stateMachine.dispose()
     }
 
-    /// Dépôt de la même base, sans `SyncManager` — comme `CreateEventViewModel`
+    /// Dépôt de la même base, sans `SyncManager` — comme l'ancien `CreateEventViewModel` (supprimé en couche 9)
     /// (`createEventStateMachine(database:)`). Avec le gestionnaire de synchro, chaque écriture attend
     /// `triggerSync()` (≈ 7 s de nouvelles tentatives quand le serveur est injoignable) avant son toast :
     /// « Continuer » resterait bloqué. Les événements du flux restent locaux, comme ceux de l'ancienne

@@ -123,16 +123,15 @@ final class AllDaySlotAndGuestFinalizeTests: XCTestCase {
         XCTAssertEqual(calendar.component(.minute, from: defaultTime), 0)
     }
 
-    func testWizardUsesTheSlotBuilderAndATappableAllDayToggle() {
-        let sheet = readProjectFileIfPresent("iosApp/src/Views/Events/CreateEventSheet.swift")
-        let draft = slice(sheet, from: "private struct EventSlotDraft", to: "// MARK: - Date Time Picker Popup")
-        let newSlot = slice(sheet, from: "private func prepareNewSlotDraft()", to: "private func editProposedSlot")
-        let popup = slice(sheet, from: "struct DateTimePickerPopup", to: "private struct EventPreviewSheet")
+    /// Réancré sur le flux de création (couche 9) : l'ancienne feuille est supprimée ; le flux 4 questions
+    /// enregistre ses créneaux via `EventSlotInputBuilder` et un nouveau créneau ne démarre pas « maintenant ».
+    func testCreateFlowUsesTheSlotBuilderAndAnEveningDefaultStart() {
+        let model = readProjectFileIfPresent("iosApp/src/Models/Create/CreateEventFlowModel.swift")
+        let steps = readProjectFileIfPresent("iosApp/src/Views/Create/CreateEventFlowSteps.swift")
 
-        XCTAssertTrue(draft.contains("EventSlotInputBuilder.input("))
-        XCTAssertTrue(newSlot.contains("EventSlotInputBuilder.defaultStartTime("))
-        XCTAssertFalse(newSlot.contains("startTime = now"), "A new slot must not default to the current time")
-        XCTAssertFalse(popup.contains(".frame(width: 48, height: 28)"), "The all-day switch must keep its full tap target")
+        XCTAssertTrue(model.contains("EventSlotInputBuilder.input("))
+        XCTAssertTrue(steps.contains("EventSlotInputBuilder.defaultStartTime("))
+        XCTAssertFalse(steps.contains("_start = State(initialValue: Date())"), "A new slot must not default to the current time")
     }
 
     // MARK: - Local guest cannot finalize: propose signing in

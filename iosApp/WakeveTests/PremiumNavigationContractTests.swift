@@ -69,7 +69,6 @@ final class PremiumNavigationContractTests: XCTestCase {
 
     func testLegacySheetsUseNavigationStack() throws {
         let sheetPaths = [
-            "iosApp/src/Components/EventInfoSheet.swift",
             "iosApp/src/Components/InvitationShareSheet.swift",
             "iosApp/src/Components/LocationSelectionSheet.swift",
             "iosApp/src/Views/Collaboration/CommentListView.swift",

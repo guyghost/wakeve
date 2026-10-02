@@ -34,56 +34,6 @@ final class WakeveAIContractTests: XCTestCase {
         XCTAssertTrue(source.contains("latencyMilliseconds"))
     }
 
-    func testCreateEventSmartDraftUsesViewModelAndExplicitActions() throws {
-        let source = try readProjectFile("iosApp/src/Views/Events/CreateEventSheet.swift")
-
-        XCTAssertTrue(source.contains("viewModel.generateSmartEventDraft()"))
-        XCTAssertTrue(source.contains("viewModel.cancelSmartEventDraft()"))
-        XCTAssertTrue(source.contains("viewModel.ignoreSmartEventDraft()"))
-        XCTAssertTrue(source.contains("String(localized: \"common.edit\")"))
-        XCTAssertTrue(source.contains("String(localized: \"common.apply\")"))
-        XCTAssertTrue(source.contains("String(localized: \"create_event.ai.ignore\")"))
-        XCTAssertTrue(source.contains("applySmartEventDraft"))
-        XCTAssertFalse(source.contains("LanguageModelSession("), "SwiftUI views must not own Foundation Models sessions.")
-    }
-
-    func testCreateEventViewModelOwnsSmartDraftGeneration() throws {
-        let source = try readProjectFile("iosApp/src/ViewModels/CreateEventViewModel.swift")
-
-        XCTAssertTrue(source.contains("@Published var smartEventDraftState"))
-        XCTAssertTrue(source.contains("EventDraftGenerator"))
-        XCTAssertTrue(source.contains("generateSmartEventDraft()"))
-        XCTAssertTrue(source.contains("cancelSmartEventDraft()"))
-    }
-
-    func testCreateEventViewModelAttachesSmartDraftMetadata() throws {
-        let source = try readProjectFile("iosApp/src/ViewModels/CreateEventViewModel.swift")
-        let generation = slice(source, from: "func generateSmartEventDraft()", to: "func cancelSmartEventDraft()")
-
-        XCTAssertTrue(generation.contains("smartEventDraftState.metadata = nil"))
-        XCTAssertTrue(generation.contains("WakeveAIInteractionMetadata.fromMetrics"))
-        XCTAssertTrue(generation.contains("useCase: .eventPlanDraft"))
-        XCTAssertTrue(generation.contains("validation: .needsReview()"))
-    }
-
-    func testCreateEventViewModelHandlesSmartDraftFallbackTimeoutCancellationAndStreaming() throws {
-        let source = try readProjectFile("iosApp/src/ViewModels/CreateEventViewModel.swift")
-
-        XCTAssertTrue(source.contains("catch WakeveAIError.unavailable"))
-        XCTAssertTrue(source.contains(".unavailable(availability)"))
-        XCTAssertTrue(source.contains("catch WakeveAIError.timedOut"))
-        XCTAssertTrue(source.contains("La suggestion prend trop de temps"))
-        XCTAssertTrue(source.contains("catch WakeveAIError.cancelled"))
-        XCTAssertTrue(source.contains("catch is CancellationError"))
-        XCTAssertTrue(source.contains(".cancelled"))
-        XCTAssertTrue(source.contains("case .title"))
-        XCTAssertTrue(source.contains("case .description"))
-        XCTAssertTrue(source.contains("case .dateOptions"))
-        XCTAssertTrue(source.contains("case .checklist"))
-        XCTAssertTrue(source.contains("case .suggestedPolls"))
-        XCTAssertTrue(source.contains("case .completed"))
-    }
-
     func testWakeveAIClientWrapsFoundationModelsWithProductionGuards() throws {
         let source = try readProjectFile("iosApp/src/WakeveAI/WakeveAIClient.swift")
         let foundationClient = slice(source, from: "struct FoundationModelsWakeveAIClient", to: "@available(iOS 26.0, *)\n@Generable")
@@ -96,51 +46,6 @@ final class WakeveAIContractTests: XCTestCase {
         XCTAssertTrue(foundationClient.contains("WakeveAILogger.debug"))
         XCTAssertTrue(foundationClient.contains("knownFacts.nonEmptyCategoryCount"))
         XCTAssertFalse(foundationClient.contains("debugPersonalContext"), "Production client must not log personal prompt context by default.")
-    }
-
-    func testCreateEventSheetKeepsSmartDraftApplyAndIgnoreExplicit() throws {
-        let source = try readProjectFile("iosApp/src/Views/Events/CreateEventSheet.swift")
-        let applyBlock = slice(source, from: "private func applySmartEventDraft", to: "private func darkenColor")
-
-        XCTAssertTrue(applyBlock.contains("title = draft.title"))
-        XCTAssertTrue(applyBlock.contains("description = draft.description"))
-        XCTAssertTrue(applyBlock.contains("selectedLocation = location"))
-        XCTAssertTrue(applyBlock.contains("expectedParticipants"))
-        XCTAssertTrue(applyBlock.contains("viewModel.ignoreSmartEventDraft()"))
-        XCTAssertFalse(applyBlock.contains("viewModel.createEvent("), "Applying a draft must not create the event automatically.")
-    }
-
-    func testCreateEventSmartDraftMaterializesDatesAndChecklistIntoWizardState() throws {
-        let source = try readProjectFile("iosApp/src/Views/Events/CreateEventSheet.swift")
-        let applyBlock = slice(source, from: "private func applySmartEventDraft", to: "private func applyInitialScenarioIfNeeded")
-        let confirmStep = slice(source, from: "private var confirmStep", to: "private var createBottomAction")
-
-        XCTAssertTrue(
-            applyBlock.contains("materializeSmartDateOptions(draft.dateOptions)") &&
-            applyBlock.contains("mergeSmartSlotDrafts(smartSlots)"),
-            "Applying a smart event draft must turn AI date options into editable proposed slots."
-        )
-        XCTAssertTrue(
-            applyBlock.contains("appliedSmartChecklist = Array(draft.checklist.prefix(3))"),
-            "Applying a smart event draft must carry checklist items into the creation flow instead of only previewing text."
-        )
-        XCTAssertTrue(
-            source.contains("preparedCreationChecklist") &&
-            source.contains("preparedChecklist: preparedCreationChecklist"),
-            "Creating an event from an AI/template plan must carry prepared checklist items into the post-creation context."
-        )
-        XCTAssertTrue(
-            confirmStep.contains("smartAppliedPlanSummary"),
-            "The confirmation step must surface AI-created dates/checklist before previewing the invitation."
-        )
-    }
-
-    func testCreateEventSmartDraftDateParsingUsesCurrentUserLocale() throws {
-        let source = try readProjectFile("iosApp/src/Views/Events/CreateEventSheet.swift")
-        let parser = slice(source, from: "private func parsedSmartDate", to: "private func fallbackSmartDateOption")
-
-        XCTAssertTrue(parser.contains("formatter.locale = .autoupdatingCurrent"))
-        XCTAssertFalse(parser.contains("Locale(identifier: \"fr_FR\")"), "Smart draft date parsing must respect the user's locale instead of forcing French.")
     }
 
     func testTransportPlanningExposesReviewableTransportHelper() throws {
