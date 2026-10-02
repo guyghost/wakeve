@@ -1,7 +1,7 @@
 import Foundation
 import Shared
 
-/// Aiguillage de la réouverture d'un brouillon sous la refonte (couche 7, #47).
+/// Aiguillage du flux de création de la refonte (couche 7, #47) : ＋ et réouverture d'un brouillon.
 ///
 /// Critère « brouillon du studio » : au moins une ligne `event_operation_receipt` pour l'événement.
 /// Le studio d'invitation (`InvitationExperiencePublicContracts`, action `UPDATE_DRAFT_AGGREGATE`) en
@@ -10,6 +10,23 @@ import Shared
 /// pas : `createEvent` crée aussi une ligne `event_artwork` (`NONE`) pour tout événement. Un brouillon
 /// avec reçu refuse d'ailleurs `UpdateEvent` (`hasCurrentProtectedCommit` du dépôt).
 enum CreateFlowEntry {
+    enum NewEventRoute: Equatable {
+        /// Flux 4 questions (`CreateEventFlow`).
+        case createFlow
+        /// Studio d'invitation (`currentView = .eventCreation`), synchronisé par son outbox.
+        case studio
+        /// Ancienne feuille (`CreateEventSheet`).
+        case legacySheet
+    }
+
+    /// ＋ et « Créer » de l'accueil vide. Décision du 2026-10-02 : le flux n'envoie pas encore les
+    /// événements au serveur (lacune du code partagé, Swarm DAO #48) ; il ne remplace donc le point
+    /// d'entrée que lorsque le rollout invitation est éteint. Rollout allumé : studio, comme avant la couche 7.
+    static func newEventRoute(redesign: Bool, invitationRollout: Bool) -> NewEventRoute {
+        if invitationRollout { return .studio }
+        return redesign ? .createFlow : .legacySheet
+    }
+
     enum DraftRoute: Equatable {
         /// Brouillon créé hors studio : flux 4 questions, étape de la première validation en échec.
         case createFlow

@@ -73,17 +73,38 @@ final class CreateEventFlowWiringTests: XCTestCase {
         XCTAssertTrue(block.contains("finishCreateEventFlow(event, context: context)"))
     }
 
-    func testPlusAlwaysOpensTheFlowUnderTheRedesign() throws {
+    // MARK: - ＋ (nouvel événement)
+
+    /// Décision du 2026-10-02 : le flux ne synchronise pas encore les événements (Swarm DAO #48) ;
+    /// avec le rollout invitation, le studio (synchronisé) reste le point d'entrée.
+    func testNewEventRouteFollowsTheInvitationRollout() {
+        XCTAssertEqual(CreateFlowEntry.newEventRoute(redesign: true, invitationRollout: false), .createFlow)
+        XCTAssertEqual(CreateFlowEntry.newEventRoute(redesign: true, invitationRollout: true), .studio,
+                       "Rollout invitation allumé : le studio reste le point d'entrée (#48).")
+        XCTAssertEqual(CreateFlowEntry.newEventRoute(redesign: false, invitationRollout: true), .studio)
+        XCTAssertEqual(CreateFlowEntry.newEventRoute(redesign: false, invitationRollout: false), .legacySheet)
+    }
+
+    func testPlusFollowsTheNewEventRoute() throws {
         let source = try contentView
-        let begin = slice(source, from: "private func beginRedesignEventCreation()", to: "// MARK: - Accueil de la refonte")
+        let begin = slice(source, from: "private func beginRedesignEventCreation()", to: "private func openCreateEventFlow(")
+        XCTAssertTrue(begin.contains("CreateFlowEntry.newEventRoute("))
+        XCTAssertTrue(begin.contains("redesign: iosRedesign2026"))
+        XCTAssertTrue(begin.contains("invitationRollout: invitationExperienceRolloutEnabled"))
         XCTAssertTrue(begin.contains("openCreateEventFlow(draftEventId: nil)"))
-        XCTAssertFalse(begin.contains("currentView = .eventCreation"), "Le studio n'est plus un point d'entrée de création.")
-        XCTAssertFalse(begin.contains("showEventCreationSheet = true"))
-        XCTAssertFalse(begin.contains("invitationExperienceRolloutEnabled"), "Quel que soit le flag invitations.")
+        XCTAssertTrue(begin.contains("currentView = .eventCreation"), "Rollout allumé : studio, comme avant la couche 7.")
+        XCTAssertTrue(begin.contains("selectedCreationBaseRevision = nil"))
+        XCTAssertTrue(begin.contains("showEventCreationSheet = true"))
 
         let deepLink = slice(source, from: "case .eventCreate:", to: "case .event(.detail")
         XCTAssertTrue(deepLink.contains("currentView = .eventCreation"), "Lien profond `.eventCreate` inchangé.")
         XCTAssertTrue(deepLink.contains("showEventCreationSheet = true"))
+    }
+
+    func testHomeEmptyStateCreateUsesThePlusRoute() throws {
+        let source = try contentView
+        let home = slice(source, from: "EventsHomeContainer(", to: "onEditDraft:")
+        XCTAssertTrue(home.contains("onCreate: { beginRedesignEventCreation() }"))
     }
 
     func testEditDraftRoutesFlowDraftsToTheFlow() throws {

@@ -605,13 +605,27 @@ struct AuthenticatedView: View {
         return { currentView = destination }
     }
 
-    /// ＋ de la refonte : ouvre toujours le flux 4 questions (couche 7, #47), que le flag invitations
-    /// soit allumé ou non ; le studio n'est plus un point d'entrée de création. Le lien profond
-    /// `.eventCreate` garde son aiguillage.
+    /// ＋ de la refonte (et « Créer » de l'accueil vide) : flux 4 questions (couche 7, #47) seulement
+    /// rollout invitation éteint ; allumé, le studio reste le point d'entrée tant que le flux ne
+    /// synchronise pas les événements (Swarm DAO #48). Le lien profond `.eventCreate` garde son aiguillage.
     private func beginRedesignEventCreation() {
         redesignRouter.zone = .events
         eventCreationScenario = nil
-        openCreateEventFlow(draftEventId: nil)
+        switch CreateFlowEntry.newEventRoute(
+            redesign: iosRedesign2026,
+            invitationRollout: invitationExperienceRolloutEnabled
+        ) {
+        case .createFlow:
+            openCreateEventFlow(draftEventId: nil)
+        case .studio:
+            selectedEvent = nil
+            selectedCreationBaseRevision = nil
+            selectedCreationArtwork = nil
+            showEventCreationSheet = false
+            currentView = .eventCreation
+        case .legacySheet:
+            showEventCreationSheet = true
+        }
     }
 
     private func openCreateEventFlow(draftEventId: String?) {
