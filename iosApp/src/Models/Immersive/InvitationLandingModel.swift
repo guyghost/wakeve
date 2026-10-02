@@ -75,3 +75,21 @@ struct InvitationLandingModel: Equatable {
         primaryTitle = primary == .vote ? text("hub.primary.vote") : text("immersive.view_event")
     }
 }
+
+/// Aiguillage de l'invitation reçue (`invitationLandingEventId` d'`AuthenticatedView`).
+enum InvitationLandingRoute {
+    /// L'invitation reçue remplace le hub pour l'événement marqué, jamais pour son organisateur.
+    static func showsLanding(marker: String?, eventId: String, organizerId: String?, viewerId: String) -> Bool {
+        marker == eventId && organizerId != viewerId
+    }
+
+    /// Marqueur après un changement d'écran : effacé dès que la navigation quitte le détail sans l'afficher.
+    static func marker(_ marker: String?, showingDetail: Bool) -> String? {
+        showingDetail ? marker : nil
+    }
+
+    /// Marqueur à l'ouverture d'un événement (accueil, Activité, jour J) : effacé s'il en désigne un autre.
+    static func marker(_ marker: String?, opening eventId: String) -> String? {
+        marker == eventId ? marker : nil
+    }
+}

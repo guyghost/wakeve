@@ -31,12 +31,18 @@ struct SharedInvitationLandingSource: InvitationLandingSource {
         }
     }
 
+    /// Nom de l'organisateur, nil s'il est inconnu ou si le spectateur est l'organisateur lui-même.
+    static func organizerName(organizerId: String?, viewerId: String, lookup: (String) -> String?) -> String? {
+        guard let organizerId, organizerId != viewerId else { return nil }
+        return lookup(organizerId)
+    }
+
     private func landing(hub: EventHubFacts, viewerId: String) throws -> InvitationLandingFacts {
         try Task.checkCancellation()
         let viewer = (repository.getParticipantRecords(eventId: hub.id) ?? [])
             .map { ParticipantAccessMapper.shared.fromRepositoryRecord(record: $0) }
             .first { $0.userId == viewerId }
-        let organizerName = hub.organizerId.flatMap { id in
+        let organizerName = Self.organizerName(organizerId: hub.organizerId, viewerId: viewerId) { id in
             database.userQueries.selectUserById(id: id).executeAsOneOrNull()?.name
         }
         return InvitationLandingFacts(

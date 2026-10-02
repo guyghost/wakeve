@@ -94,6 +94,34 @@ final class InvitationLandingTests: XCTestCase {
         XCTAssertEqual(model(hub(eventTypeName: nil)).palette, .weekend)
     }
 
+    // MARK: - Aiguillage (revue couche 8)
+
+    /// L'invitation reçue ne s'affiche que pour l'événement marqué, et jamais à son organisateur.
+    func testLandingIsShownOnlyForTheMarkedEventAndNeverToItsOrganizer() {
+        XCTAssertTrue(InvitationLandingRoute.showsLanding(marker: "e1", eventId: "e1", organizerId: "org", viewerId: "me"))
+        XCTAssertFalse(InvitationLandingRoute.showsLanding(marker: "e1", eventId: "e1", organizerId: "me", viewerId: "me"),
+                       "L'organisateur qui ouvre son propre lien voit le hub.")
+        XCTAssertFalse(InvitationLandingRoute.showsLanding(marker: "e2", eventId: "e1", organizerId: "org", viewerId: "me"))
+        XCTAssertFalse(InvitationLandingRoute.showsLanding(marker: nil, eventId: "e1", organizerId: "org", viewerId: "me"))
+    }
+
+    /// Marqueur périmé : effacé dès qu'on quitte le détail ou qu'on ouvre un autre événement.
+    func testMarkerIsClearedWhenNavigationLeavesTheLanding() {
+        XCTAssertNil(InvitationLandingRoute.marker("e1", showingDetail: false))
+        XCTAssertEqual(InvitationLandingRoute.marker("e1", showingDetail: true), "e1")
+        XCTAssertNil(InvitationLandingRoute.marker("e1", opening: "e2"))
+        XCTAssertEqual(InvitationLandingRoute.marker("e1", opening: "e1"), "e1")
+        XCTAssertNil(InvitationLandingRoute.marker(nil, opening: "e1"))
+    }
+
+    /// Défense de la source : l'organisateur ne lit jamais son propre nom.
+    func testOrganizerNameIsNilForTheOrganizerThemself() {
+        let lookup: (String) -> String? = { $0 == "org" ? "Léa" : nil }
+        XCTAssertEqual(SharedInvitationLandingSource.organizerName(organizerId: "org", viewerId: "me", lookup: lookup), "Léa")
+        XCTAssertNil(SharedInvitationLandingSource.organizerName(organizerId: "org", viewerId: "org", lookup: lookup))
+        XCTAssertNil(SharedInvitationLandingSource.organizerName(organizerId: nil, viewerId: "me", lookup: lookup))
+    }
+
     // MARK: - Textes
 
     static let keys = [

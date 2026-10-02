@@ -1,4 +1,5 @@
 import XCTest
+import Shared
 @testable import Wakeve
 
 /// Branchement du mode immersif dans `AuthenticatedView` (couche 8, #47).
@@ -23,9 +24,15 @@ final class ImmersiveWiringTests: XCTestCase {
         let detail = slice(source, from: "case .eventDetail:", to: "case .eventAudience:")
         XCTAssertTrue(detail.contains("if iosRedesign2026, let event = selectedEvent"))
         let redesign = slice(detail, from: "if iosRedesign2026, let event = selectedEvent", to: "} else if let event = selectedEvent")
-        XCTAssertTrue(redesign.contains("if invitationLandingEventId == event.id"))
+        let flat = redesign.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        XCTAssertTrue(flat.contains(
+            "if InvitationLandingRoute.showsLanding( marker: invitationLandingEventId, eventId: event.id, organizerId: event.organizerId, viewerId: userId ) {"
+        ), "Jamais à l'organisateur (règle pure testée).")
         XCTAssertTrue(redesign.contains("invitationLandingContent(for: event)"))
         XCTAssertTrue(redesign.contains("eventHubContent(for: event)"), "Sinon, le hub.")
+        // Organisateur marqué : le hub efface le marqueur.
+        XCTAssertTrue(redesign.contains(".task(id: invitationLandingEventId)"))
+        XCTAssertTrue(flat.contains("if invitationLandingEventId == event.id { invitationLandingEventId = nil }"))
         XCTAssertTrue(detail.contains("isInvitationLanding: invitationLandingEventId == event.id"), "Détail legacy inchangé.")
     }
 
@@ -40,6 +47,22 @@ final class ImmersiveWiringTests: XCTestCase {
         // Le retour du hub garde son texte exact (ancré par HubModuleSheetViewTests).
         let squashed = source.split(whereSeparator: \.isWhitespace).joined(separator: " ")
         XCTAssertTrue(squashed.contains("onBack: { dismissHubModuleSheet() invitationLandingEventId = nil currentView = .eventList }"))
+    }
+
+    /// Marqueur périmé (revue I1) : effacé quand la navigation quitte le détail sans l'afficher, ou ouvre
+    /// un autre événement (accueil, Activité, jour J), sans toucher la résolution du lien.
+    func testStaleLandingMarkerIsClearedOnNavigation() throws {
+        let source = try contentView
+        let squashed = source.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        XCTAssertTrue(squashed.contains(
+            ".onChange(of: currentView) { _, view in invitationLandingEventId = InvitationLandingRoute.marker(invitationLandingEventId, showingDetail: view == .eventDetail) }"
+        ))
+        let home = slice(source, from: "private func openEventFromHome(_ id: String)", to: "private func handleHomeNextStep(")
+        XCTAssertTrue(home.contains("invitationLandingEventId = InvitationLandingRoute.marker(invitationLandingEventId, opening: id)"))
+        let action = slice(source, from: "private func openHomeAction(_ action: HomeNextStep.Action, eventId: String)", to: "// MARK: - Activité de la refonte")
+        XCTAssertTrue(action.contains("invitationLandingEventId = InvitationLandingRoute.marker(invitationLandingEventId, opening: eventId)"))
+        let day = slice(source, from: "private func openEventDay(_ eventId: String)", to: "private func viewEventFromEventDay(")
+        XCTAssertTrue(day.contains("invitationLandingEventId = InvitationLandingRoute.marker(invitationLandingEventId, opening: eventId)"))
     }
 
     func testDeepLinkResolutionIsUntouched() throws {
@@ -114,4 +137,38 @@ final class InvitationLandingQALaunchTests: XCTestCase {
         XCTAssertNil(beforeCall[callIf.upperBound...].range(of: "#endif"))
         XCTAssertEqual(source.components(separatedBy: "\"--wakeve-qa-open-invitation-landing\"").count - 1, 1)
     }
+
+#if DEBUG
+    /// Seed QA (revue couche 8) : une invitation reçue de Noé Bernard, réponse du spectateur en attente,
+    /// pour vérifier l'invitation d'un invité non organisateur (« Ta réponse est attendue »).
+    @MainActor
+    func testSeedAddsAnInvitationReceivedFromThePendingParticipant() async throws {
+        let database = RepositoryProvider.shared.database
+        let repository = RepositoryProvider.shared.databaseRepository
+        let viewerId = "wakeve-debug-user"
+        let support = InvitationExperienceQALaunchSupport(database: database, eventRepository: repository)
+        let route = await support.prepare(
+            arguments: [
+                InvitationExperienceQALaunchSupport.seedArgument,
+                InvitationExperienceQALaunchSupport.openRouteArgument,
+                "library"
+            ],
+            viewerId: viewerId
+        )
+        XCTAssertEqual(route, .library, "Le seed existant reste complet.")
+        let eventId = InvitationExperienceQALaunchSupport.receivedInvitationEventId
+        let event = try XCTUnwrap(repository.getEvent(id: eventId))
+        XCTAssertEqual(event.organizerId, "qa-invitation-guest-pending")
+        XCTAssertEqual(event.status, .polling)
+        let viewer = (repository.getParticipantRecords(eventId: eventId) ?? []).first { $0.userId == viewerId }
+        XCTAssertEqual(viewer?.rsvp, "PENDING")
+
+        let facts = try await SharedInvitationLandingSource().loadLanding(eventId: eventId, viewerId: viewerId, isLocalGuest: false)
+        XCTAssertEqual(facts.organizerName, "Noé Bernard")
+        XCTAssertEqual(facts.response, .pending)
+        XCTAssertTrue(InvitationLandingRoute.showsLanding(
+            marker: eventId, eventId: eventId, organizerId: event.organizerId, viewerId: viewerId
+        ))
+    }
+#endif
 }

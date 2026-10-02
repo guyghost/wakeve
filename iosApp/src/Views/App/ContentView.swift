@@ -349,6 +349,10 @@ struct AuthenticatedView: View {
         .onChange(of: currentView) { _, view in
             if view != .eventDetail { releaseHubSheetHost() }
         }
+        // Invitation reçue (couche 8) : un marqueur que la navigation n'a pas affiché ne survit pas au détail.
+        .onChange(of: currentView) { _, view in
+            invitationLandingEventId = InvitationLandingRoute.marker(invitationLandingEventId, showingDetail: view == .eventDetail)
+        }
     }
 
 #if DEBUG
@@ -685,6 +689,7 @@ struct AuthenticatedView: View {
     /// Ouvre un événement comme la racine active : bibliothèque si le rollout invitation est actif,
     /// sinon comme `EventListView.onEventSelected`.
     private func openEventFromHome(_ id: String) {
+        invitationLandingEventId = InvitationLandingRoute.marker(invitationLandingEventId, opening: id)
         guard let event = repository.getEvent(id: id) else {
             eventsHomeReloadToken += 1
             return
@@ -707,6 +712,7 @@ struct AuthenticatedView: View {
     /// Même aiguillage que les liens profonds `.event(.pollVoting/.pollResults)` (gardes d'accès incluses),
     /// sans toucher à l'état du service de liens profonds. Partagé par l'accueil et l'Activité (couche 6).
     private func openHomeAction(_ action: HomeNextStep.Action, eventId: String) {
+        invitationLandingEventId = InvitationLandingRoute.marker(invitationLandingEventId, opening: eventId)
         // Sans rollout invitation, le routeur retombe sur le détail : ouvrir directement l'écran de sondage.
         guard invitationExperienceRolloutEnabled else {
             switch action {
@@ -902,6 +908,7 @@ struct AuthenticatedView: View {
     /// Jour J en plein écran (hub « C'est aujourd'hui », accueil « Voir le jour J »), sous la refonte seulement.
     private func openEventDay(_ eventId: String) {
         guard iosRedesign2026 else { return }
+        invitationLandingEventId = InvitationLandingRoute.marker(invitationLandingEventId, opening: eventId)
         dismissHubModuleSheet()
         eventDayPresentation = EventDayPresentation(id: eventId)
     }
@@ -1062,10 +1069,16 @@ struct AuthenticatedView: View {
             
         case .eventDetail:
             if iosRedesign2026, let event = selectedEvent {
-                if invitationLandingEventId == event.id {
+                if InvitationLandingRoute.showsLanding(
+                    marker: invitationLandingEventId, eventId: event.id, organizerId: event.organizerId, viewerId: userId
+                ) {
                     invitationLandingContent(for: event)
                 } else {
                     eventHubContent(for: event)
+                        // L'organisateur qui ouvre son propre lien voit le hub : son marqueur est effacé.
+                        .task(id: invitationLandingEventId) {
+                            if invitationLandingEventId == event.id { invitationLandingEventId = nil }
+                        }
                 }
             } else if let event = selectedEvent,
                let artwork = invitationExperienceProjectionRepository.artwork(eventId: event.id) {
