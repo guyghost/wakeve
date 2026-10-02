@@ -252,6 +252,13 @@ struct CreateEventForm: Equatable {
 
     func isValid(_ step: CreateEventFlowStep) -> Bool { errors(for: step).isEmpty }
 
+    /// Fermer enregistre l'étape courante si elle est valide : brouillon existant, ou étape 1 valide pas
+    /// encore continuée (elle crée le brouillon). Rien de saisi : rien n'est créé.
+    func savesOnClose(step: CreateEventFlowStep, hasDraft: Bool) -> Bool {
+        guard !isBlank, isValid(step) else { return false }
+        return hasDraft || isValid(.what)
+    }
+
     /// Étape où reprendre un brouillon : la première dont la validation échoue (nil : tout est valide).
     var firstInvalidStep: CreateEventFlowStep? {
         CreateEventFlowStep.allCases.first { !isValid($0) }

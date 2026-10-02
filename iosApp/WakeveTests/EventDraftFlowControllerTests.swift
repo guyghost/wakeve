@@ -58,6 +58,23 @@ final class EventDraftFlowControllerTests: XCTestCase {
         var date = Date()
     }
 
+    /// Intents retenus par `intentGate` (écriture lente simulée), libérés à la main.
+    private final class HeldIntents {
+        var releases: [() -> Void] = []
+    }
+
+    private func flowEvents() -> [WakeveEvent] {
+        repository.getAllEvents().filter { $0.organizerId == userId }
+    }
+
+    private func waitUntil(_ condition: () -> Bool, timeout: TimeInterval = 3) async throws {
+        let limit = Date().addingTimeInterval(timeout)
+        while !condition() {
+            guard Date() < limit else { return XCTFail("Condition non atteinte") }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+    }
+
     private func date(_ iso: String) -> Date? {
         let plain = ISO8601DateFormatter()
         if let date = plain.date(from: iso) { return date }
@@ -245,6 +262,106 @@ final class EventDraftFlowControllerTests: XCTestCase {
         XCTAssertEqual(saved6, .saved)
         slots = try XCTUnwrap(repository.getEvent(id: eventId)).proposedSlots
         XCTAssertEqual(slots.map(\.id), ["slot-two"])
+    }
+
+    func testReorderedSlotsAreNotRewritten() async throws {
+        let controller = makeController()
+        var form = whatForm()
+        _ = await controller.save(step: .what, form: form)
+        let eventId = try XCTUnwrap(controller.eventId)
+        form.slots = [
+            slot("slot-late", "2026-10-20T18:00:00Z", "2026-10-20T21:00:00Z"),
+            slot("slot-early", "2026-10-10T18:00:00Z", "2026-10-10T21:00:00Z")
+        ]
+        _ = await controller.save(step: .time, form: form)
+        let before = revision(eventId)
+        form.slots.reverse()
+        let again = await controller.save(step: .time, form: form)
+        XCTAssertEqual(again, .saved)
+        XCTAssertEqual(revision(eventId), before, "Même ensemble de créneaux, autre ordre : aucune écriture.")
+    }
+
+    func testCaseOnlyLocationRenameIsSaved() async throws {
+        let controller = makeController()
+        var form = whatForm()
+        _ = await controller.save(step: .what, form: form)
+        let eventId = try XCTUnwrap(controller.eventId)
+        form.locations = ["annecy"]
+        _ = await controller.save(step: .place, form: form)
+        form.locations = ["Annecy"]
+        let saved = await controller.save(step: .place, form: form)
+        XCTAssertEqual(saved, .saved)
+        XCTAssertEqual(database.potentialLocationQueries.selectByEventId(eventId: eventId).executeAsList().map(\.name),
+                       ["Annecy"], "Un changement de casse est enregistré.")
+    }
+
+    // MARK: - Confirmations tardives
+
+    func testLateToastDoesNotSettleTheNextIntent() async throws {
+        let controller = EventDraftFlowController(userId: userId, toastTimeout: .seconds(1))
+        var form = whatForm()
+        let created = await controller.save(step: .what, form: form)
+        XCTAssertEqual(created, .saved)
+        XCTAssertTrue(controller.isDraftSaved)
+        let eventId = try XCTUnwrap(controller.eventId)
+
+        let held = HeldIntents()
+        controller.intentGate = { held.releases.append($0) }
+        form.title = "Brunch retardé"
+        guard case .failed = await controller.save(step: .what, form: form) else {
+            return XCTFail("Une écriture sans confirmation dans le délai échoue.")
+        }
+        XCTAssertFalse(controller.isDraftSaved, "« Brouillon enregistré » disparaît après un échec.")
+        XCTAssertEqual(held.releases.count, 1)
+
+        form.expectedParticipants = 7
+        let next = Task { await controller.save(step: .who, form: form) }
+        try await waitUntil { held.releases.count == 2 }
+        held.releases[0]() // la confirmation tardive du premier intent arrive pendant le second
+        try await Task.sleep(for: .milliseconds(250))
+        held.releases[1]()
+        let result = await next.value
+        XCTAssertEqual(result, .saved, "Le toast tardif ne règle pas l'intent suivant.")
+        XCTAssertEqual(repository.getEvent(id: eventId)?.expectedParticipants?.intValue, 7)
+        XCTAssertTrue(controller.isDraftSaved)
+    }
+
+    func testTimedOutCreationIsAdoptedWithoutDuplicate() async throws {
+        let controller = EventDraftFlowController(userId: userId, toastTimeout: .milliseconds(300))
+        let held = HeldIntents()
+        controller.intentGate = { held.releases.append($0) }
+        guard case .failed = await controller.save(step: .what, form: whatForm()) else {
+            return XCTFail("Création sans confirmation dans le délai : échec.")
+        }
+        XCTAssertNil(controller.eventId)
+
+        controller.intentGate = nil
+        held.releases[0]() // la création aboutit après le délai
+        try await waitUntil { self.flowEvents().count == 1 }
+
+        let retried = await controller.save(step: .what, form: whatForm())
+        XCTAssertEqual(retried, .saved)
+        XCTAssertEqual(flowEvents().count, 1, "Le brouillon arrivé en retard est repris, pas dupliqué.")
+        XCTAssertEqual(controller.eventId, flowEvents().first?.id)
+    }
+
+    func testRetryAfterCreationTimeoutReusesTheSameId() async throws {
+        let controller = EventDraftFlowController(userId: userId, toastTimeout: .milliseconds(300))
+        let held = HeldIntents()
+        controller.intentGate = { held.releases.append($0) }
+        guard case .failed = await controller.save(step: .what, form: whatForm()) else {
+            return XCTFail("Création sans confirmation dans le délai : échec.")
+        }
+        controller.intentGate = nil
+        let retried = await controller.save(step: .what, form: whatForm())
+        XCTAssertEqual(retried, .saved)
+        let eventId = try XCTUnwrap(controller.eventId)
+
+        held.releases[0]() // la première création arrive enfin : même identifiant, refusée
+        try await Task.sleep(for: .milliseconds(300))
+        XCTAssertEqual(flowEvents().map(\.id), [eventId], "Aucun brouillon en double.")
+        let after = await controller.save(step: .what, form: whatForm(title: "Brunch final"))
+        XCTAssertEqual(after, .saved)
     }
 
     // MARK: - Reprise

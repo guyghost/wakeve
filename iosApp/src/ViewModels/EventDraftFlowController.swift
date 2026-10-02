@@ -17,6 +17,11 @@ import Shared
 /// - lancement : échéance repoussée à 7 jours si besoin (`UpdateEvent` relu), puis `StartPoll` via
 ///   `EventPollStartController`.
 /// Une étape inchangée n'écrit rien (pas de nouvelle révision).
+///
+/// Confirmations tardives : un intent sans toast dans le délai de garde n'est pas oublié. Les toasts
+/// arrivent dans l'ordre des intents ; un toast n'en règle un autre que s'il est le sien (rang) ou si
+/// l'effet attendu est déjà visible dans le dépôt. Une création expirée garde son identifiant : elle est
+/// reprise si elle aboutit plus tard, et une nouvelle tentative réutilise le même identifiant (jamais de doublon).
 @MainActor
 final class EventDraftFlowController: ObservableObject {
     enum SaveResult: Equatable {
@@ -33,6 +38,12 @@ final class EventDraftFlowController: ObservableObject {
     @Published private(set) var lastSavedAt: Date?
     @Published private(set) var isSaving = false
     @Published private(set) var errorMessage: String?
+    /// « Brouillon enregistré » : vrai après une reprise ou un enregistrement réussi, faux après un échec d'écriture.
+    @Published private(set) var isDraftSaved = false
+
+    /// Point d'injection des tests : reçoit l'envoi de chaque intent à la machine d'état et peut le
+    /// différer (écriture lente simulée). nil : envoi immédiat.
+    var intentGate: ((_ send: @escaping () -> Void) -> Void)?
 
     private let userId: String
     private let repository: EventRepositoryInterface
@@ -44,8 +55,19 @@ final class EventDraftFlowController: ObservableObject {
         EventManagementContractIntent,
         EventManagementContractSideEffect
     >
-    private var pendingToast: CheckedContinuation<String?, Never>?
+    /// Intent en attente de règlement : rang d'envoi, continuation, effet attendu dans le dépôt.
+    private struct PendingIntent {
+        let rank: Int
+        let continuation: CheckedContinuation<String?, Never>
+        let isApplied: () -> Bool
+    }
+
+    private var pending: PendingIntent?
+    private var dispatchedIntents = 0
+    private var receivedToasts = 0
     private var toastTimeoutTask: Task<Void, Never>?
+    /// Identifiant d'une création non confirmée : réutilisé (ou repris) à la tentative suivante.
+    private var pendingCreationId: String?
 
     init(
         userId: String,
@@ -69,7 +91,7 @@ final class EventDraftFlowController: ObservableObject {
             guard let toast = effect as? EventManagementContractSideEffectShowToast else { return }
             let message = toast.message
             DispatchQueue.main.async {
-                self?.settleToast(message)
+                self?.receiveToast(message)
             }
         }
     }
@@ -110,6 +132,7 @@ final class EventDraftFlowController: ObservableObject {
             )
         }
         self.eventId = eventId
+        isDraftSaved = true
         return form
     }
 
@@ -123,6 +146,10 @@ final class EventDraftFlowController: ObservableObject {
         isSaving = true
         defer { isSaving = false }
 
+        // Création expirée puis aboutie entre-temps : reprise du brouillon, pas de doublon.
+        if eventId == nil, let pendingCreationId, repository.getEvent(id: pendingCreationId) != nil {
+            adoptCreation(pendingCreationId)
+        }
         let succeeded: Bool
         if let eventId {
             succeeded = await update(eventId: eventId, step: step, form: form)
@@ -130,16 +157,28 @@ final class EventDraftFlowController: ObservableObject {
             guard form.isValid(.what) else { return fail(saveFailedMessage) }
             succeeded = await create(form: form)
         }
-        guard succeeded else { return fail(saveFailedMessage) }
+        guard succeeded else {
+            isDraftSaved = false
+            return fail(saveFailedMessage)
+        }
         errorMessage = nil
         lastSavedAt = now()
+        isDraftSaved = true
         return .saved
+    }
+
+    private func adoptCreation(_ id: String) {
+        eventId = id
+        pendingCreationId = nil
     }
 
     private func create(form: CreateEventForm) async -> Bool {
         let iso8601 = ISO8601DateFormatter()
         let date = now()
-        let id = "event-\(Int(date.timeIntervalSince1970 * 1000))"
+        // Identifiant gardé d'une tentative à l'autre : une création expirée qui aboutit plus tard
+        // fait échouer la nouvelle tentative (même clé) au lieu de créer un doublon.
+        let id = pendingCreationId ?? "event-\(Int(date.timeIntervalSince1970 * 1000))"
+        pendingCreationId = id
         let deadline = Calendar.current.date(byAdding: .day, value: 7, to: date) ?? date
         let event = WakeveEvent(
             id: id,
@@ -163,11 +202,15 @@ final class EventDraftFlowController: ObservableObject {
             aggregateRevision: 1,
             aggregateSchemaVersion: 1
         )
-        _ = await perform(EventManagementContractIntentCreateEvent(event: event))
+        let repository = repository
+        _ = await perform(EventManagementContractIntentCreateEvent(event: event)) {
+            repository.getEvent(id: id) != nil
+        }
         guard repository.getEvent(id: id) != nil else { return false }
-        eventId = id
+        adoptCreation(id)
         syncLocations(eventId: id, names: form.locations)
-        return true
+        // Brouillon d'une tentative précédente repris : l'étape 1 est remise à jour si elle a changé.
+        return await update(eventId: id, step: .what, form: form)
     }
 
     private func update(eventId: String, step: CreateEventFlowStep, form: CreateEventForm) async -> Bool {
@@ -177,46 +220,67 @@ final class EventDraftFlowController: ObservableObject {
             let title = CreateEventForm.trimmed(form.title)
             let description = CreateEventForm.trimmed(form.description)
             let custom = form.persistedEventTypeCustom
-            guard current.title != title || current.description_ != description
-                || current.eventType != form.eventType || current.eventTypeCustom != custom else { return true }
-            _ = await perform(EventManagementContractIntentUpdateEvent(event: Self.copy(
-                current, title: title, description: description, eventType: form.eventType, eventTypeCustom: .some(custom)
-            )))
-            guard let saved = repository.getEvent(id: eventId) else { return false }
-            return saved.title == title && saved.description_ == description
-                && saved.eventType == form.eventType && saved.eventTypeCustom == custom
+            let eventType = form.eventType
+            let matches: (WakeveEvent) -> Bool = { event in
+                event.title == title && event.description_ == description
+                    && event.eventType == eventType && event.eventTypeCustom == custom
+            }
+            guard !matches(current) else { return true }
+            return await write(
+                EventManagementContractIntentUpdateEvent(event: Self.copy(
+                    current, title: title, description: description, eventType: eventType, eventTypeCustom: .some(custom)
+                )),
+                eventId: eventId,
+                until: matches
+            )
 
         case .who:
             let wanted = Counts(min: form.minParticipants, expected: form.expectedParticipants, max: form.maxParticipants)
             let stored = Counts(current)
             guard wanted != stored else { return true }
+            let intent: EventManagementContractIntent
             if wanted.clears(stored) {
-                _ = await perform(EventManagementContractIntentUpdateEvent(event: Self.copy(current, counts: wanted)))
+                intent = EventManagementContractIntentUpdateEvent(event: Self.copy(current, counts: wanted))
             } else {
-                _ = await perform(EventManagementContractIntentUpdateDraftEvent(
+                intent = EventManagementContractIntentUpdateDraftEvent(
                     eventId: eventId,
                     eventType: nil,
                     eventTypeCustom: nil,
-                    expectedParticipants: wanted.expected.map { KotlinInt(value: Int32($0)) },
-                    minParticipants: wanted.min.map { KotlinInt(value: Int32($0)) },
-                    maxParticipants: wanted.max.map { KotlinInt(value: Int32($0)) }
-                ))
+                    expectedParticipants: wanted.kotlin(wanted.expected),
+                    minParticipants: wanted.kotlin(wanted.min),
+                    maxParticipants: wanted.kotlin(wanted.max)
+                )
             }
-            return repository.getEvent(id: eventId).map(Counts.init) == wanted
+            return await write(intent, eventId: eventId) { Counts($0) == wanted }
 
         case .place:
             syncLocations(eventId: eventId, names: form.locations)
-            let stored = storedLocations(eventId: eventId).map { CreateEventForm.locationKey($0.name) }
-            return Set(stored) == Set(form.locations.map(CreateEventForm.locationKey))
+            let stored = storedLocations(eventId: eventId).map { CreateEventForm.trimmed($0.name) }
+            return Set(stored) == Set(Self.locationNames(form.locations))
 
         case .time:
-            let wanted = form.slots.map(SlotKey.init)
-            guard current.proposedSlots.map(SlotKey.init) != wanted else { return true }
-            _ = await perform(EventManagementContractIntentUpdateEvent(
-                event: Self.copy(current, slots: Self.timeSlots(form.slots))
-            ))
-            return repository.getEvent(id: eventId)?.proposedSlots.map(SlotKey.init).sorted() == wanted.sorted()
+            // Ensembles comparés sans tenir compte de l'ordre (le dépôt trie par début).
+            let wanted = form.slots.map(SlotKey.init).sorted()
+            let matches: (WakeveEvent) -> Bool = { $0.proposedSlots.map(SlotKey.init).sorted() == wanted }
+            guard !matches(current) else { return true }
+            return await write(
+                EventManagementContractIntentUpdateEvent(event: Self.copy(current, slots: Self.timeSlots(form.slots))),
+                eventId: eventId,
+                until: matches
+            )
         }
+    }
+
+    /// Envoie l'intent puis vérifie l'effet dans le dépôt relu (jamais déduit du seul toast).
+    private func write(
+        _ intent: EventManagementContractIntent,
+        eventId: String,
+        until matches: @escaping (WakeveEvent) -> Bool
+    ) async -> Bool {
+        let repository = repository
+        let isApplied = { repository.getEvent(id: eventId).map(matches) ?? false }
+        _ = await perform(intent, isApplied: isApplied)
+        return isApplied()
     }
 
     // MARK: - Lancement
@@ -261,8 +325,10 @@ final class EventDraftFlowController: ObservableObject {
             return true
         }
         let refreshed = ISO8601DateFormatter().string(from: minimum)
-        _ = await perform(EventManagementContractIntentUpdateEvent(event: Self.copy(current, deadline: refreshed)))
-        return repository.getEvent(id: eventId)?.deadline == refreshed
+        return await write(
+            EventManagementContractIntentUpdateEvent(event: Self.copy(current, deadline: refreshed)),
+            eventId: eventId
+        ) { $0.deadline == refreshed }
     }
 
     private static func parseDate(_ value: String) -> Date? {
@@ -276,24 +342,44 @@ final class EventDraftFlowController: ObservableObject {
 
     /// Envoie l'intent et attend son toast de règlement (ou le délai de garde). Le résultat est
     /// toujours vérifié ensuite dans le dépôt, jamais déduit du seul toast.
-    private func perform(_ intent: EventManagementContractIntent) async -> String? {
-        await withCheckedContinuation { continuation in
-            pendingToast = continuation
+    private func perform(
+        _ intent: EventManagementContractIntent,
+        isApplied: @escaping () -> Bool
+    ) async -> String? {
+        dispatchedIntents += 1
+        let rank = dispatchedIntents
+        return await withCheckedContinuation { continuation in
+            pending = PendingIntent(rank: rank, continuation: continuation, isApplied: isApplied)
             toastTimeoutTask = Task { [weak self, toastTimeout] in
                 try? await Task.sleep(for: toastTimeout)
-                guard !Task.isCancelled else { return }
-                self?.settleToast(nil)
+                guard !Task.isCancelled, self?.pending?.rank == rank else { return }
+                self?.settle(nil)
             }
-            stateMachine.dispatch(intent: intent)
+            let send: () -> Void = { [stateMachine] in stateMachine.dispatch(intent: intent) }
+            if let intentGate {
+                intentGate(send)
+            } else {
+                send()
+            }
         }
     }
 
-    private func settleToast(_ message: String?) {
-        guard let continuation = pendingToast else { return }
-        pendingToast = nil
+    /// Toast reçu : règle l'intent en attente s'il est le sien (rang atteint) ou si son effet est déjà
+    /// visible. Le toast tardif d'un intent expiré est ignoré.
+    private func receiveToast(_ message: String) {
+        receivedToasts += 1
+        guard let pending else { return }
+        if receivedToasts >= pending.rank || pending.isApplied() {
+            settle(message)
+        }
+    }
+
+    private func settle(_ message: String?) {
+        guard let pending else { return }
+        self.pending = nil
         toastTimeoutTask?.cancel()
         toastTimeoutTask = nil
-        continuation.resume(returning: message)
+        pending.continuation.resume(returning: message)
     }
 
     // MARK: - Lieux (SQL)
@@ -302,18 +388,24 @@ final class EventDraftFlowController: ObservableObject {
         database.potentialLocationQueries.selectByEventId(eventId: eventId).executeAsList()
     }
 
+    private static func locationNames(_ names: [String]) -> [String] {
+        names.map(CreateEventForm.trimmed).filter { !$0.isEmpty }
+    }
+
+    /// Noms comparés à l'identique (après trim) : un changement de casse remplace la ligne. Les doublons
+    /// insensibles à la casse sont refusés en amont par la validation.
     private func syncLocations(eventId: String, names: [String]) {
-        let wanted = names.map(CreateEventForm.trimmed).filter { !$0.isEmpty }
+        let wanted = Self.locationNames(names)
         let stored = storedLocations(eventId: eventId)
-        let wantedKeys = Set(wanted.map(CreateEventForm.locationKey))
-        for row in stored where !wantedKeys.contains(CreateEventForm.locationKey(row.name)) {
+        let wantedNames = Set(wanted)
+        for row in stored where !wantedNames.contains(CreateEventForm.trimmed(row.name)) {
             database.potentialLocationQueries.deleteLocation(id: row.id)
         }
-        let storedKeys = Set(stored.map { CreateEventForm.locationKey($0.name) })
+        let storedNames = Set(stored.map { CreateEventForm.trimmed($0.name) }.filter(wantedNames.contains))
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         let base = now()
-        for (offset, name) in wanted.enumerated() where !storedKeys.contains(CreateEventForm.locationKey(name)) {
+        for (offset, name) in wanted.enumerated() where !storedNames.contains(name) {
             // Horodatages distincts : `selectByEventId` trie par date de création.
             database.potentialLocationQueries.insertLocation(
                 id: "location-\(UUID().uuidString.prefix(8).lowercased())",
@@ -367,12 +459,14 @@ final class EventDraftFlowController: ObservableObject {
         let start: String
         let end: String
         let timeOfDay: String
+        let timezone: String
 
         init(_ slot: CreateEventSlot) {
             id = slot.id
             start = slot.input.start
             end = slot.input.end ?? ""
             timeOfDay = slot.input.timeOfDay.name
+            timezone = slot.timezone ?? TimeZone.current.identifier
         }
 
         init(_ slot: TimeSlot) {
@@ -380,9 +474,13 @@ final class EventDraftFlowController: ObservableObject {
             start = slot.start ?? ""
             end = slot.end ?? ""
             timeOfDay = slot.timeOfDay.name
+            timezone = slot.timezone
         }
 
-        static func < (lhs: SlotKey, rhs: SlotKey) -> Bool { lhs.id < rhs.id }
+        static func < (lhs: SlotKey, rhs: SlotKey) -> Bool {
+            (lhs.id, lhs.start, lhs.end, lhs.timeOfDay, lhs.timezone)
+                < (rhs.id, rhs.start, rhs.end, rhs.timeOfDay, rhs.timezone)
+        }
     }
 
     /// Début vide → `start` nil (créneau repris sans date) ; fuseau d'origine, sinon celui de l'appareil.

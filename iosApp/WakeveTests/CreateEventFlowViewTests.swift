@@ -158,6 +158,19 @@ final class CreateEventFlowViewTests: XCTestCase {
         XCTAssertFalse(steps.contains(".prominent"), "Une seule action principale par écran (WKPrimaryButton).")
     }
 
+    // MARK: - Robustesse (revue)
+
+    func testCloseAndBackAreDisabledWhileBusyAndLaunchIsIgnoredAfterClose() throws {
+        let flow = try source("src/Views/Create/CreateEventFlow.swift")
+        XCTAssertGreaterThanOrEqual(flow.components(separatedBy: ".disabled(isSaving)").count - 1, 2,
+                                    "Fermer et Retour inactifs pendant un enregistrement ou un lancement.")
+        XCTAssertTrue(flow.contains("guard !isBusy"), "Les actions ignorent un appui pendant le travail en cours.")
+        XCTAssertTrue(flow.contains("guard !didClose"), "Un lancement terminé après la fermeture n'ouvre rien.")
+        XCTAssertTrue(flow.contains("form.savesOnClose(step: step, hasDraft: controller.eventId != nil)"))
+        XCTAssertTrue(flow.contains("isDraftSaved: controller.isDraftSaved"),
+                      "« Brouillon enregistré » suit le dernier enregistrement.")
+    }
+
     // MARK: - Contrat de la vue
 
     private func source(_ path: String) throws -> String {

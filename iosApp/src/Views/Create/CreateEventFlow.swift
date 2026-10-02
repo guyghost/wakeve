@@ -18,6 +18,8 @@ struct CreateEventFlow: View {
     @State private var bannerMessage: String?
     @State private var didPrepare = false
     @State private var isLaunching = false
+    /// Fermé : un enregistrement ou un lancement qui se termine ensuite n'ouvre plus rien.
+    @State private var didClose = false
 
     init(
         userId: String,
@@ -39,8 +41,8 @@ struct CreateEventFlow: View {
             form: $form,
             step: step,
             showErrors: showErrors,
-            isDraftSaved: controller.eventId != nil,
-            isSaving: controller.isSaving || isLaunching,
+            isDraftSaved: controller.isDraftSaved,
+            isSaving: isBusy,
             bannerMessage: bannerMessage,
             actions: CreateEventFlowScreen.Actions(
                 close: close,
@@ -58,6 +60,8 @@ struct CreateEventFlow: View {
 
     // MARK: - Actions
 
+    private var isBusy: Bool { controller.isSaving || isLaunching }
+
     /// Reprise : brouillon relu, étape de la première validation en échec. Sinon modèle éventuel.
     private func prepare() {
         guard !didPrepare else { return }
@@ -71,7 +75,7 @@ struct CreateEventFlow: View {
     }
 
     private func primary() {
-        guard !controller.isSaving, !isLaunching else { return }
+        guard !isBusy, !didClose else { return }
         let errors = form.errors(for: step)
         guard errors.isEmpty else {
             showErrors = true
@@ -79,7 +83,9 @@ struct CreateEventFlow: View {
             return
         }
         Task { @MainActor in
-            switch await controller.save(step: step, form: form) {
+            let result = await controller.save(step: step, form: form)
+            guard !didClose else { return }
+            switch result {
             case .saved:
                 bannerMessage = nil
                 if let next = step.next {
@@ -97,7 +103,9 @@ struct CreateEventFlow: View {
     private func launch() async {
         isLaunching = true
         defer { isLaunching = false }
-        switch await controller.launch() {
+        let result = await controller.launch()
+        guard !didClose else { return }
+        switch result {
         case .launched(let eventId):
             guard let event = RepositoryProvider.shared.repository.getEvent(id: eventId) else {
                 onClose()
@@ -115,14 +123,16 @@ struct CreateEventFlow: View {
     }
 
     private func back() {
-        guard let previous = step.previous else { return }
+        guard !isBusy, let previous = step.previous else { return }
         step = previous
     }
 
-    /// Le brouillon est déjà enregistré à chaque étape ; l'étape en cours l'est aussi si elle est valide.
-    /// Rien de saisi (aucun brouillon) : fermer ne crée rien.
+    /// Le brouillon est déjà enregistré à chaque étape ; l'étape en cours l'est aussi si elle est valide,
+    /// y compris une étape 1 valide pas encore continuée. Rien de saisi : fermer ne crée rien.
     private func close() {
-        guard controller.eventId != nil, form.isValid(step), !controller.isSaving else {
+        guard !isBusy, !didClose else { return }
+        didClose = true
+        guard form.savesOnClose(step: step, hasDraft: controller.eventId != nil) else {
             onClose()
             return
         }
@@ -212,6 +222,7 @@ struct CreateEventFlowScreen: View {
                     accessibilityID: "create_flow.close",
                     action: actions.close
                 )
+                .disabled(isSaving)
                 Spacer(minLength: WK.Space.xs)
                 if isDraftSaved {
                     // Mention discrète : plafonnée pour laisser la place à la question en AX5.
@@ -245,6 +256,7 @@ struct CreateEventFlowScreen: View {
                         accessibilityID: "create_flow.back",
                         action: actions.back
                     )
+                    .disabled(isSaving)
                 }
                 WKPrimaryButton(
                     title: Self.primaryTitle(for: step),

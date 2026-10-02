@@ -225,6 +225,19 @@ final class CreateEventFlowModelTests: XCTestCase {
         XCTAssertEqual(form.firstInvalidStep, .place)
     }
 
+    func testClosingSavesAValidStepEvenBeforeTheFirstContinue() {
+        var form = CreateEventForm()
+        XCTAssertFalse(form.savesOnClose(step: .what, hasDraft: false), "Rien de saisi : aucun brouillon.")
+        form.title = "Apéro"
+        XCTAssertFalse(form.savesOnClose(step: .what, hasDraft: false), "Étape 1 incomplète : rien n'est créé.")
+        form.description = "Sur le toit"
+        XCTAssertTrue(form.savesOnClose(step: .what, hasDraft: false),
+                      "Étape 1 valide mais pas encore continuée : enregistrée à la fermeture.")
+        XCTAssertTrue(form.savesOnClose(step: .who, hasDraft: true))
+        form.maxParticipants = 0
+        XCTAssertFalse(form.savesOnClose(step: .who, hasDraft: true), "Étape invalide : non enregistrée.")
+    }
+
     func testBlankFormCreatesNoDraft() {
         XCTAssertTrue(CreateEventForm().isBlank)
         var form = CreateEventForm()
