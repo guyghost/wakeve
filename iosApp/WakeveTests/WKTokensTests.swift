@@ -197,6 +197,53 @@ final class WKTokensTests: XCTestCase {
         }
     }
 
+    /// Résolution sous Increase Contrast (mode sombre).
+    private func highContrast(_ color: Color) -> Color {
+        let traits = UITraitCollection(traitsFrom: [
+            UITraitCollection(userInterfaceStyle: .dark),
+            UITraitCollection(accessibilityContrast: .high)
+        ])
+        return Color(uiColor: UIColor(color).resolvedColor(with: traits))
+    }
+
+    /// Increase Contrast (revue couche 8) : contour des pastilles opaque et plus lumineux, texte secondaire plus clair.
+    func testImmersiveMoodStrengthensUnderIncreaseContrast() {
+        for mood in EventMoodPalette.Mood.allCases {
+            let m = WK.Mood(palette: .palette(for: mood))
+            let surface = composite(m.surface, over: m.background)
+            // `rgb` exige une couleur opaque.
+            let stroke = highContrast(m.pillStroke)
+            let regularStroke = contrast(composite(m.pillStroke, over: m.background), m.background, .dark)
+            XCTAssertGreaterThan(contrast(stroke, m.background, .dark), regularStroke, "\(mood)")
+            XCTAssertGreaterThanOrEqual(contrast(stroke, m.background, .dark), 4.5, "\(mood)")
+            let secondary = highContrast(m.textSecondary)
+            XCTAssertGreaterThan(luminance(secondary, .dark), luminance(m.textSecondary, .dark), "\(mood)")
+            XCTAssertGreaterThanOrEqual(contrast(secondary, m.background, .dark), 7, "\(mood)")
+            XCTAssertGreaterThanOrEqual(contrast(secondary, surface, .dark), 6.5, "\(mood)")
+        }
+    }
+
+    /// Icône d'accent (lieu du jour J) posée sur une carte : indice non textuel ≥ 3:1.
+    func testImmersiveMoodAccentIsVisibleOnItsSurface() {
+        for mood in EventMoodPalette.Mood.allCases {
+            let m = WK.Mood(palette: .palette(for: mood))
+            XCTAssertGreaterThanOrEqual(contrast(m.accent, composite(m.surface, over: m.background), .dark), 3, "\(mood)")
+        }
+    }
+
+    /// Reduce Transparency (revue couche 8) : la croix a un fond opaque tiré de l'ambiance, distinct du fond,
+    /// et son glyphe (`textPrimary`) reste lisible.
+    func testImmersiveCloseFillIsOpaqueAndMoodDerived() {
+        for mood in EventMoodPalette.Mood.allCases {
+            let m = WK.Mood(palette: .palette(for: mood))
+            let fill = rgb(m.closeFill, .dark)
+            let background = rgb(m.background, .dark)
+            let gap = max(abs(fill.0 - background.0), abs(fill.1 - background.1), abs(fill.2 - background.2))
+            XCTAssertGreaterThanOrEqual(gap, 24, "\(mood) : croix confondue avec le fond")
+            XCTAssertGreaterThanOrEqual(contrast(m.textPrimary, m.closeFill, .dark), 4.5, "\(mood)")
+        }
+    }
+
     /// Contour des pastilles : indice non textuel ≥ 3:1 sur le fond (WCAG 1.4.11).
     func testImmersivePillStrokeIsVisibleOnItsBackground() {
         for mood in EventMoodPalette.Mood.allCases {

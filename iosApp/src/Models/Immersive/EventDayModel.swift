@@ -27,7 +27,9 @@ enum EventDayDirections: Equatable {
 
 /// Présentation pure du jour J (couche 8, #47), localisée pour `locale`, heures dans le fuseau du créneau.
 struct EventDayModel: Equatable {
-    struct Pill: Equatable {
+    struct Pill: Equatable, Identifiable {
+        /// Unique dans l'écran (deux repas identiques restent deux pastilles).
+        let id: String
         let text: String
         let systemImage: String
     }
@@ -114,16 +116,18 @@ struct EventDayModel: Equatable {
 
         var pills: [Pill] = []
         if let transport = facts.transport, let pill = HubModuleSheetData.transportPill(transport, locale: locale) {
-            pills.append(Pill(text: pill.text, systemImage: "car"))
+            pills.append(Pill(id: "transport", text: pill.text, systemImage: "car"))
         }
-        for meal in facts.meals {
+        for (index, meal) in facts.meals.enumerated() {
             pills.append(Pill(
+                id: "meal-\(index)",
                 text: String(format: text("hub.summary.format"), meal.name, meal.time),
                 systemImage: "fork.knife"
             ))
         }
         if facts.confirmedCount + facts.pendingCount > 0 {
             pills.append(Pill(
+                id: "participants",
                 text: HubSummaryText.participants(confirmed: facts.confirmedCount, pending: facts.pendingCount, locale: locale),
                 systemImage: "person.2"
             ))

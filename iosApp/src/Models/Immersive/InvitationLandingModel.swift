@@ -24,7 +24,7 @@ struct InvitationLandingModel: Equatable {
     enum Primary: Equatable { case vote, viewEvent }
 
     let title: String
-    /// « Invitation de Léa » (formulation sans genre), « Invitation » si l'organisateur est inconnu.
+    /// « Organisé par Léa » (ni genre ni élision à gérer), « Invitation » si l'organisateur est inconnu.
     let caption: String
     /// Date retenue, ou « Vote en cours · N créneaux » ; nil en brouillon ou sans créneau.
     let when: String?
@@ -42,7 +42,7 @@ struct InvitationLandingModel: Equatable {
         palette = EventMoodPalette.palette(for: hub.eventTypeName)
 
         let organizer = facts.organizerName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        // L'organisateur qui ouvre son propre lien ne lit pas « Invitation de » son propre nom.
+        // L'organisateur qui ouvre son propre lien ne lit pas son propre nom.
         caption = organizer.isEmpty || facts.response == .organizer
             ? text("immersive.invitation.caption")
             : String(format: text("immersive.invitation.caption_format"), organizer)

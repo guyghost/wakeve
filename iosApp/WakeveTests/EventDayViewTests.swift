@@ -97,6 +97,14 @@ final class EventDayViewTests: XCTestCase {
                        "Sans plan de transport, repas ni invité : aucune pastille.")
     }
 
+    /// Deux repas identiques restent deux pastilles distinctes (identifiants uniques pour `ForEach`).
+    func testPillIdentifiersAreUnique() {
+        let twin = EventDayMeal(name: "Dîner", time: "20:00", statusName: "PLANNED")
+        let pills = model(facts(meals: [twin, twin])).pills
+        XCTAssertEqual(pills.count, 4)
+        XCTAssertEqual(Set(pills.map(\.id)).count, pills.count, "\(pills.map(\.id))")
+    }
+
     func testDirectionsUseCoordinatesOrSearchByName() {
         XCTAssertEqual(model(facts()).directions, .coordinate(latitude: 45.9, longitude: 6.12, name: "Gare d'Annecy"))
         let byName = model(facts(place: EventDayPlace(name: "Chalet du lac", address: "Talloires", latitude: nil, longitude: nil)))
@@ -150,6 +158,15 @@ final class EventDayViewTests: XCTestCase {
         XCTAssertFalse(hubFacts(slot: slot).isEventDay(now: date("2026-10-04T08:00:00Z"), invitationRollout: false))
         XCTAssertFalse(hubFacts(slot: nil).isEventDay(now: date("2026-10-03T08:00:00Z"), invitationRollout: false))
         XCTAssertFalse(hubFacts(phase: .confirmed, slot: slot).isEventDay(now: date("2026-10-03T08:00:00Z"), invitationRollout: false))
+    }
+
+    /// La bannière suit l'heure : recalculée chaque minute (hub ouvert à minuit, retour au premier plan).
+    func testHubRecomputesTheEventDayEveryMinute() throws {
+        let source = try String(contentsOf: URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .deletingLastPathComponent().appendingPathComponent("src/Views/Hub/EventHubView.swift"), encoding: .utf8)
+        XCTAssertTrue(source.contains("TimelineView(.everyMinute) { context in"))
+        XCTAssertTrue(source.contains("isEventDay: facts.isEventDay(now: context.date, invitationRollout: invitationRollout)"))
+        XCTAssertFalse(source.contains("isEventDay(now: Date()"), "Plus d'instant figé au chargement.")
     }
 
     func testHubHeroShowsTheTodayBannerOnlyOnTheEventDay() {

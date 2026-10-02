@@ -59,8 +59,6 @@ struct EventDayPlace: Equatable {
     let address: String?
     let latitude: Double?
     let longitude: Double?
-
-    var hasCoordinate: Bool { latitude != nil && longitude != nil }
 }
 
 /// Résolution pure du lieu du jour J (lecture seule, sans recherche réseau) : scénario retenu, sinon premier
@@ -152,17 +150,4 @@ struct EventDayFacts: Equatable {
     /// Date retenue de l'événement (`event.finalDate`) : repli quand le créneau n'a pas de début (créneau
     /// flexible) ou qu'aucune ligne `confirmedDate` n'existe (date héritée).
     var finalDate: Date? = nil
-
-    func isEventDay(now: Date, invitationRollout: Bool) -> Bool {
-        EventDayRule.isEventDay(
-            phase: phase,
-            invitationRollout: invitationRollout,
-            finalDate: finalDate,
-            slotStart: slot?.start,
-            slotEnd: slot?.end,
-            timezone: slot?.timeZoneIdentifier,
-            hasAccess: hasAccess,
-            now: now
-        )
-    }
 }

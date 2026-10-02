@@ -2495,7 +2495,7 @@
 
 /* Mode immersif — invitation reçue (couche 8, #47) */
 "immersive.invitation.caption" = "Invitation";
-"immersive.invitation.caption_format" = "Invitation de %@";
+"immersive.invitation.caption_format" = "Organisé par %@";
 "immersive.invitation.polling_format" = "Vote en cours · %@";
 "immersive.invitation.response.organizer" = "Tu organises";
 "immersive.invitation.response.accepted" = "Tu as accepté";

@@ -67,6 +67,17 @@ final class WKImmersiveTests: XCTestCase {
         XCTAssertLessThanOrEqual(size.height, 812 / 4, "\(size)")
     }
 
+    /// Reduce Transparency : la croix du mode immersif prend le fond opaque de l'ambiance (`mood.closeFill`),
+    /// pas la carte neutre des écrans clairs ; les autres `WKCircleButton` gardent `WK.Colors.card`.
+    func testScaffoldCloseButtonUsesTheMoodFillUnderReduceTransparency() throws {
+        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        let immersive = try String(contentsOf: root.appendingPathComponent("src/Components/WK/WKImmersive.swift"), encoding: .utf8)
+        XCTAssertTrue(immersive.contains("reducedTransparencyFill: mood.closeFill"))
+        let buttons = try String(contentsOf: root.appendingPathComponent("src/Components/WK/WKButtons.swift"), encoding: .utf8)
+        XCTAssertTrue(buttons.contains("var reducedTransparencyFill: Color? = nil"))
+        XCTAssertTrue(buttons.contains("content.background(fill ?? WK.Colors.card, in: Circle())"))
+    }
+
     func testScaffoldExposesStableAccessibilityIdentifiers() {
         XCTAssertEqual(WKImmersiveScaffold<EmptyView>.closeAccessibilityID, "immersive.close")
         XCTAssertEqual(WKImmersiveScaffold<EmptyView>.primaryAccessibilityID, "immersive.primary")

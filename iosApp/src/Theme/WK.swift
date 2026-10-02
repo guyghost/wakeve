@@ -208,16 +208,34 @@ enum WK {
         /// CTA blanc (`WKImmersiveButton`) et son texte.
         let cta: Color
         let onCta: Color
+        /// Fond opaque de la croix sous Reduce Transparency : le fond de l'ambiance éclairci de 18 % de blanc.
+        let closeFill: Color
 
         init(palette: EventMoodPalette) {
             background = palette.secondary(for: .dark)
             surface = Color(uiColor: WK.uiColor(0xFFFFFF, alpha: 0.06))
             textPrimary = Color(uiColor: WK.uiColor(0xFFFFFF))
-            textSecondary = Color(uiColor: WK.uiColor(0xC9D3D1))
-            pillStroke = Color(uiColor: WK.uiColor(0xFFFFFF, alpha: 0.45))
+            // Increase Contrast : texte secondaire plus clair, contour des pastilles opaque.
+            textSecondary = Self.contrasted(regular: WK.uiColor(0xC9D3D1), increased: WK.uiColor(0xF2F5F4))
+            pillStroke = Self.contrasted(regular: WK.uiColor(0xFFFFFF, alpha: 0.45), increased: WK.uiColor(0xFFFFFF))
             accent = palette.accent(for: .dark)
             cta = Color(uiColor: WK.uiColor(0xFFFFFF))
             onCta = Color(uiColor: WK.uiColor(0x1C1C1E))
+            closeFill = Color(uiColor: Self.lightened(hex: palette.darkSecondaryHex, by: 0.18))
+        }
+
+        private static func contrasted(regular: UIColor, increased: UIColor) -> Color {
+            Color(uiColor: UIColor { traits in traits.accessibilityContrast == .high ? increased : regular })
+        }
+
+        /// `hex` (« 1D5258 ») mélangé à `amount` de blanc, opaque.
+        private static func lightened(hex: String, by amount: CGFloat) -> UIColor {
+            let value = UInt32(hex.trimmingCharacters(in: CharacterSet(charactersIn: "#")), radix: 16) ?? 0
+            func channel(_ shift: UInt32) -> CGFloat {
+                let base = CGFloat((value >> shift) & 0xFF) / 255
+                return base + (1 - base) * amount
+            }
+            return UIColor(red: channel(16), green: channel(8), blue: channel(0), alpha: 1)
         }
     }
 }

@@ -141,7 +141,6 @@ final class EventDayRuleTests: XCTestCase {
         )
         XCTAssertEqual(unknown?.name, "Genève")
         XCTAssertNil(unknown?.latitude)
-        XCTAssertFalse(unknown?.hasCoordinate ?? true)
     }
 
     func testWithoutRetainedScenarioTheFirstPotentialLocationIsUsed() {
@@ -158,7 +157,7 @@ final class EventDayRuleTests: XCTestCase {
 
     // MARK: - Faits
 
-    func testFactsDelegateToTheRuleAndKeepTodayMealsInOrder() {
+    func testFlexibleSlotUsesTheRetainedDateAndTodayMealsStayInOrder() {
         let facts = EventDayFacts(
             eventId: "e1", title: "Week-end", eventTypeName: nil, phase: .organizing, hasAccess: true,
             slot: RetainedSlot(start: date("2026-10-03T17:30:00Z"), end: date("2026-10-03T21:00:00Z"),
@@ -167,16 +166,14 @@ final class EventDayRuleTests: XCTestCase {
             meals: [EventDayMeal(name: "Dîner", time: "20:00", statusName: "PLANNED")],
             confirmedCount: 4, pendingCount: 1
         )
-        XCTAssertTrue(facts.isEventDay(now: date("2026-10-03T09:00:00Z"), invitationRollout: false))
-        XCTAssertFalse(facts.isEventDay(now: date("2026-10-05T09:00:00Z"), invitationRollout: false))
-        let flexible = EventDayFacts(
-            eventId: "e1", title: "Week-end", eventTypeName: nil, phase: .organizing, hasAccess: true,
-            slot: RetainedSlot(start: nil, end: nil, timeZoneIdentifier: "Europe/Paris", timeOfDayName: "MORNING"),
-            place: nil, transport: nil, meals: [], confirmedCount: 0, pendingCount: 0,
-            finalDate: date("2026-10-03T08:00:00Z")
+        XCTAssertEqual(facts.meals.map(\.name), ["Dîner"])
+        XCTAssertTrue(
+            EventDayRule.isEventDay(
+                phase: .organizing, invitationRollout: false, finalDate: date("2026-10-03T08:00:00Z"),
+                slotStart: nil, slotEnd: nil, timezone: "Europe/Paris", hasAccess: true, now: date("2026-10-03T15:00:00Z")
+            ),
+            "Créneau flexible sans début : la date retenue fait foi (hub et accueil la passent)."
         )
-        XCTAssertTrue(flexible.isEventDay(now: date("2026-10-03T15:00:00Z"), invitationRollout: false),
-                      "Créneau flexible sans début : la date retenue fait foi, comme au hub et à l'accueil.")
         XCTAssertEqual(
             EventDayMeal.today([
                 EventDayMeal(name: "Brunch", time: "11:00", statusName: "CANCELLED"),

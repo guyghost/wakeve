@@ -71,7 +71,7 @@ struct EventDayView: View {
             }
             if !model.pills.isEmpty {
                 VStack(alignment: .leading, spacing: WK.Space.xs) {
-                    ForEach(model.pills, id: \.text) { pill in
+                    ForEach(model.pills) { pill in
                         WKImmersivePill(text: pill.text, systemImage: pill.systemImage, mood: mood)
                     }
                 }

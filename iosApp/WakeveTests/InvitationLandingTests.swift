@@ -36,13 +36,15 @@ final class InvitationLandingTests: XCTestCase {
 
     // MARK: - Présentation
 
+    /// « Organisé par » : ni genre, ni élision à gérer (« Invitation de Anaïs »).
     func testCaptionNamesTheOrganizerWithoutGenderedWording() {
-        XCTAssertEqual(model(hub()).caption, "Invitation de Léa")
+        XCTAssertEqual(model(hub()).caption, "Organisé par Léa")
+        XCTAssertEqual(model(hub(), organizer: "Anaïs").caption, "Organisé par Anaïs")
         XCTAssertEqual(model(hub(), organizer: nil).caption, "Invitation")
         XCTAssertEqual(model(hub(), organizer: "  ").caption, "Invitation")
     }
 
-    /// L'organisateur qui ouvre son propre lien ne lit pas « Invitation de » son propre nom.
+    /// L'organisateur qui ouvre son propre lien ne lit pas son propre nom.
     func testOrganizerSeesTheGenericCaption() {
         XCTAssertEqual(model(hub(isOrganizer: true), organizer: "Léa", response: .organizer).caption, "Invitation")
     }
@@ -163,6 +165,15 @@ final class InvitationLandingTests: XCTestCase {
         let view = InvitationLandingView(model: model(hub()), artwork: nil, onPrimary: {}, onClose: {})
         let size = fittingSize(view.frame(height: 812), width: 375, dynamicType: .accessibility5)
         XCTAssertLessThanOrEqual(size.width, 375, "\(size)")
+    }
+
+    /// Comme le jour J : le conteneur demande un rendu sombre (barre d'état claire sur le fond teinté).
+    func testLandingContainerPrefersTheDarkColorScheme() throws {
+        let source = try String(contentsOf: URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .deletingLastPathComponent().appendingPathComponent("src/Views/Immersive/InvitationLandingView.swift"), encoding: .utf8)
+        let container = try XCTUnwrap(source.range(of: "struct InvitationLandingContainer: View"))
+        let body = source[container.lowerBound...]
+        XCTAssertTrue(body.contains(".preferredColorScheme(.dark)"))
     }
 
     func testLandingExposesStableAccessibilityIdentifiers() {

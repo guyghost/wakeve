@@ -158,20 +158,24 @@ struct EventHubView: View {
                     failedState
                 case .loaded:
                     if let facts = viewModel.facts, let model = viewModel.model {
-                        EventHubContent(
-                            facts: facts,
-                            model: model,
-                            onOpenModule: { module in
-                                if Self.opensVoting(module, facts: facts) {
-                                    onPrimary(.vote)
-                                } else {
-                                    onOpenModule(module)
-                                }
-                            },
-                            onQuickVote: { onPrimary(.vote) },
-                            isEventDay: facts.isEventDay(now: Date(), invitationRollout: invitationRollout),
-                            onOpenEventDay: onOpenEventDay
-                        )
+                        // Jour J recalculé chaque minute : la bannière apparaît à minuit (fuseau du créneau) et
+                        // disparaît le lendemain sans recharger le hub, y compris au retour au premier plan.
+                        TimelineView(.everyMinute) { context in
+                            EventHubContent(
+                                facts: facts,
+                                model: model,
+                                onOpenModule: { module in
+                                    if Self.opensVoting(module, facts: facts) {
+                                        onPrimary(.vote)
+                                    } else {
+                                        onOpenModule(module)
+                                    }
+                                },
+                                onQuickVote: { onPrimary(.vote) },
+                                isEventDay: facts.isEventDay(now: context.date, invitationRollout: invitationRollout),
+                                onOpenEventDay: onOpenEventDay
+                            )
+                        }
                     }
                 }
             }

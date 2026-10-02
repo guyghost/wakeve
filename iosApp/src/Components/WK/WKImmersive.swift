@@ -47,6 +47,7 @@ struct WKImmersiveScaffold<Content: View>: View {
                 systemImage: "xmark",
                 accessibilityLabel: String(localized: "common.close"),
                 accessibilityID: Self.closeAccessibilityID,
+                reducedTransparencyFill: mood.closeFill,
                 action: onClose
             )
         }

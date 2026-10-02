@@ -107,6 +107,8 @@ struct InvitationLandingContainer: View {
                 placeholder
             }
         }
+        // Mode immersif toujours sombre, comme le jour J : barre d'état claire sur le fond teinté.
+        .preferredColorScheme(.dark)
         .task { await viewModel.reload() }
     }
 

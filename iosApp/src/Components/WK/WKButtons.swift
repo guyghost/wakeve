@@ -83,6 +83,8 @@ struct WKCircleButton: View {
     let systemImage: String
     let accessibilityLabel: String
     var accessibilityID: String? = nil
+    /// Fond opaque sous Reduce Transparency (mode immersif : `WK.Mood.closeFill`) ; nil → `WK.Colors.card`.
+    var reducedTransparencyFill: Color? = nil
     let action: () -> Void
 
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
@@ -93,7 +95,7 @@ struct WKCircleButton: View {
                 .font(WK.Typo.headline)
                 .foregroundStyle(.primary)
                 .frame(minWidth: WK.Size.minTapTarget, minHeight: WK.Size.minTapTarget)
-                .modifier(CircleChrome(reduceTransparency: reduceTransparency))
+                .modifier(CircleChrome(reduceTransparency: reduceTransparency, fill: reducedTransparencyFill))
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
@@ -108,12 +110,13 @@ struct WKCircleButton: View {
 
     private struct CircleChrome: ViewModifier {
         let reduceTransparency: Bool
+        let fill: Color?
 
         func body(content: Content) -> some View {
             if #available(iOS 26.0, *), !reduceTransparency {
                 content.glassEffect(.regular.interactive(), in: Circle())
             } else if reduceTransparency {
-                content.background(WK.Colors.card, in: Circle())
+                content.background(fill ?? WK.Colors.card, in: Circle())
             } else {
                 content.background(.regularMaterial, in: Circle())
             }
