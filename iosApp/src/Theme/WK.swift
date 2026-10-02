@@ -151,6 +151,8 @@ enum WK {
         static let primaryButtonHeight: CGFloat = 52
         /// Hauteur minimale de la pastille de compteur (badge de la barre flottante).
         static let badge: CGFloat = 16
+        /// Illustration de l'invitation et carte du jour J en mode immersif (couche 8).
+        static let immersiveMedia: CGFloat = 180
     }
 
     enum Tint {

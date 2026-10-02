@@ -2470,3 +2470,13 @@
 "create_flow.a11y.remove_location_format" = "Remover %@";
 "create_flow.a11y.remove_slot" = "Remover este horário";
 "create_flow.a11y.error_format" = "Erro: %@";
+
+/* Mode immersif — invitation reçue (couche 8, #47) */
+"immersive.invitation.caption" = "Convite";
+"immersive.invitation.caption_format" = "Convite de %@";
+"immersive.invitation.polling_format" = "Votação em curso · %@";
+"immersive.invitation.response.organizer" = "Estás a organizar";
+"immersive.invitation.response.accepted" = "Aceitaste";
+"immersive.invitation.response.pending" = "A tua resposta está pendente";
+"immersive.invitation.response.declined" = "Recusaste";
+"immersive.view_event" = "Ver o evento";

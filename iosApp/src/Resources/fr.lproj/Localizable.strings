@@ -2492,3 +2492,13 @@
 "create_flow.a11y.remove_location_format" = "Retirer %@";
 "create_flow.a11y.remove_slot" = "Retirer ce créneau";
 "create_flow.a11y.error_format" = "Erreur : %@";
+
+/* Mode immersif — invitation reçue (couche 8, #47) */
+"immersive.invitation.caption" = "Invitation";
+"immersive.invitation.caption_format" = "Invitation de %@";
+"immersive.invitation.polling_format" = "Vote en cours · %@";
+"immersive.invitation.response.organizer" = "Tu organises";
+"immersive.invitation.response.accepted" = "Tu as accepté";
+"immersive.invitation.response.pending" = "Ta réponse est attendue";
+"immersive.invitation.response.declined" = "Tu as décliné";
+"immersive.view_event" = "Voir l'événement";

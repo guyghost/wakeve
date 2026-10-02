@@ -843,6 +843,33 @@ struct AuthenticatedView: View {
         }
     }
 
+    // MARK: - Mode immersif de la refonte (couche 8, #47)
+
+    /// Invitation reçue sous `iosRedesign2026` (couche 8, #47), à la place du hub tant que `invitationLandingEventId`
+    /// désigne l'événement. « Voir l'événement » efface le marqueur (le hub prend le relais) ; « Voter » suit la route
+    /// du hub ; fermer revient à la liste, comme le retour du hub.
+    private func invitationLandingContent(for event: Event) -> some View {
+        let artwork = invitationExperienceProjectionRepository.artwork(eventId: event.id)
+        return InvitationLandingContainer(
+            eventId: event.id,
+            userId: userId,
+            isLocalGuest: authStateManager.isCurrentSessionGuest,
+            artwork: artwork.flatMap { artwork in
+                artwork is ArtworkNone ? nil : AnyView(InvitationArtworkView(artwork: artwork, event: event))
+            },
+            onViewEvent: { invitationLandingEventId = nil },
+            onVote: {
+                invitationLandingEventId = nil
+                handleHubPrimary(.vote, for: event)
+            },
+            onClose: {
+                invitationLandingEventId = nil
+                currentView = .eventList
+            }
+        )
+        .id(event.id)
+    }
+
     /// Sheet présentée (`HubSheetLifecycle.Presented`, clé événement + module) ; la fermer passe par `close()`.
     private var hubSheetBinding: Binding<HubSheetLifecycle.Presented?> {
         Binding(
@@ -993,7 +1020,11 @@ struct AuthenticatedView: View {
             
         case .eventDetail:
             if iosRedesign2026, let event = selectedEvent {
-                eventHubContent(for: event)
+                if invitationLandingEventId == event.id {
+                    invitationLandingContent(for: event)
+                } else {
+                    eventHubContent(for: event)
+                }
             } else if let event = selectedEvent,
                let artwork = invitationExperienceProjectionRepository.artwork(eventId: event.id) {
                 EventDetailView(

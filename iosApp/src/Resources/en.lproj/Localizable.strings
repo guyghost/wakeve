@@ -2468,3 +2468,13 @@
 "create_flow.a11y.remove_location_format" = "Remove %@";
 "create_flow.a11y.remove_slot" = "Remove this time slot";
 "create_flow.a11y.error_format" = "Error: %@";
+
+/* Mode immersif — invitation reçue (couche 8, #47) */
+"immersive.invitation.caption" = "Invitation";
+"immersive.invitation.caption_format" = "Invitation from %@";
+"immersive.invitation.polling_format" = "Vote in progress · %@";
+"immersive.invitation.response.organizer" = "You're organizing";
+"immersive.invitation.response.accepted" = "You accepted";
+"immersive.invitation.response.pending" = "Your reply is pending";
+"immersive.invitation.response.declined" = "You declined";
+"immersive.view_event" = "View event";
