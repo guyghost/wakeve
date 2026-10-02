@@ -25,6 +25,8 @@ struct EventHubView: View {
     var onWillReload: () -> Void = {}
     /// Bannière « C'est aujourd'hui » (couche 8) : ouvre le jour J.
     var onOpenEventDay: () -> Void = {}
+    /// Cartes sous la grille (checklist, suggestions IA, météo ; revue couche 9), construites par le conteneur.
+    var supplements: (EventHubFacts) -> AnyView = { _ in AnyView(EmptyView()) }
 
     @Environment(\.openURL) private var openURL
     @State private var showsMenu = false
@@ -175,7 +177,8 @@ struct EventHubView: View {
                                 },
                                 onQuickVote: { onPrimary(.vote) },
                                 isEventDay: facts.isEventDay(now: context.date, invitationRollout: invitationRollout),
-                                onOpenEventDay: onOpenEventDay
+                                onOpenEventDay: onOpenEventDay,
+                                supplements: supplements(facts)
                             )
                         }
                     }
@@ -337,6 +340,8 @@ struct EventHubContent: View {
     /// Jour J (`EventHubFacts.isEventDay`) : bannière « C'est aujourd'hui » dans le hero.
     var isEventDay: Bool = false
     var onOpenEventDay: () -> Void = {}
+    /// Cartes sous la grille (revue couche 9).
+    var supplements: AnyView? = nil
 
     static let eventDayAccessibilityID = "hub.eventDay"
 
@@ -360,6 +365,9 @@ struct EventHubContent: View {
                 ForEach(model.tiles, id: \.module) { tile in
                     tileView(tile)
                 }
+            }
+            if let supplements {
+                supplements
             }
         }
     }
@@ -498,6 +506,8 @@ struct EventHubPrimaryBar: View {
 /// Possède le modèle de vue du hub et le contrôleur de cycle de vie ; recharge quand `reloadToken` change.
 struct EventHubContainer: View {
     @StateObject private var viewModel: EventHubViewModel
+    /// Checklist de l'événement gardée sur l'appareil (modèle choisi à la création, suggestions ajoutées).
+    @StateObject private var checklist: EventChecklistModel
     @State private var lifecycleController: EventLifecycleTransitionController?
     @State private var lifecycleError: String?
     @State private var lifecycleInFlight = false
@@ -539,6 +549,7 @@ struct EventHubContainer: View {
         _viewModel = StateObject(wrappedValue: EventHubViewModel(
             eventId: eventId, viewerId: userId, isLocalGuest: isLocalGuest, source: SharedEventHubSource()
         ))
+        _checklist = StateObject(wrappedValue: EventChecklistModel(eventId: eventId))
         self.eventId = eventId
         self.userId = userId
         self.repository = repository
@@ -569,7 +580,10 @@ struct EventHubContainer: View {
             onAddParticipants: onAddParticipants,
             invitationRollout: invitationRollout,
             onWillReload: { lifecycleError = nil },
-            onOpenEventDay: onOpenEventDay
+            onOpenEventDay: onOpenEventDay,
+            supplements: { facts in
+                AnyView(EventHubSupplements(facts: facts, checklist: checklist))
+            }
         )
         .onChange(of: reloadToken) { _, _ in
             lifecycleError = nil
@@ -577,7 +591,9 @@ struct EventHubContainer: View {
         }
         .onChange(of: viewModel.facts) { _, facts in
             if let facts { onLoaded(facts) }
+            checklist.reload()
         }
+        .onAppear { checklist.reload() }
     }
 
     /// Via `EventLifecycleTransitionController` : la machine à états reste seule

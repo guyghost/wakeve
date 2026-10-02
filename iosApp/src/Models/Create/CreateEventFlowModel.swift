@@ -183,7 +183,7 @@ struct CreateEventForm: Equatable {
     var locations: [String] = []
     var slots: [CreateEventSlot] = []
     var scenarioId: String?
-    /// Checklist du modèle choisi (non persistée en base : passée à l'événement créé comme le faisait l'ancienne feuille).
+    /// Checklist du modèle choisi : gardée sur l'appareil avec le brouillon (`EventChecklistStoring`), puis montrée dans le hub.
     var checklist: [String] = []
 
     var isCustomType: Bool { eventTypeName == Self.customTypeName }

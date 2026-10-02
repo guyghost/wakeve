@@ -1600,27 +1600,9 @@ struct AuthenticatedView: View {
         )
     }
 
+    /// Lancement du flux : la checklist du modèle reste avec l'événement (sur cet appareil) et s'affiche dans le hub.
     private func persistCreationContext(_ context: EventCreationContext, for event: Event) {
-        guard let locationName = context.potentialLocationName else { return }
-
-        let existingLocations = RepositoryProvider.shared.database.potentialLocationQueries
-            .selectByEventId(eventId: event.id)
-            .executeAsList()
-
-        guard !existingLocations.contains(where: { $0.name.caseInsensitiveCompare(locationName) == .orderedSame }) else {
-            return
-        }
-
-        let now = ISO8601DateFormatter().string(from: Date())
-        RepositoryProvider.shared.database.potentialLocationQueries.insertLocation(
-            id: "location-\(UUID().uuidString.prefix(8))",
-            eventId: event.id,
-            name: locationName,
-            locationType: "SPECIFIC_VENUE",
-            address: nil,
-            coordinates: nil,
-            createdAt: now
-        )
+        UserDefaultsEventChecklistStore().seedTemplate(eventId: event.id, titles: context.templateChecklist)
     }
 
     private func directInviteRecipientContext(for event: Event) -> DirectInviteRecipientContext {
@@ -1709,6 +1691,8 @@ struct AuthenticatedView: View {
         Task {
             let deleted = await owner.deleteEventAndWait()
             guard deleted else { return }
+            // La checklist locale de l'événement (hors base) part avec lui.
+            UserDefaultsEventChecklistStore().save([], eventId: event.id)
             selectedEvent = nil
             currentView = .eventList
             informationDeleteOwner = nil

@@ -10,6 +10,8 @@ struct CreateEventFlow: View {
     let initialScenario: EventScenario?
     let onClose: () -> Void
     let onLaunched: (Event, EventCreationContext) -> Void
+    /// Checklist du modèle, gardée avec le brouillon à chaque étape enregistrée.
+    let checklistStore: EventChecklistStoring
 
     @StateObject private var controller: EventDraftFlowController
     @State private var form = CreateEventForm()
@@ -26,13 +28,15 @@ struct CreateEventFlow: View {
         draftEventId: String? = nil,
         initialScenario: EventScenario? = nil,
         onClose: @escaping () -> Void,
-        onLaunched: @escaping (Event, EventCreationContext) -> Void
+        onLaunched: @escaping (Event, EventCreationContext) -> Void,
+        checklistStore: EventChecklistStoring = UserDefaultsEventChecklistStore()
     ) {
         self.userId = userId
         self.draftEventId = draftEventId
         self.initialScenario = initialScenario
         self.onClose = onClose
         self.onLaunched = onLaunched
+        self.checklistStore = checklistStore
         _controller = StateObject(wrappedValue: EventDraftFlowController(userId: userId))
     }
 
@@ -66,7 +70,11 @@ struct CreateEventFlow: View {
     private func prepare() {
         guard !didPrepare else { return }
         didPrepare = true
-        if let draftEventId, let hydrated = controller.hydrate(eventId: draftEventId) {
+        if let draftEventId, var hydrated = controller.hydrate(eventId: draftEventId) {
+            // La checklist du modèle n'est pas en base : relue sur l'appareil (le modèle lui-même n'est pas repris).
+            hydrated.checklist = checklistStore.items(eventId: draftEventId)
+                .filter { $0.source == .template }
+                .map(\.title)
             form = hydrated
             step = hydrated.firstInvalidStep ?? .time
         } else if let initialScenario {
@@ -88,6 +96,9 @@ struct CreateEventFlow: View {
             switch result {
             case .saved:
                 bannerMessage = nil
+                if let eventId = controller.eventId {
+                    checklistStore.seedTemplate(eventId: eventId, titles: form.checklist)
+                }
                 if let next = step.next {
                     step = next
                 } else {
@@ -111,10 +122,7 @@ struct CreateEventFlow: View {
                 onClose()
                 return
             }
-            onLaunched(event, EventCreationContext(
-                potentialLocationName: nil,
-                sourceScenario: form.scenarioId.flatMap(CreateEventForm.scenario(withID:))
-            ))
+            onLaunched(event, EventCreationContext(form: form))
         case .failed(let message):
             bannerMessage = message
             announce(message)

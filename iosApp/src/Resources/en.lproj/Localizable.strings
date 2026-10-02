@@ -1444,6 +1444,10 @@
 "hub.tile.photos_hint" = "Share your photos";
 "hub.module.discussion" = "Discussion";
 "hub.tile.discussion_hint" = "Chat with the group";
+"hub.checklist.title" = "Checklist";
+"hub.checklist.progress_format" = "%1$d/%2$d done";
+"hub.checklist.local_note" = "Saved on this device only.";
+"hub.checklist.toggle_hint" = "Checks or unchecks the item";
 "hub.summary.format" = "%1$@ · %2$@";
 "hub.summary.meals_progress_format" = "%1$d/%2$d meals ready";
 "hub.primary.vote" = "Vote";
