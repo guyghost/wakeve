@@ -205,7 +205,7 @@ Exigences transverses :
 
 ## 9. Plan de migration par couches
 
-Tout est derrière un flag `redesign2026` lu via un `FeatureFlags` unique (remplace `iosInvitationExperienceV1`). Chaque couche est une PR indépendante et livrable.
+Couches 2 à 8 derrière le flag `iosRedesign2026` (`FeatureFlags`) ; `iosInvitationExperienceV1` est resté séparé. Le flag est supprimé à la couche 9 (la refonte est l'unique app). Chaque couche est une PR indépendante et livrable.
 
 | # | Couche | Contenu |
 |---|---|---|
@@ -218,9 +218,9 @@ Tout est derrière un flag `redesign2026` lu via un `FeatureFlags` unique (rempl
 | 6 | Activité | `ActivityView` (fusion Inbox + messages), livrée le 2026-10-01 : entrées groupées par événement, « À traiter (n) » calculé depuis l'état réel (règles de l'accueil), « Tout » = + notifications et « N nouveaux messages » ; `InboxView` reste sur le chemin legacy (voir §15) |
 | 7 | Création | `CreateEventFlow`, livrée le 2026-10-02 : quatre questions (Quoi ? · Qui ? · Où ? · Quand ?), brouillon enregistré à chaque étape, « Lancer le sondage » → hub ; ＋ ouvre le flux sous la refonte quand le rollout invitation est éteint (studio sinon, Swarm DAO #48), les brouillons du studio se rouvrent toujours dans le studio (voir §15) |
 | 8 | Immersif | `WKImmersiveScaffold`, livrée le 2026-10-02 : invitation reçue (à la place du hub tant que `invitationLandingEventId` désigne l'événement ; « Voter » ou « Voir l'événement », pas d'Accepter/Décliner) et jour J (heure, lieu, carte, pastilles logistiques, « Itinéraire » ; bannière du hub et « Prochaine étape » de l'accueil) ; fond des ambiances corrigé (voir §15) |
-| 9 | Bascule | Flag activé par défaut ; suppression du `switch` de `ContentView`, de l'ancien design system et des écrans remplacés ; baselines du garde-fou ramenées à 0 |
+| 9 | Bascule | Livrée le 2026-10-02 : flag `iosRedesign2026` supprimé (refonte inconditionnelle), shell à onglets, ancien accueil, bibliothèque, Explorer, Inbox, ancien détail + canvas et ancienne feuille de création supprimés, composants/jetons et clés de traduction morts purgés ; baselines du garde-fou abaissées aux valeurs mesurées (non nulles : écrans plein écran de repli encore sur l'ancien design system ; 0 reporté à un restylage séparé) ; voir §15 |
 
-Garde-fou : `WKStyleGuardTests` (XCTest, SwiftLint n'étant pas installé) — zéro style en dur dans `Components/WK`, compteurs de `Views/` à cliquet (ne peuvent que baisser), baseline ramenée à 0 à la couche 9. Périmètre : `Views/` et `Components/WK` uniquement. `WKModuleSheet` arrive en couche 5, `WKImmersiveScaffold` en couche 8.
+Garde-fou : `WKStyleGuardTests` (XCTest, SwiftLint n'étant pas installé) — zéro style en dur dans `Components/WK`, compteurs de `Views/` à cliquet (ne peuvent que baisser), baseline abaissée aux valeurs mesurées à la couche 9 (0 reporté au restylage des écrans de repli). Périmètre : `Views/` et `Components/WK` uniquement. `WKModuleSheet` arrive en couche 5, `WKImmersiveScaffold` en couche 8.
 
 ## 10. Tests
 
@@ -236,8 +236,8 @@ Garde-fou : `WKStyleGuardTests` (XCTest, SwiftLint n'étant pas installé) — z
 1. La navigation est entièrement native (retour et swipe-back fonctionnels partout) ; `enum AppView` n'existe plus.
 2. Depuis l'accueil, chaque événement montre son statut et si l'utilisateur doit agir, sans l'ouvrir.
 3. Tout module d'organisation est accessible en ≤ 2 taps depuis le hub, sans quitter le contexte de l'événement.
-4. Aucune occurrence de `Color(hex:`, `.font(.system(size:` ou `cornerRadius` littéral dans `Views/` (`WKStyleGuardTests` avec baseline 0).
-5. Un seul fichier de tokens ; les anciens fichiers de couleurs sont supprimés.
+4. Aucune occurrence de `Color(hex:`, `.font(.system(size:` ou `cornerRadius` littéral dans `Views/` (`WKStyleGuardTests` avec baseline 0). *Non atteint en couche 9 (baselines 14 / 48 / 44 / 3 / 6) : reporté au restylage des écrans de repli, voir §15.*
+5. Un seul fichier de tokens ; les anciens fichiers de couleurs sont supprimés. *Non atteint en couche 9 : `DesignSystem.swift`, `WakeveColors.swift`, `BrandColor`/`SemanticColor` restent (élagués) pour les écrans de repli.*
 6. Tous les écrans passent Dynamic Type AX5 sans troncature bloquante et VoiceOver sans élément non libellé.
 7. Tests unitaires, UI et offline verts.
 
@@ -249,8 +249,8 @@ Garde-fou : `WKStyleGuardTests` (XCTest, SwiftLint n'étant pas installé) — z
 
 ## 13. Rollback
 
-- Le flag `redesign2026` permet de revenir à l'ancienne UI jusqu'à la couche 9.
-- Après la couche 9, rollback par revert de la PR de bascule (les couches précédentes restent inertes sans le flag).
+- Le flag `iosRedesign2026` permettait de revenir à l'ancienne UI jusqu'à la couche 8.
+- Depuis la couche 9 (2026-10-02), **aucun interrupteur** n'est conservé : le retour arrière se fait par revert de la PR de la couche 9 (branche `claude/ios-redesign-layer-9`), qui restaure le flag, le code legacy, les clés de traduction et les baselines ; les couches 0-8 restent en place.
 
 ## 14. Risques
 
@@ -422,6 +422,17 @@ Consignés après les couches 0-1 (proposition #47) ; ils font désormais partie
 - **Points ouverts** : Accepter/Décliner depuis l'invitation (aucune API client, avec la synchro #48) ; présence en direct, « Je suis en route », covoiturage détaillé, notifications du jour J ; jour J d'un événement finalisé avec le rollout invitation (archives).
 - **Tests** : nouveaux tests de jetons (fond teinté, fonds distincts, contrastes sur `surface`, contour, CTA), composants (`WKImmersiveTests`), invitation (`InvitationLandingTests`), règle et lieu du jour J (`EventDayRuleTests`), vue et entrées du jour J (`EventDayViewTests`), branchement (`ImmersiveWiringTests`) ; suite complète 1 117 tests, 5 échecs préexistants seulement (`InvitationExperienceRuntimeSurfaceTests`).
 
+### Couche 9 (Bascule et suppression du legacy, 2026-10-02)
+
+- **Bascule** : flag `iosRedesign2026` supprimé (`FeatureFlags`, `@AppStorage`, réinitialisations `onChange`, toutes les branches « flag éteint » d'`AuthenticatedView`) ; `AppRouter.preRoute(_:router:)` sans paramètre de flag ; le lien `wakeve://event/create` suit la route de ＋ (`beginRedesignEventCreation` : flux 4 questions, ou studio sous le rollout invitation) ; `CreateFlowEntry.newEventRoute(invitationRollout:)` perd `.legacySheet`. `iosInvitationExperienceV1` inchangé. **BREAKING** : shell à onglets legacy et flag supprimés.
+- **Supprimé** (≈ 26 100 lignes retirées sous `iosApp/`, dont ≈ 22 200 dans `src/`) : shell à onglets (`legacyTabChrome`, `WakeveTab`, `selectedTab`, cas `AppView` `.inbox`/`.notifications`/`.notificationPreferences`/`.settings`), ancien accueil (`EventListView`, `EventCard`), bibliothèque d'invitations (`EventLibraryView`…), Explorer, Inbox legacy (≈ 5 400 lignes) ; ancien détail `EventDetailView` + canvas d'invitation, `EventNextAction`, carte météo, override QA de transparence (≈ 7 600) ; `CreateEventSheet`, `CreateEventViewModel` et son brouillon IA, `EventInfoSheet`, `BackgroundPickerSheet` (≈ 4 300) ; composants et jetons morts (`AIBadgeView` + `AISuggestionModels`, `LiquidGlassTextField`, `LiquidGlassAnimations`, `AddToCalendarButton`, `GlassBadge`, `EventListRow`, `ParticipantAvatarStack`, `BottomSheet`, `LoadingSkeleton`, `WakeveEventPanel`, `WakeveListRow`…, composants de `SharedComponents` inutilisés, `IconographyGuidelines`, structs de premier niveau `AdaptiveColors`/`Typography`/`Spacing`/`CornerRadius`/`Shadows`, statics `Color.wakeve*`/`app*`/`iOS*` et membres `WakeveTheme` inutilisés, `ProfileViewModel`, `ScenarioDetailViewModel`, `LocalizationService`, `EventDraftGenerator`, `preparedChecklist` écrit seul, feuille des préférences de notification jamais ouverte) (≈ 4 200) ; 852 clés de traduction inutilisées par langue (2 305 → 1 453, 5 langues ; préfixes construits dynamiquement conservés) (≈ 4 500). Déplacés dans leurs propres fichiers : `InvitationArtworkView`, identifiants d'accessibilité d'invitation, `EventScenario` (`Models/Create/`), `EventCreationContext`, `EventSlotInputBuilder`/`EventTimeSlotFactory`, `EventWeatherSummary`/`EventWeatherPlace`.
+- **Pertes assumées (BREAKING)** : avec l'ancienne feuille de création disparaissent la création en mode « matrice de scénarios » hors studio et le **brouillon IA à la création** (smart draft) ; à reprendre plus tard dans le flux si besoin. Le client IA garde `generateEventDraft` (frontière IA testée) ; seule la suggestion transport reste branchée à l'UI.
+- **Garde-fou** : baselines `Views/` abaissées aux valeurs mesurées — `Color(hex:` 14 (65), `.font(.system(size:` 48 (87), `cornerRadius` littéral 44 (68), `.cornerRadius(` 3 (13), `Color(red:` 6 (6). Non nulles car les écrans plein écran de repli conservés (vote, résultats, participants, scénarios, transport, budget, réunions, profil, réglages…) utilisent encore l'ancien design system ; le passage à 0 devient un chantier de restylage séparé.
+- **Navigation** : `wakeve://leaderboard` ne piège plus l'utilisateur (`RedesignBackRoute` : `.leaderboard` → `.eventList`, bouton retour en incrustation). `wakeve://settings` ouvre la feuille **préférences de notification** du shell (`AppRouter.presentation = .settings`) et non plus le profil ; `wakeve://profile` et l'avatar ouvrent le profil ; `wakeve://notifications` ouvre la zone Activité.
+- **Vérifié au simulateur** (iPhone 18 Pro, app désinstallée puis réinstallée) : lancement sans argument (nouvel accueil) ; lancement QA amorcé (`--wakeve-qa-seed-invitation-experience --wakeve-qa-open-invitation-route library`) : accueil, hub « Week-end confirmé », sheet Invités, Activité, studio (rollout allumé par l'amorçage), flux 4 questions et ses erreurs (rollout éteint), écran de vote (repli plein écran), profil, réglages (préférences de notification) ; AX5 + sombre sur l'accueil et la création. Aucune clé brute visible. Captures `/tmp/wk-l9c-*.png`.
+- **Tests** : tests ne protégeant que du code supprimé supprimés (listés dans chaque message de commit), tests de comportement conservé réancrés ; suite complète 1 003 tests, **2 échecs préexistants** seulement (`InvitationExperienceRuntimeSurfaceTests.testStudioArtworkChoicesUseAdaptiveWidthAtStandardAndAccessibilityDynamicType` et `.testArchiveRendersRepositoryFreshnessSyncWarningsAndNoMutationControls` ; les 3 autres des 5 échecs connus visaient la bibliothèque supprimée).
+- **Problèmes connus restants** : les 2 échecs ci-dessus ; l'amorçage QA n'agit qu'avec l'argument `--wakeve-qa-open-invitation-route` (sans lui, pas de route) et, juste après une installation ou avec `--wakeve-debug-authenticated`, l'accueil peut rester longtemps (plus de 50 s observées) sur l'indicateur de chargement QA (`invitationQALibraryIsSeedReady`) — relancer l'app ; l'amorçage active durablement `iosInvitationExperienceV1` ; l'ancien design system reste utilisé par les écrans de repli ; `EventCreationContext.potentialLocationName` est toujours nil depuis le flux (donc `persistCreationContext` n'écrit rien) et `sourceScenario` n'est pas lu ; `WakeveAIClientFactory` / client Foundation Models ne sont plus atteints par l'UI (gardés comme frontière IA) ; aux tailles AX5 la barre flottante recouvre le bas du contenu de l'accueil vide.
+
 ### Décisions
 
 - **＋ et rollout invitation** (décidé le 2026-10-02, remplace « ＋ ouvre toujours le flux ») : sous la refonte, ＋ ouvre `CreateEventFlow` **seulement** quand `iosInvitationExperienceV1` est éteint ; allumé, le studio reste le point d'entrée (`CreateFlowEntry.newEventRoute`). Raison : hors studio, aucun chemin client ne transporte au serveur l'événement créé ni ses mises à jour (ligne `syncMetadata` jamais envoyée, `SyncEventData` limité à titre/description/échéance) : un événement du flux n'aurait ni lien de partage ni votes distants opérants, alors que le studio passe par son outbox synchronisée. Le flux deviendra l'entrée unique quand la proposition **Swarm DAO #48** (« synchroniser les brouillons et le lancement du sondage créés hors studio ») sera livrée. `editDraftFromHome` continue de rouvrir dans le flux les brouillons sans reçu d'invitation (créés rollout éteint).
@@ -430,4 +441,4 @@ Consignés après les couches 0-1 (proposition #47) ; ils font désormais partie
 ### Points ouverts
 
 - **Increase Contrast** : `textMuted` n'a pas encore de variante haut contraste.
-- **Clés orphelines** : ~32 clés `home.*` laissées par la suppression de `HomeView` ; nettoyage en couche 9.
+- ~~**Clés orphelines** : ~32 clés `home.*` laissées par la suppression de `HomeView`~~ — nettoyées en couche 9 (852 clés par langue).
