@@ -4,7 +4,7 @@ import SwiftUI
 /// Hub d'un événement (couche 4, #47) : hero teinté, tuiles de modules
 /// filtrées par statut, vote rapide et action principale. Les tuiles ouvrent les écrans existants.
 struct EventHubView: View {
-    enum MenuAction: Equatable { case info, addParticipants, report, support }
+    enum MenuAction: Equatable { case info, addParticipants, addToCalendar, report, support }
 
     @ObservedObject var viewModel: EventHubViewModel
     /// Échec de la dernière transition de cycle de vie, affiché sous l'action principale.
@@ -21,6 +21,8 @@ struct EventHubView: View {
     let onAddParticipants: () -> Void
     /// Rollout invitation (`iosInvitationExperienceV1`) : sans lui, les infos de l'événement n'existent pas.
     let invitationRollout: Bool
+    /// « Ajouter au calendrier » (`CalendarService.addToNativeCalendar`, comme l'écran Infos).
+    var onAddToCalendar: () -> Void = {}
     /// Appelé avant chaque rechargement (tirer pour actualiser, réessayer) : efface l'erreur de transition.
     var onWillReload: () -> Void = {}
     /// Bannière « C'est aujourd'hui » (couche 8) : ouvre le jour J.
@@ -138,10 +140,14 @@ struct EventHubView: View {
 
     /// Menu « … » : infos (qui portent quitter/supprimer, rollout invitation seulement : sinon l'écran
     /// retombe sur le hub), ajout de participants pour l'organisateur tant que l'événement n'est pas finalisé
-    /// (règle du détail legacy), signalement pour les autres, support.
+    /// (règle du détail legacy), ajout au calendrier une fois la date retenue, signalement pour les autres, support.
     static func menuActions(for facts: EventHubFacts, invitationRollout: Bool) -> [MenuAction] {
         var actions: [MenuAction] = invitationRollout ? [.info] : []
         if facts.isOrganizer && facts.phase != .finalized { actions.append(.addParticipants) }
+        // Date retenue et accès aux détails : avec ou sans rollout (sans lui, l'écran Infos n'existe pas).
+        if facts.hasDetailsAccess && [.confirmed, .comparing, .organizing, .finalized].contains(facts.phase) {
+            actions.append(.addToCalendar)
+        }
         if !facts.isOrganizer { actions.append(.report) }
         actions.append(.support)
         return actions
@@ -312,6 +318,8 @@ struct EventHubView: View {
             Button(String(localized: "hub.menu.info"), action: onOpenInfo)
         case .addParticipants:
             Button(String(localized: "event.detail.menu.add_participants"), action: onAddParticipants)
+        case .addToCalendar:
+            Button(String(localized: "hub.menu.add_to_calendar"), action: onAddToCalendar)
         case .report:
             Button(String(localized: "moderation.report_event")) {
                 moderationTarget = ModerationActionTarget(
@@ -532,6 +540,7 @@ struct EventHubContainer: View {
     let onAddParticipants: () -> Void
     let invitationRollout: Bool
     let onOpenEventDay: () -> Void
+    let onAddToCalendar: () -> Void
 
     init(
         eventId: String,
@@ -548,7 +557,8 @@ struct EventHubContainer: View {
         onOpenInfo: @escaping () -> Void,
         onAddParticipants: @escaping () -> Void,
         invitationRollout: Bool,
-        onOpenEventDay: @escaping () -> Void = {}
+        onOpenEventDay: @escaping () -> Void = {},
+        onAddToCalendar: @escaping () -> Void = {}
     ) {
         _viewModel = StateObject(wrappedValue: EventHubViewModel(
             eventId: eventId, viewerId: userId, isLocalGuest: isLocalGuest, source: SharedEventHubSource()
@@ -568,6 +578,7 @@ struct EventHubContainer: View {
         self.onAddParticipants = onAddParticipants
         self.invitationRollout = invitationRollout
         self.onOpenEventDay = onOpenEventDay
+        self.onAddToCalendar = onAddToCalendar
     }
 
     var body: some View {
@@ -583,6 +594,7 @@ struct EventHubContainer: View {
             onOpenInfo: onOpenInfo,
             onAddParticipants: onAddParticipants,
             invitationRollout: invitationRollout,
+            onAddToCalendar: onAddToCalendar,
             onWillReload: { lifecycleError = nil },
             onOpenEventDay: onOpenEventDay,
             supplements: { facts in

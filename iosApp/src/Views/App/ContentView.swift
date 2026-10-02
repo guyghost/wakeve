@@ -333,6 +333,8 @@ struct AuthenticatedView: View {
             viewerId: userId
         ) else {
             debugLog("[QALaunch] prepare returned nil")
+            // Rien à préparer : l'accueil ne doit pas attendre indéfiniment l'amorçage.
+            invitationQALibraryIsSeedReady = true
             return
         }
         debugLog("[QALaunch] resolved route \(route)")
@@ -722,7 +724,9 @@ struct AuthenticatedView: View {
                 )
             },
             invitationRollout: invitationExperienceRolloutEnabled,
-            onOpenEventDay: { openEventDay(event.id) }
+            onOpenEventDay: { openEventDay(event.id) },
+            // Même action que l'écran Infos, joignable aussi sans le rollout invitation.
+            onAddToCalendar: { addInformationEventToCalendar(event) }
         )
         // Un autre événement ouvert depuis le hub (lien profond) recrée son modèle de vue.
         .id(event.id)

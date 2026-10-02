@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Zone Activité de la refonte (couche 6, #47) : possède le modèle de vue (créé une seule fois par
 /// montage), le recharge à chaque entrée dans la zone (`reloadToken`) et publie le badge.
-/// Mêmes paramètres de shell que `InboxView` ; toujours à sa racine (aucun détail poussé).
+/// Paramètres de shell (`reloadToken`, `onRootStateChange`) ; toujours à sa racine (aucun détail poussé).
 struct ActivityView: View {
     @StateObject private var viewModel: ActivityViewModel
     /// Badge de la barre flottante : éléments « À traiter » (actions seulement, spec §5.4).

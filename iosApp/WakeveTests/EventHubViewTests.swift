@@ -108,7 +108,7 @@ final class EventHubViewTests: XCTestCase {
         XCTAssertEqual(EventHubView.menuActions(for: facts(isOrganizer: true), invitationRollout: true),
                        [.info, .addParticipants, .support])
         XCTAssertEqual(EventHubView.menuActions(for: facts(phase: .finalized, isOrganizer: true), invitationRollout: true),
-                       [.info, .support])
+                       [.info, .addToCalendar, .support])
         XCTAssertEqual(EventHubView.menuActions(for: facts(), invitationRollout: true), [.info, .report, .support])
     }
 
@@ -117,6 +117,25 @@ final class EventHubViewTests: XCTestCase {
         XCTAssertEqual(EventHubView.menuActions(for: facts(isOrganizer: true), invitationRollout: false),
                        [.addParticipants, .support])
         XCTAssertEqual(EventHubView.menuActions(for: facts(), invitationRollout: false), [.report, .support])
+    }
+
+    /// « Ajouter au calendrier » (revue couche 9) : avec ou sans rollout invitation (sans lui, l'écran Infos qui
+    /// porte l'action n'existe pas), une fois la date retenue, pour qui a accès aux détails.
+    func testAddToCalendarMenuItemNeedsARetainedDateAndDetailAccess() {
+        for rollout in [true, false] {
+            for phase in [EventHubFacts.Phase.confirmed, .comparing, .organizing, .finalized] {
+                XCTAssertTrue(EventHubView.menuActions(for: facts(phase: phase), invitationRollout: rollout).contains(.addToCalendar),
+                              "\(phase) rollout=\(rollout)")
+                XCTAssertFalse(EventHubView.menuActions(for: facts(phase: phase, hasDetailsAccess: false), invitationRollout: rollout)
+                    .contains(.addToCalendar), "\(phase) sans accès")
+            }
+            for phase in [EventHubFacts.Phase.draft, .polling] {
+                XCTAssertFalse(EventHubView.menuActions(for: facts(phase: phase, isOrganizer: true), invitationRollout: rollout)
+                    .contains(.addToCalendar), "\(phase)")
+            }
+        }
+        XCTAssertEqual(EventHubView.menuActions(for: facts(phase: .organizing), invitationRollout: false),
+                       [.addToCalendar, .report, .support])
     }
 
     // MARK: - Aiguillage des actions (rollout invitation)

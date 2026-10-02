@@ -1485,6 +1485,7 @@
 "hub.quick_vote.hint" = "Opens the vote";
 "hub.menu.info" = "Event info";
 "hub.menu.more" = "More options";
+"hub.menu.add_to_calendar" = "Add to calendar";
 
 /* Sheets de modules du hub (couche 5a, #47) */
 "hub.sheet.meals.progress_format" = "%1$d/%2$d ready";
