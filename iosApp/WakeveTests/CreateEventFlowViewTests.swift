@@ -138,6 +138,20 @@ final class CreateEventFlowViewTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(render(location, size: .xSmall, width: 358).height, WK.Size.minTapTarget)
     }
 
+    // MARK: - AX5 au simulateur (correctifs)
+
+    func testAccessibilitySizesKeepRoomForTheQuestion() throws {
+        let flow = try source("src/Views/Create/CreateEventFlow.swift")
+        XCTAssertTrue(flow.contains(".dynamicTypeSize(...DynamicTypeSize.accessibility1)"),
+                      "« Brouillon enregistré » plafonné en AX5.")
+        XCTAssertTrue(flow.contains("!dynamicTypeSize.isAccessibilitySize ? \"paperplane.fill\""),
+                      "Pas d'icône dans « Lancer le sondage » aux tailles d'accessibilité.")
+        XCTAssertTrue(flow.contains(".background(WK.Colors.canvas)\n    }\n\n    private var footer"),
+                      "L'en-tête est opaque : le contenu ne défile pas sous la progression.")
+        let steps = try source("src/Views/Create/CreateEventFlowSteps.swift")
+        XCTAssertFalse(steps.contains(".prominent"), "Une seule action principale par écran (WKPrimaryButton).")
+    }
+
     // MARK: - Contrat de la vue
 
     private func source(_ path: String) throws -> String {

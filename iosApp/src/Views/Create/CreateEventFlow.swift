@@ -158,6 +158,8 @@ struct CreateEventFlowScreen: View {
     let bannerMessage: String?
     let actions: Actions
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     private var visibleErrors: [CreateEventField: String] {
         showErrors ? form.errors(for: step) : [:]
     }
@@ -212,10 +214,12 @@ struct CreateEventFlowScreen: View {
                 )
                 Spacer(minLength: WK.Space.xs)
                 if isDraftSaved {
+                    // Mention discrète : plafonnée pour laisser la place à la question en AX5.
                     Label(String(localized: "create_flow.draft_saved"), systemImage: "checkmark.circle")
                         .font(WK.Typo.caption)
                         .foregroundStyle(WK.Colors.textSecondary)
                         .multilineTextAlignment(.trailing)
+                        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
                         .accessibilityIdentifier("create_flow.draft_saved")
                 }
             }
@@ -223,6 +227,9 @@ struct CreateEventFlowScreen: View {
         }
         .padding(.horizontal, WK.Space.screen)
         .padding(.top, WK.Space.xs)
+        .padding(.bottom, WK.Space.xxs)
+        // Fond opaque : le contenu défilant ne passe pas sous la progression.
+        .background(WK.Colors.canvas)
     }
 
     private var footer: some View {
@@ -241,7 +248,8 @@ struct CreateEventFlowScreen: View {
                 }
                 WKPrimaryButton(
                     title: Self.primaryTitle(for: step),
-                    systemImage: step.isLast ? "paperplane.fill" : nil,
+                    // Icône seulement hors tailles d'accessibilité : le titre garde la largeur.
+                    systemImage: step.isLast && !dynamicTypeSize.isAccessibilitySize ? "paperplane.fill" : nil,
                     accessibilityID: step.isLast ? "create_flow.launch" : "create_flow.continue",
                     isLoading: isSaving,
                     action: actions.primary

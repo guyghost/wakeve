@@ -222,7 +222,6 @@ struct CreateFlowPlaceStep: View {
                 WKChip(
                     title: String(localized: "create_flow.add_location"),
                     systemImage: "plus",
-                    style: .prominent,
                     accessibilityID: "create_flow.location.add"
                 ) { add(newName) }
                 WKChip(
@@ -319,7 +318,6 @@ struct CreateFlowTimeStep: View {
                 WKChip(
                     title: String(localized: "create_flow.add_slot"),
                     systemImage: "plus",
-                    style: .prominent,
                     accessibilityID: "create_flow.slot.add"
                 ) { showingEditor = true }
             }
