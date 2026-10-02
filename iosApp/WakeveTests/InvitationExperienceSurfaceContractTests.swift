@@ -2,8 +2,8 @@ import XCTest
 @testable import Wakeve
 
 final class InvitationExperienceSurfaceContractTests: XCTestCase {
+    // Couche 9 (#47) : la bibliothèque legacy est remplacée par l'accueil de la refonte (`EventsHomeContainer`).
     private let surfacePaths = [
-        "iosApp/src/Views/Invitations/EventLibraryView.swift",
         "iosApp/src/Views/Invitations/EventCreationStudioView.swift",
         "iosApp/src/Views/Invitations/EventAudienceView.swift",
         "iosApp/src/Views/Invitations/EventInformationView.swift",
@@ -12,7 +12,6 @@ final class InvitationExperienceSurfaceContractTests: XCTestCase {
 
     func testSixRepositoryBackedSurfacesAreInstalled() throws {
         let expectedTypes = [
-            "struct EventLibraryView",
             "struct EventCreationStudioView",
             "struct EventAudienceView",
             "struct EventInformationView",
@@ -36,7 +35,7 @@ final class InvitationExperienceSurfaceContractTests: XCTestCase {
         let root = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
 
         for reachableSurface in [
-            "EventLibraryView(",
+            "EventsHomeContainer(",
             "EventCreationStudioView(",
             "EventAudienceView(",
             "EventInformationView(",
@@ -207,7 +206,6 @@ final class InvitationExperienceSurfaceContractTests: XCTestCase {
 
     func testEveryPrimarySurfaceExposesAtMostOneStablePrimaryAction() {
         let identifiers = [
-            "eventLibraryPrimaryAction",
             "eventCreationStudioPrimaryAction",
             "eventAudiencePrimaryAction",
             "eventInformationPrimaryAction",
@@ -222,29 +220,6 @@ final class InvitationExperienceSurfaceContractTests: XCTestCase {
                 "\(path) must expose one stable primary action element, never duplicated by adaptive layout."
             )
         }
-    }
-
-    func testLibraryRendersTypedArtworkAndKeepsCancellableFailureState() throws {
-        let library = try readProjectFile(
-            "iosApp/src/Views/Invitations/EventLibraryView.swift"
-        )
-
-        XCTAssertTrue(
-            library.contains("card.artwork"),
-            "Repository projections carry total artwork, but the shipped Library card never renders it."
-        )
-        XCTAssertTrue(
-            library.contains("LibraryLoadState"),
-            "Library must retain the typed Idle/Loading/Ready/Empty/Failed state instead of collapsing every failure to an empty card array."
-        )
-        XCTAssertTrue(
-            library.contains("cancelLoad"),
-            "Cancelling a filter reload must restore PreviousStableState exactly."
-        )
-        XCTAssertTrue(
-            library.contains("eventLibraryRetryAction"),
-            "A repository failure needs an accessible retry action distinct from an honest empty Library."
-        )
     }
 
     func testAudienceLoadsPersistedBatchOutcomesAndNamesEveryAxisDistinctly() throws {
@@ -930,8 +905,11 @@ final class InvitationExperienceSurfaceContractTests: XCTestCase {
     func testNewSurfacesUseTypedOwnersAndNoConstructionPlaceholder() {
         let combined = surfacePaths.map(readProjectFileIfPresent).joined(separator: "\n")
 
+        // L'accueil lit la même projection de bibliothèque, adossée au dépôt (couche 9).
+        let homeSource = readProjectFileIfPresent("iosApp/src/Services/SharedEventsHomeSource.swift")
+        XCTAssertTrue(homeSource.contains("projectionRepository.library("), "The home must read the repository-backed library projection.")
+
         for expectedOwner in [
-            "EventLibraryProjector",
             "CreationStudioStateMachine",
             "AudienceProjector",
             "EventNotificationPolicy",

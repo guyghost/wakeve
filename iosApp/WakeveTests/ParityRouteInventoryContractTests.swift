@@ -107,7 +107,7 @@ final class ParityRouteInventoryContractTests: XCTestCase {
 
     func testAndroidEquivalentOrganizationRoutesDoNotRenderGenericPlaceholders() throws {
         let content = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
-        let homeContent = slice(content, from: "private var homeTabContent", to: "// MARK: - Tab Content")
+        let homeContent = slice(content, from: "private var homeTabContent", to: "private func persistCreationContext(")
 
         XCTAssertFalse(homeContent.contains("navigation.placeholder.event_creation"))
         let eventCreation = caseBlock(".eventCreation", in: homeContent)

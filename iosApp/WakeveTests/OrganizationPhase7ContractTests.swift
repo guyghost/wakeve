@@ -113,7 +113,7 @@ final class OrganizationPhase7ContractTests: XCTestCase {
 
     func testConfirmedParticipantAndDeniedAccessStatesAreExplicitOnOrganizationRoutes() throws {
         let content = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
-        let homeContent = slice(content, from: "private var homeTabContent", to: "// MARK: - Tab Content")
+        let homeContent = slice(content, from: "private var homeTabContent", to: "private func persistCreationContext(")
         let sensitiveCases = [
             "case .transportPlanning",
             "case .meetingList",
@@ -721,7 +721,7 @@ final class OrganizationPhase7ContractTests: XCTestCase {
             from: "private var canAccessTransportPlanning: Bool",
             to: "private var canShowOrganizationDashboard: Bool"
         )
-        let transportRoute = slice(content, from: "case .transportPlanning:", to: "case .inbox:")
+        let transportRoute = slice(content, from: "case .transportPlanning:", to: "case .comments:")
 
         XCTAssertTrue(
             transportAccess.contains("case .finalized"),

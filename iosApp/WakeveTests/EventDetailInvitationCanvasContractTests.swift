@@ -913,7 +913,7 @@ final class EventDetailInvitationCanvasContractTests: XCTestCase {
             "iosApp/src/Views/Events/EventDetailInvitationCanvas.swift"
         )
         let artworkSource = try readProjectFile(
-            "iosApp/src/Views/Invitations/EventLibraryView.swift"
+            "iosApp/src/Views/Invitations/InvitationArtworkView.swift"
         )
         let canvas = slice(
             canvasSource,
@@ -929,7 +929,7 @@ final class EventDetailInvitationCanvasContractTests: XCTestCase {
         let sharedArtwork = slice(
             artworkSource,
             from: "struct InvitationArtworkView: View",
-            to: "private struct LibraryFilterChip"
+            to: "private var fallback: some View"
         )
         let qaHost = slice(
             canvasSource,
@@ -957,7 +957,7 @@ final class EventDetailInvitationCanvasContractTests: XCTestCase {
             "iosApp/src/Views/Events/EventDetailInvitationCanvas.swift"
         )
         let artworkSource = try readProjectFile(
-            "iosApp/src/Views/Invitations/EventLibraryView.swift"
+            "iosApp/src/Views/Invitations/InvitationArtworkView.swift"
         )
         let canvas = slice(
             canvasSource,
@@ -972,7 +972,7 @@ final class EventDetailInvitationCanvasContractTests: XCTestCase {
         let sharedArtwork = slice(
             artworkSource,
             from: "struct InvitationArtworkView: View",
-            to: "private struct LibraryFilterChip"
+            to: "private var fallback: some View"
         )
 
         XCTAssertTrue(

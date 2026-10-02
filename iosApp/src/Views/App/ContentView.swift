@@ -191,7 +191,6 @@ struct AuthenticatedView: View {
     @State private var activityReloadToken = 0
     /// Badge de la zone Activité de la refonte (couche 6, #47) : éléments « À traiter » (actions seulement).
     @State private var activityToDoCount = 0
-    @State private var selectedTab: WakeveTab = .home
     @State private var currentView: AppView = .eventList
     @State private var selectedEvent: Event?
     @State private var selectedCreationBaseRevision: Int64?
@@ -208,7 +207,6 @@ struct AuthenticatedView: View {
     /// `(eventId, view)` appliqué après fermeture, présentation du routeur différée (`HubSheetLifecycle`).
     @State private var hubSheet = HubSheetLifecycle()
 #if DEBUG
-    @State private var invitationQALibraryReloadGeneration = 0
     @State private var invitationQALibraryIsSeedReady =
         !ProcessInfo.processInfo.arguments.contains(
             InvitationExperienceQALaunchSupport.seedArgument
@@ -251,7 +249,6 @@ struct AuthenticatedView: View {
 
     // Notifications state
     @State private var showNotificationPreferencesSheet = false
-    @State private var unreadInboxCount: Int = 0
 
     // Get auth state from environment
     @EnvironmentObject var authStateManager: AuthStateManager
@@ -278,7 +275,6 @@ struct AuthenticatedView: View {
                 // persists the auxiliary creation context and navigates.
                 persistCreationContext(context, for: event)
                 selectedEvent = event
-                selectedTab = .home
                 currentView = event.planningMode == .scenarioMatrix ? .scenarioList : .participantManagement
                 eventCreationScenario = nil
             }
@@ -373,12 +369,11 @@ struct AuthenticatedView: View {
 
         invitationQALibraryIsSeedReady = true
         invitationLandingEventId = nil
-        selectedTab = .home
         switch route {
         case .library:
             selectedEvent = nil
             currentView = .eventList
-            invitationQALibraryReloadGeneration += 1
+            eventsHomeReloadToken += 1
         case .detail(let eventId):
             guard let event = repository.getEvent(id: eventId) else { return }
             routeInvitationExperience(
@@ -457,7 +452,6 @@ struct AuthenticatedView: View {
               arguments.indices.contains(index + 1),
               let event = repository.getEvent(id: arguments[index + 1]) else { return }
         selectedEvent = event
-        selectedTab = .home
         invitationLandingEventId = event.id
         currentView = .eventDetail
     }
@@ -483,42 +477,7 @@ struct AuthenticatedView: View {
     }
 #endif
 
-    private var tabBarVisibility: Visibility {
-        selectedTab == .home && currentView != .eventList ? .hidden : .visible
-    }
-
     // MARK: - Shell (proposition #47)
-
-    private var legacyTabChrome: some View {
-            TabView(selection: $selectedTab) {
-                tabContent(for: .home)
-                    .tabItem {
-                        Label(WakeveTab.home.title, systemImage: WakeveTab.home.systemImage)
-                    }
-                    .tag(WakeveTab.home)
-
-                tabContent(for: .groups)
-                    .tabItem {
-                        Label(WakeveTab.groups.title, systemImage: WakeveTab.groups.systemImage)
-                    }
-                    .tag(WakeveTab.groups)
-
-                tabContent(for: .messages)
-                    .tabItem {
-                        Label(WakeveTab.messages.title, systemImage: WakeveTab.messages.systemImage)
-                    }
-                    .tag(WakeveTab.messages)
-                    .badge(unreadInboxCount)
-
-                tabContent(for: .profile)
-                    .tabItem {
-                        Label(WakeveTab.profile.title, systemImage: WakeveTab.profile.systemImage)
-                    }
-                    .tag(WakeveTab.profile)
-            }
-            .tint(.wakevePrimary)
-            .toolbar(tabBarVisibility, for: .tabBar)
-    }
 
     private var redesignChrome: some View {
         RedesignShellView(
@@ -650,7 +609,6 @@ struct AuthenticatedView: View {
         createFlowDraftId = nil
         eventCreationScenario = nil
         redesignRouter.zone = .events
-        selectedTab = .home
         selectedEvent = event
         currentView = .eventDetail
         eventsHomeReloadToken += 1
@@ -666,8 +624,7 @@ struct AuthenticatedView: View {
 
     // MARK: - Accueil de la refonte (couche 3, #47)
 
-    /// Ouvre un événement comme la racine active : bibliothèque si le rollout invitation est actif,
-    /// sinon comme `EventListView.onEventSelected`.
+    /// Ouvre un événement : routeur d'invitation si le rollout est actif, sinon directement le hub.
     private func openEventFromHome(_ id: String) {
         invitationLandingEventId = InvitationLandingRoute.marker(invitationLandingEventId, opening: id)
         guard let event = repository.getEvent(id: id) else {
@@ -1741,31 +1698,6 @@ struct AuthenticatedView: View {
                     .foregroundColor(.secondary)
             }
 
-        case .notifications:
-            InboxView(
-                userId: userId,
-                onBack: {
-                    currentView = .eventList
-                },
-                unreadCount: $unreadInboxCount
-            )
-
-        case .notificationPreferences:
-            NavigationStack {
-                NotificationPreferencesView(userId: userId)
-            }
-
-        case .settings:
-            ProfileTabView(
-                userId: userId,
-                userName: authStateManager.currentUser?.name,
-                userEmail: authStateManager.currentUser?.email,
-                onDismiss: nil,
-                onSignOut: {
-                    authStateManager.signOut()
-                }
-            )
-
         case .leaderboard:
             LeaderboardView()
 
@@ -1777,49 +1709,7 @@ struct AuthenticatedView: View {
                     currentView = .eventList
                 }
             )
-            
-        case .inbox:
-            InboxView(
-                userId: userId,
-                onBack: { /* Inbox handled by tab */ },
-                unreadCount: $unreadInboxCount
-            )
         }
-    }
-
-    private var eventLibraryContent: some View {
-        EventLibraryView(
-            viewerId: userId,
-            onOpenEvent: { event in
-                routeInvitationExperience(
-                    InvitationExperienceRouteRequestCanvasAction(action: .showDetails),
-                    for: event
-                )
-            },
-            onOpenCard: { card in
-                selectedCreationBaseRevision = RepositoryProvider.shared.database.eventQueries
-                    .selectById(id: card.event.id)
-                    .executeAsOneOrNull()?
-                    .aggregateRevision
-                selectedCreationArtwork = card.artwork
-                routeInvitationExperience(
-                    InvitationExperienceRouteRequestCanvasAction(
-                        action: canvasAction(for: card.nextAction)
-                    ),
-                    for: card.event
-                )
-            },
-            onCreateEvent: {
-                eventCreationScenario = nil
-                selectedEvent = nil
-                selectedCreationBaseRevision = nil
-                selectedCreationArtwork = nil
-                currentView = .eventCreation
-            }
-        )
-#if DEBUG
-        .id(invitationQALibraryReloadGeneration)
-#endif
     }
 
     private var invitationExperienceRootContent: some View {
@@ -1833,37 +1723,6 @@ struct AuthenticatedView: View {
             onDelete: { id in requestDeleteFromHome(id) },
             invitationRollout: invitationExperienceRolloutEnabled
         )
-    }
-
-    // MARK: - Tab Content
-    
-    @ViewBuilder
-    private func tabContent(for tab: WakeveTab) -> some View {
-        switch tab {
-        case .home:
-            homeTabContent
-        case .groups:
-            ExploreTabView { scenario in
-                eventCreationScenario = scenario
-                showEventCreationSheet = true
-            }
-        case .messages:
-            InboxView(
-                userId: userId,
-                onBack: { /* Messages is a main tab, no back action needed */ },
-                unreadCount: $unreadInboxCount
-            )
-        case .profile:
-            ProfileTabView(
-                userId: userId,
-                userName: authStateManager.currentUser?.name,
-                userEmail: authStateManager.currentUser?.email,
-                onDismiss: nil,
-                onSignOut: {
-                    authStateManager.signOut()
-                }
-            )
-        }
     }
 
     private func persistCreationContext(_ context: EventCreationContext, for event: Event) {
@@ -2001,24 +1860,13 @@ struct AuthenticatedView: View {
         }
         switch route {
         case .topLevel(.home):
-            selectedTab = .home
             currentView = .eventList
-        case .topLevel(.profile):
-            selectedTab = .profile
-        case .topLevel(.settings):
-            selectedTab = .home
-            currentView = .settings
-        case .topLevel(.notificationPreferences):
-            selectedTab = .home
-            currentView = .notificationPreferences
-        case .topLevel(.notifications):
-            selectedTab = .home
-            currentView = .notifications
+        case .topLevel(.profile), .topLevel(.settings), .topLevel(.notificationPreferences), .topLevel(.notifications):
+            // Présentés par le shell (`AppRouter.preRoute`) : jamais délégués à cet aiguillage.
+            break
         case .topLevel(.leaderboard):
-            selectedTab = .home
             currentView = .leaderboard
         case .topLevel(.organizerDashboard):
-            selectedTab = .home
             currentView = .organizerDashboard
         case .eventCreate:
             // Même aiguillage que ＋ : flux 4 questions, ou studio sous le rollout invitation.
@@ -2088,7 +1936,6 @@ struct AuthenticatedView: View {
 
     private func resolveInvitationDeepLink(token: String) async {
         guard let eventId = await invitationDeepLinkResolver.resolve(token: token) else {
-            selectedTab = .home
             currentView = .eventList
             return
         }
@@ -2098,13 +1945,11 @@ struct AuthenticatedView: View {
 
     private func navigateToEvent(eventId: String, destination: AppView) {
         guard let event = repository.getEvent(id: eventId) else {
-            selectedTab = .home
             currentView = .eventList
             return
         }
 
         selectedEvent = event
-        selectedTab = .home
 
         if destination == .pollVoting, event.status != .polling {
             currentView = .eventDetail
@@ -2120,7 +1965,6 @@ struct AuthenticatedView: View {
     ) {
         guard let event = repository.getEvent(id: eventId) else {
             selectedEvent = nil
-            selectedTab = .home
             currentView = .eventList
             return
         }
@@ -2136,7 +1980,6 @@ struct AuthenticatedView: View {
     ) {
         guard let event = repository.getEvent(id: eventId) else {
             selectedEvent = nil
-            selectedTab = .home
             currentView = .eventList
             return
         }
@@ -2155,13 +1998,11 @@ struct AuthenticatedView: View {
     ) {
         guard let event = repository.getEvent(id: eventId) else {
             selectedEvent = nil
-            selectedTab = .home
             currentView = .eventList
             return
         }
         guard invitationExperienceRolloutEnabled else {
             selectedEvent = event
-            selectedTab = .home
             currentView = destination
             return
         }
@@ -2173,7 +2014,6 @@ struct AuthenticatedView: View {
             context: invitationRouteContext(for: event)
         )
         selectedEvent = event
-        selectedTab = .home
 
         if let resolved = resolution as? InvitationExperienceRouteResolutionDestination,
            resolved.route == .archiveDetail {
@@ -2199,7 +2039,6 @@ struct AuthenticatedView: View {
             context: invitationRouteContext(for: event)
         )
         selectedEvent = event
-        selectedTab = .home
 
         if let destination = resolution as? InvitationExperienceRouteResolutionDestination {
             switch destination.route {
@@ -2246,7 +2085,6 @@ struct AuthenticatedView: View {
 
     private func invitationExperienceLegacyFallback(for event: Event) {
         selectedEvent = event
-        selectedTab = .home
         currentView = .eventDetail
     }
 
@@ -2266,25 +2104,6 @@ struct AuthenticatedView: View {
                 currentView = .eventList
                 showEventCreationSheet = true
             }
-    }
-
-    private func canvasAction(
-        for libraryAction: LibraryNextAction
-    ) -> InvitationExperienceCanvasAction {
-        switch libraryAction {
-        case .continueDraft:
-            .editDraft
-        case .submitVote:
-            .submitVote
-        case .viewPollResults:
-            .viewPollResults
-        case .compareOptions:
-            .compareOptions
-        case .continueOrganization:
-            .continueOrganization
-        default:
-            .showDetails
-        }
     }
 
     private func invitationRouteContext(for event: Event) -> InvitationExperienceRouteContext {
@@ -2348,7 +2167,6 @@ struct AuthenticatedView: View {
             .executeAsOneOrNull(),
             let event = repository.getEvent(id: meeting.eventId)
         else {
-            selectedTab = .home
             currentView = .eventList
             selectedMeetingId = nil
             return
@@ -2356,7 +2174,6 @@ struct AuthenticatedView: View {
 
         selectedMeetingId = meetingId
         selectedEvent = event
-        selectedTab = .home
         currentView = .meetingDetail
     }
 
@@ -2553,15 +2370,11 @@ enum AppView {
     case eventPhotos
     case invitationShare
     // Phase 4 - Meetings & Communication
-    case inbox
     case meetingList
     case meetingDetail
     case transportPlanning
     case paymentPot
     case tricount
-    case notifications
-    case notificationPreferences
-    case settings
     case leaderboard
     case organizerDashboard
 }
@@ -3293,220 +3106,6 @@ private enum Phase5PendingSync {
             return phase5Types.contains(pending.entityType) &&
                 (pending.entityId == eventId || pending.entityId.hasPrefix("\(eventId):") || pending.entityId.contains(eventId))
         }
-    }
-}
-
-struct EventListView: View {
-    let repository: EventRepositoryInterface
-    let onEventSelected: (Event) -> Void
-    let onCreateEvent: () -> Void
-    
-    @State private var events: [Event] = []
-    @State private var isLoading = true
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            // Header
-            VStack(spacing: 8) {
-                Text("Wakeve")
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary)
-                
-                Text(String(localized: "events.legacy_list.subtitle"))
-                    .font(WakeveTheme.Typography.metadata)
-                    .foregroundColor(.secondary)
-            }
-            .padding(.top, 60)
-            
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Create Event Card
-                    VStack(spacing: 20) {
-                        Button(action: onCreateEvent) {
-                            VStack(spacing: 16) {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.system(size: 48))
-                                    .foregroundColor(.wakevePrimary)
-                                
-                                Text(String(localized: "events.legacy_list.create_title"))
-                                    .font(WakeveTheme.Typography.bodySemibold)
-                                    .foregroundColor(.primary)
-                                
-                                Text(String(localized: "events.legacy_list.create_subtitle"))
-                                    .font(WakeveTheme.Typography.callout)
-                                    .foregroundColor(.secondary)
-                                    .multilineTextAlignment(.center)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 40)
-                        }
-                    }
-                    .padding(24)
-                    .glassCard(cornerRadius: 24)
-                    
-                    // Events List
-                    if isLoading {
-                        VStack(spacing: 16) {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .secondary))
-                                .accessibilityLabel(String(localized: "common.loading"))
-                            
-                            Text(String(localized: "home.loading"))
-                                .font(WakeveTheme.Typography.callout)
-                                .foregroundColor(.secondary)
-                        }
-                        .padding(.vertical, 40)
-                    } else if events.isEmpty {
-                        VStack(spacing: 16) {
-                            Image(systemName: "calendar.badge.exclamationmark")
-                                .font(.system(size: 48))
-                                .foregroundColor(AdaptiveColors.textTertiary)
-                            
-                            Text(String(localized: "events.empty.title"))
-                                .font(WakeveTheme.Typography.metadata)
-                                .foregroundColor(.secondary)
-                            
-                            Text(String(localized: "events.empty.subtitle"))
-                                .font(WakeveTheme.Typography.callout)
-                                .foregroundColor(AdaptiveColors.textTertiary)
-                                .multilineTextAlignment(.center)
-                        }
-                        .padding(.vertical, 40)
-                    } else {
-                        VStack(spacing: 16) {
-                            ForEach(events, id: \.id) { event in
-                                EventCard(event: event, onTap: {
-                                    onEventSelected(event)
-                                })
-                            }
-                        }
-                    }
-                    
-                    Spacer(minLength: 40)
-                }
-                .padding(.horizontal, 20)
-            }
-        }
-        .onAppear {
-            loadEvents()
-        }
-    }
-    
-    private func loadEvents() {
-        // In a real app, this would load from a service
-        // For now, just simulate loading
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            events = repository.getAllEvents()
-            isLoading = false
-        }
-    }
-}
-
-struct EventCard: View {
-    let event: Event
-    let onTap: () -> Void
-    
-    var body: some View {
-        Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(event.title)
-                            .font(WakeveTheme.Typography.bodySemibold)
-                            .foregroundColor(.primary)
-                        
-                        if !event.description.isEmpty {
-                            Text(event.description)
-                                .font(WakeveTheme.Typography.callout)
-                                .foregroundColor(.secondary)
-                                .lineLimit(2)
-                        }
-                    }
-                    
-                    Spacer()
-                    
-                    VStack(alignment: .trailing, spacing: 4) {
-                        Text(statusText)
-                            .font(WakeveTheme.Typography.tiny)
-                            .foregroundColor(statusColor)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(statusColor.opacity(0.2))
-                            .cornerRadius(8)
-                        
-                        Text(participantCountText)
-                            .font(WakeveTheme.Typography.tiny)
-                            .foregroundColor(AdaptiveColors.textTertiary)
-                    }
-                }
-                
-                HStack {
-                    Image(systemName: "calendar")
-                        .font(WakeveTheme.Typography.callout)
-                        .foregroundColor(AdaptiveColors.textTertiary)
-                    
-                    Text(slotOptionsText)
-                        .font(WakeveTheme.Typography.callout)
-                        .foregroundColor(.secondary)
-                    
-                    Spacer()
-                    
-                    Image(systemName: "clock")
-                        .font(WakeveTheme.Typography.callout)
-                        .foregroundColor(AdaptiveColors.textTertiary)
-                    
-                    Text(formatDeadline(event.deadline))
-                        .font(WakeveTheme.Typography.callout)
-                        .foregroundColor(.secondary)
-                }
-            }
-            .padding(20)
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .glassCard(cornerRadius: 16)
-    }
-    
-    private var statusText: String {
-        switch event.status {
-        case .draft: return String(localized: "events.status.draft_preview")
-        case .polling: return String(localized: "events.status.polling")
-        case .confirmed: return String(localized: "events.status.confirmed")
-        case .organizing: return String(localized: "events.status.organizing")
-        case .finalized: return String(localized: "events.status.finalized")
-        default: return String(localized: "events.status.event")
-        }
-    }
-
-    private var participantCountText: String {
-        event.participants.count == 1
-            ? String(format: String(localized: "participants.count.singular_format"), event.participants.count)
-            : String(format: String(localized: "participants.count.plural_format"), event.participants.count)
-    }
-
-    private var slotOptionsText: String {
-        event.proposedSlots.count == 1
-            ? String(format: String(localized: "event.detail.slot_option_singular_format"), event.proposedSlots.count)
-            : String(format: String(localized: "event.detail.slot_options_plural_format"), event.proposedSlots.count)
-    }
-    
-    private var statusColor: Color {
-        switch event.status {
-        case .draft: return .orange
-        case .polling: return .blue
-        case .confirmed: return .green
-        default: return .gray
-        }
-    }
-    
-    private func formatDeadline(_ deadlineString: String) -> String {
-        if let date = ISO8601DateFormatter().date(from: deadlineString) {
-            let formatter = DateFormatter()
-            formatter.locale = .autoupdatingCurrent
-            formatter.dateStyle = .short
-            formatter.timeStyle = .none
-            return formatter.string(from: date)
-        }
-        return deadlineString
     }
 }
 

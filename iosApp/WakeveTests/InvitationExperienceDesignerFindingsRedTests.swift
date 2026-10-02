@@ -200,36 +200,6 @@ final class InvitationExperienceDesignerFindingsRedTests: XCTestCase {
         )
     }
 
-    func testLibraryFiltersWrapWithoutHorizontalClippingAndKeepTheActiveChoiceVisible() throws {
-        let library = try readProjectFile("iosApp/src/Views/Invitations/EventLibraryView.swift")
-        let filterBar = sourceSlice(
-            library,
-            from: "private var filterBar",
-            to: "private var cardBackground"
-        )
-
-        XCTAssertTrue(
-            filterBar.contains(".contentMargins(.horizontal") ||
-                filterBar.contains(".safeAreaPadding(.horizontal") ||
-                filterBar.contains(".padding(.horizontal, WakeveTheme.Spacing.page"),
-            "The first Library filter must retain its native leading inset instead of being clipped at the horizontal scroll edge."
-        )
-        XCTAssertFalse(filterBar.contains(".padding(.leading, -"))
-        XCTAssertFalse(filterBar.contains(".offset(x: -"))
-        XCTAssertFalse(
-            filterBar.contains("ScrollView(.horizontal"),
-            "A horizontally clipped rail cannot guarantee that the active Library projection remains visible."
-        )
-        XCTAssertFalse(filterBar.contains("ScrollViewReader"))
-        XCTAssertFalse(filterBar.contains("scrollTo("))
-        XCTAssertTrue(
-            filterBar.contains("LazyVGrid") ||
-                filterBar.contains("Grid(") ||
-                filterBar.contains("Layout"),
-            "Library filters need a native wrapping/grid layout that exposes every choice without auto-scroll conflicts."
-        )
-    }
-
     func testInformationProgressivelyDisclosesSecondaryNotificationAxes() throws {
         let information = try readProjectFile("iosApp/src/Views/Invitations/EventInformationView.swift")
         let notificationSection = sourceSlice(
@@ -468,27 +438,13 @@ final class InvitationExperienceDesignerFindingsRedTests: XCTestCase {
         XCTAssertFalse(rows.contains("Text(snapshot.settledSummary"))
     }
 
-    func testLibraryAndArchiveUseCompactNativeActionChrome() throws {
-        let library = try readProjectFile("iosApp/src/Views/Invitations/EventLibraryView.swift")
+    func testArchiveUsesCompactNativeActionChrome() throws {
         let archive = try readProjectFile("iosApp/src/Views/Invitations/EventArchiveView.swift")
-        let libraryBody = sourceSlice(
-            library,
-            from: "var body: some View",
-            to: "private var filterBar"
-        )
         let archiveBody = sourceSlice(
             archive,
             from: "var body: some View",
             to: "private func archiveStateRows"
         )
-
-        XCTAssertFalse(
-            libraryBody.contains(".safeAreaInset(edge: .bottom)"),
-            "Library Create must use compact native toolbar chrome rather than a second full-width bottom bar above the app tab bar."
-        )
-        XCTAssertTrue(libraryBody.contains(".toolbar"))
-        XCTAssertTrue(libraryBody.contains("eventLibraryPrimaryAction"))
-        XCTAssertEqual(occurrences(of: "eventLibraryPrimaryAction", in: libraryBody), 1)
 
         XCTAssertFalse(
             archiveBody.contains(".safeAreaInset(edge: .bottom)"),
@@ -788,9 +744,9 @@ final class InvitationExperienceDesignerFindingsRedTests: XCTestCase {
             }
         }
 
-        let library = try readProjectFile("iosApp/src/Views/Invitations/EventLibraryView.swift")
+        let artworkRenderer = try readProjectFile("iosApp/src/Views/Invitations/InvitationArtworkView.swift")
         let presetRenderer = sourceSlice(
-            library,
+            artworkRenderer,
             from: "private func presetArtwork(",
             to: "private func focalAlignment"
         )
@@ -813,12 +769,12 @@ final class InvitationExperienceDesignerFindingsRedTests: XCTestCase {
         XCTAssertFalse(presetRenderer.contains("presetAppearance"))
     }
 
-    func testPresetArtworkUsesOneDeterministicRendererAcrossLibraryStudioAndArchive() throws {
-        let library = try readProjectFile("iosApp/src/Views/Invitations/EventLibraryView.swift")
+    func testPresetArtworkUsesOneDeterministicRendererAcrossLandingStudioAndArchive() throws {
+        let artworkRenderer = try readProjectFile("iosApp/src/Views/Invitations/InvitationArtworkView.swift")
         let root = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
         let archive = try readProjectFile("iosApp/src/Views/Invitations/EventArchiveView.swift")
         let renderer = sourceSlice(
-            library,
+            artworkRenderer,
             from: "struct InvitationArtworkView: View",
             to: "private var fallback"
         )
@@ -832,7 +788,8 @@ final class InvitationExperienceDesignerFindingsRedTests: XCTestCase {
             renderer.contains("ArtworkSourcePreset") && renderer.contains("presetId"),
             "A STRUCTURED/PRESET artwork must render its deterministic preset, not collapse to the event-type fallback."
         )
-        XCTAssertTrue(library.contains("InvitationArtworkView(\n                                        artwork: card.artwork"))
+        // Couche 9 (#47) : la bibliothèque legacy est supprimée ; l'invitation reçue consomme le même rendu.
+        XCTAssertTrue(root.contains("AnyView(InvitationArtworkView(artwork: artwork, event: event))"))
         XCTAssertTrue(archive.contains("InvitationArtworkView(\n                                    artwork: snapshot.artwork"))
         XCTAssertTrue(
             preview.contains("InvitationArtworkView("),
@@ -878,24 +835,6 @@ final class InvitationExperienceDesignerFindingsRedTests: XCTestCase {
         )
     }
 
-    func testLibraryPrimaryActionKeepsExplicitForegroundInDarkAndIncreasedContrast() throws {
-        let library = try readProjectFile("iosApp/src/Views/Invitations/EventLibraryView.swift")
-
-        XCTAssertTrue(
-            library.contains(".foregroundStyle(libraryPrimaryForeground)"),
-            "The prominent Create label needs an explicit adaptive foreground; it disappeared against the dark glass capture."
-        )
-        XCTAssertTrue(
-            library.contains(".tint(libraryPrimaryTint)"),
-            "The prominent Create control needs an explicit tint contract under dark and increased-contrast appearances."
-        )
-        XCTAssertTrue(
-            library.contains("@Environment(\\.colorScheme)"),
-            "The Library primary action cannot adapt its foreground without the active color scheme."
-        )
-        XCTAssertTrue(library.contains("colorSchemeContrast"))
-    }
-
     func testStudioRouteOwnsSingleChromeAndKeepsPrimaryActionInsideAccessibilitySafeArea() throws {
         let studio = try readProjectFile("iosApp/src/Views/Invitations/EventCreationStudioView.swift")
         let root = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
@@ -923,19 +862,9 @@ final class InvitationExperienceDesignerFindingsRedTests: XCTestCase {
         )
     }
 
-    func testLibraryKeepsTheSelectedFilterVisibleAndArchiveUsesDataRefreshCopy() throws {
-        let library = try readProjectFile("iosApp/src/Views/Invitations/EventLibraryView.swift")
-        let filterBar = sourceSlice(
-            library,
-            from: "private var filterBar",
-            to: "private var cardBackground"
-        )
+    func testArchiveUsesDataRefreshCopy() throws {
         let french = try readProjectFile("iosApp/src/Resources/fr.lproj/Localizable.strings")
 
-        XCTAssertFalse(filterBar.contains("ScrollViewReader"))
-        XCTAssertFalse(filterBar.contains("ScrollView(.horizontal"))
-        XCTAssertFalse(filterBar.contains("scrollTo("))
-        XCTAssertTrue(filterBar.contains(".isSelected"))
         XCTAssertTrue(
             french.contains("\"invitation.action.reload_projection\" = \"Actualiser les données\";"),
             "Archive refreshes its repository projection/data, not the immutable finalized event itself."

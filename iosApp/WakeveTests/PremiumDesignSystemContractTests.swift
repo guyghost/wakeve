@@ -418,47 +418,8 @@ final class PremiumDesignSystemContractTests: XCTestCase {
         )
     }
 
-    func testInboxDetailMeetsTypographyMotionAndControlAccessibilityBudgets() throws {
-        let source = try readProjectFile("iosApp/src/Views/Inbox/InboxDetailView.swift")
-        let handoff = slice(source, from: "private var groupHandoffCard", to: "private func copyGroupHandoffMessage")
-        let rsvpButton = slice(source, from: "private struct RSVPActionButton", to: "// MARK: - Update Row")
-        let fixedFontCount = occurrenceCount(of: ".font(.system(size:", in: source)
-
-        XCTAssertLessThanOrEqual(
-            fixedFontCount,
-            15,
-            "InboxDetailView has \(fixedFontCount) fixed-size fonts; only 15 decorative or icon occurrences may remain."
-        )
-        XCTAssertTrue(source.contains("@Environment(\\.accessibilityReduceMotion)"), "InboxDetailView must observe Reduce Motion.")
-        XCTAssertTrue(
-            source.contains("reduceMotion ? nil") || source.contains("if reduceMotion"),
-            "InboxDetailView must explicitly suppress or branch around copied-state motion when Reduce Motion is enabled."
-        )
-        XCTAssertGreaterThanOrEqual(
-            occurrenceCount(of: ".frame(minWidth: 44, minHeight: 44)", in: source),
-            2,
-            "Both inbox moderation menus must expose minimum 44pt hit targets."
-        )
-        XCTAssertGreaterThanOrEqual(
-            occurrenceCount(of: ".frame(minHeight: 44)", in: handoff),
-            2,
-            "Share and copy handoff actions must each expose an explicit minimum 44pt height."
-        )
-        XCTAssertTrue(rsvpButton.contains(".frame(minHeight: 44)"), "Every RSVPActionButton must expose an explicit minimum 44pt height.")
-
-        for rawControlColor in [
-            "Color(uiColor: .systemGray4)",
-            "Color(uiColor: .systemGray5)",
-            "Color(.systemGray4)",
-            "Color(.systemGray5)"
-        ] {
-            XCTAssertFalse(source.contains(rawControlColor), "InboxDetailView must replace raw control color \(rawControlColor) with a semantic token.")
-        }
-    }
-
     func testContentViewMeetsLegacyTypographyColorMotionAndAITargetContracts() throws {
         let source = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
-        let legacyEventList = slice(source, from: "struct EventListView", to: "struct EventCard")
         let eventAIActionButton = slice(source, from: "private struct EventAIActionButton", to: "private struct EventAIList")
         let fixedFontCount = occurrenceCount(of: ".font(.system(size:", in: source)
 
@@ -467,7 +428,6 @@ final class PremiumDesignSystemContractTests: XCTestCase {
             13,
             "ContentView.swift has \(fixedFontCount) fixed-size fonts; only 13 decorative or icon occurrences may remain."
         )
-        XCTAssertFalse(legacyEventList.contains(".foregroundColor(.blue)"), "The legacy event-list section must use a semantic accent token.")
         XCTAssertFalse(source.contains("Color(.tertiaryLabel)"), "ContentView must use semantic tertiary text tokens.")
         XCTAssertFalse(source.contains(".foregroundColor(.orange)"), "ContentView must use a semantic warning token.")
         XCTAssertTrue(source.contains("@Environment(\\.accessibilityReduceMotion)"), "The root ContentView must observe Reduce Motion.")
@@ -483,7 +443,6 @@ final class PremiumDesignSystemContractTests: XCTestCase {
             ("iosApp/src/Views/Auth/LoginView.swift", 4),
             ("iosApp/src/Views/Events/ParticipantManagementView.swift", 4),
             ("iosApp/src/Views/Profile/ProfileTabView.swift", 5),
-            ("iosApp/src/Views/Explore/ExploreScenarioDetailView.swift", 1),
             ("iosApp/src/Components/BackgroundPickerSheet.swift", 4)
         ]
 
@@ -496,9 +455,7 @@ final class PremiumDesignSystemContractTests: XCTestCase {
             )
         }
 
-        let explore = try readProjectFile("iosApp/src/Views/Explore/ExploreScenarioDetailView.swift")
         let backgroundPicker = try readProjectFile("iosApp/src/Components/BackgroundPickerSheet.swift")
-        XCTAssertTrue(explore.contains("WakeveTheme.Typography"), "Explore scenario text must use shared typography roles.")
         XCTAssertTrue(backgroundPicker.contains("WakeveTheme.Typography"), "Background picker text must use shared typography roles.")
     }
 

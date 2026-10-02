@@ -21,7 +21,7 @@ final class InvitationExperienceArchitectureReviewRedTests: XCTestCase {
             sourceSlice(root, from: "case .eventAudience:", to: "case .eventInformation:"),
             sourceSlice(root, from: "case .eventInformation:", to: "case .eventArchive:"),
             sourceSlice(root, from: "case .eventArchive:", to: "case .participantManagement:"),
-            sourceSlice(root, from: "private var invitationExperienceRootContent", to: "// MARK: - Tab Content"),
+            sourceSlice(root, from: "private var invitationExperienceRootContent", to: "private func persistCreationContext("),
             sourceSlice(root, from: "private func routeInvitationExperience", to: "private func invitationRouteContext")
         ]
         XCTAssertEqual(gatedSurfaceSlices.count, 6)

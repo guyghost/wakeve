@@ -229,36 +229,6 @@ final class PremiumEventDetailContractTests: XCTestCase {
         XCTAssertFalse(detailContent.contains("\"Régler le sondage\""))
     }
 
-    func testLegacyEventCardCopyUsesLocalizationKeys() throws {
-        let source = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
-        let eventList = slice(source, from: "struct EventListView", to: "struct EventCard")
-        let eventCard = slice(source, from: "struct EventCard", to: "struct EventDetailView")
-
-        XCTAssertTrue(eventList.contains("events.legacy_list.subtitle"))
-        XCTAssertTrue(eventList.contains("events.legacy_list.create_title"))
-        XCTAssertTrue(eventList.contains("events.legacy_list.create_subtitle"))
-        XCTAssertTrue(eventList.contains("events.empty.title"))
-        XCTAssertTrue(eventList.contains("events.empty.subtitle"))
-        XCTAssertTrue(eventCard.contains("events.status.draft_preview"))
-        XCTAssertTrue(eventCard.contains("events.status.organizing"))
-        XCTAssertTrue(eventCard.contains("participants.count.singular_format"))
-        XCTAssertTrue(eventCard.contains("participants.count.plural_format"))
-        XCTAssertTrue(eventCard.contains("event.detail.slot_option_singular_format"))
-        XCTAssertTrue(eventCard.contains("event.detail.slot_options_plural_format"))
-        XCTAssertTrue(eventCard.contains("formatter.locale = .autoupdatingCurrent"))
-        XCTAssertFalse(eventList.contains("\"No events yet\""))
-        XCTAssertFalse(eventList.contains("\"Create your first event to get started\""))
-        XCTAssertFalse(eventList.contains("\"Collaborative Event Planning\""))
-        XCTAssertFalse(eventList.contains("\"Create New Event\""))
-        XCTAssertFalse(eventList.contains("\"Start planning your collaborative event\""))
-        XCTAssertFalse(eventCard.contains("return \"Draft\""))
-        XCTAssertFalse(eventCard.contains("return \"Polling\""))
-        XCTAssertFalse(eventCard.contains("return \"Confirmed\""))
-        XCTAssertFalse(eventCard.contains("return \"Unknown\""))
-        XCTAssertFalse(eventCard.contains("Text(\"\\(event.participants.count) participants\")"))
-        XCTAssertFalse(eventCard.contains("Text(\"\\(event.proposedSlots.count) time slots\")"))
-    }
-
     func testEventActionCopyIsLocalizedInCoreLocales() throws {
         let localeFiles = [
             "iosApp/src/Resources/en.lproj/Localizable.strings",

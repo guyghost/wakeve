@@ -42,7 +42,7 @@ final class RedesignShellTests: XCTestCase {
         XCTAssertTrue(body.contains("reloadToken: activityReloadToken"))
         XCTAssertTrue(body.contains("activityReloadToken += 1"))
 
-        // Couche 6 : la zone Activité affiche `ActivityView` (InboxView reste sur le chemin legacy).
+        // Couche 6 : la zone Activité affiche `ActivityView` (l'Inbox legacy est supprimée en couche 9).
         XCTAssertTrue(body.contains("ActivityView("))
         let activity = try String(
             contentsOf: URL(fileURLWithPath: #filePath)

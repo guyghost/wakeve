@@ -36,7 +36,6 @@ final class InvitationExperienceLocalizationRedTests: XCTestCase {
 
     func testPrimaryActionCopyCanGrowWithoutAOneLineTruncationContract() {
         let paths = [
-            "iosApp/src/Views/Invitations/EventLibraryView.swift",
             "iosApp/src/Views/Invitations/EventCreationStudioView.swift",
             "iosApp/src/Views/Invitations/EventAudienceView.swift",
             "iosApp/src/Views/Invitations/EventInformationView.swift",

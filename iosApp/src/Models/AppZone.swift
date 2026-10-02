@@ -1,6 +1,6 @@
 import Foundation
 
-/// Zones de premier niveau de la refonte (remplacera WakeveTab en couche 2).
+/// Zones de premier niveau de la refonte (a remplacé les onglets legacy).
 enum AppZone: String, CaseIterable, Identifiable {
     case events
     case activity

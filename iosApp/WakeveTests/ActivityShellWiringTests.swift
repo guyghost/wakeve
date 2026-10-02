@@ -51,7 +51,7 @@ final class ActivityShellWiringTests: XCTestCase {
     func testActivityZoneShowsTheActivityFeedWithItsOwnBadge() throws {
         let body = try slice(after: "private var redesignChrome: some View", length: 2500)
         XCTAssertTrue(body.contains("ActivityView("))
-        XCTAssertFalse(body.contains("InboxView("), "InboxView reste sur le chemin legacy uniquement.")
+        XCTAssertFalse(body.contains("InboxView("), "L'Inbox legacy est supprimée (couche 9).")
         XCTAssertTrue(body.contains("activityBadge: activityToDoCount"))
         XCTAssertTrue(body.contains("actionCount: $activityToDoCount"))
         XCTAssertTrue(body.contains("initialFilter: redesignRouter.activityFilter"))
@@ -59,7 +59,7 @@ final class ActivityShellWiringTests: XCTestCase {
         XCTAssertTrue(body.contains("onOpen: openActivityTarget"))
         let source = try contentViewSource()
         XCTAssertTrue(source.contains("@State private var activityToDoCount = 0"))
-        XCTAssertTrue(source.contains(".badge(unreadInboxCount)"), "Le badge legacy garde le compteur de l'Inbox.")
+        XCTAssertFalse(source.contains("unreadInboxCount"), "Plus de compteur d'Inbox legacy (couche 9).")
     }
 
     /// Les deux zones restent montées : le badge se recharge quand l'accueil ou le hub changent, au

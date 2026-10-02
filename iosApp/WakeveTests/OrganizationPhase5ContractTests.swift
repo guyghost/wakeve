@@ -61,7 +61,7 @@ final class OrganizationPhase5ContractTests: XCTestCase {
         let homeContent = slice(
             source,
             from: "private var homeTabContent",
-            to: "// MARK: - Tab Content"
+            to: "private func persistCreationContext("
         )
 
         let sensitiveCases = [

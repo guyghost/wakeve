@@ -145,7 +145,7 @@ final class WakeveAIContractTests: XCTestCase {
 
     func testCreatedEventDetailSeedsPreparedChecklistFromCreationContext() throws {
         let source = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
-        let creationCover = slice(source, from: ".fullScreenCover(isPresented: $showEventCreationSheet)", to: "private var tabBarVisibility")
+        let creationCover = slice(source, from: ".fullScreenCover(isPresented: $showEventCreationSheet)", to: "// MARK: - Shell (proposition #47)")
         let detail = slice(source, from: "struct EventDetailView: View", to: "private var topControls")
 
         XCTAssertTrue(source.contains("@State private var preparedCreationChecklists: [String: [ChecklistItem]]"))
