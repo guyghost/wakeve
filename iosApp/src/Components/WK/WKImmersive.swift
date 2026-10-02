@@ -14,6 +14,9 @@ struct WKImmersiveScaffold<Content: View>: View {
     static var closeAccessibilityID: String { "immersive.close" }
     static var primaryAccessibilityID: String { "immersive.primary" }
     static var secondaryAccessibilityID: String { "immersive.secondary" }
+    /// Plafond Dynamic Type des actions du bas : en AX5, deux boutons occupaient un tiers de l'écran
+    /// au-dessus d'un contenu défilant (même correctif que le flux de création, couche 7).
+    static var actionsDynamicTypeLimit: DynamicTypeSize { .accessibility2 }
 
     let mood: WK.Mood
     var primary: WKImmersiveAction? = nil
@@ -77,6 +80,7 @@ struct WKImmersiveScaffold<Content: View>: View {
                     )
                 }
             }
+            .dynamicTypeSize(...Self.actionsDynamicTypeLimit)
             .padding(.horizontal, WK.Space.screen)
             .padding(.vertical, WK.Space.xs)
             .background(mood.background.ignoresSafeArea(edges: .bottom))

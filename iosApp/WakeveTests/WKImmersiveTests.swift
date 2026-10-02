@@ -54,6 +54,19 @@ final class WKImmersiveTests: XCTestCase {
         XCTAssertLessThanOrEqual(size.width, 375, "\(size)")
     }
 
+    /// AX5 : les deux actions du bas restent sous un quart d'un écran de 812 pt (titre plafonné, cf. couche 7).
+    func testScaffoldActionsStayCompactAtAX5() {
+        let limit = WKImmersiveScaffold<EmptyView>.actionsDynamicTypeLimit
+        XCTAssertTrue(limit.isAccessibilitySize, "Le texte grandit encore aux tailles d'accessibilité.")
+        let actions = VStack(spacing: WK.Space.xs) {
+            WKImmersiveButton(title: "Itinéraire", mood: mood) {}
+            WKImmersiveButton(title: "Voir l'événement", style: .secondary, mood: mood) {}
+        }
+        .dynamicTypeSize(...limit)
+        let size = fittingSize(actions, width: 375 - 2 * WK.Space.screen, dynamicType: .accessibility5)
+        XCTAssertLessThanOrEqual(size.height, 812 / 4, "\(size)")
+    }
+
     func testScaffoldExposesStableAccessibilityIdentifiers() {
         XCTAssertEqual(WKImmersiveScaffold<EmptyView>.closeAccessibilityID, "immersive.close")
         XCTAssertEqual(WKImmersiveScaffold<EmptyView>.primaryAccessibilityID, "immersive.primary")
