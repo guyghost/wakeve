@@ -42,6 +42,11 @@ final class InvitationLandingTests: XCTestCase {
         XCTAssertEqual(model(hub(), organizer: "  ").caption, "Invitation")
     }
 
+    /// L'organisateur qui ouvre son propre lien ne lit pas « Invitation de » son propre nom.
+    func testOrganizerSeesTheGenericCaption() {
+        XCTAssertEqual(model(hub(isOrganizer: true), organizer: "Léa", response: .organizer).caption, "Invitation")
+    }
+
     func testWhenShowsTheVoteInProgressOrTheRetainedDate() {
         XCTAssertEqual(model(hub(phase: .polling, slotCount: 3)).when, "Vote en cours · 3 créneaux")
         XCTAssertNil(model(hub(phase: .polling, slotCount: 0)).when)

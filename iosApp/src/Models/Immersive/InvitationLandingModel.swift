@@ -42,7 +42,8 @@ struct InvitationLandingModel: Equatable {
         palette = EventMoodPalette.palette(for: hub.eventTypeName)
 
         let organizer = facts.organizerName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        caption = organizer.isEmpty
+        // L'organisateur qui ouvre son propre lien ne lit pas « Invitation de » son propre nom.
+        caption = organizer.isEmpty || facts.response == .organizer
             ? text("immersive.invitation.caption")
             : String(format: text("immersive.invitation.caption_format"), organizer)
 
