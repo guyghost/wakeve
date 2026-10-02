@@ -23,6 +23,8 @@ struct EventHubView: View {
     let invitationRollout: Bool
     /// Appelé avant chaque rechargement (tirer pour actualiser, réessayer) : efface l'erreur de transition.
     var onWillReload: () -> Void = {}
+    /// Bannière « C'est aujourd'hui » (couche 8) : ouvre le jour J.
+    var onOpenEventDay: () -> Void = {}
 
     @Environment(\.openURL) private var openURL
     @State private var showsMenu = false
@@ -166,7 +168,9 @@ struct EventHubView: View {
                                     onOpenModule(module)
                                 }
                             },
-                            onQuickVote: { onPrimary(.vote) }
+                            onQuickVote: { onPrimary(.vote) },
+                            isEventDay: facts.isEventDay(now: Date(), invitationRollout: invitationRollout),
+                            onOpenEventDay: onOpenEventDay
                         )
                     }
                 }
@@ -324,6 +328,11 @@ struct EventHubContent: View {
     let model: EventHubModel
     let onOpenModule: (HubModule) -> Void
     let onQuickVote: () -> Void
+    /// Jour J (`EventHubFacts.isEventDay`) : bannière « C'est aujourd'hui » dans le hero.
+    var isEventDay: Bool = false
+    var onOpenEventDay: () -> Void = {}
+
+    static let eventDayAccessibilityID = "hub.eventDay"
 
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -372,6 +381,16 @@ struct EventHubContent: View {
             }
             if !avatars.isEmpty {
                 WKAvatarStack(avatars: avatars)
+            }
+            if isEventDay {
+                WKChip(
+                    title: String(localized: "immersive.event_day.banner"),
+                    systemImage: "sun.max.fill",
+                    style: .prominent,
+                    accessibilityID: Self.eventDayAccessibilityID,
+                    action: onOpenEventDay
+                )
+                .accessibilityHint(String(localized: "immersive.event_day.banner_hint"))
             }
         }
         .wkAccessibilityID("hub.hero")
@@ -492,6 +511,7 @@ struct EventHubContainer: View {
     let onOpenInfo: () -> Void
     let onAddParticipants: () -> Void
     let invitationRollout: Bool
+    let onOpenEventDay: () -> Void
 
     init(
         eventId: String,
@@ -507,7 +527,8 @@ struct EventHubContainer: View {
         onRequestSignIn: @escaping () -> Void,
         onOpenInfo: @escaping () -> Void,
         onAddParticipants: @escaping () -> Void,
-        invitationRollout: Bool
+        invitationRollout: Bool,
+        onOpenEventDay: @escaping () -> Void = {}
     ) {
         _viewModel = StateObject(wrappedValue: EventHubViewModel(
             eventId: eventId, viewerId: userId, isLocalGuest: isLocalGuest, source: SharedEventHubSource()
@@ -525,6 +546,7 @@ struct EventHubContainer: View {
         self.onOpenInfo = onOpenInfo
         self.onAddParticipants = onAddParticipants
         self.invitationRollout = invitationRollout
+        self.onOpenEventDay = onOpenEventDay
     }
 
     var body: some View {
@@ -540,7 +562,8 @@ struct EventHubContainer: View {
             onOpenInfo: onOpenInfo,
             onAddParticipants: onAddParticipants,
             invitationRollout: invitationRollout,
-            onWillReload: { lifecycleError = nil }
+            onWillReload: { lifecycleError = nil },
+            onOpenEventDay: onOpenEventDay
         )
         .onChange(of: reloadToken) { _, _ in
             lifecycleError = nil

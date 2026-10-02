@@ -234,6 +234,8 @@ struct AuthenticatedView: View {
     /// Flux de création de la refonte (couche 7, #47) et brouillon à reprendre (nil : nouveau).
     @State private var showCreateEventFlow = false
     @State private var createFlowDraftId: String?
+    /// Jour J de la refonte (couche 8, #47), présenté en plein écran depuis le hub ou l'accueil.
+    @State private var eventDayPresentation: EventDayPresentation?
     
     // New state variables for PRD features
     @State private var showScenarioList = false
@@ -300,6 +302,14 @@ struct AuthenticatedView: View {
         }
         .sheet(item: $invitationStudioPreview) { preview in
             InvitationStudioPreviewSheet(preview: preview)
+        }
+        .fullScreenCover(item: $eventDayPresentation) { presentation in
+            EventDayContainer(
+                eventId: presentation.id,
+                userId: userId,
+                onViewEvent: { viewEventFromEventDay(presentation.id) },
+                onClose: { eventDayPresentation = nil }
+            )
         }
         .confirmationDialog(
             String(localized: "common.delete"),
@@ -687,6 +697,7 @@ struct AuthenticatedView: View {
             case .vote: navigateInvitationDeepLink(eventId: eventId, destination: .pollVoting)
             case .pollResults: navigateInvitationDeepLink(eventId: eventId, destination: .pollResults)
             case .open: openEventFromHome(eventId)
+            case .eventDay: openEventDay(eventId)
             }
             return
         }
@@ -697,6 +708,7 @@ struct AuthenticatedView: View {
             navigateInvitationDeepLink(eventId: eventId, route: .poll, intent: .read)
         case .open:
             openEventFromHome(eventId)
+        case .eventDay: openEventDay(eventId)
         }
     }
 
@@ -785,7 +797,8 @@ struct AuthenticatedView: View {
                     for: event
                 )
             },
-            invitationRollout: invitationExperienceRolloutEnabled
+            invitationRollout: invitationExperienceRolloutEnabled,
+            onOpenEventDay: { openEventDay(event.id) }
         )
         // Un autre événement ouvert depuis le hub (lien profond) recrée son modèle de vue.
         .id(event.id)
@@ -868,6 +881,19 @@ struct AuthenticatedView: View {
             }
         )
         .id(event.id)
+    }
+
+    /// Jour J en plein écran (hub « C'est aujourd'hui », accueil « Voir le jour J »), sous la refonte seulement.
+    private func openEventDay(_ eventId: String) {
+        guard iosRedesign2026 else { return }
+        dismissHubModuleSheet()
+        eventDayPresentation = EventDayPresentation(id: eventId)
+    }
+
+    /// « Voir l'événement » du jour J : ferme l'écran puis ouvre le hub, même chemin que l'accueil.
+    private func viewEventFromEventDay(_ eventId: String) {
+        eventDayPresentation = nil
+        openEventFromHome(eventId)
     }
 
     /// Sheet présentée (`HubSheetLifecycle.Presented`, clé événement + module) ; la fermer passe par `close()`.
@@ -1797,7 +1823,8 @@ struct AuthenticatedView: View {
                 onNextStep: { step in handleHomeNextStep(step) },
                 onCreate: { beginRedesignEventCreation() },
                 onEditDraft: { id in editDraftFromHome(id) },
-                onDelete: { id in requestDeleteFromHome(id) }
+                onDelete: { id in requestDeleteFromHome(id) },
+                invitationRollout: invitationExperienceRolloutEnabled
             )
         } else if invitationExperienceRolloutEnabled {
             eventLibraryContent

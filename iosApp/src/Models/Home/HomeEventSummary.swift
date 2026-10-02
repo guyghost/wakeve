@@ -65,6 +65,8 @@ struct HomeEventFacts: Equatable {
     let deadline: Date?
     let eventDate: Date?
     let participantNames: [String]
+    /// Jour J (`EventDayRule`, couche 8), calculé par le modèle de vue.
+    var isEventDay: Bool = false
 
     var userBallotComplete: Bool { ballots.userBallotComplete }
     var votersWithCompleteBallot: Int { ballots.votersWithCompleteBallot }
@@ -146,8 +148,8 @@ struct HomeEventSummary: Identifiable, Equatable {
 
 /// Carte « Prochaine étape » : l'action la plus urgente tous événements confondus.
 struct HomeNextStep: Equatable {
-    enum Kind: Equatable { case voteRequired, readyToConfirm, pollInProgress, organizing }
-    enum Action: Equatable { case vote, pollResults, open }
+    enum Kind: Equatable { case voteRequired, readyToConfirm, eventDay, pollInProgress, organizing }
+    enum Action: Equatable { case vote, pollResults, eventDay, open }
     /// Grand chiffre : bulletins complets sur votants éligibles, jours avant l'événement, ou inconnu.
     enum Metric: Equatable { case votes(complete: Int, eligible: Int), days(Int), unknown }
 
@@ -188,6 +190,12 @@ struct HomeNextStep: Equatable {
             return HomeNextStep(
                 eventId: f.id, title: f.title, kind: .readyToConfirm, action: .pollResults,
                 metric: metric, daysLeft: nil
+            )
+        }
+        // Jour J (couche 8) : juste après voter et confirmer, même si le créneau du jour est déjà passé.
+        if let f = soonest(facts.filter(\.isEventDay), by: \.eventDate) {
+            return HomeNextStep(
+                eventId: f.id, title: f.title, kind: .eventDay, action: .eventDay, metric: .days(0), daysLeft: 0
             )
         }
         if let f = soonest(active.filter { $0.phase == .polling && $0.role == .organizer && !$0.readOnly }, by: \.deadline) {

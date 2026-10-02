@@ -2480,3 +2480,15 @@
 "immersive.invitation.response.pending" = "A tua resposta está pendente";
 "immersive.invitation.response.declined" = "Recusaste";
 "immersive.view_event" = "Ver o evento";
+
+/* Mode immersif — jour J (couche 8, #47) */
+"immersive.event_day.caption" = "É hoje";
+"immersive.event_day.all_day" = "Todo o dia";
+"immersive.event_day.until_format" = "até às %@";
+"immersive.event_day.no_place" = "Local a confirmar";
+"immersive.event_day.directions" = "Itinerário";
+"immersive.event_day.map_format" = "Mapa: %@";
+"immersive.event_day.banner" = "É hoje";
+"immersive.event_day.banner_hint" = "Abre o dia do evento";
+"home.v2.next_step.event_day.subtitle" = "É o grande dia";
+"home.v2.next_step.action.event_day" = "Ver o dia";

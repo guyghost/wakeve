@@ -16,6 +16,10 @@ struct HomeRawEvent: Equatable {
     let ballots: HomeBallotStats
     let participantNames: [String]
     let hasPendingSync: Bool
+    /// Créneau retenu (couche 8), lu en organisation ou finalisé seulement.
+    var retainedSlot: RetainedSlot? = nil
+    /// Accès aux détails d'organisation (`OrganizationDetailsAccess`), lu avec le créneau retenu.
+    var hasDetailsAccess: Bool = false
 }
 
 protocol EventsHomeSource {
@@ -40,13 +44,16 @@ final class EventsHomeViewModel: ObservableObject {
     private let viewerId: String
     private let source: EventsHomeSource
     private let now: () -> Date
+    /// Rollout invitation : un événement finalisé part aux archives et n'a plus de jour J (couche 8).
+    private let invitationRollout: Bool
     /// Seul le dernier chargement lancé publie son résultat.
     private var generation = 0
 
-    init(viewerId: String, source: EventsHomeSource, now: @escaping () -> Date = Date.init) {
+    init(viewerId: String, source: EventsHomeSource, now: @escaping () -> Date = Date.init, invitationRollout: Bool = false) {
         self.viewerId = viewerId
         self.source = source
         self.now = now
+        self.invitationRollout = invitationRollout
     }
 
     func reload() async {
@@ -56,7 +63,7 @@ final class EventsHomeViewModel: ObservableObject {
             let raw = try await source.loadEvents(viewerId: viewerId)
             guard token == generation else { return }
             let current = now()
-            let facts = raw.map { Self.facts(from: $0, now: current) }
+            let facts = raw.map { Self.facts(from: $0, now: current, invitationRollout: invitationRollout) }
             let summaries = HomeEventSummary.sorted(facts.map { HomeEventSummary(facts: $0) })
             active = summaries.filter { !$0.isPast }
             past = summaries.filter(\.isPast)
@@ -70,7 +77,7 @@ final class EventsHomeViewModel: ObservableObject {
         }
     }
 
-    static func facts(from raw: HomeRawEvent, now: Date) -> HomeEventFacts {
+    static func facts(from raw: HomeRawEvent, now: Date, invitationRollout: Bool = false) -> HomeEventFacts {
         let phase: HomeEventFacts.Phase
         switch raw.statusName {
         case "DRAFT": phase = .draft
@@ -95,7 +102,28 @@ final class EventsHomeViewModel: ObservableObject {
             viewerAccepted: raw.isOrganizer || raw.viewerAccepted,
             ballots: raw.ballots,
             deadline: deadline, eventDate: eventDate,
-            participantNames: raw.participantNames
+            participantNames: raw.participantNames,
+            isEventDay: EventDayRule.isEventDay(
+                phase: Self.hubPhase(phase),
+                invitationRollout: invitationRollout,
+                finalDate: HomeDateText.parseISO(raw.finalDateISO),
+                slotStart: raw.retainedSlot?.start,
+                slotEnd: raw.retainedSlot?.end,
+                timezone: raw.retainedSlot?.timeZoneIdentifier,
+                hasAccess: raw.hasDetailsAccess,
+                now: now
+            )
         )
+    }
+
+    private static func hubPhase(_ phase: HomeEventFacts.Phase) -> EventHubFacts.Phase {
+        switch phase {
+        case .draft: return .draft
+        case .polling: return .polling
+        case .comparing: return .comparing
+        case .confirmed: return .confirmed
+        case .organizing: return .organizing
+        case .finalized: return .finalized
+        }
     }
 }

@@ -47,6 +47,22 @@ struct EventHubFacts: Equatable {
     var eventTypeName: String? = nil
     /// Auteur signalé par « Signaler l'événement » (`ModerationActionTarget.authorId`).
     var organizerId: String? = nil
+    /// Créneau retenu (couche 8) : jour J (`EventDayRule`).
+    var retainedSlot: RetainedSlot? = nil
+
+    /// Jour J vu depuis le hub : même règle que l'écran du jour J et l'accueil.
+    func isEventDay(now: Date, invitationRollout: Bool) -> Bool {
+        EventDayRule.isEventDay(
+            phase: phase,
+            invitationRollout: invitationRollout,
+            finalDate: finalDate,
+            slotStart: retainedSlot?.start,
+            slotEnd: retainedSlot?.end,
+            timezone: retainedSlot?.timeZoneIdentifier,
+            hasAccess: hasDetailsAccess,
+            now: now
+        )
+    }
 
     /// Même règle que l'accueil (`PollReadiness.readyToConfirm`), limitée au sondage.
     var readyToConfirm: Bool {

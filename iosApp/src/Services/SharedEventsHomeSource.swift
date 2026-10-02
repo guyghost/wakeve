@@ -130,11 +130,23 @@ struct SharedEventsHomeSource: EventsHomeSource {
                 names[userId] = name
                 return name
             },
-            hasPendingSync: !(card.syncState is LibrarySyncStateSynced)
+            hasPendingSync: !(card.syncState is LibrarySyncStateSynced),
+            // Jour J (couche 8) : créneau retenu et accès, seulement là où la règle peut s'appliquer.
+            retainedSlot: Self.readsEventDay(statusName: statusName)
+                ? SharedEventDaySource.retainedSlot(eventId: event.id, database: database)
+                : nil,
+            hasDetailsAccess: Self.readsEventDay(statusName: statusName) && OrganizationDetailsAccess.isGranted(
+                organizerId: event.organizerId, viewerId: viewerId, records: repository.getParticipantRecords(eventId: event.id)
+            )
         )
     }
 
     // MARK: - Règles pures (testées unitairement)
+
+    /// Statuts où le jour J peut s'appliquer (`EventDayRule`) : organisation, finalisé.
+    static func readsEventDay(statusName: String) -> Bool {
+        statusName == "ORGANIZING" || statusName == "FINALIZED"
+    }
 
     /// Un événement classé « passé » reste actif seulement s'il est brouillon, ou en sondage
     /// sans borne de fin structurée (aucun créneau exploitable). Un sondage dont tous les

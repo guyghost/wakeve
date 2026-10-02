@@ -25,6 +25,7 @@ struct EventsHomeView: View {
         switch step.kind {
         case .voteRequired: return withDeadline(text("home.v2.next_step.vote.subtitle"))
         case .readyToConfirm: return text("home.v2.next_step.ready.subtitle")
+        case .eventDay: return text("home.v2.next_step.event_day.subtitle")
         case .pollInProgress: return withDeadline(text("home.v2.next_step.polling.subtitle"))
         case .organizing: return text("home.v2.next_step.organizing.subtitle")
         }
@@ -75,6 +76,7 @@ struct EventsHomeView: View {
         switch step.kind {
         case .voteRequired: return String(localized: "home.v2.next_step.action.vote")
         case .readyToConfirm: return String(localized: "home.v2.next_step.action.choose_date")
+        case .eventDay: return String(localized: "home.v2.next_step.action.event_day")
         case .pollInProgress: return String(localized: "home.v2.next_step.action.results")
         case .organizing: return String(localized: "home.v2.next_step.action.organize")
         }
@@ -246,10 +248,13 @@ struct EventsHomeContainer: View {
         onNextStep: @escaping (HomeNextStep) -> Void,
         onCreate: @escaping () -> Void,
         onEditDraft: @escaping (String) -> Void,
-        onDelete: @escaping (String) -> Void
+        onDelete: @escaping (String) -> Void,
+        invitationRollout: Bool = false
     ) {
         _viewModel = StateObject(
-            wrappedValue: EventsHomeViewModel(viewerId: userId, source: SharedEventsHomeSource())
+            wrappedValue: EventsHomeViewModel(
+                viewerId: userId, source: SharedEventsHomeSource(), invitationRollout: invitationRollout
+            )
         )
         self.reloadToken = reloadToken
         self.onOpenEvent = onOpenEvent

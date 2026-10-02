@@ -237,6 +237,10 @@ struct SharedEventHubSource: EventHubSource {
 
         let pollOpen = HomeDateText.parseISO(event.deadline).map { $0 > now } ?? true
         let finalDate = HomeDateText.parseISO(event.finalDate)
+        // Jour J (couche 8) : créneau retenu, seulement là où la règle peut s'appliquer.
+        let retainedSlot = [.organizing, .finalized].contains(phase)
+            ? SharedEventDaySource.retainedSlot(eventId: event.id, database: database)
+            : nil
 
         func make(summaries: [HubModule: String]) -> EventHubFacts {
             EventHubFacts(
@@ -261,7 +265,8 @@ struct SharedEventHubSource: EventHubSource {
                 participantNames: participantNames,
                 summaries: summaries,
                 eventTypeName: event.eventType.name,
-                organizerId: event.organizerId
+                organizerId: event.organizerId,
+                retainedSlot: retainedSlot
             )
         }
 
