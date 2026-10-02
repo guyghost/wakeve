@@ -41,7 +41,8 @@ final class EventHubViewTests: XCTestCase {
             .budget: "eurosign.circle", .scenarios: "square.stack", .transport: "car",
             .accommodation: "bed.double", .meals: "fork.knife", .equipment: "backpack",
             .activities: "figure.hiking", .meetings: "video", .recap: "checkmark.seal",
-            .photos: "photo.on.rectangle", .payments: "creditcard"
+            .photos: "photo.on.rectangle", .payments: "creditcard",
+            .discussion: "bubble.left.and.bubble.right"
         ]
         for module in HubModule.allCases {
             XCTAssertEqual(EventHubView.systemImage(for: module), expected[module], module.rawValue)

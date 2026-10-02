@@ -1442,6 +1442,8 @@
 "hub.tile.hint" = "Da preparare";
 "hub.tile.recap_hint" = "Rivedi l'essenziale";
 "hub.tile.photos_hint" = "Condividi le tue foto";
+"hub.module.discussion" = "Discussione";
+"hub.tile.discussion_hint" = "Parla con il gruppo";
 "hub.summary.format" = "%1$@ · %2$@";
 "hub.summary.meals_progress_format" = "%1$d/%2$d pasti pronti";
 "hub.primary.vote" = "Vota";

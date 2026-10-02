@@ -1442,6 +1442,8 @@
 "hub.tile.hint" = "To plan";
 "hub.tile.recap_hint" = "See the highlights";
 "hub.tile.photos_hint" = "Share your photos";
+"hub.module.discussion" = "Discussion";
+"hub.tile.discussion_hint" = "Chat with the group";
 "hub.summary.format" = "%1$@ · %2$@";
 "hub.summary.meals_progress_format" = "%1$d/%2$d meals ready";
 "hub.primary.vote" = "Vote";

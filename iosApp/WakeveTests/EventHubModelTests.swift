@@ -40,11 +40,11 @@ final class EventHubModelTests: XCTestCase {
     func testModulesPerPhase() {
         XCTAssertEqual(EventHubModel.modules(for: .draft), [.date, .location, .participants])
         XCTAssertEqual(EventHubModel.modules(for: .polling), [.date, .location, .participants, .budget])
-        XCTAssertEqual(EventHubModel.modules(for: .confirmed), [.date, .scenarios, .participants, .budget])
-        XCTAssertEqual(EventHubModel.modules(for: .comparing), [.date, .scenarios, .participants, .budget])
+        XCTAssertEqual(EventHubModel.modules(for: .confirmed), [.date, .scenarios, .participants, .budget, .discussion])
+        XCTAssertEqual(EventHubModel.modules(for: .comparing), [.date, .scenarios, .participants, .budget, .discussion])
         XCTAssertEqual(EventHubModel.modules(for: .organizing),
-                       [.transport, .accommodation, .meals, .equipment, .activities, .budget, .payments, .meetings])
-        XCTAssertEqual(EventHubModel.modules(for: .finalized), [.recap, .photos, .payments])
+                       [.transport, .accommodation, .meals, .equipment, .activities, .budget, .payments, .meetings, .discussion])
+        XCTAssertEqual(EventHubModel.modules(for: .finalized), [.recap, .photos, .payments, .discussion])
     }
 
     func testPaymentsTileIsReachableWhileOrganizing() {
@@ -197,7 +197,7 @@ final class EventHubModelTests: XCTestCase {
 
     func testFinalizedShowsRecapPhotosPayments() {
         let model = EventHubModel(facts: facts(phase: .finalized, isOrganizer: true))
-        XCTAssertEqual(model.tiles.map(\.module), [.recap, .photos, .payments])
+        XCTAssertEqual(model.tiles.map(\.module), [.recap, .photos, .payments, .discussion])
         XCTAssertEqual(model.primary, .none)
         XCTAssertEqual(model.status, .confirmed)
         XCTAssertEqual(model.statusKey, "home.v2.status.confirmed")
@@ -265,7 +265,8 @@ final class EventHubModelTests: XCTestCase {
                     // en brouillon, seul l'organisateur (toujours autorisé) voit l'événement.
                     case .location, .scenarios: granted = phase == .draft || access
                     case .budget, .meetings, .payments: granted = dashboard
-                    case .accommodation, .meals, .equipment, .activities, .photos: granted = planning
+                    // Discussion : `case .comments` gardé par `canAccessDetailedPlanning`.
+                    case .accommodation, .meals, .equipment, .activities, .photos, .discussion: granted = planning
                     case .transport: granted = transport
                     }
                     XCTAssertEqual(EventHubModel.isLocked(module, facts: f), !granted, "\(module) \(phase) accès=\(access)")

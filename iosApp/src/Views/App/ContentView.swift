@@ -777,6 +777,10 @@ struct AuthenticatedView: View {
             case .screen(let view)?: currentView = view
             default: break
             }
+        case .discussion:
+            // Même route (et mêmes gardes) que la ligne « messages » de l'Activité et le lien `.event(.comments)`.
+            selectedCommentSection = .general
+            navigateInvitationDeepLink(eventId: event.id, destination: .comments)
         }
     }
 

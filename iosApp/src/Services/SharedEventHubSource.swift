@@ -351,7 +351,7 @@ struct SharedEventHubSource: EventHubSource {
             return HubSummaryText.paymentPot(
                 goalAmount: pot?.goalAmount, currency: pot?.currency, isClosed: pot?.status == "CLOSED", locale: locale
             )
-        case .recap, .photos:
+        case .recap, .photos, .discussion:
             return nil
         }
     }

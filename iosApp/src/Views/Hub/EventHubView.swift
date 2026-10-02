@@ -56,6 +56,7 @@ struct EventHubView: View {
         case .recap: return "checkmark.seal"
         case .photos: return "photo.on.rectangle"
         case .payments: return "creditcard"
+        case .discussion: return "bubble.left.and.bubble.right"
         }
     }
 
@@ -74,6 +75,7 @@ struct EventHubView: View {
         switch module {
         case .recap: return "hub.tile.recap_hint"
         case .photos: return "hub.tile.photos_hint"
+        case .discussion: return "hub.tile.discussion_hint"
         default: return "hub.tile.hint"
         }
     }

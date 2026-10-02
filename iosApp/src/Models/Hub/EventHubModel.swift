@@ -5,6 +5,8 @@ enum HubModule: String, CaseIterable, Equatable {
     case date, location, participants, budget, scenarios
     case transport, accommodation, meals, equipment, activities, meetings
     case recap, photos, payments
+    /// Fil général de l'événement (`CommentSectionType.general`, revue couche 9).
+    case discussion
 }
 
 /// Présentation en sheet (`.sheet(item:)`, couche 5a).
@@ -126,9 +128,12 @@ struct EventHubModel: Equatable {
         switch phase {
         case .draft: return [.date, .location, .participants]
         case .polling: return [.date, .location, .participants, .budget]
-        case .confirmed, .comparing: return [.date, .scenarios, .participants, .budget]
-        case .organizing: return [.transport, .accommodation, .meals, .equipment, .activities, .budget, .payments, .meetings]
-        case .finalized: return [.recap, .photos, .payments]
+        // Discussion : à partir de la date retenue, seule phase où l'écran des commentaires s'ouvre
+        // (`canAccessDetailedPlanning`) ; plus tôt, la tuile serait verrouillée pour tout le monde.
+        case .confirmed, .comparing: return [.date, .scenarios, .participants, .budget, .discussion]
+        case .organizing:
+            return [.transport, .accommodation, .meals, .equipment, .activities, .budget, .payments, .meetings, .discussion]
+        case .finalized: return [.recap, .photos, .payments, .discussion]
         }
     }
 
@@ -157,8 +162,9 @@ struct EventHubModel: Equatable {
         case .transport:
             // `canAccessTransportPlanning` : confirmé, organisation ou finalisé (pas la comparaison).
             return !access || ![.confirmed, .organizing, .finalized].contains(facts.phase)
-        case .accommodation, .meals, .equipment, .activities, .photos:
-            // `canAccessDetailedPlanning` : confirmé, comparaison, organisation ou finalisé.
+        case .accommodation, .meals, .equipment, .activities, .photos, .discussion:
+            // `canAccessDetailedPlanning` : confirmé, comparaison, organisation ou finalisé
+            // (garde du `case .comments` pour la discussion).
             return !access || ![.confirmed, .comparing, .organizing, .finalized].contains(facts.phase)
         }
     }

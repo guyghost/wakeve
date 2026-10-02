@@ -10,6 +10,9 @@ enum EventHubRoute: Equatable {
     case invitationParticipants
     /// Sheet de module (couche 5a) ; l'écran legacy reste le repli plein écran.
     case sheet(HubModule)
+    /// Fil général des commentaires : même route que la ligne « messages » de l'Activité
+    /// (`selectedCommentSection = .general`, lien profond `.comments`, mêmes gardes).
+    case discussion
 }
 
 /// Aiguillage pur des actions du hub selon le rollout invitation (`iosInvitationExperienceV1`).
@@ -31,6 +34,7 @@ enum EventHubRouting {
             // Sans rollout : la date retenue et les réponses de chacun (`PollResultsView`, sans garde).
             return .screen(invitationRollout ? .eventInformation : .pollResults)
         case .location, .scenarios: return .screen(.scenarioList)
+        case .discussion: return .discussion
         case .transport, .accommodation, .meals, .equipment, .activities, .photos, .budget, .meetings, .payments:
             // Retiré de `sheetModules` : retour à son écran legacy.
             return .screen(fullScreenFallback(for: module) ?? .eventDetail)
