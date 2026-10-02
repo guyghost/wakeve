@@ -149,12 +149,15 @@ struct EventDayFacts: Equatable {
     let meals: [EventDayMeal]
     let confirmedCount: Int
     let pendingCount: Int
+    /// Date retenue de l'événement (`event.finalDate`) : repli quand le créneau n'a pas de début (créneau
+    /// flexible) ou qu'aucune ligne `confirmedDate` n'existe (date héritée).
+    var finalDate: Date? = nil
 
     func isEventDay(now: Date, invitationRollout: Bool) -> Bool {
         EventDayRule.isEventDay(
             phase: phase,
             invitationRollout: invitationRollout,
-            finalDate: slot?.start,
+            finalDate: finalDate,
             slotStart: slot?.start,
             slotEnd: slot?.end,
             timezone: slot?.timeZoneIdentifier,

@@ -34,7 +34,8 @@ struct EventDayModel: Equatable {
 
     let title: String
     let caption: String
-    /// Heure du rendez-vous (« 19:30 »), « Toute la journée », ou nil sans créneau daté.
+    /// Heure du rendez-vous (« 19:30 »), « Toute la journée », moment d'un créneau flexible (« Matin »),
+    /// ou nil sans heure connue.
     let time: String?
     /// « samedi 3 octobre ».
     let date: String?
@@ -58,6 +59,16 @@ struct EventDayModel: Equatable {
             && lhs.coordinate?.latitude == rhs.coordinate?.latitude && lhs.coordinate?.longitude == rhs.coordinate?.longitude
     }
 
+    /// Libellé du moment d'un créneau flexible (`TimeOfDay.name`), nil pour une heure précise ou inconnue.
+    static func momentKey(_ timeOfDayName: String?) -> String? {
+        switch timeOfDayName {
+        case "MORNING": return "create_flow.moment.morning"
+        case "AFTERNOON": return "create_flow.moment.afternoon"
+        case "EVENING": return "create_flow.moment.evening"
+        default: return nil
+        }
+    }
+
     init(facts: EventDayFacts, locale: Locale = WK.appLocale) {
         func text(_ key: String) -> String { WK.localizedFormat(key, locale: locale) }
         title = facts.title
@@ -76,10 +87,14 @@ struct EventDayModel: Equatable {
         let start = facts.slot?.start
         if facts.slot?.isAllDay == true {
             time = text("immersive.event_day.all_day")
+        } else if let start {
+            time = clock.string(from: start)
         } else {
-            time = start.map(clock.string(from:))
+            // Créneau flexible sans début : son moment (mêmes libellés que le flux de création), pas d'heure inventée.
+            time = Self.momentKey(facts.slot?.timeOfDayName).map(text)
         }
-        date = start.map(formatter("EEEEdMMMM").string(from:))
+        // Date du créneau, sinon date retenue de l'événement (créneau flexible, ou date héritée sans `confirmedDate`).
+        date = (start ?? facts.finalDate).map(formatter("EEEEdMMMM").string(from:))
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = zone
         if facts.slot?.isAllDay != true, let start, let end = facts.slot?.end, end > start, calendar.isDate(start, inSameDayAs: end) {

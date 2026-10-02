@@ -169,6 +169,14 @@ final class EventDayRuleTests: XCTestCase {
         )
         XCTAssertTrue(facts.isEventDay(now: date("2026-10-03T09:00:00Z"), invitationRollout: false))
         XCTAssertFalse(facts.isEventDay(now: date("2026-10-05T09:00:00Z"), invitationRollout: false))
+        let flexible = EventDayFacts(
+            eventId: "e1", title: "Week-end", eventTypeName: nil, phase: .organizing, hasAccess: true,
+            slot: RetainedSlot(start: nil, end: nil, timeZoneIdentifier: "Europe/Paris", timeOfDayName: "MORNING"),
+            place: nil, transport: nil, meals: [], confirmedCount: 0, pendingCount: 0,
+            finalDate: date("2026-10-03T08:00:00Z")
+        )
+        XCTAssertTrue(flexible.isEventDay(now: date("2026-10-03T15:00:00Z"), invitationRollout: false),
+                      "Créneau flexible sans début : la date retenue fait foi, comme au hub et à l'accueil.")
         XCTAssertEqual(
             EventDayMeal.today([
                 EventDayMeal(name: "Brunch", time: "11:00", statusName: "CANCELLED"),

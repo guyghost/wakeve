@@ -16,12 +16,13 @@ final class EventDayViewTests: XCTestCase {
         transport: HubModuleSheetData.TransportState? = .chosen,
         meals: [EventDayMeal] = [EventDayMeal(name: "Dîner", time: "20:00", statusName: "PLANNED")],
         confirmed: Int = 5,
-        pending: Int = 1
+        pending: Int = 1,
+        finalDate: Date? = nil
     ) -> EventDayFacts {
         EventDayFacts(
             eventId: "e1", title: "Week-end Annecy", eventTypeName: "TRAVEL", phase: .organizing, hasAccess: true,
             slot: slot, place: place, transport: transport, meals: meals,
-            confirmedCount: confirmed, pendingCount: pending
+            confirmedCount: confirmed, pendingCount: pending, finalDate: finalDate
         )
     }
 
@@ -44,6 +45,37 @@ final class EventDayViewTests: XCTestCase {
         XCTAssertEqual(allDay.date, "samedi 3 octobre")
         XCTAssertNil(allDay.until)
         XCTAssertNil(model(facts(slot: nil)).time)
+    }
+
+    /// Créneau flexible (matin, sans heure de début) : date retenue (`event.finalDate`) et moment de la journée,
+    /// jamais une heure inventée.
+    func testFlexibleSlotShowsTheRetainedDateAndTheTimeOfDay() {
+        let morning = model(facts(
+            slot: RetainedSlot(start: nil, end: nil, timeZoneIdentifier: "Europe/Paris", timeOfDayName: "MORNING"),
+            finalDate: date("2026-10-03T08:00:00Z")
+        ))
+        XCTAssertEqual(morning.time, "Matin")
+        XCTAssertEqual(morning.date, "samedi 3 octobre")
+        XCTAssertNil(morning.until)
+        let evening = model(facts(
+            slot: RetainedSlot(start: nil, end: nil, timeZoneIdentifier: "Europe/Paris", timeOfDayName: "EVENING"),
+            finalDate: date("2026-10-03T08:00:00Z")
+        ))
+        XCTAssertEqual(evening.time, "Soir")
+        let afternoon = EventDayModel(facts: facts(
+            slot: RetainedSlot(start: nil, end: nil, timeZoneIdentifier: "Europe/Paris", timeOfDayName: "AFTERNOON"),
+            finalDate: date("2026-10-03T08:00:00Z")
+        ), locale: Locale(identifier: "en_US"))
+        XCTAssertEqual(afternoon.time, "Afternoon")
+    }
+
+    /// Date retenue héritée (`event.finalDate`) sans ligne `confirmedDate` : la date, sans heure.
+    func testLegacyFinalDateWithoutConfirmedDateRowShowsTheDate() {
+        let legacy = model(facts(slot: nil, finalDate: date("2026-10-03T12:00:00Z")))
+        XCTAssertEqual(legacy.date, "samedi 3 octobre")
+        XCTAssertNil(legacy.time)
+        XCTAssertNil(legacy.until)
+        XCTAssertNil(model(facts(slot: nil)).date)
     }
 
     func testPlaceFallsBackToAHint() {

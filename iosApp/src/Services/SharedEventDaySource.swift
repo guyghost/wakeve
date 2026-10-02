@@ -91,6 +91,8 @@ struct SharedEventDaySource: EventDaySource {
                 notNeeded: database.transportQueries.selectTransportEventStatus(event_id: event.id)
                     .executeAsOneOrNull()?.transport_not_needed == 1
             )
+            // Repas du jour de *maintenant* dans le fuseau du créneau, pas du jour de début : l'écran n'ouvre que
+            // le jour J, et pour un créneau sur deux jours, le deuxième jour montre ses propres repas.
             let zone = slot?.timeZone ?? .current
             let day = EventDayRule.dayString(now, timeZone: zone)
             meals = EventDayMeal.today(
@@ -111,7 +113,8 @@ struct SharedEventDaySource: EventDaySource {
             transport: transport,
             meals: meals,
             confirmedCount: guests.confirmed,
-            pendingCount: guests.pending
+            pendingCount: guests.pending,
+            finalDate: HomeDateText.parseISO(event.finalDate)
         )
     }
 }
