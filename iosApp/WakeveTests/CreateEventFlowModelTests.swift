@@ -156,6 +156,21 @@ final class CreateEventFlowModelTests: XCTestCase {
         XCTAssertNil(errors[.slot("slot-a")], "Un moment flou n'a pas d'heure de fin à vérifier.")
     }
 
+    /// Créneau repris sans date : gardé s'il a un moment flou, signalé « heure à choisir » s'il est précis.
+    func testDatelessSlotsAreKeptAndPreciseOnesNeedATime() {
+        var form = validForm()
+        form.slots = [
+            CreateEventSlot(id: "flex", input: EventTimeSlotInput(start: "", end: nil, timeOfDay: .evening)),
+            CreateEventSlot(id: "precise", input: EventTimeSlotInput(start: "", end: nil, timeOfDay: .specific))
+        ]
+        XCTAssertTrue(form.slots[0].isDateless)
+        XCTAssertTrue(form.slots[1].isDateless)
+        let errors = form.errors(for: .time)
+        XCTAssertNil(errors[.slot("flex")], "Un moment flou sans date reste valide.")
+        XCTAssertEqual(errors[.slot("precise")], "create_flow.error.slot_time_required")
+        XCTAssertEqual(form.firstInvalidStep, .time)
+    }
+
     func testMomentSlotsUseTheirTimeOfDayAndHours() {
         let day = date("2026-10-10T15:42:00Z")
         let allDay = CreateEventSlotBuilder.slot(id: "d", day: day, moment: .allDay, start: day, end: day, calendar: utc)

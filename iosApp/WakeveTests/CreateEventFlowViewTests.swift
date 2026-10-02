@@ -120,6 +120,12 @@ final class CreateEventFlowViewTests: XCTestCase {
         XCTAssertFalse(CreateFlowSlotRow.title(for: evening, locale: fr).isEmpty)
     }
 
+    func testDatelessSlotSaysTheDateIsUnset() {
+        let flex = CreateEventSlot(id: "f", input: EventTimeSlotInput(start: "", end: nil, timeOfDay: .evening))
+        XCTAssertEqual(CreateFlowSlotRow.title(for: flex, locale: fr), "Date à définir")
+        XCTAssertEqual(CreateFlowSlotRow.detail(for: flex, locale: fr), "Soir")
+    }
+
     // MARK: - Cibles tactiles
 
     func testRemoveButtonsKeepMinimumTapTarget() {

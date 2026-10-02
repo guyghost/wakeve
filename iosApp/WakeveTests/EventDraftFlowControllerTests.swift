@@ -35,6 +35,37 @@ final class EventDraftFlowControllerTests: XCTestCase {
         repository.getEvent(id: eventId)?.aggregateRevision
     }
 
+    /// Créneau écrit par une autre source (ancienne feuille, matrice) : date absente ou autre fuseau.
+    private func insertSlotRow(
+        _ eventId: String, _ slotId: String, start: String?, end: String? = nil,
+        timeOfDay: String, timezone: String
+    ) {
+        let now = ISO8601DateFormatter().string(from: Date())
+        database.timeSlotQueries.insertTimeSlot(
+            id: TimeSlotStorageIdentity.shared.physicalId(eventId: eventId, logicalSlotId: slotId),
+            eventId: eventId,
+            startTime: start,
+            endTime: end,
+            timezone: timezone,
+            proposedByParticipantId: nil,
+            createdAt: now,
+            updatedAt: now,
+            timeOfDay: timeOfDay
+        )
+    }
+
+    private final class Clock {
+        var date = Date()
+    }
+
+    private func date(_ iso: String) -> Date? {
+        let plain = ISO8601DateFormatter()
+        if let date = plain.date(from: iso) { return date }
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return fractional.date(from: iso)
+    }
+
     // MARK: - Étape 1 : création
 
     func testFirstValidSaveCreatesTheDraft() async throws {
@@ -249,6 +280,45 @@ final class EventDraftFlowControllerTests: XCTestCase {
         XCTAssertNil(makeController().hydrate(eventId: "missing-\(UUID().uuidString)"))
     }
 
+    func testHydrateKeepsDatelessSlotsAndTheirTimezones() async throws {
+        let controller = makeController()
+        var form = whatForm()
+        _ = await controller.save(step: .what, form: form)
+        let eventId = try XCTUnwrap(controller.eventId)
+        form.slots = [slot("dated", "2026-11-10T18:00:00Z", "2026-11-10T21:00:00Z")]
+        _ = await controller.save(step: .time, form: form)
+        insertSlotRow(eventId, "flex", start: nil, timeOfDay: "EVENING", timezone: "America/New_York")
+        insertSlotRow(eventId, "precise", start: nil, timeOfDay: "SPECIFIC", timezone: "Asia/Tokyo")
+        insertSlotRow(eventId, "london", start: "2026-11-12T18:00:00Z", end: "2026-11-12T21:00:00Z",
+                      timeOfDay: "SPECIFIC", timezone: "Europe/London")
+        XCTAssertEqual(repository.getEvent(id: eventId)?.proposedSlots.count, 4)
+
+        let resumed = makeController()
+        let hydrated = try XCTUnwrap(resumed.hydrate(eventId: eventId))
+        XCTAssertEqual(Set(hydrated.slots.map(\.id)), ["dated", "flex", "precise", "london"],
+                       "Aucun créneau sans date n'est perdu à la reprise.")
+        let flex = try XCTUnwrap(hydrated.slots.first { $0.id == "flex" })
+        XCTAssertTrue(flex.isDateless)
+        XCTAssertEqual(flex.moment, .evening)
+        XCTAssertEqual(hydrated.errors(for: .time)[.slot("precise")], "create_flow.error.slot_time_required",
+                       "Un créneau précis sans heure est signalé, pas supprimé en silence.")
+        XCTAssertEqual(hydrated.firstInvalidStep, .time)
+
+        var next = hydrated
+        next.slots.removeAll { $0.id == "precise" }
+        next.slots.append(slot("added", "2026-11-14T10:00:00Z", "2026-11-14T12:00:00Z"))
+        let saved = await resumed.save(step: .time, form: next)
+        XCTAssertEqual(saved, .saved)
+        let stored = try XCTUnwrap(repository.getEvent(id: eventId)).proposedSlots
+        XCTAssertEqual(Set(stored.map(\.id)), ["dated", "flex", "london", "added"])
+        let storedFlex = try XCTUnwrap(stored.first { $0.id == "flex" })
+        XCTAssertNil(storedFlex.start, "Le créneau flou reste sans date.")
+        XCTAssertEqual(storedFlex.timeOfDay, Shared.TimeOfDay.evening)
+        XCTAssertEqual(storedFlex.timezone, "America/New_York", "Fuseau d'origine conservé.")
+        XCTAssertEqual(stored.first { $0.id == "london" }?.timezone, "Europe/London")
+        XCTAssertEqual(stored.first { $0.id == "added" }?.timezone, TimeZone.current.identifier)
+    }
+
     // MARK: - Lancement
 
     func testLaunchWithoutSlotIsRefusedAndKeepsTheDraft() async throws {
@@ -272,6 +342,40 @@ final class EventDraftFlowControllerTests: XCTestCase {
         let result = await controller.launch()
         XCTAssertEqual(result, .launched(eventId))
         XCTAssertEqual(repository.getEvent(id: eventId)?.status, .polling)
+    }
+
+    func testLaunchRefreshesAnExpiredDeadline() async throws {
+        let clock = Clock()
+        let controller = EventDraftFlowController(userId: userId, now: { clock.date })
+        var form = whatForm()
+        _ = await controller.save(step: .what, form: form)
+        form.slots = [slot("slot-d", "2026-12-20T18:00:00Z", "2026-12-20T22:00:00Z")]
+        _ = await controller.save(step: .time, form: form)
+        let eventId = try XCTUnwrap(controller.eventId)
+
+        // Brouillon repris un mois plus tard : l'échéance d'origine (création + 7 jours) est passée.
+        clock.date = clock.date.addingTimeInterval(30 * 86_400)
+        let result = await controller.launch()
+        XCTAssertEqual(result, .launched(eventId))
+        let event = try XCTUnwrap(repository.getEvent(id: eventId))
+        XCTAssertEqual(event.status, .polling)
+        let deadline = try XCTUnwrap(date(event.deadline))
+        XCTAssertGreaterThanOrEqual(deadline, clock.date.addingTimeInterval(7 * 86_400 - 1),
+                                    "Le sondage laisse au moins 7 jours pour voter.")
+    }
+
+    func testLaunchKeepsAFreshDeadline() async throws {
+        let controller = makeController()
+        var form = whatForm()
+        _ = await controller.save(step: .what, form: form)
+        form.slots = [slot("slot-f", "2026-12-21T18:00:00Z", "2026-12-21T22:00:00Z")]
+        _ = await controller.save(step: .time, form: form)
+        let eventId = try XCTUnwrap(controller.eventId)
+        let before = try XCTUnwrap(repository.getEvent(id: eventId)).deadline
+
+        let result = await controller.launch()
+        XCTAssertEqual(result, .launched(eventId))
+        XCTAssertEqual(repository.getEvent(id: eventId)?.deadline, before, "Échéance encore valable : inchangée.")
     }
 
     func testLaunchWithoutDraftFails() async {

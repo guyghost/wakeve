@@ -2472,6 +2472,7 @@
 "create_flow.slot.day" = "Jour";
 "create_flow.slot.start" = "Début";
 "create_flow.slot.end" = "Fin";
+"create_flow.slot.date_unset" = "Date à définir";
 "create_flow.moment.all_day" = "Journée";
 "create_flow.moment.morning" = "Matin";
 "create_flow.moment.afternoon" = "Après-midi";
@@ -2486,6 +2487,7 @@
 "create_flow.error.location_empty" = "Donne un nom à ce lieu.";
 "create_flow.error.location_duplicate" = "Ce lieu est déjà dans la liste.";
 "create_flow.error.slot_end_before_start" = "La fin doit être après le début.";
+"create_flow.error.slot_time_required" = "Ce créneau n'a pas encore d'heure. Retire-le, puis ajoute-le avec un début et une fin.";
 "create_flow.error.save_failed" = "Le brouillon n'a pas pu être enregistré. Réessaie.";
 "create_flow.a11y.progress_format" = "Étape %1$d sur %2$d";
 "create_flow.a11y.remove_location_format" = "Retirer %@";

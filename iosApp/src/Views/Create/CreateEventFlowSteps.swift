@@ -339,9 +339,11 @@ struct CreateFlowSlotRow: View {
     let onRemove: () -> Void
 
     static func title(for slot: CreateEventSlot, locale: Locale = WK.appLocale) -> String {
+        if slot.isDateless { return WK.localizedFormat("create_flow.slot.date_unset", locale: locale) }
         guard let date = ISO8601DateFormatter().date(from: slot.input.start) else { return slot.input.start }
         let formatter = DateFormatter()
         formatter.locale = locale
+        formatter.timeZone = slot.timezone.flatMap(TimeZone.init(identifier:)) ?? .current
         formatter.setLocalizedDateFormatFromTemplate("EEEEdMMMMy")
         return formatter.string(from: date)
     }
@@ -353,7 +355,7 @@ struct CreateFlowSlotRow: View {
         return TimeSlotDisplayFormatter.hoursText(
             start: slot.input.start,
             end: slot.input.end,
-            timezone: TimeZone.current.identifier,
+            timezone: slot.timezone ?? TimeZone.current.identifier,
             timeOfDay: .specific,
             locale: locale
         )

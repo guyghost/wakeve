@@ -723,12 +723,14 @@ struct AuthenticatedView: View {
         }
     }
 
-    /// Brouillon créé hors studio (aucun reçu d'invitation, `CreateFlowEntry`) : flux 4 questions (couche 7).
+    /// Brouillon de sondage créé hors studio (aucun reçu d'invitation, `CreateFlowEntry`) : flux 4 questions (couche 7).
     /// Sinon chemin « modifier un brouillon » de la bibliothèque ; sans rollout invitation, ouvre le détail.
     private func editDraftFromHome(_ id: String) {
+        let draft = repository.getEvent(id: id)
         if iosRedesign2026,
            CreateFlowEntry.draftRoute(
-               status: repository.getEvent(id: id)?.status,
+               status: draft?.status,
+               planningMode: draft?.planningMode,
                hasInvitationReceipt: CreateFlowEntry.hasInvitationReceipt(
                    eventId: id,
                    database: RepositoryProvider.shared.database

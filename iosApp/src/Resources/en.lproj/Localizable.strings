@@ -2448,6 +2448,7 @@
 "create_flow.slot.day" = "Day";
 "create_flow.slot.start" = "Start";
 "create_flow.slot.end" = "End";
+"create_flow.slot.date_unset" = "Date to be set";
 "create_flow.moment.all_day" = "All day";
 "create_flow.moment.morning" = "Morning";
 "create_flow.moment.afternoon" = "Afternoon";
@@ -2462,6 +2463,7 @@
 "create_flow.error.location_empty" = "Give this place a name.";
 "create_flow.error.location_duplicate" = "This place is already in the list.";
 "create_flow.error.slot_end_before_start" = "The end must be after the start.";
+"create_flow.error.slot_time_required" = "This slot has no time yet. Remove it, then add it again with a start and an end.";
 "create_flow.error.save_failed" = "The draft couldn't be saved. Try again.";
 "create_flow.a11y.progress_format" = "Step %1$d of %2$d";
 "create_flow.a11y.remove_location_format" = "Remove %@";

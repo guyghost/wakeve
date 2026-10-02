@@ -28,14 +28,20 @@ enum CreateFlowEntry {
     }
 
     enum DraftRoute: Equatable {
-        /// Brouillon créé hors studio : flux 4 questions, étape de la première validation en échec.
+        /// Brouillon de sondage créé hors studio : flux 4 questions, étape de la première validation en échec.
         case createFlow
         /// Chemin actuel (studio si le rollout invitation est actif, sinon hub/détail).
         case existing
     }
 
-    static func draftRoute(status: EventStatus?, hasInvitationReceipt: Bool) -> DraftRoute {
-        status == .draft && !hasInvitationReceipt ? .createFlow : .existing
+    /// Seul un brouillon de sondage de créneaux (ce que le flux crée) se rouvre dans le flux ; un brouillon
+    /// matrice garde son chemin.
+    static func draftRoute(
+        status: EventStatus?,
+        planningMode: EventPlanningMode?,
+        hasInvitationReceipt: Bool
+    ) -> DraftRoute {
+        status == .draft && planningMode == .timeSlotPoll && !hasInvitationReceipt ? .createFlow : .existing
     }
 
     static func hasInvitationReceipt(eventId: String, database: WakeveDb) -> Bool {

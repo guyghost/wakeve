@@ -9,12 +9,18 @@ final class CreateEventFlowWiringTests: XCTestCase {
     // MARK: - Aiguillage des brouillons
 
     func testFlowDraftsReopenInTheFlowAndStudioDraftsKeepTheirPath() {
-        XCTAssertEqual(CreateFlowEntry.draftRoute(status: .draft, hasInvitationReceipt: false), .createFlow)
-        XCTAssertEqual(CreateFlowEntry.draftRoute(status: .draft, hasInvitationReceipt: true), .existing,
+        XCTAssertEqual(CreateFlowEntry.draftRoute(status: .draft, planningMode: .timeSlotPoll, hasInvitationReceipt: false), .createFlow)
+        XCTAssertEqual(CreateFlowEntry.draftRoute(status: .draft, planningMode: .timeSlotPoll, hasInvitationReceipt: true), .existing,
                        "Un brouillon du studio (reçu d'invitation) se rouvre dans le studio.")
-        XCTAssertEqual(CreateFlowEntry.draftRoute(status: .polling, hasInvitationReceipt: false), .existing,
+        XCTAssertEqual(CreateFlowEntry.draftRoute(status: .polling, planningMode: .timeSlotPoll, hasInvitationReceipt: false), .existing,
                        "Seul un brouillon s'édite dans le flux.")
-        XCTAssertEqual(CreateFlowEntry.draftRoute(status: nil, hasInvitationReceipt: false), .existing)
+        XCTAssertEqual(CreateFlowEntry.draftRoute(status: nil, planningMode: nil, hasInvitationReceipt: false), .existing)
+    }
+
+    func testOnlyPollDraftsReopenInTheFlow() {
+        XCTAssertEqual(CreateFlowEntry.draftRoute(status: .draft, planningMode: .scenarioMatrix, hasInvitationReceipt: false), .existing,
+                       "Un brouillon matrice garde son chemin : le flux ne crée que des sondages de créneaux.")
+        XCTAssertEqual(CreateFlowEntry.draftRoute(status: .draft, planningMode: nil, hasInvitationReceipt: false), .existing)
     }
 
     func testInvitationReceiptIsTheStudioMarker() async throws {
@@ -111,6 +117,7 @@ final class CreateEventFlowWiringTests: XCTestCase {
         let source = try contentView
         let edit = slice(source, from: "private func editDraftFromHome(_ id: String)", to: "// MARK: - Hub d'événement de la refonte")
         XCTAssertTrue(edit.contains("CreateFlowEntry.draftRoute("))
+        XCTAssertTrue(edit.contains("planningMode: draft?.planningMode"), "Le mode de planification décide aussi.")
         XCTAssertTrue(edit.contains("CreateFlowEntry.hasInvitationReceipt("))
         XCTAssertTrue(edit.contains("openCreateEventFlow(draftEventId: id)"))
         XCTAssertTrue(edit.contains("InvitationExperienceRouteRequestCanvasAction(action: .editDraft)"),

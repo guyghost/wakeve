@@ -2450,6 +2450,7 @@
 "create_flow.slot.day" = "Día";
 "create_flow.slot.start" = "Inicio";
 "create_flow.slot.end" = "Fin";
+"create_flow.slot.date_unset" = "Fecha por definir";
 "create_flow.moment.all_day" = "Todo el día";
 "create_flow.moment.morning" = "Mañana";
 "create_flow.moment.afternoon" = "Tarde";
@@ -2464,6 +2465,7 @@
 "create_flow.error.location_empty" = "Ponle un nombre a este lugar.";
 "create_flow.error.location_duplicate" = "Este lugar ya está en la lista.";
 "create_flow.error.slot_end_before_start" = "El final debe ser posterior al inicio.";
+"create_flow.error.slot_time_required" = "Esta franja aún no tiene hora. Quítala y vuelve a añadirla con un inicio y un final.";
 "create_flow.error.save_failed" = "No se pudo guardar el borrador. Inténtalo de nuevo.";
 "create_flow.a11y.progress_format" = "Paso %1$d de %2$d";
 "create_flow.a11y.remove_location_format" = "Quitar %@";

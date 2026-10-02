@@ -2450,6 +2450,7 @@
 "create_flow.slot.day" = "Giorno";
 "create_flow.slot.start" = "Inizio";
 "create_flow.slot.end" = "Fine";
+"create_flow.slot.date_unset" = "Data da definire";
 "create_flow.moment.all_day" = "Tutto il giorno";
 "create_flow.moment.morning" = "Mattina";
 "create_flow.moment.afternoon" = "Pomeriggio";
@@ -2464,6 +2465,7 @@
 "create_flow.error.location_empty" = "Dai un nome a questo luogo.";
 "create_flow.error.location_duplicate" = "Questo luogo è già nell'elenco.";
 "create_flow.error.slot_end_before_start" = "La fine deve essere dopo l'inizio.";
+"create_flow.error.slot_time_required" = "Questa fascia non ha ancora un orario. Rimuovila, poi aggiungila di nuovo con un inizio e una fine.";
 "create_flow.error.save_failed" = "Impossibile salvare la bozza. Riprova.";
 "create_flow.a11y.progress_format" = "Passaggio %1$d di %2$d";
 "create_flow.a11y.remove_location_format" = "Rimuovi %@";

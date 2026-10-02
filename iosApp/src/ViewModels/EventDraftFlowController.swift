@@ -14,7 +14,8 @@ import Shared
 ///   l'intent `AddPotentialLocation` ne persiste pas) ;
 /// - étape 4 (Quand ?) : `UpdateEvent` relu (chemin `saveEvent`, qui synchronise les créneaux), identifiants
 ///   logiques des créneaux conservés ;
-/// - lancement : `StartPoll` via `EventPollStartController`.
+/// - lancement : échéance repoussée à 7 jours si besoin (`UpdateEvent` relu), puis `StartPoll` via
+///   `EventPollStartController`.
 /// Une étape inchangée n'écrit rien (pas de nouvelle révision).
 @MainActor
 final class EventDraftFlowController: ObservableObject {
@@ -99,11 +100,14 @@ final class EventDraftFlowController: ObservableObject {
         form.expectedParticipants = event.expectedParticipants.map { Int($0.intValue) }
         form.maxParticipants = event.maxParticipants.map { Int($0.intValue) }
         form.locations = storedLocations(eventId: eventId).map(\.name)
-        form.slots = event.proposedSlots.compactMap { slot in
-            guard let start = slot.start, !start.isEmpty else { return nil }
-            return CreateEventSlot(id: slot.id, input: EventTimeSlotInput(
-                start: start, end: slot.end, timeOfDay: slot.timeOfDay
-            ))
+        // Tous les créneaux sont repris, même sans date (début vide) : un enregistrement de Quand ? ne
+        // doit rien supprimer en silence. Le fuseau d'origine est conservé.
+        form.slots = event.proposedSlots.map { slot in
+            CreateEventSlot(
+                id: slot.id,
+                input: EventTimeSlotInput(start: slot.start ?? "", end: slot.end, timeOfDay: slot.timeOfDay),
+                timezone: slot.timezone
+            )
         }
         self.eventId = eventId
         return form
@@ -217,9 +221,14 @@ final class EventDraftFlowController: ObservableObject {
 
     // MARK: - Lancement
 
-    /// `StartPoll` ; succès quand le brouillon passe en `POLLING`.
+    /// `StartPoll` ; succès quand le brouillon passe en `POLLING`. Un brouillon repris tard garde au moins
+    /// `minimumVotingDays` jours de vote : l'échéance est repoussée avant le lancement.
     func launch() async -> LaunchResult {
         guard let eventId else { return .failed(saveFailedMessage) }
+        guard await refreshDeadline(eventId: eventId) else {
+            errorMessage = saveFailedMessage
+            return .failed(saveFailedMessage)
+        }
         let starter = EventPollStartController(eventId: eventId, userId: userId, repository: repository)
         let outcome = await withCheckedContinuation { (continuation: CheckedContinuation<EventPollStartController.Outcome, Never>) in
             starter.start { continuation.resume(returning: $0) }
@@ -233,6 +242,34 @@ final class EventDraftFlowController: ObservableObject {
             errorMessage = message
             return .failed(message)
         }
+    }
+
+    static let minimumVotingDays = 7
+    /// Marge : un lancement juste après la création ne réécrit pas l'échéance (création + 7 jours).
+    private static let deadlineTolerance: TimeInterval = 3_600
+
+    /// Relit l'événement ; échéance à moins de 7 jours (ou passée) → `UpdateEvent` à maintenant + 7 jours.
+    private func refreshDeadline(eventId: String) async -> Bool {
+        guard let current = repository.getEvent(id: eventId), current.status == .draft else {
+            return true // `StartPoll` signale lui-même un brouillon absent ou déjà lancé.
+        }
+        let date = now()
+        let minimum = Calendar.current.date(byAdding: .day, value: Self.minimumVotingDays, to: date)
+            ?? date.addingTimeInterval(Double(Self.minimumVotingDays) * 86_400)
+        if let deadline = Self.parseDate(current.deadline),
+           deadline >= minimum.addingTimeInterval(-Self.deadlineTolerance) {
+            return true
+        }
+        let refreshed = ISO8601DateFormatter().string(from: minimum)
+        _ = await perform(EventManagementContractIntentUpdateEvent(event: Self.copy(current, deadline: refreshed)))
+        return repository.getEvent(id: eventId)?.deadline == refreshed
+    }
+
+    private static func parseDate(_ value: String) -> Date? {
+        if let date = ISO8601DateFormatter().date(from: value) { return date }
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return fractional.date(from: value)
     }
 
     // MARK: - Machine d'état
@@ -348,13 +385,14 @@ final class EventDraftFlowController: ObservableObject {
         static func < (lhs: SlotKey, rhs: SlotKey) -> Bool { lhs.id < rhs.id }
     }
 
+    /// Début vide → `start` nil (créneau repris sans date) ; fuseau d'origine, sinon celui de l'appareil.
     private static func timeSlots(_ slots: [CreateEventSlot]) -> [TimeSlot] {
         slots.map { slot in
             TimeSlot(
                 id: slot.id,
-                start: slot.input.start,
+                start: slot.isDateless ? nil : slot.input.start,
                 end: slot.input.end,
-                timezone: TimeZone.current.identifier,
+                timezone: slot.timezone ?? TimeZone.current.identifier,
                 timeOfDay: slot.input.timeOfDay
             )
         }
@@ -369,7 +407,8 @@ final class EventDraftFlowController: ObservableObject {
         eventType: Shared.EventType? = nil,
         eventTypeCustom: String?? = nil,
         counts: Counts? = nil,
-        slots: [TimeSlot]? = nil
+        slots: [TimeSlot]? = nil,
+        deadline: String? = nil
     ) -> WakeveEvent {
         WakeveEvent(
             id: draft.id,
@@ -378,7 +417,7 @@ final class EventDraftFlowController: ObservableObject {
             organizerId: draft.organizerId,
             participants: draft.participants,
             proposedSlots: slots ?? draft.proposedSlots,
-            deadline: draft.deadline,
+            deadline: deadline ?? draft.deadline,
             status: draft.status,
             finalDate: draft.finalDate,
             createdAt: draft.createdAt,

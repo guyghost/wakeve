@@ -98,9 +98,15 @@ enum CreateEventMoment: String, CaseIterable, Identifiable {
 /// Créneau saisi, avec un identifiant logique stable d'un enregistrement à l'autre.
 struct CreateEventSlot: Identifiable, Equatable {
     let id: String
+    /// Début vide : créneau repris sans date (moment flou, ou heure précise à choisir).
     var input: EventTimeSlotInput
+    /// Fuseau d'origine d'un créneau repris ; nil pour un créneau ajouté (fuseau de l'appareil).
+    var timezone: String? = nil
 
     var moment: CreateEventMoment { CreateEventMoment(timeOfDay: input.timeOfDay) }
+
+    /// Repris sans date : le début est vide (`TimeSlot.start` nil).
+    var isDateless: Bool { input.start.isEmpty }
 
     /// Début strictement avant la fin (exigé pour une heure précise).
     var hasValidRange: Bool {
@@ -233,8 +239,12 @@ struct CreateEventForm: Equatable {
             }
         case .time:
             if slots.isEmpty { errors[.slots] = "create_event.validation.slot_required" }
-            for slot in slots where slot.moment == .specific && !slot.hasValidRange {
-                errors[.slot(slot.id)] = "create_flow.error.slot_end_before_start"
+            for slot in slots where slot.moment == .specific {
+                if slot.isDateless {
+                    errors[.slot(slot.id)] = "create_flow.error.slot_time_required"
+                } else if !slot.hasValidRange {
+                    errors[.slot(slot.id)] = "create_flow.error.slot_end_before_start"
+                }
             }
         }
         return errors

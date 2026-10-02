@@ -24,7 +24,8 @@ final class CreateEventFlowLocalizationTests: XCTestCase {
         "create_flow.error.description_required", "create_flow.error.custom_type_required",
         "create_flow.error.participants_positive", "create_flow.error.max_less_than_min",
         "create_flow.error.location_empty", "create_flow.error.location_duplicate",
-        "create_flow.error.slot_end_before_start", "create_flow.error.save_failed",
+        "create_flow.error.slot_end_before_start", "create_flow.error.slot_time_required",
+        "create_flow.error.save_failed", "create_flow.slot.date_unset",
         "create_flow.a11y.progress_format", "create_flow.a11y.remove_location_format",
         "create_flow.a11y.remove_slot", "create_flow.a11y.error_format"
     ]
@@ -55,7 +56,7 @@ final class CreateEventFlowLocalizationTests: XCTestCase {
         let keys = ["create_flow.error.description_required", "create_flow.error.custom_type_required",
                     "create_flow.error.participants_positive", "create_flow.error.max_less_than_min",
                     "create_flow.error.location_empty", "create_flow.error.location_duplicate",
-                    "create_flow.error.slot_end_before_start"]
+                    "create_flow.error.slot_end_before_start", "create_flow.error.slot_time_required"]
             + CreateEventMoment.allCases.map(\.titleKey)
         for key in keys {
             XCTAssertTrue(strings.contains("\"\(key)\" ="), key)
