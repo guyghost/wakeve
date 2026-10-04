@@ -1,23 +1,11 @@
 import SwiftUI
 import Shared
 
-/// ViewModel for the EventDetailView.
+/// Propriétaire de la suppression d'un événement depuis l'écran Infos
+/// (`AuthenticatedView.deleteInformationEventThroughOwner` → `deleteEventAndWait()`).
 ///
-/// Manages the state and intents for displaying detailed information about a single event.
-/// Uses the shared Kotlin state machine to handle all business logic.
-///
-/// ## Usage
-///
-/// ```swift
-/// @StateObject private var viewModel = EventDetailViewModel(eventId: "event-123", userId: "user-456")
-///
-/// if let event = viewModel.selectedEvent {
-///     VStack {
-///         Text(event.title)
-///         Text(event.eventDescription)
-///     }
-/// }
-/// ```
+/// L'ancien détail d'événement qui l'affichait a été supprimé en couche 9 (#47) : le hub
+/// (`EventHubView`) le remplace. La machine à états Kotlin partagée reste seule à porter la logique.
 class EventDetailViewModel: StateMachineViewModel<
     EventManagementContract.State,
     EventManagementContractIntent,

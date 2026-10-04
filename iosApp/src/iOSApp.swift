@@ -30,27 +30,7 @@ struct iOSApp: App {
         }
     }
 
-    @ViewBuilder
     private var appRoot: some View {
-        #if DEBUG
-        debugAppRoot
-        #else
-        normalAppRoot
-        #endif
-    }
-
-    #if DEBUG
-    @ViewBuilder
-    private var debugAppRoot: some View {
-        if ProcessInfo.processInfo.arguments.contains("--wakeve-qa-invitation-canvas") {
-            EventDetailInvitationCanvasQAView()
-        } else {
-            normalAppRoot
-        }
-    }
-    #endif
-
-    private var normalAppRoot: some View {
         ContentView()
             .environmentObject(authStateManager)
             .environmentObject(authService)
@@ -70,8 +50,7 @@ struct iOSApp: App {
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NavigateToEvent"))) { notification in
                 // Handle notification tap deep link
-                if let eventId = notification.userInfo?["eventId"] as? String {
-                    let url = URL(string: "wakeve://event/\(eventId)")!
+                if let url = NotificationDeepLink.url(from: notification.userInfo ?? [:]) {
                     handleDeepLink(url)
                 }
             }

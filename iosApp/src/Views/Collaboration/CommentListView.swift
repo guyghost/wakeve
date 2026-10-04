@@ -15,18 +15,7 @@ enum CommentSectionType: String, CaseIterable {
     case equipment
     case activity
     case budget
-    
-    /// Map to CommentSection_ if available, nil otherwise
-    var sharedValue: CommentSection_? {
-        switch self {
-        case .general: return .general
-        case .transport: return .transport
-        case .accommodation: return .accommodation
-        case .equipment: return .equipment
-        case .activity: return .activity
-        default: return nil
-        }
-    }
+    // Section du dépôt : `EventCommentsRouteView.repositorySection(for:)` (les 9 sections).
 }
 
 // CommentThread type is already defined in Shared framework
@@ -50,6 +39,8 @@ struct CommentListView: View {
     var onDelete: (String) -> Void = { _ in }
     var onPin: (String, Bool) -> Void = { _, _ in }
     var onUserClick: (String) -> Void = { _ in }
+    /// Texte refusé par l'appelant après l'envoi : remis dans le champ de saisie, puis la valeur repasse à nil.
+    var restoredDraft: Binding<String?> = .constant(nil)
 
     @State private var commentText: String = ""
     @State private var mentionedUsers: [String] = []
@@ -158,6 +149,11 @@ struct CommentListView: View {
             }
             .sheet(item: $moderationTarget) { target in
                 ModerationActionSheet(target: target)
+            }
+            .onChange(of: restoredDraft.wrappedValue) { _, text in
+                guard let text else { return }
+                commentText = text
+                restoredDraft.wrappedValue = nil
             }
         }
     }

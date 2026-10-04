@@ -49,13 +49,15 @@ final class InvitationExperienceQALaunchRedTests: XCTestCase {
         XCTAssertFalse(support.localizedCaseInsensitiveContains("fixture"))
         XCTAssertTrue(root.contains("InvitationExperienceQALaunchSupport"))
         XCTAssertTrue(root.contains("#if DEBUG"), "The production root hook must be erased from Release.")
+        // Couche 9 (#47) : la route QA `library` ouvre l'accueil de la refonte (`EventsHomeContainer`).
+        let qaLibraryRoute = sourceSlice(root, from: "case .library:", to: "case .detail(let eventId):")
         XCTAssertTrue(
-            root.contains("invitationQALibraryReloadGeneration"),
-            "Completing the asynchronous seed must invalidate the already-mounted Library."
+            qaLibraryRoute.contains("currentView = .eventList"),
+            "The DEBUG library route must land on the events home."
         )
         XCTAssertTrue(
-            root.contains(".id(invitationQALibraryReloadGeneration)"),
-            "The repository-backed Library must remount/reload after the DEBUG seed commits."
+            qaLibraryRoute.contains("eventsHomeReloadToken += 1"),
+            "Completing the asynchronous seed must reload the already-mounted home."
         )
         XCTAssertTrue(
             root.contains("invitationQALibraryIsSeedReady"),
@@ -182,14 +184,19 @@ final class InvitationExperienceQALaunchRedTests: XCTestCase {
             "Relaunch must not duplicate the direct-invite batch."
         )
 
-        let mountedLibraryOwner = EventLibraryViewModel(
+        // Couche 9 (#47) : le propriétaire monté est l'accueil de la refonte, adossé aux mêmes projections.
+        let mountedHomeOwner = EventsHomeViewModel(
             viewerId: viewerId,
-            projectionRepository: DatabaseInvitationExperienceProjectionRepository(
+            source: SharedEventsHomeSource(
+                projectionRepository: DatabaseInvitationExperienceProjectionRepository(
+                    database: database
+                ),
+                repository: repository,
                 database: database
             )
         )
-        await mountedLibraryOwner.reload()
-        let visibleEventIds = Set(mountedLibraryOwner.visibleCards.map(\.event.id))
+        await mountedHomeOwner.reload()
+        let visibleEventIds = Set(mountedHomeOwner.active.map(\.id))
         XCTAssertTrue(
             visibleEventIds.contains("qa-invitation-polling"),
             "After the asynchronous repository seed commits, the real mounted Library owner must consume the KMP Ready snapshot instead of rendering an empty shell. Visible IDs: \(visibleEventIds)"

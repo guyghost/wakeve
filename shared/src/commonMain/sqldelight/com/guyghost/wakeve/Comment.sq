@@ -214,6 +214,19 @@ SELECT COUNT(*) AS recentCount
 FROM comment
 WHERE event_id = ? AND created_at > ? AND is_deleted = 0 AND moderation_status = 'APPROVED';
 
+-- Recent activity in one section (iOS activity feed, same filters as countRecentActivity)
+countRecentActivityInSection:
+SELECT COUNT(*) AS recentCount
+FROM comment
+WHERE event_id = ? AND section = ? AND created_at > ? AND is_deleted = 0 AND moderation_status = 'APPROVED';
+
+-- Last visible comment of an author in one section: always exactly one row (NULL if none),
+-- unlike selectParticipantActivity which groups by author_name too.
+selectLastCommentAtByAuthorInSection:
+SELECT MAX(created_at) AS lastCommentAt
+FROM comment
+WHERE event_id = ? AND author_id = ? AND section = ? AND is_deleted = 0 AND moderation_status = 'APPROVED';
+
 -- Participant activity
 selectParticipantActivity:
 SELECT

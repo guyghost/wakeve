@@ -2,8 +2,8 @@ import XCTest
 @testable import Wakeve
 
 final class InvitationExperienceSurfaceContractTests: XCTestCase {
+    // Couche 9 (#47) : la bibliothèque legacy est remplacée par l'accueil de la refonte (`EventsHomeContainer`).
     private let surfacePaths = [
-        "iosApp/src/Views/Invitations/EventLibraryView.swift",
         "iosApp/src/Views/Invitations/EventCreationStudioView.swift",
         "iosApp/src/Views/Invitations/EventAudienceView.swift",
         "iosApp/src/Views/Invitations/EventInformationView.swift",
@@ -12,7 +12,6 @@ final class InvitationExperienceSurfaceContractTests: XCTestCase {
 
     func testSixRepositoryBackedSurfacesAreInstalled() throws {
         let expectedTypes = [
-            "struct EventLibraryView",
             "struct EventCreationStudioView",
             "struct EventAudienceView",
             "struct EventInformationView",
@@ -28,15 +27,16 @@ final class InvitationExperienceSurfaceContractTests: XCTestCase {
             )
         }
 
+        // Couche 9 : le hub (`EventHubContainer`) remplace le canvas du détail legacy.
         let detail = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
-        XCTAssertTrue(detail.contains("EventDetailInvitationCanvas("))
+        XCTAssertTrue(detail.contains("EventHubContainer("))
     }
 
     func testProductionRootActuallyRoutesToEveryInvitationSurfaceThroughTypedPreflight() throws {
         let root = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
 
         for reachableSurface in [
-            "EventLibraryView(",
+            "EventsHomeContainer(",
             "EventCreationStudioView(",
             "EventAudienceView(",
             "EventInformationView(",
@@ -112,30 +112,28 @@ final class InvitationExperienceSurfaceContractTests: XCTestCase {
         )
     }
 
-    func testCanvasActionsIncludingEditDraftReturnToTheTypedRootRouter() throws {
+    /// Réancré (couche 9) : le canvas du détail legacy est supprimé ; l'ouverture et la reprise de brouillon
+    /// depuis l'accueil passent toujours par le routeur typé.
+    func testHomeOpenAndEditDraftReturnToTheTypedRootRouter() throws {
         let root = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
-        let detailInstallation = sourceSlice(
+        let openEvent = sourceSlice(
             root,
-            from: "EventDetailView(",
-            to: "case .eventAudience:"
+            from: "private func openEventFromHome(",
+            to: "private func handleHomeNextStep("
         )
-        let canvasDispatch = sourceSlice(
+        let editDraft = sourceSlice(
             root,
-            from: "private func performCanvasAction(",
-            to: "private func scrollToProgressiveDetails"
+            from: "private func editDraftFromHome(",
+            to: "// MARK: - Hub d'événement de la refonte"
         )
 
         XCTAssertTrue(
-            detailInstallation.contains("onCanvasAction:"),
-            "The canvas must return its typed action to AuthenticatedView instead of choosing owners inside EventDetailView."
+            openEvent.contains("InvitationExperienceRouteRequestCanvasAction(action: .showDetails)"),
+            "Opening an event must resolve through InvitationExperienceRouter before navigation."
         )
         XCTAssertTrue(
-            detailInstallation.contains("InvitationExperienceRouteRequestCanvasAction"),
-            "The installed canvas callback must resolve through InvitationExperienceRouter before navigation."
-        )
-        XCTAssertFalse(
-            canvasDispatch.contains("case .editDraft:\n            scrollToProgressiveDetails"),
-            "EDIT_DRAFT currently scrolls local details instead of opening the guarded draft editor destination."
+            editDraft.contains("InvitationExperienceRouteRequestCanvasAction(action: .editDraft)"),
+            "EDIT_DRAFT must open the guarded draft editor destination through the typed router."
         )
     }
 
@@ -207,7 +205,6 @@ final class InvitationExperienceSurfaceContractTests: XCTestCase {
 
     func testEveryPrimarySurfaceExposesAtMostOneStablePrimaryAction() {
         let identifiers = [
-            "eventLibraryPrimaryAction",
             "eventCreationStudioPrimaryAction",
             "eventAudiencePrimaryAction",
             "eventInformationPrimaryAction",
@@ -222,29 +219,6 @@ final class InvitationExperienceSurfaceContractTests: XCTestCase {
                 "\(path) must expose one stable primary action element, never duplicated by adaptive layout."
             )
         }
-    }
-
-    func testLibraryRendersTypedArtworkAndKeepsCancellableFailureState() throws {
-        let library = try readProjectFile(
-            "iosApp/src/Views/Invitations/EventLibraryView.swift"
-        )
-
-        XCTAssertTrue(
-            library.contains("card.artwork"),
-            "Repository projections carry total artwork, but the shipped Library card never renders it."
-        )
-        XCTAssertTrue(
-            library.contains("LibraryLoadState"),
-            "Library must retain the typed Idle/Loading/Ready/Empty/Failed state instead of collapsing every failure to an empty card array."
-        )
-        XCTAssertTrue(
-            library.contains("cancelLoad"),
-            "Cancelling a filter reload must restore PreviousStableState exactly."
-        )
-        XCTAssertTrue(
-            library.contains("eventLibraryRetryAction"),
-            "A repository failure needs an accessible retry action distinct from an honest empty Library."
-        )
     }
 
     func testAudienceLoadsPersistedBatchOutcomesAndNamesEveryAxisDistinctly() throws {
@@ -462,8 +436,8 @@ final class InvitationExperienceSurfaceContractTests: XCTestCase {
     }
 
     func testNewSurfacesContainNoLocalCredentialPassOrRedeemSubstitute() throws {
-        let canvas = try readProjectFile("iosApp/src/Views/Events/EventDetailInvitationCanvas.swift")
-        let combined = (surfacePaths.map(readProjectFileIfPresent) + [canvas]).joined(separator: "\n")
+        // Couche 9 : le canvas du détail legacy est supprimé ; le contrat reste porté par les surfaces.
+        let combined = surfacePaths.map(readProjectFileIfPresent).joined(separator: "\n")
 
         for forbidden in [
             "import PassKit",
@@ -484,36 +458,6 @@ final class InvitationExperienceSurfaceContractTests: XCTestCase {
                 "The six new surfaces must not own local invitation credentials, passes, QR, or redeem: \(forbidden)"
             )
         }
-    }
-
-    func testCanvasReadyShareCapabilityRetainsAndRevalidatesEveryBindingDimension() throws {
-        let canvas = try readProjectFile("iosApp/src/Views/Events/EventDetailInvitationCanvas.swift")
-        let capability = sourceSlice(
-            canvas,
-            from: "enum EventDetailInvitationShareCapability",
-            to: "enum EventDetailInvitationCanvasLifecycleTone"
-        )
-        let filter = sourceSlice(
-            canvas,
-            from: "private func filteredShareCapability",
-            to: "private func syncDecoration"
-        )
-
-        XCTAssertTrue(
-            capability.contains("EventDetailInvitationShareBinding"),
-            "A ready server payload must retain its event/actor/revision/capability binding even while production sharing is hidden."
-        )
-        for dimension in ["eventId", "actorId", "accessRevision", "capabilityId"] {
-            XCTAssertTrue(
-                canvas.contains("let \(dimension)"),
-                "The Swift share binding drops \(dimension)."
-            )
-            XCTAssertTrue(
-                filter.contains(dimension),
-                "Share-time preflight never revalidates \(dimension)."
-            )
-        }
-        XCTAssertTrue(capability.contains("serverIssuedPayload"))
     }
 
     func testInformationAndArchiveDoNotExposeTechnicalMetadataOrOpenAccountSettingsForEventWrites() throws {
@@ -930,8 +874,11 @@ final class InvitationExperienceSurfaceContractTests: XCTestCase {
     func testNewSurfacesUseTypedOwnersAndNoConstructionPlaceholder() {
         let combined = surfacePaths.map(readProjectFileIfPresent).joined(separator: "\n")
 
+        // L'accueil lit la même projection de bibliothèque, adossée au dépôt (couche 9).
+        let homeSource = readProjectFileIfPresent("iosApp/src/Services/SharedEventsHomeSource.swift")
+        XCTAssertTrue(homeSource.contains("projectionRepository.library("), "The home must read the repository-backed library projection.")
+
         for expectedOwner in [
-            "EventLibraryProjector",
             "CreationStudioStateMachine",
             "AudienceProjector",
             "EventNotificationPolicy",
@@ -964,6 +911,25 @@ final class InvitationExperienceSurfaceContractTests: XCTestCase {
             return ""
         }
         return String(source[startRange.lowerBound..<endRange.lowerBound])
+    }
+
+    /// Réancré depuis `EventDetailInvitationCanvasContractTests` (canvas supprimé en couche 9) :
+    /// le moteur d'illustration partagé borne chaque recadrage et respecte le point focal.
+    func testSharedArtworkRendererBoundsEveryFillCropAndHonorsFocalAlignment() throws {
+        let artworkSource = try readProjectFile(
+            "iosApp/src/Views/Invitations/InvitationArtworkView.swift"
+        )
+        let sharedArtwork = sourceSlice(
+            artworkSource,
+            from: "struct InvitationArtworkView: View",
+            to: "private var fallback: some View"
+        )
+
+        XCTAssertFalse(sharedArtwork.isEmpty, "InvitationArtworkView must stay the shared artwork renderer.")
+        XCTAssertTrue(sharedArtwork.contains(".scaledToFill()"))
+        XCTAssertTrue(sharedArtwork.contains(".clipped()"))
+        XCTAssertTrue(sharedArtwork.contains("focalAlignment(focalPoint)"))
+        XCTAssertTrue(sharedArtwork.contains("crop == .fit"))
     }
 
     private func readProjectFileIfPresent(_ relativePath: String) -> String {

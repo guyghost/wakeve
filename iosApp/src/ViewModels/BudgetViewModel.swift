@@ -252,24 +252,54 @@ class BudgetViewModel: ObservableObject {
     ) {
         guard let budgetId = budgetId else { return }
         Task {
-            _ = budgetRepository.createBudgetItem(
-                budgetId: budgetId,
-                category: categoryUI.kmpCategory,
-                name: name,
-                description: description,
-                estimatedCost: estimatedCost,
-                sharedBy: sharedBy,
-                notes: ""
-            )
+            // BudgetCalculator rejects an item shared by nobody: default to the event's participants
+            // (organizer as fallback), like Android BudgetDetailScreen.
+            let resolvedSharedBy = sharedBy.isEmpty ? defaultSharedByForEvent() : sharedBy
+            do {
+                _ = try budgetRepository.createBudgetItem(
+                    budgetId: budgetId,
+                    category: categoryUI.kmpCategory,
+                    name: name,
+                    description: description,
+                    estimatedCost: estimatedCost,
+                    sharedBy: resolvedSharedBy,
+                    notes: ""
+                )
+            } catch {
+                errorMessage = String(localized: "budget.add_item.error")
+                return
+            }
             await loadBudget()
         }
     }
 
     func markItemAsPaid(itemId: String, actualCost: Double, paidBy: String) {
         Task {
-            _ = budgetRepository.markItemAsPaid(itemId: itemId, actualCost: actualCost, paidBy: paidBy)
+            do {
+                _ = try budgetRepository.markItemAsPaid(itemId: itemId, actualCost: actualCost, paidBy: paidBy)
+            } catch {
+                errorMessage = String(localized: "budget.mark_paid.error")
+                return
+            }
             await loadBudget()
         }
+    }
+
+    /// Participants sharing an expense when none were picked: the event's participants, else the organizer.
+    /// Blank ids are dropped and duplicates removed (order kept).
+    nonisolated static func defaultSharedBy(participants: [String], organizerId: String?) -> [String] {
+        var seen = Set<String>()
+        let cleaned = participants
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty && seen.insert($0).inserted }
+        if !cleaned.isEmpty { return cleaned }
+        let organizer = organizerId?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return organizer.isEmpty ? [] : [organizer]
+    }
+
+    private func defaultSharedByForEvent() -> [String] {
+        let event = RepositoryProvider.shared.databaseRepository.getEvent(id: eventId)
+        return Self.defaultSharedBy(participants: event?.participants ?? [], organizerId: event?.organizerId)
     }
 
     func deleteItem(itemId: String) {
@@ -285,18 +315,24 @@ class BudgetViewModel: ObservableObject {
 
     private static func hasPendingSync(eventId: String) -> Bool {
         RepositoryProvider.shared.database.syncMetadataQueries.selectPending().executeAsList().contains { pending in
-            let phase5Types = [
-                "budget",
-                "budget_item",
-                "expense",
-                "settlement",
-                "payment",
-                "payment_pot",
-                "tricount",
-                "tricount_handoff"
-            ]
-            return phase5Types.contains(pending.entityType) &&
-                (pending.entityId == eventId || pending.entityId.hasPrefix("\(eventId):") || pending.entityId.contains(eventId))
+            isPhase5PendingSync(entityType: pending.entityType, entityId: pending.entityId, eventId: eventId)
         }
+    }
+
+    /// Entrée en attente de synchro liée au budget, aux paiements ou à Tricount de l'événement
+    /// (filtre partagé avec les sheets du hub).
+    nonisolated static func isPhase5PendingSync(entityType: String, entityId: String, eventId: String) -> Bool {
+        let phase5Types = [
+            "budget",
+            "budget_item",
+            "expense",
+            "settlement",
+            "payment",
+            "payment_pot",
+            "tricount",
+            "tricount_handoff"
+        ]
+        return phase5Types.contains(entityType) &&
+            (entityId == eventId || entityId.hasPrefix("\(eventId):") || entityId.contains(eventId))
     }
 }

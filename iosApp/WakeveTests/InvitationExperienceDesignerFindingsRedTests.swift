@@ -46,190 +46,6 @@ final class InvitationExperienceDesignerFindingsRedTests: XCTestCase {
         )
     }
 
-    func testEventDetailAdaptsScrimAndStateBadgesForHighContrastArtwork() throws {
-        let canvas = try readProjectFile("iosApp/src/Views/Events/EventDetailInvitationCanvas.swift")
-        let readableScrim = sourceSlice(
-            canvas,
-            from: "private var readableScrim",
-            to: "private var titleAndState"
-        )
-        let titleAndState = sourceSlice(
-            canvas,
-            from: "private var titleAndState",
-            to: "private var syncAndFreshnessDecoration"
-        )
-        let nextAction = sourceSlice(
-            canvas,
-            from: "private struct EventDetailInvitationNextActionSurface",
-            to: "private struct EventDetailInvitationPrimaryActionButton"
-        )
-
-        XCTAssertTrue(readableScrim.contains("colorSchemeContrast"))
-        XCTAssertTrue(
-            readableScrim.contains("Color.black") || readableScrim.contains("midnightElevated"),
-            "The sunset preset needs a stable contrast scrim independent of its bright focal point."
-        )
-        XCTAssertTrue(
-            titleAndState.contains("Capsule") && titleAndState.contains(".background("),
-            "Date/lifecycle state must sit on a contrast-stable badge rather than directly on bright artwork."
-        )
-        XCTAssertTrue(
-            titleAndState.contains("eventDetailInvitationTitlePlate"),
-            "The event title needs its own stable contrast plate over a bright sunset focal point."
-        )
-        XCTAssertTrue(
-            titleAndState.contains("WakeveTheme.ColorToken.midnightElevated") ||
-                titleAndState.contains("Color.black"),
-            "The title plate must own a dark surface instead of relying on white foreground alone."
-        )
-        XCTAssertFalse(
-            nextAction.contains("EventDetailInvitationGlassSurface"),
-            "The standard sunset path needs one stable opaque next-action surface; glass cannot remain its default contrast owner."
-        )
-        XCTAssertTrue(
-            nextAction.contains("WakeveTheme.ColorToken.midnightElevated"),
-            "The next action must own an opaque midnight surface in the standard path, not only in accessibility fallbacks."
-        )
-        XCTAssertGreaterThanOrEqual(
-            occurrences(of: ".foregroundStyle(.white", in: nextAction),
-            3,
-            "Caption, action title, and responsibility copy must all stay readable over the opaque surface."
-        )
-        XCTAssertTrue(canvas.contains("colorSchemeContrast == .increased"))
-    }
-
-    func testReduceTransparencySelectsAnOpaqueCanvasScrimThatDiffersFromGlass() throws {
-        let canvas = try readProjectFile("iosApp/src/Views/Events/EventDetailInvitationCanvas.swift")
-        let qaSupport = try readProjectFile("iosApp/src/Services/InvitationExperienceQALaunchSupport.swift")
-        let root = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
-        let detailRoute = sourceSlice(
-            root,
-            from: "case .eventDetail:",
-            to: "case .eventAudience:"
-        )
-        let readableScrim = sourceSlice(
-            canvas,
-            from: "private var readableScrim",
-            to: "private var titleAndState"
-        )
-        let productionHero = sourceSlice(
-            canvas,
-            from: "private var productionHeroBackground",
-            to: "private var readableScrim"
-        )
-        let glassSurface = sourceSlice(
-            canvas,
-            from: "private struct EventDetailInvitationGlassSurface",
-            to: "private struct EventDetailInvitationCircleButton"
-        )
-
-        XCTAssertTrue(
-            readableScrim.contains("reduceTransparency"),
-            "Reduce Transparency must select a visibly different canvas scrim, not reuse the normal translucent artwork treatment."
-        )
-        let reducedArtworkScrimOpacity = numericLiteral(
-            after: "reduceTransparency ? ",
-            in: readableScrim
-        )
-        XCTAssertNotNil(reducedArtworkScrimOpacity)
-        XCTAssertGreaterThan(reducedArtworkScrimOpacity ?? 0, 0)
-        XCTAssertLessThan(
-            reducedArtworkScrimOpacity ?? 1,
-            1,
-            "Reduce Transparency keeps the artwork visible under a partial global scrim; opacity belongs on local text/action surfaces."
-        )
-        XCTAssertTrue(
-            productionHero.contains("InvitationArtworkView("),
-            "The explicit accessibility branch must preserve the repository-backed artwork renderer."
-        )
-        XCTAssertTrue(glassSurface.contains("reduceTransparency || colorSchemeContrast == .increased"))
-        XCTAssertTrue(glassSurface.contains("midnightElevated"))
-        let opaqueBranch = sourceSlice(
-            glassSurface,
-            from: "else if reduceTransparency",
-            to: "else {"
-        )
-        XCTAssertFalse(opaqueBranch.contains("Material"))
-        XCTAssertFalse(opaqueBranch.contains("glassEffect"))
-
-        XCTAssertTrue(
-            qaSupport.contains(
-                "static let reduceTransparencyArgument = \"--wakeve-qa-reduce-transparency\""
-            ),
-            "Repository-backed QA needs an explicit DEBUG-only override when Simulator accessibility preferences do not reach SwiftUI."
-        )
-        XCTAssertTrue(
-            isDebugGuarded(
-                "InvitationExperienceQALaunchSupport.reduceTransparencyArgument",
-                in: root
-            ),
-            "The QA override argument must be consumed only inside a DEBUG compilation branch."
-        )
-        XCTAssertTrue(
-            detailRoute.contains("\\.wakeveAccessibilityReduceTransparencyOverride") &&
-                detailRoute.contains("invitationQAReduceTransparencyOverride"),
-            "The repository-backed Detail route must receive the QA value through a writable custom environment key, because SwiftUI's system accessibility key is read-only."
-        )
-        XCTAssertTrue(
-            isDebugGuarded("\\.wakeveAccessibilityReduceTransparencyOverride", in: detailRoute),
-            "The custom environment injection must not be present in the Release Detail route."
-        )
-        XCTAssertGreaterThanOrEqual(
-            occurrences(
-                of: "@Environment(\\.accessibilityReduceTransparency)",
-                in: canvas
-            ),
-            3,
-            "Canvas surfaces must keep reading the real iOS accessibility signal."
-        )
-        XCTAssertGreaterThanOrEqual(
-            occurrences(
-                of: "@Environment(\\.wakeveAccessibilityReduceTransparencyOverride)",
-                in: canvas
-            ),
-            3,
-            "The explicit DEBUG capture override must reach the Canvas and its contrast-owning components."
-        )
-        XCTAssertGreaterThanOrEqual(
-            occurrences(
-                of: "systemReduceTransparency || reduceTransparencyOverride",
-                in: canvas
-            ),
-            3,
-            "The QA override must be OR-ed with, and never replace, the system Reduce Transparency signal."
-        )
-    }
-
-    func testLibraryFiltersWrapWithoutHorizontalClippingAndKeepTheActiveChoiceVisible() throws {
-        let library = try readProjectFile("iosApp/src/Views/Invitations/EventLibraryView.swift")
-        let filterBar = sourceSlice(
-            library,
-            from: "private var filterBar",
-            to: "private var cardBackground"
-        )
-
-        XCTAssertTrue(
-            filterBar.contains(".contentMargins(.horizontal") ||
-                filterBar.contains(".safeAreaPadding(.horizontal") ||
-                filterBar.contains(".padding(.horizontal, WakeveTheme.Spacing.page"),
-            "The first Library filter must retain its native leading inset instead of being clipped at the horizontal scroll edge."
-        )
-        XCTAssertFalse(filterBar.contains(".padding(.leading, -"))
-        XCTAssertFalse(filterBar.contains(".offset(x: -"))
-        XCTAssertFalse(
-            filterBar.contains("ScrollView(.horizontal"),
-            "A horizontally clipped rail cannot guarantee that the active Library projection remains visible."
-        )
-        XCTAssertFalse(filterBar.contains("ScrollViewReader"))
-        XCTAssertFalse(filterBar.contains("scrollTo("))
-        XCTAssertTrue(
-            filterBar.contains("LazyVGrid") ||
-                filterBar.contains("Grid(") ||
-                filterBar.contains("Layout"),
-            "Library filters need a native wrapping/grid layout that exposes every choice without auto-scroll conflicts."
-        )
-    }
-
     func testInformationProgressivelyDisclosesSecondaryNotificationAxes() throws {
         let information = try readProjectFile("iosApp/src/Views/Invitations/EventInformationView.swift")
         let notificationSection = sourceSlice(
@@ -255,34 +71,6 @@ final class InvitationExperienceDesignerFindingsRedTests: XCTestCase {
             XCTAssertTrue(disclosedAxes.contains(identifier))
         }
         XCTAssertTrue(notificationSection.contains("eventInformationPreferenceWrite"))
-    }
-
-    func testEventDetailMakesOnlyArtworkAndScrimFullBleedAboveSafeChrome() throws {
-        let canvas = try readProjectFile("iosApp/src/Views/Events/EventDetailInvitationCanvas.swift")
-        let body = sourceSlice(
-            canvas,
-            from: "var body: some View",
-            to: "private var heroBackground"
-        )
-        let paintLayer = sourceSlice(
-            body,
-            from: "ZStack(alignment: .top)",
-            to: "VStack(alignment: .leading"
-        )
-        let interactiveLayer = sourceSlice(
-            body,
-            from: "VStack(alignment: .leading",
-            to: ".background(EventMoodPalette"
-        )
-
-        XCTAssertTrue(paintLayer.contains("heroBackground"))
-        XCTAssertTrue(paintLayer.contains("readableScrim"))
-        XCTAssertTrue(
-            paintLayer.contains(".ignoresSafeArea(edges: .top)"),
-            "Artwork and its scrim should paint under the status bar without moving content or controls there."
-        )
-        XCTAssertFalse(interactiveLayer.contains(".ignoresSafeArea"))
-        XCTAssertTrue(interactiveLayer.contains("safeAreaTop + WakeveTheme.Spacing.sm"))
     }
 
     func testAudiencePlacesRecipientInputBeforeDiagnosticAxesAndPrimaryAction() throws {
@@ -360,90 +148,6 @@ final class InvitationExperienceDesignerFindingsRedTests: XCTestCase {
         }
     }
 
-    func testEventDetailKeepsInteractiveChromeInsideTheTopSafeArea() throws {
-        let root = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
-        let detail = sourceSlice(
-            root,
-            from: "struct EventDetailView: View",
-            to: "private static let progressiveDetailsAnchor"
-        )
-        let background = sourceSlice(
-            detail,
-            from: "WakeveTheme.ColorToken.pageBackground",
-            to: "ScrollViewReader"
-        )
-
-        XCTAssertTrue(
-            background.contains(".ignoresSafeArea()"),
-            "The decorative page background may continue behind the status bar."
-        )
-        let scrollContainer = sourceSlice(
-            detail,
-            from: "ScrollViewReader { scrollProxy in",
-            to: ".toolbar(.hidden, for: .tabBar)"
-        )
-        XCTAssertTrue(
-            scrollContainer.contains(".ignoresSafeArea(edges: .top)"),
-            "The real EventDetail ScrollView/container must paint its first canvas under the status bar; ignoring top only inside the nested canvas leaves a visible page-background band."
-        )
-        XCTAssertTrue(
-            detail.contains("safeAreaTop: viewport.safeAreaInsets.top"),
-            "The canvas chrome must receive the real top safe-area inset."
-        )
-    }
-
-    func testEventDetailInjectsTotalRepositoryArtworkIntoTheSharedCanvasRenderer() throws {
-        let root = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
-        let canvas = try readProjectFile("iosApp/src/Views/Events/EventDetailInvitationCanvas.swift")
-        let detailRoute = sourceSlice(
-            root,
-            from: "case .eventDetail:",
-            to: "case .eventAudience:"
-        )
-        let detailView = sourceSlice(
-            root,
-            from: "struct EventDetailView: View",
-            to: "private static let progressiveDetailsAnchor"
-        )
-        let canvasDefinition = sourceSlice(
-            canvas,
-            from: "struct EventDetailInvitationCanvas: View",
-            to: "struct EventDetailInvitationCanvasPersistentAction"
-        )
-        let productionHero = sourceSlice(
-            canvasDefinition,
-            from: "private var productionHeroBackground",
-            to: "private var readableScrim"
-        )
-
-        XCTAssertTrue(
-            detailRoute.contains("artwork:"),
-            "The root route must inject the repository artwork selected for this event."
-        )
-        XCTAssertFalse(detailRoute.contains("ArtworkNone.shared"))
-        XCTAssertFalse(detailRoute.contains("invitationQAArtwork"))
-        XCTAssertTrue(
-            detailView.contains("let artwork: any Artwork"),
-            "Event Detail must receive a total, non-optional repository artwork contract."
-        )
-        XCTAssertTrue(detailView.contains("artwork: artwork"))
-        XCTAssertTrue(canvasDefinition.contains("let artwork: any Artwork"))
-        XCTAssertTrue(
-            productionHero.contains("InvitationArtworkView("),
-            "Detail must reuse the same PRESET/SERVER_ASSET/LEGACY_REMOTE/NONE renderer as Library, Studio and Archive."
-        )
-        XCTAssertTrue(productionHero.contains("artwork: artwork"))
-        XCTAssertTrue(productionHero.contains("event: event"))
-        XCTAssertFalse(
-            canvasDefinition.contains("previewHeroImageName"),
-            "The production canvas cannot substitute a DEBUG fixture image for repository artwork."
-        )
-        XCTAssertFalse(
-            productionHero.contains("event.heroImageUrl"),
-            "Legacy event copy must not take precedence over the total artwork aggregate."
-        )
-    }
-
     func testArchiveLocalizesEverySettledSummaryValueInsteadOfShowingISORepositoryCopy() throws {
         let archive = try readProjectFile("iosApp/src/Views/Invitations/EventArchiveView.swift")
         let information = try readProjectFile("iosApp/src/Views/Invitations/EventInformationView.swift")
@@ -468,27 +172,13 @@ final class InvitationExperienceDesignerFindingsRedTests: XCTestCase {
         XCTAssertFalse(rows.contains("Text(snapshot.settledSummary"))
     }
 
-    func testLibraryAndArchiveUseCompactNativeActionChrome() throws {
-        let library = try readProjectFile("iosApp/src/Views/Invitations/EventLibraryView.swift")
+    func testArchiveUsesCompactNativeActionChrome() throws {
         let archive = try readProjectFile("iosApp/src/Views/Invitations/EventArchiveView.swift")
-        let libraryBody = sourceSlice(
-            library,
-            from: "var body: some View",
-            to: "private var filterBar"
-        )
         let archiveBody = sourceSlice(
             archive,
             from: "var body: some View",
             to: "private func archiveStateRows"
         )
-
-        XCTAssertFalse(
-            libraryBody.contains(".safeAreaInset(edge: .bottom)"),
-            "Library Create must use compact native toolbar chrome rather than a second full-width bottom bar above the app tab bar."
-        )
-        XCTAssertTrue(libraryBody.contains(".toolbar"))
-        XCTAssertTrue(libraryBody.contains("eventLibraryPrimaryAction"))
-        XCTAssertEqual(occurrences(of: "eventLibraryPrimaryAction", in: libraryBody), 1)
 
         XCTAssertFalse(
             archiveBody.contains(".safeAreaInset(edge: .bottom)"),
@@ -731,34 +421,6 @@ final class InvitationExperienceDesignerFindingsRedTests: XCTestCase {
         XCTAssertTrue(artworkButton.contains(".accessibilityAddTraits"))
     }
 
-    func testDetailSyncStateOwnsAnOpaqueContrastPlateInsteadOfUsingColorAlone() throws {
-        let canvas = try readProjectFile("iosApp/src/Views/Events/EventDetailInvitationCanvas.swift")
-        let decoration = sourceSlice(
-            canvas,
-            from: "private var syncAndFreshnessDecoration",
-            to: "private var organizerRow"
-        )
-
-        XCTAssertTrue(decoration.contains("event.detail.canvas.sync_pending"))
-        XCTAssertTrue(decoration.contains("event.detail.canvas.sync_confirmed"))
-        XCTAssertTrue(
-            decoration.contains("WakeveTheme.ColorToken.midnightElevated") ||
-                decoration.contains("Color.black"),
-            "Pending and synced states need a dark opaque owner over bright artwork."
-        )
-        XCTAssertTrue(
-            decoration.contains("Capsule"),
-            "The entire icon-and-copy sync state must sit on one contrast-stable plate."
-        )
-        XCTAssertTrue(
-            decoration.contains(".foregroundStyle(.white"),
-            "Sync icon and copy need a contrast-stable foreground independent of amber/green hue."
-        )
-        XCTAssertFalse(decoration.contains(".foregroundStyle(WakeveTheme.ColorToken.warmAmber)"))
-        XCTAssertFalse(decoration.contains(".foregroundStyle(WakeveTheme.ColorToken.confirmationBase)"))
-        XCTAssertTrue(decoration.contains(".accessibilityElement(children: .combine)"))
-    }
-
     func testPresetArtworkUsesThreeRealBitmapAssetsInsteadOfGeneratedGradientSymbols() throws {
         let assets: [(imageset: String, assetName: String)] = [
             ("InvitationPresetLake.imageset", "InvitationPresetLake"),
@@ -788,9 +450,9 @@ final class InvitationExperienceDesignerFindingsRedTests: XCTestCase {
             }
         }
 
-        let library = try readProjectFile("iosApp/src/Views/Invitations/EventLibraryView.swift")
+        let artworkRenderer = try readProjectFile("iosApp/src/Views/Invitations/InvitationArtworkView.swift")
         let presetRenderer = sourceSlice(
-            library,
+            artworkRenderer,
             from: "private func presetArtwork(",
             to: "private func focalAlignment"
         )
@@ -813,12 +475,12 @@ final class InvitationExperienceDesignerFindingsRedTests: XCTestCase {
         XCTAssertFalse(presetRenderer.contains("presetAppearance"))
     }
 
-    func testPresetArtworkUsesOneDeterministicRendererAcrossLibraryStudioAndArchive() throws {
-        let library = try readProjectFile("iosApp/src/Views/Invitations/EventLibraryView.swift")
+    func testPresetArtworkUsesOneDeterministicRendererAcrossLandingStudioAndArchive() throws {
+        let artworkRenderer = try readProjectFile("iosApp/src/Views/Invitations/InvitationArtworkView.swift")
         let root = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
         let archive = try readProjectFile("iosApp/src/Views/Invitations/EventArchiveView.swift")
         let renderer = sourceSlice(
-            library,
+            artworkRenderer,
             from: "struct InvitationArtworkView: View",
             to: "private var fallback"
         )
@@ -832,7 +494,8 @@ final class InvitationExperienceDesignerFindingsRedTests: XCTestCase {
             renderer.contains("ArtworkSourcePreset") && renderer.contains("presetId"),
             "A STRUCTURED/PRESET artwork must render its deterministic preset, not collapse to the event-type fallback."
         )
-        XCTAssertTrue(library.contains("InvitationArtworkView(\n                                        artwork: card.artwork"))
+        // Couche 9 (#47) : la bibliothèque legacy est supprimée ; l'invitation reçue consomme le même rendu.
+        XCTAssertTrue(root.contains("AnyView(InvitationArtworkView(artwork: artwork, event: event))"))
         XCTAssertTrue(archive.contains("InvitationArtworkView(\n                                    artwork: snapshot.artwork"))
         XCTAssertTrue(
             preview.contains("InvitationArtworkView("),
@@ -878,24 +541,6 @@ final class InvitationExperienceDesignerFindingsRedTests: XCTestCase {
         )
     }
 
-    func testLibraryPrimaryActionKeepsExplicitForegroundInDarkAndIncreasedContrast() throws {
-        let library = try readProjectFile("iosApp/src/Views/Invitations/EventLibraryView.swift")
-
-        XCTAssertTrue(
-            library.contains(".foregroundStyle(libraryPrimaryForeground)"),
-            "The prominent Create label needs an explicit adaptive foreground; it disappeared against the dark glass capture."
-        )
-        XCTAssertTrue(
-            library.contains(".tint(libraryPrimaryTint)"),
-            "The prominent Create control needs an explicit tint contract under dark and increased-contrast appearances."
-        )
-        XCTAssertTrue(
-            library.contains("@Environment(\\.colorScheme)"),
-            "The Library primary action cannot adapt its foreground without the active color scheme."
-        )
-        XCTAssertTrue(library.contains("colorSchemeContrast"))
-    }
-
     func testStudioRouteOwnsSingleChromeAndKeepsPrimaryActionInsideAccessibilitySafeArea() throws {
         let studio = try readProjectFile("iosApp/src/Views/Invitations/EventCreationStudioView.swift")
         let root = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
@@ -923,19 +568,9 @@ final class InvitationExperienceDesignerFindingsRedTests: XCTestCase {
         )
     }
 
-    func testLibraryKeepsTheSelectedFilterVisibleAndArchiveUsesDataRefreshCopy() throws {
-        let library = try readProjectFile("iosApp/src/Views/Invitations/EventLibraryView.swift")
-        let filterBar = sourceSlice(
-            library,
-            from: "private var filterBar",
-            to: "private var cardBackground"
-        )
+    func testArchiveUsesDataRefreshCopy() throws {
         let french = try readProjectFile("iosApp/src/Resources/fr.lproj/Localizable.strings")
 
-        XCTAssertFalse(filterBar.contains("ScrollViewReader"))
-        XCTAssertFalse(filterBar.contains("ScrollView(.horizontal"))
-        XCTAssertFalse(filterBar.contains("scrollTo("))
-        XCTAssertTrue(filterBar.contains(".isSelected"))
         XCTAssertTrue(
             french.contains("\"invitation.action.reload_projection\" = \"Actualiser les données\";"),
             "Archive refreshes its repository projection/data, not the immutable finalized event itself."

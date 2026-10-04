@@ -40,7 +40,7 @@ final class TransportPlanningContractTests: XCTestCase {
         let transportCase = slice(
             source,
             from: "case .transportPlanning:",
-            to: "case .inbox:"
+            to: "case .comments:"
         )
         let presentationFactory = slice(
             source,
@@ -156,7 +156,7 @@ final class TransportPlanningContractTests: XCTestCase {
         let transportCase = slice(
             contentView,
             from: "case .transportPlanning:",
-            to: "case .inbox:"
+            to: "case .comments:"
         )
         let destinationFactory = slice(
             contentView,
@@ -320,7 +320,7 @@ final class TransportPlanningContractTests: XCTestCase {
         let transportCase = slice(
             contentView,
             from: "case .transportPlanning:",
-            to: "case .inbox:"
+            to: "case .comments:"
         )
 
         XCTAssertTrue(
@@ -368,7 +368,7 @@ final class TransportPlanningContractTests: XCTestCase {
         let transportCase = slice(
             contentView,
             from: "case .transportPlanning:",
-            to: "case .inbox:"
+            to: "case .comments:"
         )
 
         XCTAssertTrue(

@@ -21,7 +21,7 @@ final class InvitationExperienceArchitectureReviewRedTests: XCTestCase {
             sourceSlice(root, from: "case .eventAudience:", to: "case .eventInformation:"),
             sourceSlice(root, from: "case .eventInformation:", to: "case .eventArchive:"),
             sourceSlice(root, from: "case .eventArchive:", to: "case .participantManagement:"),
-            sourceSlice(root, from: "private var invitationExperienceRootContent", to: "// MARK: - Tab Content"),
+            sourceSlice(root, from: "private var invitationExperienceRootContent", to: "private func persistCreationContext("),
             sourceSlice(root, from: "private func routeInvitationExperience", to: "private func invitationRouteContext")
         ]
         XCTAssertEqual(gatedSurfaceSlices.count, 6)
@@ -372,7 +372,8 @@ final class InvitationExperienceArchitectureReviewRedTests: XCTestCase {
         )
     }
 
-    func testCreateDeepLinkSelectsExactlyOneStudioOrLegacyOwnerFromTheRolloutGate() throws {
+    /// Couche 9 (#47) : le lien profond de création suit l'aiguillage de ＋ (studio sous le rollout, flux 4 questions sinon).
+    func testCreateDeepLinkSelectsExactlyOneStudioOrFlowOwnerFromTheRolloutGate() throws {
         let root = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
         let createBranch = sourceSlice(
             root,
@@ -382,21 +383,24 @@ final class InvitationExperienceArchitectureReviewRedTests: XCTestCase {
 
         XCTAssertFalse(createBranch.isEmpty)
         XCTAssertTrue(
-            createBranch.contains("invitationExperienceRolloutEnabled"),
-            "Create deep links must consult the same rollout decision as the visible Library action."
+            createBranch.contains("beginRedesignEventCreation()"),
+            "Create deep links must consult the same rollout decision as the visible ＋ action."
         )
-        XCTAssertTrue(createBranch.contains("currentView = .eventCreation"))
-        XCTAssertTrue(createBranch.contains("showEventCreationSheet = true"))
-        XCTAssertTrue(
-            createBranch.contains("else"),
-            "The Studio route and legacy sheet must be mutually exclusive branches, never opened together."
+        XCTAssertFalse(createBranch.contains("showEventCreationSheet = true"))
+
+        let begin = sourceSlice(
+            root,
+            from: "private func beginRedesignEventCreation()",
+            to: "private func openCreateEventFlow("
         )
-        let studioOffset = createBranch.range(of: "currentView = .eventCreation")?.lowerBound
-        let legacyOffset = createBranch.range(of: "showEventCreationSheet = true")?.lowerBound
-        XCTAssertNotEqual(
-            studioOffset,
-            legacyOffset,
-            "Rollout ON opens only Studio; rollout OFF opens only the legacy sheet."
+        XCTAssertTrue(begin.contains("CreateFlowEntry.newEventRoute(invitationRollout: invitationExperienceRolloutEnabled)"))
+        XCTAssertTrue(begin.contains("case .studio:"))
+        XCTAssertTrue(begin.contains("currentView = .eventCreation"))
+        XCTAssertTrue(begin.contains("case .createFlow:"))
+        XCTAssertTrue(begin.contains("openCreateEventFlow(draftEventId: nil)"))
+        XCTAssertFalse(
+            begin.contains("showEventCreationSheet = true"),
+            "Rollout ON opens only Studio; rollout OFF opens only the create flow."
         )
     }
 

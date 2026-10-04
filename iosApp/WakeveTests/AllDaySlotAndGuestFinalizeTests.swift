@@ -54,9 +54,6 @@ final class AllDaySlotAndGuestFinalizeTests: XCTestCase {
         let voting = readProjectFileIfPresent("iosApp/src/Views/Polls/PollVotingView.swift")
         let results = readProjectFileIfPresent("iosApp/src/Views/Polls/PollResultsView.swift")
         let announcement = slice(results, from: "struct PollDecisionAnnouncementCard", to: "// MARK: - Resolution Next Steps Card")
-        let contentView = readProjectFileIfPresent("iosApp/src/Views/App/ContentView.swift")
-        let formatSlot = slice(contentView, from: "private func formatSlot(_ slot: TimeSlot)", to: "private func formatEventDate")
-
         for (name, source) in [("PollVotingView", voting), ("PollResultsView", results)] {
             XCTAssertFalse(
                 source.contains("\\(formatTime(") ,
@@ -65,7 +62,6 @@ final class AllDaySlotAndGuestFinalizeTests: XCTestCase {
             XCTAssertTrue(source.contains("TimeSlotDisplayFormatter.hoursText("), "\(name) must use the shared slot hours formatter")
         }
         XCTAssertTrue(announcement.contains("TimeSlotDisplayFormatter.isAllDay(slot.timeOfDay)"), "The shareable message must not invent hours for an all-day slot")
-        XCTAssertTrue(formatSlot.contains("TimeSlotDisplayFormatter.isAllDay(slot.timeOfDay)"), "The event detail slot label must honour ALL_DAY")
     }
 
     // MARK: - IOS-4: creation wizard
@@ -127,35 +123,38 @@ final class AllDaySlotAndGuestFinalizeTests: XCTestCase {
         XCTAssertEqual(calendar.component(.minute, from: defaultTime), 0)
     }
 
-    func testWizardUsesTheSlotBuilderAndATappableAllDayToggle() {
-        let sheet = readProjectFileIfPresent("iosApp/src/Views/Events/CreateEventSheet.swift")
-        let draft = slice(sheet, from: "private struct EventSlotDraft", to: "// MARK: - Date Time Picker Popup")
-        let newSlot = slice(sheet, from: "private func prepareNewSlotDraft()", to: "private func editProposedSlot")
-        let popup = slice(sheet, from: "struct DateTimePickerPopup", to: "private struct EventPreviewSheet")
+    /// Réancré sur le flux de création (couche 9) : l'ancienne feuille est supprimée ; le flux 4 questions
+    /// enregistre ses créneaux via `EventSlotInputBuilder` et un nouveau créneau ne démarre pas « maintenant ».
+    func testCreateFlowUsesTheSlotBuilderAndAnEveningDefaultStart() {
+        let model = readProjectFileIfPresent("iosApp/src/Models/Create/CreateEventFlowModel.swift")
+        let steps = readProjectFileIfPresent("iosApp/src/Views/Create/CreateEventFlowSteps.swift")
 
-        XCTAssertTrue(draft.contains("EventSlotInputBuilder.input("))
-        XCTAssertTrue(newSlot.contains("EventSlotInputBuilder.defaultStartTime("))
-        XCTAssertFalse(newSlot.contains("startTime = now"), "A new slot must not default to the current time")
-        XCTAssertFalse(popup.contains(".frame(width: 48, height: 28)"), "The all-day switch must keep its full tap target")
+        XCTAssertTrue(model.contains("EventSlotInputBuilder.input("))
+        XCTAssertTrue(steps.contains("EventSlotInputBuilder.defaultStartTime("))
+        XCTAssertFalse(steps.contains("_start = State(initialValue: Date())"), "A new slot must not default to the current time")
     }
 
     // MARK: - Local guest cannot finalize: propose signing in
 
     func testGuestOrganizerIsInvitedToSignInBeforeFinalizing() {
+        // Réancré sur le hub (couche 9) : le détail legacy et sa carte de cycle de vie sont supprimés.
         let contentView = readProjectFileIfPresent("iosApp/src/Views/App/ContentView.swift")
-        let lifecycleCard = slice(contentView, from: "private var lifecycleCard: some View", to: "private var lifecycleBodyText")
+        let model = readProjectFileIfPresent("iosApp/src/Models/Hub/EventHubModel.swift")
+        let hub = readProjectFileIfPresent("iosApp/src/Views/Hub/EventHubView.swift")
+        let handlePrimary = slice(hub, from: "private func handlePrimary(", to: "\n    }\n")
 
-        XCTAssertTrue(contentView.contains("isLocalGuestSession: authStateManager.isCurrentSessionGuest"))
-        XCTAssertTrue(lifecycleCard.contains("showsGuestSignInPrompt"))
-        XCTAssertTrue(contentView.contains("event.lifecycle.guest.body"))
+        XCTAssertTrue(contentView.contains("isLocalGuest: authStateManager.isCurrentSessionGuest"))
         XCTAssertTrue(contentView.contains("onRequestSignIn"))
-        XCTAssertTrue(contentView.contains("eventLifecycleGuestSignInAction"))
+        XCTAssertTrue(model.contains("facts.isLocalGuest ? .signInToFinalize : .finalize"))
+        XCTAssertTrue(handlePrimary.contains("primary == .signInToFinalize"))
+        XCTAssertTrue(handlePrimary.contains("showsGuestSignIn = true"))
+        XCTAssertTrue(hub.contains("event.lifecycle.guest.action"))
+        XCTAssertTrue(hub.contains("action: onRequestSignIn"))
     }
 
     func testGuestLifecycleCopyIsLocalizedInEveryLanguage() {
         let keys = [
             "event.lifecycle.guest.title",
-            "event.lifecycle.guest.body",
             "event.lifecycle.guest.action",
             "event.lifecycle.guest.confirm_message"
         ]
