@@ -2849,6 +2849,15 @@ struct EventListView: View {
     }
 }
 
+/// Kotlin's `Event.description` is bridged as `description_`; `event.description` is NSObject's
+/// `description`, i.e. the data class `toString()` dump.
+enum EventDescriptionText {
+    static func displayText(for event: Event) -> String? {
+        let trimmed = event.description_.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
 struct EventCard: View {
     let event: Event
     let onTap: () -> Void
@@ -2862,8 +2871,8 @@ struct EventCard: View {
                             .font(WakeveTheme.Typography.bodySemibold)
                             .foregroundColor(.primary)
                         
-                        if !event.description.isEmpty {
-                            Text(event.description)
+                        if let descriptionText = EventDescriptionText.displayText(for: event) {
+                            Text(descriptionText)
                                 .font(WakeveTheme.Typography.callout)
                                 .foregroundColor(.secondary)
                                 .lineLimit(2)
@@ -4335,21 +4344,7 @@ struct EventDetailView: View {
     }
 
     private var displayDescription: String? {
-        let raw = event.description.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !raw.isEmpty else { return nil }
-        if raw.hasPrefix("Event(") {
-            return extractEventDescription(from: raw)
-        }
-        return raw
-    }
-
-    private func extractEventDescription(from raw: String) -> String? {
-        guard let startRange = raw.range(of: "description=") else { return nil }
-        let afterDescription = raw[startRange.upperBound...]
-        let endRange = afterDescription.range(of: ", organizerId=")
-        let value = String(afterDescription[..<(endRange?.lowerBound ?? afterDescription.endIndex)])
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return value.isEmpty || value == "null" ? nil : value
+        EventDescriptionText.displayText(for: event)
     }
 
     private func primaryAction() {
