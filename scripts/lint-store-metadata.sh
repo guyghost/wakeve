@@ -2446,7 +2446,17 @@ validate_app_store_release_artifact_evidence() {
 
     local release_app="$PROJECT_DIR/build/xcode-deriveddata-release/Build/Products/Release-iphoneos/Wakeve.app"
     local release_dsym="$PROJECT_DIR/build/xcode-deriveddata-release/Build/Products/Release-iphoneos/Wakeve.app.dSYM"
-    if [ -d "$release_app" ] && [ -d "$release_dsym" ]; then
+    if [ "${APP_STORE_UNSIGNED_RELEASE_EVIDENCE_FILE+x}" = "x" ]; then
+        # CI artifacts vary per build; validate explicit captured facts against
+        # the actual unsigned binaries instead of the historical local scan.
+        local validation_output
+        if validation_output=$(ruby "$PROJECT_DIR/scripts/capture-unsigned-release-evidence.rb" \
+            --validate "$APP_STORE_UNSIGNED_RELEASE_EVIDENCE_FILE" 2>&1); then
+            pass "App Store release artifact evidence: Current unsigned Release artifact hashes and UUIDs verified"
+        else
+            error "App Store release artifact evidence: Invalid current unsigned Release evidence: $validation_output"
+        fi
+    elif [ -d "$release_app" ] && [ -d "$release_dsym" ]; then
         pass "App Store release artifact evidence: Local unsigned Release app and dSYM exist"
 
         local app_uuid dsym_uuid

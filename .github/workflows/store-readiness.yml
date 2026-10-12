@@ -13,6 +13,8 @@ on:
       - 'Gemfile'
       - 'Gemfile.lock'
       - 'scripts/lint-store-metadata.sh'
+      - 'scripts/capture-unsigned-release-evidence.rb'
+      - 'scripts/tests/lint-store-metadata-unsigned-release-test.sh'
       - 'scripts/tests/lint-store-metadata-observability-test.sh'
       - 'scripts/app-store-submission-audit.sh'
       - 'scripts/app-store-local-web-route-check.sh'
@@ -90,6 +92,8 @@ jobs:
   app-store-preflight:
     name: 🍎 App Store Preflight
     runs-on: macos-latest
+    env:
+      APP_STORE_UNSIGNED_RELEASE_EVIDENCE_FILE: build/ci-unsigned-release-evidence.json
     steps:
       - uses: actions/checkout@v4
 
@@ -160,9 +164,14 @@ jobs:
           bash -n scripts/app-store-local-web-route-check.sh
           bash -n scripts/app-store-license-inventory.sh
           bash -n scripts/app-store-third-party-notices.sh
+          ruby -c scripts/capture-unsigned-release-evidence.rb
+          bash -n scripts/tests/lint-store-metadata-unsigned-release-test.sh
 
       - name: Run local App Store preflight
         run: bundle exec fastlane ios preflight
+
+      - name: Validate captured unsigned Release evidence
+        run: bash scripts/tests/lint-store-metadata-unsigned-release-test.sh
 
       - name: Verify strict local gate behavior
         run: |
@@ -465,6 +474,14 @@ jobs:
             exit 1
           fi
           echo "✅ Final audit rejects forced final signoffs without DSA/pricing/SDK/release-control/media/licenses/eula/product/account/review/export/app-information/versioning/release-artifact/content-rights/observability/live-url-aasa evidence"
+
+      - name: Upload actual unsigned Release evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-unsigned-release-evidence
+          path: build/ci-unsigned-release-evidence.json
+          if-no-files-found: ignore
 
   # ──────────────────────────────────────────────
   # Gate 2: Test Gate

@@ -198,6 +198,9 @@ platform :ios do
       "CODE_SIGNING_ALLOWED=NO build"
     )
     ensure_latest_release_build_log_has_no_diagnostics
+    if ENV["APP_STORE_UNSIGNED_RELEASE_EVIDENCE_FILE"] && !ENV["APP_STORE_UNSIGNED_RELEASE_EVIDENCE_FILE"].empty?
+      sh("cd #{Shellwords.escape(REPO_ROOT)} && ruby scripts/capture-unsigned-release-evidence.rb")
+    end
 
     lint_args = ["--ios-only"]
     lint_args << "--strict" if truthy_option(options[:strict])
