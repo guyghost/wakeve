@@ -5487,8 +5487,11 @@ validate_app_store_observability_evidence() {
         warning "App Store observability evidence: Local unsigned Release app or dSYM not present"
     fi
 
-    local local_release_artifact_count
-    local_release_artifact_count=$(find "$PROJECT_DIR/build" -maxdepth 4 \( -name "*.ipa" -o -name "*.xcarchive" \) -print 2>/dev/null | wc -l | tr -d ' ')
+    local local_release_artifact_count=0
+    # A clean checkout has no optional local build artifacts to inspect.
+    if [ -d "$PROJECT_DIR/build" ]; then
+        local_release_artifact_count=$(find "$PROJECT_DIR/build" -maxdepth 4 \( -name "*.ipa" -o -name "*.xcarchive" \) -print 2>/dev/null | wc -l | tr -d ' ')
+    fi
     if [ "$local_release_artifact_count" = "0" ]; then
         pass "App Store observability evidence: No signed IPA/archive found in local build scan"
     else
