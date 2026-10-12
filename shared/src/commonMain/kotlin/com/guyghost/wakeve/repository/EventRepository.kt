@@ -401,6 +401,9 @@ class EventRepository(
             return if (event.finalDate == finalDate) Result.success(true)
             else Result.failure(IllegalStateException("ALREADY_CONFIRMED_DIFFERENT_SLOT"))
         }
+        if (event.status != EventStatus.POLLING) {
+            return Result.failure(IllegalStateException("INVALID_EVENT_STATUS"))
+        }
 
         events[eventId] = event.copy(
             status = EventStatus.CONFIRMED,

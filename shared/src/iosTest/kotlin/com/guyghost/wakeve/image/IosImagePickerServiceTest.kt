@@ -213,15 +213,14 @@ class IosImagePickerServiceTest {
     }
 
     /**
-     * Tests that the service interface methods are callable (signatures only).
+     * Tests the fallback contract before a native image picker is configured.
      */
     @Test
-    fun `ImagePickerService has correct method signatures`() = runTest {
+    fun `Unconfigured image picker is unavailable`() = runTest {
         val service = IosImagePickerService()
 
-        // These are signature tests - actual behavior requires iOS environment
-        assertNotNull(service)
-        assertTrue(service.isPhotoPickerAvailable())
+        assertFalse(service.isPhotoPickerAvailable())
+        assertTrue(service.pickImage().isFailure)
     }
 
     // MARK: - MediaType Tests
