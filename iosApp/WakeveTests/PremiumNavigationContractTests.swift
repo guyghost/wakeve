@@ -2,35 +2,28 @@ import XCTest
 @testable import Wakeve
 
 final class PremiumNavigationContractTests: XCTestCase {
-    func testWakeveTabsAreDestinationOnly() throws {
-        let source = try readProjectFile("iosApp/src/Models/WakeveTab.swift")
-
-        XCTAssertEqual(WakeveTab.allCases, [.home, .groups, .messages, .profile])
-        XCTAssertEqual(WakeveTab.allCases.map(\.systemImage), ["calendar", "sparkles", "message", "person.crop.circle"])
-        XCTAssertTrue(source.contains("String(localized: \"tab.explore\")"))
-        XCTAssertFalse(source.contains("return \"Groupes\""), "The templates tab must not be mislabeled as Groups.")
-    }
-
-    func testWakeveTabsDoNotExposeCreateEventAsDestination() {
-        let rawValues = WakeveTab.allCases.map(\.rawValue)
-
+    /// Couche 9 (#47) : les zones du shell remplacent les onglets legacy ; elles restent des destinations
+    /// (la création passe par ＋, jamais par une zone).
+    func testShellZonesAreDestinationOnly() {
+        XCTAssertEqual(AppZone.allCases, [.events, .activity])
+        let rawValues = AppZone.allCases.map(\.rawValue)
         XCTAssertFalse(rawValues.contains("create"))
         XCTAssertFalse(rawValues.contains("eventCreation"))
         XCTAssertFalse(rawValues.contains("inbox"))
         XCTAssertFalse(rawValues.contains("explore"))
     }
 
-    func testContentViewUsesProfileAsTabDestination() throws {
+    /// Couche 9 (#47) : le profil est une feuille du routeur du shell, plus un onglet.
+    func testContentViewPresentsProfileFromTheShellRouter() throws {
         let source = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
-        let tabView = slice(source, from: "TabView(selection: $selectedTab)", to: ".tint(.wakevePrimary)")
-        let tabContent = slice(source, from: "private func tabContent(for tab: WakeveTab)", to: "private func isParticipantConfirmed")
+        let chrome = slice(source, from: "private var redesignChrome: some View", to: "private var redesignBackDestination")
 
-        XCTAssertTrue(tabView.contains("tabContent(for: .profile)"))
-        XCTAssertTrue(tabView.contains("WakeveTab.profile.title"))
-        XCTAssertTrue(tabContent.contains("case .profile:"))
-        XCTAssertTrue(tabContent.contains("ProfileTabView("))
-        XCTAssertFalse(tabView.contains("tabContent(for: .inbox)"))
-        XCTAssertFalse(tabView.contains("tabContent(for: .explore)"))
+        XCTAssertTrue(chrome.contains(".sheet(item: $redesignRouter.presentation)"))
+        XCTAssertTrue(chrome.contains("case .profile:"))
+        XCTAssertTrue(chrome.contains("ProfileTabView("))
+        XCTAssertFalse(source.contains("TabView(selection:"), "Plus de shell à onglets legacy.")
+        XCTAssertFalse(source.contains("ExploreTabView("))
+        XCTAssertFalse(source.contains("InboxView("))
     }
 
     func testAuthenticatedViewObservesTypedDeepLinkRoute() throws {
@@ -52,15 +45,15 @@ final class PremiumNavigationContractTests: XCTestCase {
 
     func testNavigationFallbacksAndAccessMessagesUseLocalizationKeys() throws {
         let source = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
-        let routing = slice(source, from: "private var homeTabContent", to: "private func tabContent")
+        let routing = slice(source, from: "private var homeTabContent", to: "private var invitationExperienceRootContent")
 
         XCTAssertTrue(routing.contains("navigation.placeholder.select_event_options"))
         XCTAssertTrue(routing.contains("navigation.placeholder.select_event_transport"))
         XCTAssertTrue(routing.contains("organization.access.confirm_before_budget"))
         XCTAssertTrue(routing.contains("organization.access.confirm_before_transport"))
         XCTAssertTrue(source.contains("safe_link.verified"))
-        XCTAssertFalse(routing.contains("Sélectionnez un événement pour voir les options"))
-        XCTAssertFalse(routing.contains("Confirmez votre présence avant d'ouvrir le budget."))
+        XCTAssertFalse(routing.contains("Sélectionne un événement pour voir les options"))
+        XCTAssertFalse(routing.contains("Confirme ta présence avant d'ouvrir le budget."))
         XCTAssertFalse(source.contains("verificationStatus: \"vérifié\""))
     }
 
@@ -76,7 +69,6 @@ final class PremiumNavigationContractTests: XCTestCase {
 
     func testLegacySheetsUseNavigationStack() throws {
         let sheetPaths = [
-            "iosApp/src/Components/EventInfoSheet.swift",
             "iosApp/src/Components/InvitationShareSheet.swift",
             "iosApp/src/Components/LocationSelectionSheet.swift",
             "iosApp/src/Views/Collaboration/CommentListView.swift",

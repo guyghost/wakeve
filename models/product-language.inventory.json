@@ -486,19 +486,11 @@
       "category": "ios-ui"
     },
     {
-      "path": "iosApp/src/Views/EventDetailExperienceView.swift",
-      "category": "ios-ui"
-    },
-    {
       "path": "iosApp/src/Views/Events/CreateEventSheet.swift",
       "category": "ios-ui"
     },
     {
       "path": "iosApp/src/Views/Events/EventSecondaryRouteViews.swift",
-      "category": "ios-ui"
-    },
-    {
-      "path": "iosApp/src/Views/Events/HomeView.swift",
       "category": "ios-ui"
     },
     {

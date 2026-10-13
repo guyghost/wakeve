@@ -18,7 +18,9 @@ enum InvitationExperienceQALaunchRoute: Equatable {
 final class InvitationExperienceQALaunchSupport {
     static let seedArgument = "--wakeve-qa-seed-invitation-experience"
     static let openRouteArgument = "--wakeve-qa-open-invitation-route"
-    static let reduceTransparencyArgument = "--wakeve-qa-reduce-transparency"
+    /// Invitation reçue (couche 8) : organisée par Noé Bernard, réponse du spectateur en attente. À ouvrir avec
+    /// `--wakeve-qa-open-invitation-landing qa-invitation-received`.
+    static let receivedInvitationEventId = Seed.receivedInvitation
 
     private enum Seed {
         static let draft = "qa-invitation-draft"
@@ -27,6 +29,7 @@ final class InvitationExperienceQALaunchSupport {
         static let finalized = "qa-invitation-finalized"
         static let past = "qa-invitation-past"
         static let pendingParticipant = "qa-invitation-guest-pending"
+        static let receivedInvitation = "qa-invitation-received"
         static let directInviteBatch = "qa-invitation-direct-batch"
         static let directInviteOperation = "qa-invitation-direct-operation"
         static let notificationOperation = "qa-invitation-notification-operation"
@@ -209,6 +212,17 @@ final class InvitationExperienceQALaunchSupport {
                 end: pastEnd,
                 confirmed: true,
                 presetId: "wakeve-celebration"
+            ),
+            makeEvent(
+                id: Seed.receivedInvitation,
+                title: "Anniversaire de Noé",
+                status: .polling,
+                viewerId: viewerId,
+                start: futureStart.addingTimeInterval(10 * 24 * 60 * 60),
+                end: futureEnd.addingTimeInterval(10 * 24 * 60 * 60),
+                confirmed: false,
+                presetId: "wakeve-celebration",
+                organizerId: Seed.pendingParticipant
             )
         ]
 
@@ -233,7 +247,41 @@ final class InvitationExperienceQALaunchSupport {
             debugLog("[QALaunch] seed step failed: ensureProtectedDirectInvite")
             return false
         }
+        guard ensureReceivedInvitation(viewerId: viewerId) else {
+            debugLog("[QALaunch] seed step failed: ensureReceivedInvitation")
+            return false
+        }
         return true
+    }
+
+    /// Le spectateur est invité (réponse en attente) à l'événement organisé par Noé Bernard. Le sondage est
+    /// ouvert : `addParticipant` (brouillon seulement) ne s'applique pas, la ligne est écrite directement.
+    private func ensureReceivedInvitation(viewerId: String) -> Bool {
+        let now = iso8601(Date())
+        if let viewer = database.participantQueries
+            .selectByEventIdAndUserId(eventId: Seed.receivedInvitation, userId: viewerId)
+            .executeAsOneOrNull() {
+            database.participantQueries.updateAccessAxes(
+                rsvpState: "PENDING",
+                dateValidationState: "NOT_VALIDATED",
+                updatedAt: now,
+                id: viewer.id
+            )
+        } else {
+            database.participantQueries.insertParticipantWithAxes(
+                id: "part_\(Seed.receivedInvitation)_\(viewerId)",
+                eventId: Seed.receivedInvitation,
+                userId: viewerId,
+                role: "PARTICIPANT",
+                hasValidatedDate: 0,
+                rsvpState: "PENDING",
+                dateValidationState: "NOT_VALIDATED",
+                joinedAt: now,
+                updatedAt: now
+            )
+        }
+        let records = eventRepository.getParticipantRecords(eventId: Seed.receivedInvitation) ?? []
+        return records.contains { $0.userId == viewerId && $0.rsvp == "PENDING" }
     }
 
     private func ensureEvent(_ seed: QASeedEvent) async -> Bool {
@@ -625,8 +673,10 @@ final class InvitationExperienceQALaunchSupport {
         start: Date,
         end: Date,
         confirmed: Bool,
-        presetId: String
+        presetId: String,
+        organizerId: String? = nil
     ) -> QASeedEvent {
+        let organizerId = organizerId ?? viewerId
         let startValue = iso8601(start)
         let endValue = iso8601(end)
         let slot = TimeSlot(
@@ -642,8 +692,8 @@ final class InvitationExperienceQALaunchSupport {
                 id: id,
                 title: title,
                 description: "Un week-end au bord du lac d’Annecy pour retrouver le groupe et profiter du château.",
-                organizerId: viewerId,
-                participants: [viewerId],
+                organizerId: organizerId,
+                participants: [organizerId],
                 proposedSlots: [slot],
                 deadline: iso8601(start.addingTimeInterval(-7 * 24 * 60 * 60)),
                 status: status,

@@ -7,7 +7,6 @@ final class BackgroundCoverageContractTests: XCTestCase {
 
     func testIvoryBackgroundAppliedToSystemChromeScreens() throws {
         let screens: [(file: String, marker: String)] = [
-            ("iosApp/src/Views/Invitations/EventLibraryView.swift", "EventLibraryView"),
             ("iosApp/src/Views/Invitations/EventInformationView.swift", "EventInformationView"),
             ("iosApp/src/Views/Invitations/EventArchiveView.swift", "EventArchiveView"),
             ("iosApp/src/Views/Invitations/EventCreationStudioView.swift", "EventCreationStudioView")
@@ -20,6 +19,10 @@ final class BackgroundCoverageContractTests: XCTestCase {
                 "\(screen.marker) doit poser le fond ivoire standard (DAO #27) au lieu du fond système."
             )
         }
+
+        // Couche 9 (#47) : l'accueil de la refonte remplace la bibliothèque et pose le canevas WK.
+        let home = try readProjectFile("iosApp/src/Views/Home/EventsHomeView.swift")
+        XCTAssertTrue(home.contains(".background(WK.Colors.canvas.ignoresSafeArea())"), "L'accueil doit poser le canevas WK.")
     }
 
     // MARK: - Helpers

@@ -164,7 +164,6 @@ final class FindingsRegressionTests: XCTestCase {
 
     func testProfilePrioritizesOrganizerTrustOverGamification() throws {
         let profile = try readProjectFile("iosApp/src/Views/Profile/ProfileTabView.swift")
-        let profileViewModel = try readProjectFile("iosApp/src/ViewModels/ProfileViewModel.swift")
         let hierarchy = slice(profile, from: "VStack(spacing: WakeveTheme.Spacing.xl)", to: "PreferencesSection(userId: userId)")
         let english = try readProjectFile("iosApp/src/Resources/en.lproj/Localizable.strings")
         let french = try readProjectFile("iosApp/src/Resources/fr.lproj/Localizable.strings")
@@ -191,16 +190,6 @@ final class FindingsRegressionTests: XCTestCase {
         XCTAssertTrue(french.contains("Confiance organisateur"))
         XCTAssertTrue(french.contains("Identité prête pour les invitations"))
         XCTAssertTrue(french.contains("Les tableaux de bord vivent dans les événements"))
-        XCTAssertTrue(profileViewModel.contains("leaderboard.you"))
-        XCTAssertTrue(profileViewModel.contains("badges = []"))
-        XCTAssertTrue(profileViewModel.contains("leaderboard = []"))
-        XCTAssertTrue(profileViewModel.contains("wakeve_guest_user_id"))
-        XCTAssertFalse(profileViewModel.contains("Mock data for demonstration"))
-        XCTAssertFalse(profileViewModel.contains("Alice Martin"))
-        XCTAssertFalse(profileViewModel.contains("totalPoints: 1250"))
-        XCTAssertFalse(profileViewModel.contains("Premier Événement"))
-        XCTAssertFalse(profileViewModel.contains("Maître du Vote"))
-        XCTAssertFalse(profileViewModel.contains("username: \"Vous\""))
     }
 
     func testLeaderboardDoesNotShowFakeSocialProof() throws {
@@ -257,8 +246,7 @@ final class FindingsRegressionTests: XCTestCase {
     func testUgcModerationReportBlockControlsAreReviewerVisible() throws {
         let commentItem = try readProjectFile("iosApp/src/Views/Collaboration/CommentItemView.swift")
         let commentList = try readProjectFile("iosApp/src/Views/Collaboration/CommentListView.swift")
-        let eventDetail = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
-        let inboxDetail = try readProjectFile("iosApp/src/Views/Inbox/InboxDetailView.swift")
+        let eventDetail = try readProjectFile("iosApp/src/Views/Hub/EventHubView.swift")
         let participantManagement = try readProjectFile("iosApp/src/Views/Events/ParticipantManagementView.swift")
         let moderationSheet = try readProjectFile("iosApp/src/Views/Moderation/ModerationActionSheet.swift")
         let moderationService = try readProjectFile("iosApp/src/Services/ModerationService.swift")
@@ -269,12 +257,9 @@ final class FindingsRegressionTests: XCTestCase {
         XCTAssertTrue(commentItem.contains("reportUserAction"), "Comment menu must expose report user.")
         XCTAssertTrue(commentItem.contains("blockUserAction"), "Comment menu must expose block user.")
         XCTAssertTrue(commentList.contains(".sheet(item: $moderationTarget)"), "Comment list must present the moderation sheet.")
-        XCTAssertTrue(eventDetail.contains("reportEventAction"), "Event detail menu must expose report event.")
-        XCTAssertTrue(eventDetail.contains("type: .event"), "Event detail report target must use the event moderation type.")
-        XCTAssertTrue(inboxDetail.contains("reportChatMessageAction"), "Inbox detail must expose report action for chat/message content.")
-        XCTAssertTrue(inboxDetail.contains("blockChatAuthorAction"), "Inbox detail must expose block action for chat/message authors.")
-        XCTAssertTrue(inboxDetail.contains("type: .chatMessage"), "Inbox detail report target must use the chat message moderation type.")
-        XCTAssertTrue(inboxDetail.contains(".sheet(item: $moderationTarget)"), "Inbox detail must present the moderation sheet.")
+        XCTAssertTrue(eventDetail.contains("case .report:"), "Event hub menu must expose report event.")
+        XCTAssertTrue(eventDetail.contains("moderation.report_event"), "Event hub report action must use the moderation copy.")
+        XCTAssertTrue(eventDetail.contains("type: .event"), "Event hub report target must use the event moderation type.")
         XCTAssertTrue(participantManagement.contains("reportParticipantUserAction"), "Participant rows must expose report user.")
         XCTAssertTrue(participantManagement.contains("blockParticipantUserAction"), "Participant rows must expose block user.")
         XCTAssertTrue(participantManagement.contains("type: .user"), "Participant actions must use the user moderation type.")
@@ -292,12 +277,10 @@ final class FindingsRegressionTests: XCTestCase {
         XCTAssertTrue(english.contains("\"moderation.report_content\" = \"Report Content\""), "English moderation report copy must be localized.")
         XCTAssertTrue(english.contains("\"moderation.block_user\" = \"Block User\""), "English block copy must be localized.")
         XCTAssertTrue(english.contains("\"moderation.unblock_user\" = \"Unblock User\""), "English unblock copy must be localized.")
-        XCTAssertTrue(english.contains("\"moderation.report_chat_context\""), "English chat report context must be localized.")
         XCTAssertTrue(english.contains("\"moderation.hidden_content_notice\""), "English hidden-content notice must be localized.")
         XCTAssertTrue(french.contains("\"moderation.report_content\" = \"Signaler le contenu\""), "French moderation report copy must be localized.")
         XCTAssertTrue(french.contains("\"moderation.block_user\" = \"Bloquer l'utilisateur\""), "French block copy must be localized.")
         XCTAssertTrue(french.contains("\"moderation.unblock_user\""), "French unblock copy must be localized.")
-        XCTAssertTrue(french.contains("\"moderation.report_chat_context\""), "French chat report context must be localized.")
         XCTAssertTrue(french.contains("\"moderation.hidden_content_notice\""), "French hidden-content notice must be localized.")
     }
 
@@ -352,187 +335,6 @@ final class FindingsRegressionTests: XCTestCase {
         }
     }
 
-    func testEventNextActionDoesNotBlockInvitationFirstPollsOnParticipants() throws {
-        let source = try readProjectFile("iosApp/src/Views/Events/HomeView.swift")
-        let nextAction = slice(source, from: "struct EventNextAction", to: "// MARK: - Event Theme")
-
-        XCTAssertTrue(
-            nextAction.contains("let hasSlots = !event.proposedSlots.isEmpty"),
-            "Draft next action should stay gated by concrete poll options."
-        )
-        XCTAssertFalse(
-            nextAction.contains("let hasParticipants = !event.participants.isEmpty"),
-            "Draft next action must not require manual participants because share links can collect guests."
-        )
-        XCTAssertFalse(
-            nextAction.contains("events.next_action.draft.blocked.participants"),
-            "The primary action should not block an invitation-first poll when only participants are missing."
-        )
-    }
-
-    func testCreateEventTurnsSelectedDateIntoProposedSlot() async {
-        let viewModel = CreateEventViewModel()
-        var proposedSlotStarts: [String?] = []
-        let created = expectation(description: "State-machine-owned event creation completed")
-        viewModel.onEventCreated = { event in
-            proposedSlotStarts = event.proposedSlots.map(\.start)
-            created.fulfill()
-        }
-
-        viewModel.createEvent(
-            title: "Week-end Lyon",
-            description: "Pique-nique",
-            userId: "dev-user-test",
-            selectedDate: "2026-06-12T18:00:00Z"
-        )
-
-        await fulfillment(of: [created], timeout: 2)
-
-        XCTAssertEqual(proposedSlotStarts.count, 1)
-        XCTAssertEqual(proposedSlotStarts.first ?? nil, "2026-06-12T18:00:00Z")
-    }
-
-    func testCreateEventTurnsMultipleSelectedSlotsIntoProposedSlots() async {
-        let viewModel = CreateEventViewModel()
-        var proposedSlotStarts: [String?] = []
-        var proposedSlotEnds: [String?] = []
-        var proposedSlotTimesOfDay: [Shared.TimeOfDay] = []
-        let created = expectation(description: "State-machine-owned event creation completed")
-        viewModel.onEventCreated = { event in
-            proposedSlotStarts = event.proposedSlots.map(\.start)
-            proposedSlotEnds = event.proposedSlots.map(\.end)
-            proposedSlotTimesOfDay = event.proposedSlots.map(\.timeOfDay)
-            created.fulfill()
-        }
-
-        viewModel.createEvent(
-            title: "Week-end Lyon",
-            description: "Pique-nique",
-            userId: "dev-user-test",
-            selectedSlots: [
-                EventTimeSlotInput(
-                    start: "2026-06-12T18:00:00Z",
-                    end: "2026-06-12T20:00:00Z",
-                    timeOfDay: .specific
-                ),
-                EventTimeSlotInput(
-                    start: "2026-06-13T09:00:00Z",
-                    end: nil,
-                    timeOfDay: .allDay
-                )
-            ]
-        )
-
-        await fulfillment(of: [created], timeout: 2)
-
-        XCTAssertEqual(proposedSlotStarts, [
-            "2026-06-12T18:00:00Z",
-            "2026-06-13T09:00:00Z"
-        ])
-        XCTAssertEqual(proposedSlotEnds.first ?? nil, "2026-06-12T20:00:00Z")
-        XCTAssertEqual(proposedSlotTimesOfDay, [.specific, .allDay])
-    }
-
-    func testCreateEventCompletionIsEmittedOnlyAfterTheStateMachinePersists() async throws {
-        let viewModel = CreateEventViewModel()
-        let repository = RepositoryProvider.shared.databaseRepository
-        var callbackEvent: WakeveEvent?
-        var eventWasPersistedAtCallback = false
-        let created = expectation(description: "Persisted event callback")
-        viewModel.onEventCreated = { event in
-            callbackEvent = event
-            eventWasPersistedAtCallback = repository.getEvent(id: event.id) != nil
-            created.fulfill()
-        }
-
-        viewModel.createEvent(
-            title: "Création propriétaire \(UUID().uuidString)",
-            description: "Le callback attend la transaction locale.",
-            userId: "creation-owner",
-            selectedDate: "2026-10-10T18:00:00Z"
-        )
-
-        XCTAssertNil(
-            callbackEvent,
-            "Dispatch is not a persistence receipt; completion must not fire in the same stack frame."
-        )
-        await fulfillment(of: [created], timeout: 2)
-        let persisted = try XCTUnwrap(callbackEvent)
-        XCTAssertTrue(eventWasPersistedAtCallback)
-        XCTAssertEqual(repository.getEvent(id: persisted.id)?.title, persisted.title)
-        _ = try? await repository.deleteEvent(eventId: persisted.id)
-    }
-
-    func testLegacyCreationWiringDoesNotSaveTwiceOrDismissBeforeOwnerCompletion() throws {
-        let contentView = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
-        let createSheet = try readProjectFile("iosApp/src/Views/Events/CreateEventSheet.swift")
-        let contentCompletion = slice(
-            contentView,
-            from: "CreateEventSheet(",
-            to: ".sheet(isPresented: $showNotificationPreferencesSheet)"
-        )
-        let submit = slice(
-            createSheet,
-            from: "private func createEvent()",
-            to: "struct EventCreationContext"
-        )
-
-        XCTAssertFalse(
-            contentCompletion.contains("repository.saveEvent"),
-            "ContentView receives an already-persisted event and must not become a second aggregate writer."
-        )
-        XCTAssertFalse(
-            submit.contains("\n        dismiss()"),
-            "CreateEventSheet may dismiss only from its persisted completion callback, never immediately after dispatch."
-        )
-    }
-
-    func testRapidDoubleCreateIsGatedByOneInFlightOperation() throws {
-        let viewModel = try readProjectFile("iosApp/src/ViewModels/CreateEventViewModel.swift")
-        let createSheet = try readProjectFile("iosApp/src/Views/Events/CreateEventSheet.swift")
-        let createMethod = slice(
-            viewModel,
-            from: "func createEvent(",
-            to: "override func onStateDidChange()"
-        )
-        let completion = slice(
-            viewModel,
-            from: "override func onStateDidChange()",
-            to: "func updateSmartEventDraftPhrase"
-        )
-        let submit = slice(
-            createSheet,
-            from: "private func createEvent()",
-            to: "struct EventCreationContext"
-        )
-
-        XCTAssertTrue(
-            viewModel.contains("@Published private(set) var isCreating") ||
-                viewModel.contains("@Published var isCreating"),
-            "Creation needs one observable in-flight gate shared by the button and persistence owner."
-        )
-        XCTAssertTrue(createMethod.contains("guard !isCreating else { return }"))
-        XCTAssertTrue(createMethod.contains("isCreating = true"))
-        XCTAssertTrue(
-            completion.contains("isCreating = false"),
-            "Success and failure must release the in-flight gate only after the state machine resolves."
-        )
-        XCTAssertTrue(
-            submit.contains("guard !viewModel.isCreating else { return }"),
-            "Two rapid taps must dispatch one creation operation."
-        )
-        XCTAssertTrue(
-            createSheet.contains(".disabled(viewModel.isCreating") ||
-                createSheet.contains("isLoading: viewModel.isCreating"),
-            "The visible create action must expose and disable its in-flight state."
-        )
-        XCTAssertEqual(
-            submit.components(separatedBy: "viewModel.createEvent(").count - 1,
-            1,
-            "The sheet delegates exactly one save to the state-machine owner."
-        )
-    }
-
     func testAppLaunchDoesNotRequestNotificationAuthorizationImmediately() throws {
         let source = try readProjectFile("iosApp/src/Services/AppDelegate.swift")
         let didFinishLaunching = slice(
@@ -547,28 +349,12 @@ final class FindingsRegressionTests: XCTestCase {
         )
     }
 
-    func testInvitationPreviewReservesHeaderSpaceForTitle() throws {
-        let source = try readProjectFile("iosApp/src/Views/Events/CreateEventSheet.swift")
-        let preview = slice(source, from: "struct EventPreviewSheet", to: "// MARK: - Preview Cards")
-
-        XCTAssertTrue(
-            preview.contains("previewHeaderReservedHeight"),
-            "EventPreviewSheet must reserve enough vertical space so the title cannot sit under the back/next buttons."
-        )
-    }
-
     func testVisibleFindingStringsAreLocalized() throws {
         let french = try readProjectFile("iosApp/src/Resources/fr.lproj/Localizable.strings")
         let requiredFrenchKeys = [
-            "\"profile.edit\" = \"Modifier\"",
             "\"poll.results.title\" = \"Résultats\"",
             "\"poll.results.no_slots_title\" = \"Aucun créneau proposé\"",
             "\"poll.results.no_votes_title\" = \"Aucun vote pour le moment\"",
-            "\"inbox.filter.inbox\" = \"Inbox\"",
-            "\"inbox.filter.focused\" = \"Prioritaires\"",
-            "\"inbox.filter.new\" = \"Nouveau\"",
-            "\"inbox.filter.unread\" = \"Non lus\"",
-            "\"inbox.filter.event\" = \"Événement\"",
             "\"settings_sheet.data_management\" = \"Gestion des données\"",
             "\"data_management.delete_account\" = \"Supprimer le compte\"",
             "\"data_management.delete_guest_data\" = \"Supprimer les données invité\""
@@ -579,14 +365,14 @@ final class FindingsRegressionTests: XCTestCase {
         }
     }
 
+    /// Réancré sur le flux de création (couche 9) : l'ancienne feuille est supprimée.
     func testEventTypeDisplayUsesLocalizedHelper() throws {
         let helpers = try readProjectFile("iosApp/src/Extensions/ViewExtensions.swift")
-        let createSheet = try readProjectFile("iosApp/src/Views/Events/CreateEventSheet.swift")
+        let createFlow = try readProjectFile("iosApp/src/Views/Create/CreateEventFlowSteps.swift")
 
         XCTAssertTrue(helpers.contains("func eventTypeDisplayName"))
         XCTAssertTrue(
-            createSheet.contains("eventTypeDisplayName(selectedEventType)") &&
-            createSheet.contains("eventTypeDisplayName(eventType)"),
+            createFlow.contains("eventTypeDisplayName("),
             "Event type labels must use localized display names instead of Kotlin displayName."
         )
     }

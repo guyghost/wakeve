@@ -7,7 +7,6 @@ public enum TypographyTokens {
     public static let cardTitle = Font.title3.weight(.semibold)
     public static let headline = Font.headline
     public static let body = Font.body
-    public static let bodyEmphasis = Font.body.weight(.semibold)
     public static let callout = Font.callout
     public static let metadata = Font.callout.weight(.medium)
     public static let caption = Font.caption

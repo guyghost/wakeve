@@ -201,6 +201,7 @@ class BudgetRepository(private val db: WakeveDb) {
     /**
      * Create a new budget item.
      */
+    @Throws(IllegalArgumentException::class)
     fun createBudgetItem(
         budgetId: String,
         category: BudgetCategory,
@@ -319,6 +320,7 @@ class BudgetRepository(private val db: WakeveDb) {
     /**
      * Update budget item.
      */
+    @Throws(IllegalArgumentException::class)
     fun updateBudgetItem(item: BudgetItem): BudgetItem {
         // Validate before updating
         val errors = BudgetCalculator.validateBudgetItem(item)
@@ -350,6 +352,7 @@ class BudgetRepository(private val db: WakeveDb) {
     /**
      * Mark item as paid.
      */
+    @Throws(IllegalArgumentException::class)
     fun markItemAsPaid(itemId: String, actualCost: Double, paidBy: String): BudgetItem {
         val item = getBudgetItemById(itemId)
             ?: throw IllegalArgumentException("Budget item not found: $itemId")

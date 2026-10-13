@@ -174,7 +174,10 @@ final class PollConfirmationWorkflowContractTests: XCTestCase {
             let strings = readProjectFileIfPresent("iosApp/src/Resources/\(locale).lproj/Localizable.strings")
             let syncedLines = strings
                 .split(separator: "\n")
-                .filter { $0.contains("poll.results.confirmation.synced") }
+                .filter {
+                    $0.contains("poll.results.confirmation.synced")
+                        || $0.contains("poll.results.confirmation.accessibility.synced")
+                }
                 .joined(separator: " ")
                 .lowercased()
 

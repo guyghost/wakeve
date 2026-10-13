@@ -112,7 +112,7 @@ final class PremiumParticipantsContractTests: XCTestCase {
             "The typed poll-start controller must own its localized failure copy."
         )
 
-        XCTAssertFalse(source.contains("Saisissez une adresse email valide"))
+        XCTAssertFalse(source.contains("Saisis une adresse email valide"))
         XCTAssertFalse(source.contains("Impossible d’ajouter ce participant"))
         XCTAssertFalse(source.contains("Impossible d'ajouter \\(failedEmails.count) participant(s)"))
         XCTAssertFalse(source.contains("Impossible de lancer le sondage"))

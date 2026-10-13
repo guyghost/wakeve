@@ -145,4 +145,43 @@ final class BudgetViewModelTests: XCTestCase {
         XCTAssertFalse(balance.owesMore)  // < 0.01 threshold
         XCTAssertFalse(balance.isOwed)
     }
+
+    // MARK: - Default sharedBy (crash fix: an empty sharedBy is rejected by BudgetCalculator)
+
+    func testDefaultSharedBy_usesEventParticipants() {
+        XCTAssertEqual(
+            BudgetViewModel.defaultSharedBy(participants: ["u1", "u2"], organizerId: "org"),
+            ["u1", "u2"]
+        )
+    }
+
+    func testDefaultSharedBy_filtersBlanksAndDuplicates() {
+        XCTAssertEqual(
+            BudgetViewModel.defaultSharedBy(participants: ["u1", " ", "", "u1", " u2 "], organizerId: "org"),
+            ["u1", "u2"]
+        )
+    }
+
+    func testDefaultSharedBy_fallsBackToOrganizerWhenNoParticipants() {
+        XCTAssertEqual(BudgetViewModel.defaultSharedBy(participants: [], organizerId: "org"), ["org"])
+        XCTAssertEqual(BudgetViewModel.defaultSharedBy(participants: ["  "], organizerId: "org"), ["org"])
+    }
+
+    func testDefaultSharedBy_isEmptyWhenNothingKnown() {
+        XCTAssertEqual(BudgetViewModel.defaultSharedBy(participants: [], organizerId: nil), [])
+        XCTAssertEqual(BudgetViewModel.defaultSharedBy(participants: [], organizerId: " "), [])
+    }
+
+    func testAddItemCatchesKotlinValidationErrors() throws {
+        let source = try String(
+            contentsOf: URL(fileURLWithPath: #filePath)
+                .deletingLastPathComponent()
+                .deletingLastPathComponent()
+                .appendingPathComponent("src/ViewModels/BudgetViewModel.swift"),
+            encoding: .utf8
+        )
+        XCTAssertTrue(source.contains("try budgetRepository.createBudgetItem("))
+        XCTAssertTrue(source.contains("try budgetRepository.markItemAsPaid("))
+        XCTAssertTrue(source.contains("Self.defaultSharedBy("))
+    }
 }

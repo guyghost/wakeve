@@ -18,135 +18,16 @@
 "common.error_generic" = "Une erreur est survenue.";
 "common.success" = "Succès";
 "common.loading" = "Chargement...";
-"common.progress" = "Progression";
 "common.try_again" = "Réessayer";
 "common.continue" = "Continuer";
-"common.yes" = "Oui";
-"common.no" = "Non";
 "common.search" = "Rechercher";
 
-// MARK: - Tabs
-"tab.upcoming" = "À venir";
-"tab.explore" = "Explorer";
-"tab.messages" = "Messages";
-"tab.profile" = "Profil";
-
 // MARK: - Event Detail
-"event.detail.summary_title" = "Résumé";
-"event.detail.title" = "Événement";
-"event.detail.subtitle.empty" = "Configurez les participants et la durée du sondage avant de publier.";
 "event.detail.metadata.status" = "Statut";
-"event.detail.metadata.poll" = "Sondage";
-"event.detail.metadata.slots" = "Créneaux";
-"event.detail.metadata.guests" = "Invités";
-"event_info.title" = "Informations sur l'événement";
 "event_info.description_title" = "Description de l'événement";
-"event_info.description_placeholder" = "Informez vos invités de l'organisation de votre événement.";
-"event_info.character_limit_format" = "Limite de caractères : %d/%d";
-"event_info.profile_title" = "Nom et photo de profil";
-"event_info.profile_help" = "Il s'agit de la photo et du nom qui seront visibles pour les invités de cet événement. Vous pouvez utiliser une photo de profil et un nom différents pour chaque événement.";
-"event.detail.date_to_choose" = "Date à choisir";
-"event.detail.countdown.to_create" = "Moment à créer";
-"event.detail.countdown.past" = "Événement passé";
-"event.detail.countdown.today" = "Aujourd’hui";
-"event.detail.countdown.tomorrow" = "Demain";
-"event.detail.countdown.days_format" = "J-%d";
-"event.detail.countdown.empty_subtitle" = "Ajoutez un créneau pour donner au groupe une date à attendre.";
-"event.detail.anticipation.status.draft" = "préparez l’invitation";
-"event.detail.anticipation.status.polling" = "votes en cours";
-"event.detail.anticipation.status.confirmed" = "date retenue";
-"event.detail.anticipation.status.comparing" = "options à départager";
-"event.detail.anticipation.status.organizing" = "logistique à finaliser";
-"event.detail.anticipation.status.finalized" = "prêt";
-"event.detail.anticipation.status.default" = "organisation en cours";
-"event.detail.anticipation.invite.title" = "Inviter le groupe";
-"event.detail.anticipation.invite.subtitle" = "Partagez le lien avant de lancer les votes.";
-"event.detail.anticipation.start_poll.title" = "Lancer le sondage";
-"event.detail.anticipation.start_poll.subtitle" = "Les invités doivent voir les options en un seul endroit.";
-"event.detail.anticipation.announcement.title" = "Préparer l’annonce";
-"event.detail.anticipation.announcement.subtitle" = "Une fois la date retenue, envoyez le message prêt à partager.";
-"event.detail.anticipation.final_option.title" = "Choisir l’option finale";
-"event.detail.anticipation.final_option.subtitle" = "Destination, logement ou programme doivent devenir visibles.";
-"event.detail.anticipation.lock_next.title" = "Verrouiller la suite";
-"event.detail.anticipation.lock_next.subtitle" = "Transport, budget et réunions doivent être prêts avant le jour J.";
-"event.detail.anticipation.ready.title" = "Tout est prêt";
-"event.detail.anticipation.ready.subtitle" = "Gardez cette page comme point de référence du groupe.";
-"event.detail.anticipation.next_step.title" = "Prochaine étape";
-"event.detail.anticipation.excitement.title" = "Créer l’envie";
-"event.detail.anticipation.excitement.subtitle" = "Album, playlist ou teaser peuvent être annoncés au groupe.";
-"event.detail.anticipation.upcoming_label" = "À venir";
-"event.detail.return_hook.share_action" = "Partager une raison de revenir";
-"event.detail.return_hook.message_format" = "Wakeve - %@\n%@\nProchaine étape du plan : %@\nGardez le groupe aligné ici : %@";
-"event.detail.invite_landing.title" = "Invitation ouverte";
-"event.detail.invite_landing.default_subtitle" = "Vous arrivez depuis une invitation Wakeve. Vérifiez le contexte de l’événement, puis confirmez ou suivez la prochaine étape ici.";
-"event.detail.invite_landing.polling_subtitle" = "Vous arrivez depuis une invitation Wakeve. Le groupe vote maintenant, donc votre réponse peut faire avancer la décision.";
-"event.detail.invite_landing.vote_action" = "Voter maintenant";
-"event.detail.invite_landing.view_invite_action" = "Voir l’invitation";
-"event.detail.invite_landing.continue_action" = "Continuer vers l’événement";
-"event.detail.participant_range_format" = "%d à %d participants";
-"event.detail.expected_participants_format" = "%d participants attendus";
-"event.detail.invited_participant_singular_format" = "%d participant invité";
-"event.detail.invited_participants_plural_format" = "%d participants invités";
 "event.detail.slot_option_singular_format" = "%d option";
 "event.detail.slot_options_plural_format" = "%d options";
-"event.detail.participant_preview.empty" = "Aucun invité ajouté pour le moment.";
-"event.detail.participant_preview.singular_format" = "%d invité à suivre.";
-"event.detail.participant_preview.plural_format" = "%d invités à suivre.";
-"event.detail.participant_summary.you" = "Vous";
-"event.detail.participant_summary.you_plus_format" = "Vous + %d";
-"event.detail.poll_duration.to_define" = "À définir";
-"event.detail.poll_duration.done" = "Terminé";
-"event.detail.poll_duration.days_format" = "%d jours";
-"event.detail.footer.draft" = "Ajoutez des participants et vérifiez la durée du sondage avant de lancer l’événement.";
-"event.detail.footer.polling" = "Suivez les votes en temps réel avant de confirmer le meilleur créneau.";
-"event.detail.footer.default" = "Les participants retrouvent ici le résumé de l’événement.";
-"event.detail.message_preview.draft" = "La conversation apparaîtra quand l’événement sera partagé.";
-"event.detail.message_preview.polling" = "Rappels, réponses et questions de vote regroupés ici.";
-"event.detail.message_preview.scenario" = "Les échanges restent attachés au scénario en cours.";
-"event.detail.message_preview.default" = "Coordination, décisions et rappels visibles depuis l’événement.";
-"event.detail.message_preview.vote_badge" = "Vote";
-"event.detail.message_preview.event_badge" = "Événement";
-"event.detail.participants_title" = "Participants";
-"event.detail.organizer.invite_title" = "Inviter";
-"event.detail.organizer.poll_title" = "Sondage";
-"event.detail.messages_title" = "Messages";
-"event.detail.section.organization" = "Organisation";
-"event.detail.organization.slots_label" = "Créneaux proposés";
-"event.detail.organization.scenario_label" = "Options, destination et logement";
-"event.detail.organization.transport_label" = "Transport";
-"event.detail.organization.transport_value" = "Départs, optimisation et plan final";
-"event.detail.organization.meetings_label" = "Réunions";
-"event.detail.organization.meetings_value" = "Réunions et liens de coordination";
-"event.detail.organization.budget_label" = "Budget et dépenses";
-"event.detail.organization.budget_value" = "Dépenses, soldes et baseline";
 "event.detail.organization.payment_pot_label" = "Cagnotte";
-"event.detail.organization.finalized_value_format" = "%@ - détails finalisés, aucune modification possible";
-"event.detail.readiness.title" = "Tout le monde est prêt ?";
-"event.detail.readiness.subtitle" = "Transport, argent, réunions et checklist restent visibles avant finalisation.";
-"event.detail.readiness.progress_format" = "%d/%d prêts";
-"event.detail.readiness.participants.title" = "Invités";
-"event.detail.readiness.participants.ready" = "Les personnes à suivre sont visibles.";
-"event.detail.readiness.participants.missing" = "Invitez d'abord le groupe.";
-"event.detail.readiness.scenario.title" = "Plan";
-"event.detail.readiness.scenario.ready" = "Option finale choisie.";
-"event.detail.readiness.scenario.missing" = "Choisissez destination ou option.";
-"event.detail.readiness.transport.title" = "Transport";
-"event.detail.readiness.transport.ready" = "Destination prête pour le plan.";
-"event.detail.readiness.transport.missing" = "Destination encore manquante.";
-"event.detail.readiness.meetings.title" = "Réunions";
-"event.detail.readiness.meetings.ready" = "Lien de coordination présent.";
-"event.detail.readiness.meetings.missing" = "Aucune réunion planifiée.";
-"event.detail.readiness.payment.title" = "Argent";
-"event.detail.readiness.payment.ready" = "Cagnotte ou Tricount prêt.";
-"event.detail.readiness.payment.missing" = "Décision budget ouverte.";
-"event.detail.readiness.checklist.title" = "Checklist";
-"event.detail.readiness.checklist.ready" = "Les tâches sont visibles.";
-"event.detail.readiness.checklist.missing" = "Préparez rôles et tâches.";
-"event.detail.scenario.open" = "Options ouvertes";
-"event.detail.scenario.comparing" = "Comparaison active";
-"event.detail.scenario.organizing" = "Logistique en cours";
-"event.detail.scenario.finalized_readonly" = "Organisation finalisée en lecture seule";
-"event.detail.scenario.unavailable" = "Indisponible";
 "event.detail.payment_pot.define_before_share" = "Objectif à définir avant partage";
 "event.detail.payment_pot.define_goal" = "Objectif à définir";
 "event.detail.payment_pot.goal_format" = "Objectif %@";
@@ -154,60 +35,14 @@
 "event.detail.tricount.link_verified" = "Lien vérifié";
 "event.detail.tricount.link_to_check" = "Lien à vérifier";
 "event.detail.tricount.decide_before_expenses" = "À décider avant partage des dépenses";
-"event.detail.slot_to_confirm" = "Créneau à confirmer";
 "event.detail.menu.add_participants" = "Ajouter des participants";
-"event.detail.menu.configure_poll" = "Régler le sondage";
-"event.detail.menu.view_results" = "Voir les résultats";
-"event.detail.menu.organize_scenarios" = "Organiser les scénarios";
-"event.detail.menu.transport" = "Transport";
-"event.detail.menu.meetings" = "Réunions";
-"event.detail.menu.budget" = "Budget";
-"event.detail.menu.payment_pot" = "Pot commun";
-"event.detail.menu.tricount" = "Tricount";
-"event.detail.ai.title" = "Wakeve AI";
-"event.detail.ai.review_subtitle" = "Préparez les prochaines actions à relire avant application.";
-"event.detail.ai.polls_title" = "Sondages proposés";
-"event.detail.ai.checklist_title" = "Checklist";
-"event.detail.ai.summary_title" = "Résumé";
-"event.detail.ai.decided_title" = "Décidé";
-"event.detail.ai.missing_title" = "Manquant";
-"event.detail.ai.invitation_title" = "Invitation";
-"event.detail.ai.applied" = "Appliqué";
-"event.detail.ai.ignored" = "Ignoré";
-"event.detail.ai.ignore_action" = "Ignorer";
-"event.detail.ai.invitation_variant.simple" = "Simple";
-"event.detail.ai.invitation_variant.warm" = "Chaleureux";
-"event.detail.ai.invitation_variant.short_whatsapp" = "WhatsApp";
-"event.detail.ai.error_unavailable" = "La suggestion n’est pas disponible pour le moment.";
-"event.detail.ai.priority.high" = "Priorité haute";
-"event.detail.ai.priority.medium" = "Priorité moyenne";
-"event.detail.ai.priority.low" = "Priorité basse";
 
 // MARK: - WakeveAI
-"ai.cancel_suggestion_accessibility" = "Annuler la suggestion";
-"ai.badge_detail_hint" = "Touchez pour voir le détail de cette suggestion";
-"ai.badge.suggestion" = "Suggestion";
-"ai.badge.suggestion.tooltip" = "Proposition locale à relire avant application";
-"ai.badge.high_confidence" = "Solide";
-"ai.badge.high_confidence.tooltip" = "Suggestion cohérente avec les informations visibles";
-"ai.badge.medium_confidence" = "À vérifier";
-"ai.badge.medium_confidence.tooltip" = "Suggestion utile, à compléter avant usage";
-"ai.badge.personalized" = "Adapté";
-"ai.badge.personalized.tooltip" = "Suggestion adaptée au contexte de cet événement";
-"ai.badge.popular_choice" = "Souvent choisi";
-"ai.badge.popular_choice.tooltip" = "Option souvent retenue dans ce type d'organisation";
-"ai.badge.seasonal" = "Saisonnier";
-"ai.badge.seasonal.tooltip" = "Suggestion liée à la période de l'événement";
-"ai.badge.fallback.tooltip" = "Proposition à relire avant application";
-"ai.badge_sheet.review_title" = "À relire";
-"ai.badge_sheet.visual_marker_format" = "Repère visuel : %@";
-"ai.badge_sheet.validation_hint" = "Aucune action n'est appliquée sans validation.";
 "ai.preparing" = "Préparation en cours...";
-"ai.prepare_suggestions_accessibility" = "Préparer des suggestions";
 
 // MARK: - Auth
-"auth.sign_in" = "Organisez l’événement, pas le fil de discussion";
-"auth.sign_in_subtitle" = "Créez l’invitation, récupérez les réponses, décidez et gardez le plan au même endroit.";
+"auth.sign_in" = "Organise l’événement, pas le fil de discussion";
+"auth.sign_in_subtitle" = "Crée l’invitation, récupère les réponses, décide et garde le plan au même endroit.";
 "auth.value_proof_title" = "Pourquoi Wakeve bat le groupe";
 "auth.value_proof_invite" = "Une invitation partageable est prête avant d’ajouter chaque contact.";
 "auth.value_proof_decide" = "Votes, budget, transport et prochaines actions restent attachés à l’événement.";
@@ -216,13 +51,13 @@
 "auth.sign_out" = "Se déconnecter";
 "auth.sign_in_failed" = "Échec de connexion";
 "auth.try_again" = "Réessayer";
-"auth.error.sign_in_failed_retry" = "La connexion a échoué. Réessayez.";
-"auth.error.invalid_response" = "Apple a renvoyé une réponse invalide. Réessayez.";
-"auth.error.not_handled" = "La demande de connexion n'a pas été traitée. Réessayez.";
-"auth.error.unknown" = "Une erreur inconnue est survenue. Réessayez.";
+"auth.error.sign_in_failed_retry" = "La connexion a échoué. Réessaie.";
+"auth.error.invalid_response" = "Apple a renvoyé une réponse invalide. Réessaie.";
+"auth.error.not_handled" = "La demande de connexion n'a pas été traitée. Réessaie.";
+"auth.error.unknown" = "Une erreur inconnue est survenue. Réessaie.";
 "auth.error.sign_in_failed_format" = "La connexion a échoué : %@";
 "auth.error.authentication_failed_format" = "L'authentification a échoué : %@";
-"auth.privacy_agree" = "En vous connectant, vous acceptez nos";
+"auth.privacy_agree" = "En te connectant, tu acceptes nos";
 "auth.privacy_policy" = "Politique de confidentialité";
 "auth.terms_of_service" = "Conditions d'utilisation";
 "auth.and" = "et";
@@ -230,38 +65,13 @@
 "auth.guest_display_name" = "Invité";
 "auth.skip_dev" = "Passer (Développement)";
 "auth.apple_sign_in_accessibility_label" = "Se connecter avec Apple";
-"auth.apple_sign_in_accessibility_hint" = "Utilise votre identifiant Apple pour vous authentifier";
+"auth.apple_sign_in_accessibility_hint" = "Utilise ton identifiant Apple pour t'authentifier";
 "auth.continue_as_guest_accessibility_label" = "Continuer en invité";
 "auth.continue_as_guest_accessibility_hint" = "Crée une session invitée locale sans connexion";
 "auth.skip_dev_accessibility_label" = "Mode développement : passer l'authentification";
 "auth.skip_dev_accessibility_hint" = "Crée une session authentifiée fictive pour les tests";
 "auth.read_privacy_policy_accessibility_label" = "Lire la politique de confidentialité";
 "auth.read_terms_accessibility_label" = "Lire les conditions d'utilisation";
-
-// MARK: - Explore
-"explore.title" = "Explorer";
-"explore.search_prompt" = "Rechercher un événement...";
-"explore.trending" = "Tendances";
-"explore.nearby" = "Près de vous";
-"explore.recommended" = "Recommandés pour vous";
-"explore.empty_title" = "Rien à explorer pour le moment";
-"explore.empty_subtitle" = "Les événements apparaîtront ici dès qu'ils seront créés. Commencez par en créer un !";
-"explore.no_results" = "Aucun résultat pour « %@ »";
-"explore.search_hint" = "Essayez avec d'autres mots-clés ou modifiez les filtres.";
-"explore.results_count" = "%lld résultats";
-"explore.participants_count" = "%lld participants";
-"explore.event_ideas" = "Idées d'événements";
-
-// MARK: - Explore Ideas
-"explore.ideas.weekend" = "Week-end entre amis";
-"explore.ideas.weekend_desc" = "Planifiez un week-end mémorable avec vos amis les plus proches";
-"explore.ideas.team_building" = "Team building";
-"explore.ideas.team_building_desc" = "Organisez une journée de cohésion d'équipe inoubliable";
-"explore.ideas.birthday" = "Anniversaire";
-"explore.ideas.birthday_desc" = "Célébrez un anniversaire spécial avec style";
-"explore.ideas.party" = "Soirée";
-"explore.ideas.party_desc" = "Organisez une soirée réussie avec vos proches";
-"explore.ideas.create" = "Créer";
 
 // MARK: - Explore Categories
 "explore.category.all" = "Tout";
@@ -296,14 +106,13 @@
 "poll.results.confirm_date" = "Confirmer cette date";
 "poll.results.confirmed_title" = "Date confirmée";
 "poll.results.confirmed_subtitle" = "La date de l'événement est finalisée";
-"poll.results.date_confirmed" = "La date de l'événement a bien été confirmée.";
 "poll.results.score" = "Score";
 "poll.results.most_popular" = "Option préférée";
 "poll.results.vote.yes" = "Oui";
 "poll.results.vote.maybe" = "Peut-être";
 "poll.results.vote.no" = "Non";
 "poll.results.no_slots_title" = "Aucun créneau proposé";
-"poll.results.no_slots_subtitle" = "Ajoutez des créneaux avant d'ouvrir le sondage aux participants.";
+"poll.results.no_slots_subtitle" = "Ajoute des créneaux avant d'ouvrir le sondage aux participants.";
 "poll.results.no_votes_title" = "Aucun vote pour le moment";
 "poll.results.no_votes_subtitle" = "En attente des votes des participants.";
 "poll.results.announcement.confirmed_title" = "Annonce prête";
@@ -319,17 +128,16 @@
 "poll.results.next_steps.title" = "La suite est claire";
 "poll.results.next_steps.subtitle" = "Wakeve garde le groupe aligné après la décision de date, sans relancer le chaos dans la discussion.";
 "poll.results.next_steps.announce_title" = "Annoncer la date";
-"poll.results.next_steps.announce_detail" = "Partagez le message prêt à envoyer et gardez Wakeve comme source de vérité.";
+"poll.results.next_steps.announce_detail" = "Partage le message prêt à envoyer et garde Wakeve comme source de vérité.";
 "poll.results.next_steps.calendar_title" = "Ajouter aux calendriers";
-"poll.results.next_steps.calendar_detail" = "Posez la date finale avant que les rappels et détails de trajet ne se dispersent.";
+"poll.results.next_steps.calendar_detail" = "Pose la date finale avant que les rappels et détails de trajet ne se dispersent.";
 "poll.results.next_steps.plan_title" = "Ouvrir le plan";
-"poll.results.next_steps.plan_detail" = "Comparez destination, logement, transport et budget pendant que la décision est fraîche.";
+"poll.results.next_steps.plan_detail" = "Compare destination, logement, transport et budget pendant que la décision est fraîche.";
 "poll.results.next_steps.owners_title" = "Attribuer ce qui reste";
-"poll.results.next_steps.owners_detail" = "Utilisez Wakeve pour les rôles, paiements, repas et logistique au lieu d'éparpiller les tâches en messages.";
+"poll.results.next_steps.owners_detail" = "Utilise Wakeve pour les rôles, paiements, repas et logistique au lieu d'éparpiller les tâches en messages.";
 "poll.timezone.label_format" = "Fuseau : %@";
 "poll.results.confirm_dialog_title" = "Confirmer cette date ?";
 "poll.results.confirm_dialog_message" = "Cette date deviendra la date finale de l'événement. Les détails d'organisation pourront être ouverts aux participants confirmés.";
-"poll.results.error.organizer_only" = "Seul l'organisateur peut confirmer la date.";
 "poll.results.error.confirm_failed" = "Impossible de confirmer cette date pour le moment.";
 "poll.results.confirmation.progress" = "Enregistrement de la date…";
 "poll.results.confirmation.retry" = "Réessayer";
@@ -338,7 +146,6 @@
 "poll.results.confirmation.synced.title" = "Décision synchronisée";
 "poll.results.confirmation.synced.message" = "Cette décision est à jour.";
 "poll.results.confirmation.accessibility.synced" = "Synchronisation de la décision terminée";
-"poll.results.confirmation.synced.accessibility.synced" = "Synchronisation de la décision terminée";
 "poll.results.confirmation.accessibility.confirm" = "Confirmer la date sélectionnée";
 "poll.results.confirmation.accessibility.cancel" = "Annuler la confirmation de date";
 "poll.results.confirmation.accessibility.progress" = "Enregistrement de la date sélectionnée";
@@ -357,13 +164,13 @@
 "poll.voting.responses_progress_format" = "%d / %d réponses";
 "poll.voting.empty_title" = "Aucun créneau";
 "poll.voting.empty_subtitle" = "L’organisateur doit ajouter au moins une option avant le vote.";
-"poll.voting.success_message" = "Vos votes ont bien été envoyés.";
+"poll.voting.success_message" = "Tes votes ont bien été envoyés.";
 "poll.voting.error.submit_failed" = "Impossible d'envoyer certains votes.";
-"poll.voting.header_question" = "Une question à la fois : est-ce que ce créneau vous convient ?";
+"poll.voting.header_question" = "Une question à la fois : est-ce que ce créneau te convient ?";
 "poll.voting.submitted_title" = "Votes envoyés";
-"poll.voting.submitted_subtitle" = "Merci pour votre réponse. L'organisateur sera prévenu quand tout le monde aura voté.";
+"poll.voting.submitted_subtitle" = "Merci pour ta réponse. L'organisateur sera prévenu quand tout le monde aura voté.";
 "poll.voting.progress" = "Progression";
-"poll.voting.slot_question" = "Ce créneau vous convient ?";
+"poll.voting.slot_question" = "Ce créneau te convient ?";
 "poll.voting.option.yes.subtitle" = "Ce créneau me convient.";
 "poll.voting.option.maybe.subtitle" = "Possible si nécessaire.";
 "poll.voting.option.no.subtitle" = "Je ne peux pas venir.";
@@ -389,12 +196,12 @@
 "scenario.duration_days_format" = "%lld j";
 "scenario.duration_nights_format" = "%lld nuit(s)";
 "scenario.locked.title" = "Détails réservés aux participants confirmés";
-"scenario.locked.subtitle" = "Votez et confirmez votre présence sur la date retenue pour accéder aux destinations, logements et votes.";
+"scenario.locked.subtitle" = "Vote et confirme ta présence sur la date retenue pour accéder aux destinations, logements et votes.";
 "scenario.empty.title" = "Aucune option pour le moment";
-"scenario.empty.organizer_subtitle" = "Ajoutez une option destination/logement pour lancer la comparaison.";
+"scenario.empty.organizer_subtitle" = "Ajoute une option destination/logement pour lancer la comparaison.";
 "scenario.empty.participant_subtitle" = "L'organisateur n'a pas encore publié d'option.";
 "scenario.summary.locked" = "Les détails logistiques se débloquent après confirmation de présence.";
-"scenario.summary.open" = "Comparez les destinations, budgets, participants et options de logement avant la sélection finale.";
+"scenario.summary.open" = "Compare les destinations, budgets, participants et options de logement avant la sélection finale.";
 "scenario.destination_tbd" = "Destination à définir";
 "scenario.invited_count_format" = "%lld invité(s)";
 "scenario.phase.options_open" = "Options ouvertes";
@@ -426,13 +233,13 @@
 "scenario.budget_decision.group" = "Groupe";
 "scenario.budget_decision.to_complete" = "À compléter";
 "scenario.budget_decision.not_estimated" = "Non estimé";
-"scenario.budget_decision.missing_subtitle" = "Ajoutez une estimation avant de sélectionner l’option finale, surtout pour un week-end ou un voyage.";
+"scenario.budget_decision.missing_subtitle" = "Ajoute une estimation avant de sélectionner l’option finale, surtout pour un week-end ou un voyage.";
 "scenario.budget_decision.best_option_fallback" = "la meilleure option";
-"scenario.budget_decision.leading_subtitle_format" = "%@ mène le vote. Vérifiez l’impact budget avant de valider.";
+"scenario.budget_decision.leading_subtitle_format" = "%@ mène le vote. Vérifie l’impact budget avant de valider.";
 "scenario.budget_decision.missing_budget_singular_format" = "%d option sans budget estimé";
 "scenario.budget_decision.missing_budget_plural_format" = "%d options sans budget estimé";
 "scenario.decision.title" = "Option retenue";
-"scenario.decision.subtitle_format" = "%@ devient le plan de référence. Annoncez-le, puis poursuivez avec transport et réunions.";
+"scenario.decision.subtitle_format" = "%@ devient le plan de référence. Annonce-le, puis poursuis avec transport et réunions.";
 "scenario.decision.message_format" = "Wakeve - %@\nOn retient %@ : %@, %@, estimé à %@ par personne.\nLa suite reste dans Wakeve pour garder transport, réunions et budget alignés.";
 "scenario.decision.budget_value_format" = "%@ par personne";
 "scenario.decision.share_action" = "Partager la décision";
@@ -441,13 +248,13 @@
 "scenario.decision.open_transport" = "Transport";
 "scenario.decision.open_meetings" = "Réunions";
 "scenario.decision.transport_locked" = "Le transport s’ouvre quand l’événement passe en organisation.";
-"scenario.matrix_readiness.missing_slots_and_destinations" = "Ajoutez au moins un créneau et une destination avant de générer les options.";
-"scenario.matrix_readiness.missing_slots" = "Ajoutez au moins un créneau avant de générer les options.";
-"scenario.matrix_readiness.missing_destinations" = "Ajoutez au moins une destination avant de générer les options.";
+"scenario.matrix_readiness.missing_slots_and_destinations" = "Ajoute au moins un créneau et une destination avant de générer les options.";
+"scenario.matrix_readiness.missing_slots" = "Ajoute au moins un créneau avant de générer les options.";
+"scenario.matrix_readiness.missing_destinations" = "Ajoute au moins une destination avant de générer les options.";
 "scenario.matrix_readiness.ready_singular_format" = "%d option date × destination prête à générer.";
 "scenario.matrix_readiness.ready_plural_format" = "%d options date × destination prêtes à générer.";
 "scenario.matrix_publish.ready_title" = "Options prêtes";
-"scenario.matrix_publish.ready_subtitle" = "Publiez ces combinaisons date × destination pour ouvrir le vote de groupe.";
+"scenario.matrix_publish.ready_subtitle" = "Publie ces combinaisons date × destination pour ouvrir le vote de groupe.";
 "scenario.matrix_publish.action" = "Publier les options";
 "scenario.destination_to_define" = "Destination à préciser";
 "scenario.default_name" = "Option principale";
@@ -464,17 +271,9 @@
 "scenario.manual.duration_day_plural_format" = "%d jours";
 
 // MARK: - Notifications
-"notifications.title" = "Notifications";
-"notifications.mark_all_read" = "Tout marquer comme lu";
-"notifications.delete" = "Supprimer";
-"notifications.read" = "Lu";
-"notifications.mark_as_read" = "Marquer comme lu";
-"notifications.empty_title" = "Aucune notification";
-"notifications.empty_subtitle" = "Vos notifications apparaîtront ici lorsque quelqu'un votera, commentera ou mettra à jour un événement.";
-"notifications.loading" = "Chargement des notifications...";
 "notifications.settings.title" = "Notifications";
 "notifications.settings.types" = "Types de notification";
-"notifications.settings.types_footer" = "Désactivez les types de notification que vous ne souhaitez pas recevoir dans Wakeve.";
+"notifications.settings.types_footer" = "Désactive les types de notification que tu ne souhaites pas recevoir dans Wakeve.";
 "notifications.settings.quiet_hours.title" = "Heures silencieuses";
 "notifications.settings.quiet_hours.enable" = "Activer les heures silencieuses";
 "notifications.settings.quiet_hours.start" = "Début";
@@ -483,7 +282,6 @@
 "notifications.settings.sound_vibration" = "Son et vibration";
 "notifications.settings.sound" = "Son";
 "notifications.settings.vibration" = "Vibration";
-"notifications.system_permission.title" = "Autorisation iOS";
 "notifications.system_permission.footer" = "Les réglages Wakeve choisissent ce que l'app envoie. L'autorisation iOS détermine si l'app peut l'afficher.";
 "notifications.system_permission.enable" = "Activer";
 "notifications.system_permission.open_settings" = "Réglages";
@@ -517,38 +315,6 @@
 "settings_sheet.ios_denied" = "iOS refusé";
 "settings_sheet.ios_not_requested" = "iOS non demandé";
 "settings_sheet.ios_unknown" = "iOS inconnu";
-"notifications.date.today" = "Aujourd'hui";
-"notifications.date.yesterday" = "Hier";
-"notifications.date.this_week" = "Cette semaine";
-"notifications.date.older" = "Plus ancien";
-"notifications.time.just_now" = "À l'instant";
-"notifications.time.minutes_ago" = "Il y a %lld min";
-"notifications.time.hours_ago" = "Il y a %lldh";
-"notifications.time.days_ago" = "Il y a %lldj";
-
-// MARK: - Notification Preferences
-"notifications.preferences.title" = "Préférences";
-"notifications.preferences.save" = "Enregistrer";
-"notifications.preferences.types_header" = "Types de notifications";
-"notifications.preferences.votes" = "Votes";
-"notifications.preferences.votes_desc" = "Recevoir une notification lorsqu'un participant vote";
-"notifications.preferences.comments" = "Commentaires";
-"notifications.preferences.comments_desc" = "Recevoir une notification pour les nouveaux commentaires";
-"notifications.preferences.status_changes" = "Changements de statut";
-"notifications.preferences.status_changes_desc" = "Être notifié lorsqu'un événement change de statut";
-"notifications.preferences.reminders" = "Rappels";
-"notifications.preferences.reminders_desc" = "Rappels le jour de l'événement";
-"notifications.preferences.deadlines" = "Échéances";
-"notifications.preferences.deadlines_desc" = "Rappels avant la date limite des sondages";
-"notifications.preferences.weekly_digest" = "Résumé hebdomadaire";
-"notifications.preferences.weekly_digest_desc" = "Recevoir un résumé chaque lundi";
-"notifications.preferences.sound" = "Son";
-"notifications.preferences.general" = "Général";
-"notifications.preferences.quiet_hours" = "Heures silencieuses";
-"notifications.preferences.dnd" = "Ne pas déranger";
-"notifications.preferences.start" = "Début";
-"notifications.preferences.end" = "Fin";
-"notifications.preferences.muted_footer" = "Les notifications seront mises en sourdine pendant cette période.";
 
 // MARK: - Leaderboard
 "leaderboard.title" = "Classement";
@@ -557,63 +323,24 @@
 "leaderboard.filter.this_month" = "Ce mois";
 "leaderboard.filter.this_week" = "Cette semaine";
 "leaderboard.filter.friends" = "Amis";
-"leaderboard.you" = "Vous";
+"leaderboard.you" = "Toi";
 "leaderboard.badges_count" = "%lld badges";
 "leaderboard.points" = "points";
-"leaderboard.friend" = "Ami";
 "leaderboard.empty.title" = "Aucun classement fiable pour l’instant";
 "leaderboard.empty.subtitle" = "Wakeve n’affiche un classement qu’après une vraie activité événement. Pas de faux noms, pas de points gonflés.";
 "leaderboard.empty.activity_title" = "L’activité vient des événements";
-"leaderboard.empty.activity_detail" = "Créez, votez, commentez et confirmez les invités pour bâtir un vrai historique d’organisateur.";
+"leaderboard.empty.activity_detail" = "Crée, vote, commente et confirme les invités pour bâtir un vrai historique d’organisateur.";
 "leaderboard.empty.privacy_title" = "Les données invitées restent contrôlées";
 "leaderboard.empty.privacy_detail" = "Les classements n’exposent jamais des personnes qui n’ont pas participé aux événements de ce compte.";
-"leaderboard.empty.first_event_title" = "Commencez par un événement";
-"leaderboard.empty.first_event_detail" = "Quand votre groupe utilise Wakeve pour de vraies décisions, cet écran peut résumer la progression honnêtement.";
-
-// MARK: - Dashboard
-"dashboard.title" = "Tableau de bord";
-"dashboard.overview" = "Vue d'ensemble";
-"dashboard.events" = "Événements";
-"dashboard.participants" = "Participants";
-"dashboard.avg_per_event" = "Moyenne / événement";
-"dashboard.votes" = "Votes";
-"dashboard.comments" = "Commentaires";
-"dashboard.response_rate" = "Taux de réponse";
-"dashboard.events_by_status" = "Événements par statut";
-"dashboard.my_events" = "Mes événements";
-"dashboard.status.draft" = "Brouillon";
-"dashboard.status.polling" = "Sondage";
-"dashboard.status.comparing" = "Comparaison";
-"dashboard.status.confirmed" = "Confirmé";
-"dashboard.status.organizing" = "Organisation";
-"dashboard.status.finalized" = "Finalisé";
-"dashboard.close" = "Fermer";
-
-// MARK: - Dashboard Analytics
-"dashboard.poll_participation" = "Taux de participation au sondage";
-"dashboard.participants_voted" = "%lld sur %lld participants ont voté";
-"dashboard.vote_timeline" = "Chronologie des votes";
-"dashboard.registration_timeline" = "Chronologie des inscriptions";
-"dashboard.popular_slots" = "Créneaux les plus populaires";
-"dashboard.time.morning" = "Matin";
-"dashboard.time.afternoon" = "Après-midi";
-"dashboard.time.evening" = "Soirée";
-"dashboard.time.specific" = "Spécifique";
-"dashboard.time.all_day" = "Journée entière";
-"dashboard.vote.yes" = "Oui";
-"dashboard.vote.maybe" = "Peut-être";
-"dashboard.vote.no" = "Non";
-"dashboard.votes_count" = "%lld votes";
+"leaderboard.empty.first_event_title" = "Commence par un événement";
+"leaderboard.empty.first_event_detail" = "Quand ton groupe utilise Wakeve pour de vraies décisions, cet écran peut résumer la progression honnêtement.";
 
 // MARK: - Profile
 "profile.title" = "Profil";
-"profile.edit" = "Modifier";
 "profile.identity_ready" = "Identité prête pour les invitations";
 "profile.organizer" = "Organisateur";
-"profile.dashboard" = "Tableau de bord";
-"profile.dashboard_subtitle" = "Statistiques et analytiques de vos événements";
 "profile.organizer.dashboard_title" = "Les tableaux de bord vivent dans les événements";
-"profile.organizer.dashboard_detail" = "Ouvrez un événement confirmé pour gérer scénarios, transport, budget, réunions et préparation.";
+"profile.organizer.dashboard_detail" = "Ouvre un événement confirmé pour gérer scénarios, transport, budget, réunions et préparation.";
 "profile.organizer.guest_status_title" = "Le statut invité reste opérationnel";
 "profile.organizer.guest_status_detail" = "RSVP, votes, paiements et prochaines actions restent suivis là où la décision du groupe se prend.";
 "profile.reliability_title" = "Confiance organisateur";
@@ -632,209 +359,45 @@
 "profile.appearance.light" = "Clair";
 "profile.appearance.dark" = "Sombre";
 "profile.appearance.system_desc" = "Suivre le réglage d'apparence iOS";
-"profile.dark_mode" = "Mode sombre";
-"profile.light_mode" = "Mode clair";
 "profile.dark_mode_desc" = "Utiliser le thème sombre";
 "profile.light_mode_desc" = "Utiliser le thème clair";
 "profile.about" = "À propos";
-"profile.settings" = "Paramètres";
 "profile.version" = "Version";
 "profile.documentation" = "Documentation";
-"profile.achievements" = "Profil & Succès";
 "profile.user" = "Utilisateur";
 "profile.third_party_notices" = "Notices tierces";
 
-// MARK: - Gamification
-"gamification.points_and_level" = "Points & Niveau";
-"gamification.total_points" = "Points Totaux";
-"gamification.level_short" = "Nv. %lld";
-"gamification.level_format" = "Niveau %lld";
-"gamification.event_creation" = "Création d'événements";
-"gamification.voting" = "Votes";
-"gamification.commenting" = "Commentaires";
-"gamification.participation" = "Participation";
-"gamification.badges" = "Badges";
-"gamification.locked" = "Verrouillé";
-"gamification.achievements" = "Succès";
-"gamification.view_leaderboard" = "Voir le classement";
-"gamification.leaderboard_subtitle" = "Comparez vos points avec les autres participants";
-"gamification.leaderboard" = "Classement";
-"gamification.badges_count" = "%lld badges";
-
-// MARK: - Gamification Levels
-"gamification.level.beginner" = "Débutant";
-"gamification.level.explorer" = "Explorateur";
-"gamification.level.contributor" = "Contributeur";
-"gamification.level.organizer" = "Organisateur";
-"gamification.level.expert" = "Expert";
-"gamification.level.master" = "Maître";
-"gamification.level.champion" = "Champion";
-"gamification.level.legend" = "Légende";
-"gamification.level.mythic" = "Mythique";
-"gamification.level.transcendent" = "Transcendant";
-
-// MARK: - Gamification Badges
-"gamification.badge.first_event" = "Premier Événement";
-"gamification.badge.super_organizer" = "Super Organisateur";
-"gamification.badge.early_bird" = "Early Bird";
-"gamification.badge.voting_master" = "Maître du Vote";
-"gamification.badge.active_participant" = "Participant Actif";
-"gamification.badge.event_master" = "Event Master";
-"gamification.badge.commentator" = "Bavard";
-"gamification.badge.dedicated" = "Dévoué";
-"gamification.badge.social_butterfly" = "Papillon Social";
-"gamification.badge.party_animal" = "Fêteur";
-"gamification.badge.century_club" = "Club des Cent";
-"gamification.badge.millennium_club" = "Club des Mille";
-
-// MARK: - Badge Categories
-"gamification.badge_category.organization" = "Organisation";
-"gamification.badge_category.participation" = "Participation";
-"gamification.badge_category.social" = "Social";
-"gamification.badge_category.special" = "Spécial";
-
-// MARK: - Settings
-"settings.title" = "Paramètres";
-"settings.notifications" = "Notifications";
-"settings.notifications_subtitle" = "Gérez vos préférences de notifications";
-"settings.notification_preferences" = "Préférences de notifications";
-
 // MARK: - Language Settings
-"language_title" = "Langue";
-"language_description" = "Choisissez la langue de l'application";
-"language_english" = "Anglais";
-"language_french" = "Français";
-"language_spanish" = "Espagnol";
-"language_italian" = "Italien";
-"language_portuguese" = "Portugais";
 "selected" = "Sélectionné";
-"currently_selected" = "Langue actuellement sélectionnée";
-"tap_to_select" = "Appuyez pour sélectionner cette langue";
 
 // MARK: - Home
-"home.filter.upcoming" = "À venir";
-"home.filter.past" = "Événements passés";
-"home.filter.drafts" = "Brouillons";
-"home.filter.organized_by_me" = "Organisés par moi";
-"home.filter.confirmed" = "Confirmés";
-"home.empty.upcoming.title" = "Aucun événement à venir";
-"home.empty.upcoming.subtitle" = "Les événements à venir apparaîtront ici, que vous les organisiez ou non.";
-"home.empty.past.title" = "Aucun événement passé";
-"home.empty.past.subtitle" = "Les événements passés apparaîtront ici.";
-"home.empty.drafts.title" = "Aucun brouillon";
-"home.empty.drafts.subtitle" = "Vos brouillons d'événements apparaîtront ici.";
-"home.empty.organized.title" = "Aucun événement organisé";
-"home.empty.organized.subtitle" = "Les événements que vous organisez apparaîtront ici.";
-"home.empty.confirmed.title" = "Aucun événement confirmé";
-"home.empty.confirmed.subtitle" = "Les événements confirmés apparaîtront ici.";
-"home.empty.compact_subtitle" = "Les événements apparaîtront ici.";
-"home.organized_by_me_badge" = "Organisé par moi";
-"home.featured.next_moment" = "Prochain moment";
-"home.greeting" = "Bonjour";
-"home.upcoming_title" = "À venir";
-"home.next_events" = "Ensuite";
-"home.events_count_format" = "%lld événement(s)";
-"home.no_other_events" = "Aucun autre événement à préparer.";
-"home.date_to_confirm" = "Date à confirmer";
-"home.to_define" = "À définir";
-"home.draft_resume.eyebrow" = "Brouillon à finaliser";
-"home.draft_resume.subtitle" = "Reprenez l’invitation avant d’ouvrir les votes.";
-"home.draft_resume.subtitle_with_count_format" = "Reprenez ce brouillon. %lld autre(s) brouillon(s) attendent.";
-"home.expected_participants_format" = "%lld attendus";
-"home.participant_count_singular_format" = "%lld participant";
-"home.participant_count_plural_format" = "%lld participants";
-"home.create_event" = "Créer un événement";
-"home.loading" = "Chargement des événements...";
 "home.filter_events_accessibility" = "Filtrer les événements";
 
 // MARK: - Event Detail
-"events.share" = "Partager l'événement";
-"events.vote_poll" = "Participer au sondage";
-"events.vote_hint" = "Votez pour vos créneaux préférés";
-"events.delete" = "Supprimer l'événement";
-"events.delete_title" = "Supprimer cet événement ?";
-"events.delete_message" = "Cette action est irréversible. Toutes les données associées à cet événement seront définitivement supprimées.";
-"events.delete_confirm" = "Confirmer la suppression";
-"events.options" = "Options de l'événement";
-"events.about" = "À propos";
-"events.hosted_by" = "Organisé par";
-"events.organizer" = "Organisateur";
-"events.going" = "Participants confirmés";
-"events.going_count" = "Confirmés";
-"events.no_participants" = "Aucun participant pour le moment";
-"events.more_participants" = "+%lld de plus";
-"events.participating" = "Participe";
-"events.vote_by" = "Voter avant le";
-"events.empty.title" = "Aucun événement pour le moment";
-"events.empty.subtitle" = "Créez votre premier événement pour commencer.";
-"events.legacy_list.subtitle" = "Planification d'événements collaboratifs";
-"events.legacy_list.create_title" = "Créer un événement";
-"events.legacy_list.create_subtitle" = "Commencez à organiser votre événement collaboratif";
-"events.status.hosting" = "En préparation";
 "events.status.polling" = "Sondage en cours";
 "events.status.confirmed" = "Confirmé";
 "events.status.draft_preview" = "Prévisualisation organisateur";
 "events.status.date_confirmed" = "Date confirmée";
 "events.status.organizing" = "Organisation";
 "events.status.finalized" = "Finalisé";
-"events.status.event" = "Événement";
-"events.next_action.label" = "Prochaine action";
-"events.next_action.blocked_label" = "À compléter";
-"events.next_action.draft.title" = "Lancer le sondage";
-"events.next_action.draft.short" = "Finaliser le brouillon";
-"events.next_action.draft.subtitle" = "Le sondage est prêt à être envoyé aux invités.";
-"events.next_action.draft.blocked.participants" = "Ajoutez au moins un participant pour lancer le sondage.";
-"events.next_action.draft.blocked.slots" = "Ajoutez au moins un créneau avant d'ouvrir le sondage.";
-"events.next_action.draft.blocked.participants_and_slots" = "Ajoutez des participants et au moins un créneau avant d'ouvrir le sondage.";
-"events.next_action.polling.title" = "Voir les résultats";
-"events.next_action.polling.short" = "Vote en cours";
-"events.next_action.polling.subtitle" = "Consultez les votes et confirmez le créneau le plus solide.";
-"events.next_action.confirmed.title" = "Comparer les options";
-"events.next_action.confirmed.short" = "Organiser la suite";
-"events.next_action.confirmed.subtitle" = "Passez à la destination, au logement et aux choix collectifs.";
-"events.next_action.organizing.title" = "Suivre l'organisation";
-"events.next_action.organizing.short" = "Logistique active";
-"events.next_action.organizing.subtitle" = "Coordonnez réunions, budget, transport et confirmations.";
-"events.next_action.finalized.title" = "Consulter le plan final";
-"events.next_action.finalized.short" = "Prêt";
-"events.next_action.finalized.subtitle" = "L'événement est finalisé; les sections restent consultables.";
-"events.next_action.default.title" = "Continuer";
-"events.next_action.default.short" = "Voir l'événement";
-"events.next_action.default.subtitle" = "Continuez la préparation de l'événement.";
-"events.manage_participants" = "Gérer les participants";
-"events.view_results" = "Voir les résultats";
-"events.scenario_planning" = "Comparaison des options";
-"events.budget_overview" = "Aperçu du budget";
 "events.accommodation" = "Hébergement";
 "events.meal_planning" = "Planification des repas";
 "events.equipment_checklist" = "Liste d'équipement";
 "events.activity_planning" = "Planification d'activités";
-"events.close_accessibility" = "Fermer";
-"events.more_options" = "Plus d'options";
-"events.organizer_options_accessibility" = "Options organisateur";
-"events.remove_time_slot_accessibility" = "Supprimer le créneau";
-"events.cancel_keep" = "Annuler et garder l'événement";
-"events.delete_hint" = "Cette action est irréversible";
-"events.rsvp.going" = "Présent";
-"events.rsvp.not_going" = "Absent";
-"events.rsvp.maybe" = "Peut-être";
-"events.accessibility.rank" = "%@, rang #%lld, %lld points";
-"events.accessibility.its_you" = "C'est vous";
 
 // MARK: - Participants Accessibility
 "participants.options_accessibility" = "Options participants";
 "participants.add_accessibility" = "Ajouter le participant";
 "participants.choose_from_contacts" = "Choisir depuis les contacts";
 "participants.choose_from_contacts_accessibility" = "Choisir des participants depuis les contacts";
-"participants.count_accessibility" = "%lld participants";
 "participants.count.singular_format" = "%lld participant";
 "participants.count.plural_format" = "%lld participants";
 "participants.details_locked_accessibility" = "Détails verrouillés";
 "participants.details_unlocked_accessibility" = "Détails déverrouillés";
 "participants.start_poll.title" = "Lancer le sondage ?";
 "participants.start_poll.action" = "Lancer le sondage";
-"participants.start_poll.message" = "Les participants pourront voter sur les créneaux proposés. Vous pourrez suivre les réponses avant de confirmer la date finale.";
-"participants.start_poll.requires_slot" = "Ajoutez au moins un créneau avant de lancer le sondage.";
+"participants.start_poll.message" = "Les participants pourront voter sur les créneaux proposés. Tu pourras suivre les réponses avant de confirmer la date finale.";
+"participants.start_poll.requires_slot" = "Ajoute au moins un créneau avant de lancer le sondage.";
 "participants.poll_started.title" = "Sondage lancé";
 "participants.poll_started.message" = "Le sondage est maintenant ouvert aux participants.";
 "participants.title" = "Participants";
@@ -856,7 +419,7 @@
 "participants.contact_already_added_format" = "%@ - déjà ajouté";
 "participants.add_selected_format" = "Ajouter (%lld)";
 "participants.empty.title" = "Aucun participant";
-"participants.empty.draft_subtitle" = "Partagez le lien d’invitation ou ajoutez des participants manuellement.";
+"participants.empty.draft_subtitle" = "Partage le lien d’invitation ou ajoute des participants manuellement.";
 "participants.empty.joined_subtitle" = "Personne n'a encore rejoint cet événement.";
 "participants.accepted_subtitle" = "Ont confirmé ou ont accès aux détails";
 "participants.pending_subtitle" = "Invitations envoyées ou réponses à venir";
@@ -867,19 +430,18 @@
 "participants.error.no_email_contacts" = "Aucun contact avec adresse email disponible";
 "participants.error.no_new_participants" = "Aucun nouveau participant à ajouter";
 "participants.error.contacts_permission_denied" = "L'accès aux contacts est optionnel et a été refusé.";
-"participants.error.invalid_email" = "Saisissez une adresse email valide.";
+"participants.error.invalid_email" = "Saisis une adresse email valide.";
 "participants.error.add_failed" = "Impossible d'ajouter ce participant.";
 "participants.error.add_selected_failed_format" = "Impossible d'ajouter %d participant(s) sélectionné(s).";
 "participants.error.start_poll_failed" = "Impossible de lancer le sondage.";
-"participants.contacts_permission.title" = "Choisir depuis vos contacts ?";
-"participants.contacts_permission.message" = "Wakeve lit uniquement les noms et adresses email pour vous aider à inviter les bonnes personnes. Vous pouvez toujours ajouter une adresse manuellement.";
+"participants.contacts_permission.title" = "Choisir depuis tes contacts ?";
+"participants.contacts_permission.message" = "Wakeve lit uniquement les noms et adresses email pour t'aider à inviter les bonnes personnes. Tu peux toujours ajouter une adresse manuellement.";
 "participants.contacts_permission.continue" = "Continuer";
-"participants.draft_status.no_participants" = "Brouillon - partagez le lien ou ajoutez des participants";
-"participants.draft_status.link_ready" = "Lien d’invitation prêt - lancez le sondage quand les invités doivent voter";
-"participants.draft_status.no_slots" = "Brouillon - ajoutez au moins un créneau";
+"participants.draft_status.link_ready" = "Lien d’invitation prêt - lance le sondage quand les invités doivent voter";
+"participants.draft_status.no_slots" = "Brouillon - ajoute au moins un créneau";
 "participants.draft_status.ready" = "Prêt à lancer le sondage";
 "participants.presence.title" = "Pouls du groupe";
-"participants.presence.subtitle.empty" = "Personne n'est encore rattaché à l'événement. Partagez le poster, puis Wakeve suit les réponses.";
+"participants.presence.subtitle.empty" = "Personne n'est encore rattaché à l'événement. Partage le poster, puis Wakeve suit les réponses.";
 "participants.presence.subtitle.pending_only" = "%lld invitation(s) attendent encore une réponse avant que le groupe prenne forme.";
 "participants.presence.subtitle.active" = "%lld présent(s) · %lld en attente · %lld indisponible(s). L'état du groupe reste visible ici.";
 "participants.presence.metric.going" = "Présents";
@@ -894,7 +456,7 @@
 "participants.timezone.single_subtitle_format" = "Les options de sondage sont ancrées en %@. Les invités vérifient l’équivalent local avant de voter.";
 "participants.timezone.multi_subtitle_format" = "Ce sondage couvre %lld fuseaux horaires. Wakeve garde chaque option étiquetée pour éviter les suppositions.";
 "participants.timezone.event_label" = "Heure événement";
-"participants.timezone.local_label" = "Votre appareil";
+"participants.timezone.local_label" = "Ton appareil";
 "participants.timezone.options_label" = "Options du sondage";
 "participants.timezone.options_format" = "%lld proposée(s)";
 "participants.timezone.same_badge" = "Même";
@@ -926,7 +488,7 @@
 "transport.readiness.missing_departure_singular_format" = "%d participant doit préciser son départ.";
 "transport.readiness.missing_departure_plural_format" = "%d participants doivent préciser leur départ.";
 "transport.ai.title" = "Suggestion transport";
-"transport.ai.subtitle" = "Préparez la coordination du groupe à relire avant partage.";
+"transport.ai.subtitle" = "Prépare la coordination du groupe à relire avant partage.";
 "transport.ai.missing_details" = "À compléter";
 "transport.ai.ideas" = "Idées";
 "transport.ai.message_to_send" = "Message à envoyer";
@@ -969,14 +531,8 @@
 "sync.pending_changes" = "Modifications locales en attente d'envoi";
 "sync.offline_available" = "Données locales disponibles hors ligne";
 
-// MARK: - Calendar Accessibility
-"calendar.add_event_accessibility" = "Ajouter l'événement au calendrier";
-"calendar.add_event_hint" = "Ajoute « %@ » à votre calendrier natif";
-
 // MARK: - Invitation
-"invitation.title" = "Inviter des participants";
-"invitation.qr_code" = "QR Code";
-"invitation.scan_to_join" = "Scannez pour rejoindre";
+"invitation.scan_to_join" = "Scanne pour rejoindre";
 "invitation.link" = "Lien d'invitation";
 "invitation.copied" = "Copié";
 "invitation.copy" = "Copier";
@@ -988,12 +544,11 @@
 "invitation.social_share_text" = "Tu es invité(e) : %@\n%@\nVote et suis le plan ici : %@";
 "invitation.copy_message" = "Copier le message d’invitation";
 "invitation.copied_message" = "Message d’invitation copié";
-"invitation.delivery_state.not_sent" = "Envoyez le poster Wakeve sur Messages, WhatsApp ou Mail, puis gardez RSVP et votes attachés à cet événement.";
-"invitation.delivery_state.pending_only" = "%lld invitation(s) attendent une réponse. Relancez avec le poster sans perdre le contexte.";
+"invitation.delivery_state.not_sent" = "Envoie le poster Wakeve sur Messages, WhatsApp ou Mail, puis garde RSVP et votes attachés à cet événement.";
+"invitation.delivery_state.pending_only" = "%lld invitation(s) attendent une réponse. Relance avec le poster sans perdre le contexte.";
 "invitation.delivery_state.with_acceptances" = "%lld accepté(s) · %lld en attente. Le lien reste prêt pour les invités tardifs.";
 
 // MARK: - Settings Sheet
-"settings_sheet.title" = "Réglages";
 "settings_sheet.notifications" = "Notifications";
 "settings_sheet.enabled" = "Activées";
 "settings_sheet.disabled" = "Désactivées";
@@ -1007,17 +562,17 @@
 
 // MARK: - Data Management
 "data_management.title" = "Gestion des données";
-"data_management.subtitle" = "Contrôlez les données de compte stockées par Wakeve sur cet appareil et sur le backend.";
+"data_management.subtitle" = "Contrôle les données de compte stockées par Wakeve sur cet appareil et sur le backend.";
 "data_management.scope_title" = "Portée de la suppression";
 "data_management.account_scope" = "La suppression du compte est permanente. Wakeve supprime le compte et les données de profil personnelles, révoque les sessions et tokens push, efface les identifiants locaux et anonymise l'historique partagé quand c'est nécessaire.";
 "data_management.guest_scope" = "Les données invité sont stockées localement sur cet appareil. Leur suppression efface le profil invité local et les données Wakeve locales sans contacter le backend.";
 "data_management.delete_account" = "Supprimer le compte";
 "data_management.delete_guest_data" = "Supprimer les données invité";
-"data_management.confirm_account_message" = "Cette action supprime définitivement votre compte Wakeve et efface les identifiants locaux après confirmation du backend. Elle est irréversible.";
+"data_management.confirm_account_message" = "Cette action supprime définitivement ton compte Wakeve et efface les identifiants locaux après confirmation du backend. Elle est irréversible.";
 "data_management.confirm_guest_message" = "Cette action supprime définitivement les données invité locales de cet appareil. Aucune requête backend ne sera envoyée.";
-"data_management.account_deleted" = "Votre compte a été supprimé.";
+"data_management.account_deleted" = "Ton compte a été supprimé.";
 "data_management.guest_deleted" = "Les données invité ont été supprimées.";
-"data_management.delete_error" = "Nous n'avons pas pu supprimer votre compte. Vérifiez votre connexion puis réessayez.";
+"data_management.delete_error" = "Nous n'avons pas pu supprimer ton compte. Vérifie ta connexion puis réessaie.";
 
 // MARK: - Moderation
 "moderation.title" = "Signaler ou bloquer";
@@ -1028,7 +583,7 @@
 "moderation.block_user" = "Bloquer l'utilisateur";
 "moderation.unblock_user" = "Debloquer l'utilisateur";
 "moderation.reason" = "Motif";
-"moderation.details_placeholder" = "Ajoutez du contexte pour l'équipe support Wakeve";
+"moderation.details_placeholder" = "Ajoute du contexte pour l'équipe support Wakeve";
 "moderation.report_help" = "Les signalements sont envoyés au support Wakeve pour revue. Les autres participants ne voient pas les détails du signalement.";
 "moderation.response_process" = "Wakeve examine les signalements d'abus et peut masquer, rejeter, restaurer ou escalader un contenu.";
 "moderation.contact_support" = "Contacter le support";
@@ -1036,12 +591,11 @@
 "moderation.report_submitted" = "Signalement envoyé.";
 "moderation.user_blocked" = "Utilisateur bloqué.";
 "moderation.user_unblocked" = "Utilisateur debloque.";
-"moderation.submit_error" = "Nous n'avons pas pu envoyer cette demande de modération. Réessayez plus tard.";
+"moderation.submit_error" = "Nous n'avons pas pu envoyer cette demande de modération. Réessaie plus tard.";
 "moderation.pending_review" = "En attente de revue";
 "moderation.rejected" = "Rejeté";
 "moderation.hidden" = "Masqué";
 "moderation.report_comment_context" = "Commentaire dans cet événement";
-"moderation.report_chat_context" = "Message dans cette conversation";
 "moderation.report_event_context" = "Détails de l'événement";
 "moderation.rejected_content_notice" = "Ce contenu a été rejeté par la modération.";
 "moderation.hidden_content_notice" = "Ce contenu est masqué après revue de modération.";
@@ -1065,128 +619,31 @@
 "comment.time.days_ago_format" = "%lld j";
 "comment.time.weeks_ago_format" = "%lld sem.";
 "comment.time.unknown" = "Heure inconnue";
-"settings_sheet.sign_out" = "Se déconnecter";
 
 // MARK: - Additional Common
 "common.add" = "Ajouter";
 "common.edit" = "Modifier";
 "common.confirm" = "Confirmer";
-"common.required" = "Requis";
-"common.unknown" = "Inconnu";
-"common.see_all" = "Voir tout";
-"common.validate" = "Valider";
 
 // MARK: - Event Creation
-"events.create" = "Créer un événement";
-"events.create_short" = "Créer";
-"events.save_draft" = "Enregistrer le brouillon";
-"events.organized_by" = "Organisé par %@";
-"events.create_event_button" = "Créer l'événement";
-"create_event.title" = "Nouvel événement";
-"create_event.progress_format" = "Étape %d / %d";
-"create_event.description_placeholder" = "Description courte";
 "create_event.title_label" = "Titre de l’événement";
-"create_event.title_placeholder" = "Donnez un nom à votre événement";
-"create_event.ai.title" = "Créer avec une phrase";
-"create_event.ai.badge" = "Suggestion";
-"create_event.ai.prompt_placeholder" = "Décris ton événement";
-"create_event.ai.prepare" = "Préparer";
-"create_event.ai.cancelled" = "Suggestion annulée";
-"create_event.ai.dates_title" = "Dates";
-"create_event.ai.checklist_title" = "Checklist";
-"create_event.ai.polls_title" = "Sondages";
-"create_event.ai.ignore" = "Ignorer";
-"create_event.add_slot" = "Ajouter un créneau";
-"create_event.add_slot_hint" = "Ajoutez des créneaux maintenant, ou décidez la date avec le groupe après partage.";
-"create_event.location_label" = "Lieu";
-"create_event.invite_question" = "Combien de personnes attendez-vous ?";
-"create_event.invite_hint" = "Vous pourrez inviter les personnes précises après la création.";
-"create_event.confirm.ready" = "Prêt à créer";
-"create_event.name_label" = "Nom";
-"create_event.untitled" = "Sans titre";
-"create_event.slots_label" = "Créneaux";
-"create_event.location_later" = "À choisir plus tard";
-"create_event.guests_label" = "Invités";
-"create_event.options_label" = "Options";
-"create_event.scenario_matrix_count_format" = "%d combinaison(s) créneau × destination";
-"create_event.preview_hint" = "Un aperçu s’ouvrira avant la création de l’événement.";
-"create_event.group_size" = "Taille du groupe";
-"create_event.reset" = "Réinitialiser";
-"create_event.background_label" = "Fond";
-"create_event.background_custom" = "Personnalisé";
-"create_event.background_default" = "Par défaut";
-"create_event.mode_hint" = "Le mode options combine les créneaux avec le lieu choisi. Gardez le mode créneaux pour un sondage simple.";
-"create_event.preview_action" = "Voir l’aperçu";
-"create_event.preview.more_options_singular_format" = "+%d autre option";
-"create_event.preview.more_options_plural_format" = "+%d autres options";
-"create_event.smart_plan.wakeve" = "Plan préparé par Wakeve";
-"create_event.smart_plan.explore" = "Plan préparé depuis Explorer";
-"create_event.smart_plan.slots_created" = "Créneaux créés";
-"create_event.smart_plan.to_validate" = "À valider avec le groupe";
-"create_event.smart_plan.editable_hint" = "Tout reste modifiable avant l’envoi de l’invitation.";
-"create_event.default_description" = "Organisation à préciser avec le groupe.";
-"create_event.validation.title_required" = "Ajoutez au moins un titre pour créer l’événement.";
-"create_event.validation.slot_required" = "Ajoutez au moins un créneau avant de continuer.";
-"create_event.validation.destination_required" = "Ajoutez au moins une destination pour le mode scénarios.";
-"create_event.validation.review_details" = "Vérifiez les détails avant de continuer.";
-"create_event.vote_mode" = "Mode de vote";
-"create_event.vote_mode.slots" = "Créneaux";
-"create_event.vote_mode.options" = "Options";
-"create_event.proposed_slots_count_format" = "%d créneaux proposés";
-"create_event.no_slots" = "Aucun créneau";
-"create_event.date_later" = "Date à décider avec le groupe";
-"create_event.vote_options_count_format" = "%d options de vote";
-"create_event.participant_singular_format" = "%d participant";
-"create_event.participant_plural_format" = "%d participants";
-"create_event.expected_participant_singular_format" = "%d attendu";
-"create_event.expected_participant_plural_format" = "%d attendus";
-"create_event.checklist.food" = "Repas";
-"create_event.checklist.transport" = "Transport";
-"create_event.checklist.venue" = "Lieu";
-"create_event.checklist.guests" = "Invités";
-"create_event.checklist.equipment" = "Matériel";
-"create_event.checklist.budget" = "Budget";
-"create_event.date_time_at_format" = "%@ à %@";
-"create_event.step.name.title" = "Nom";
-"create_event.step.date.title" = "Date";
-"create_event.step.place.title" = "Lieu";
-"create_event.step.invite.title" = "Invités";
-"create_event.step.confirm.title" = "Confirmer";
-"create_event.step.name.eyebrow" = "Nom";
-"create_event.step.date.eyebrow" = "Date";
-"create_event.step.place.eyebrow" = "Lieu";
-"create_event.step.invite.eyebrow" = "Invités";
-"create_event.step.confirm.eyebrow" = "Confirmation";
-"create_event.step.name.question" = "Comment s’appelle l’événement ?";
-"create_event.step.date.question" = "Quand aura-t-il lieu ?";
-"create_event.step.place.question" = "Où le groupe se retrouve ?";
-"create_event.step.invite.question" = "Combien de personnes attendez-vous ?";
-"create_event.step.confirm.question" = "Vérifiez les détails.";
-"create_event.step.name.subtitle" = "Un nom clair suffit pour commencer. La description peut rester légère.";
-"create_event.step.date.subtitle" = "Ajoutez un ou plusieurs créneaux pour lancer le sondage avec de vraies options.";
-"create_event.step.place.subtitle" = "Ajoutez un lieu maintenant pour alimenter les options, la météo et le transport.";
-"create_event.step.invite.subtitle" = "Indiquez la taille du groupe. Les invitations précises arrivent juste après.";
-"create_event.step.confirm.subtitle" = "Ajustez seulement les options utiles, puis prévisualisez l’invitation.";
-"create_event.preview.scenario_matrix_explanation" = "Les participants voteront sur des options complètes combinant créneau et destination.";
-"create_event.proposed_slots_title" = "Créneaux proposés";
+"create_event.title_placeholder" = "Donne un nom à ton événement";
+"create_event.validation.title_required" = "Ajoute au moins un titre pour créer l’événement.";
+"create_event.validation.slot_required" = "Ajoute au moins un créneau avant de continuer.";
 
 // MARK: - Meetings
 "meetings.create" = "Créer une réunion";
-"meetings.edit" = "Modifier la réunion";
 "meetings.cancel" = "Annuler la réunion";
 "meetings.cancel_confirm" = "Annuler la réunion ?";
-"meetings.cancel_hint" = "Cette action ne peut pas être annulée.";
-"meetings.add_to_calendar_title" = "Ajouter au calendrier ?";
 "meetings.cancelled" = "Annulée";
-"meetings.cancelled_plural" = "Annulées";
 "meetings.generate_link" = "Créer un lien";
 "meetings.loading" = "Chargement des réunions...";
 "meetings.empty_title" = "Aucune réunion";
-"meetings.empty_subtitle" = "Créez une réunion virtuelle quand le groupe doit décider ou faire un point d’organisation en direct.";
+"meetings.empty_subtitle" = "Crée une réunion virtuelle quand le groupe doit décider ou faire un point d’organisation en direct.";
 "meetings.sync.pending" = "Modifications locales de réunion en attente d’envoi";
 "meetings.sync.offline" = "Données de réunion disponibles hors ligne";
 "meetings.create_sheet_title" = "Nouvelle réunion";
-"meetings.create_sheet_subtitle" = "Créez un point en direct pour décider, organiser ou aligner le groupe sans perdre le contexte de l’événement.";
+"meetings.create_sheet_subtitle" = "Crée un point en direct pour décider, organiser ou aligner le groupe sans perdre le contexte de l’événement.";
 "meetings.default_title_format" = "Réunion %@";
 "meetings.platform_other" = "Autre";
 "meetings.status_unknown" = "Inconnu";
@@ -1208,75 +665,23 @@
 
 // MARK: - Status Labels
 "status.confirmed" = "Confirmé";
-"status.pending" = "En attente";
-"status.maybe" = "Peut-être";
-"status.cancelled" = "Annulé";
-"status.reserved" = "Réservé";
 "status.draft" = "Brouillon";
 "status.polling" = "Sondage";
 
-// MARK: - Equipment
-"equipment.add" = "Ajouter un équipement";
-"equipment.status.required" = "Requis";
-"equipment.status.assigned" = "Assigné";
-"equipment.status.confirmed" = "Confirmé";
-"equipment.status.packed" = "Emballé";
-"equipment.status.cancelled" = "Annulé";
-"equipment.filter.required" = "Requis";
-"equipment.filter.assigned" = "Assignés";
-"equipment.filter.confirmed" = "Confirmés";
-"equipment.filter.packed" = "Emballés";
-"equipment.filter.cancelled" = "Annulés";
-"equipment.assigned_to" = "Assigné à";
-"equipment.mark_packed" = "Marquer comme emballé";
-"equipment.mark_unpacked" = "Marquer comme non emballé";
-"equipment.assign" = "Assigner cet équipement";
-"equipment.reassign" = "Réassigner cet équipement";
-"equipment.assign_hint" = "Appuyez pour assigner cet équipement à un participant";
-"equipment.reassign_hint" = "Appuyez pour réassigner cet équipement";
-"equipment.pack_toggle_hint" = "Appuyez pour changer le statut d'emballage de cet équipement";
-"equipment.add_hint" = "Appuyez pour ajouter un nouvel équipement à la liste";
-"equipment.stats.required" = "Requis";
-"equipment.stats.assigned" = "Assignés";
-"equipment.stats.confirmed" = "Confirmés";
-
-// MARK: - Activity Planning
-"activity.create" = "Créer une activité";
-"activity.create_first" = "Créer la première activité";
-"activity.create_new" = "Créer une nouvelle activité";
-"activity.create_new_hint" = "Ajoute une nouvelle activité à l'événement";
-"activity.delete_title" = "Supprimer l'activité";
-"activity.delete" = "Supprimer";
-
 // MARK: - Meal Planning
 "meal.add" = "Ajouter un repas";
-"meal.delete_title" = "Supprimer ce repas ?";
-"meal.delete_message" = "Cette action est irréversible.";
 "meal.delete_constraint" = "Supprimer cette contrainte ?";
 
-// MARK: - Accommodation
-"accommodation.delete_title" = "Supprimer l'hébergement ?";
-
-// MARK: - Inbox
-"inbox.events" = "Événements";
-"inbox.invitation_hint" = "Appuyez pour voir les détails de l'invitation";
-"inbox.vote_hint" = "Appuyez pour voter ou voir les résultats";
-"inbox.comment_hint" = "Appuyez pour lire le commentaire";
-"inbox.event_hint" = "Appuyez pour voir les détails de l'événement";
-
 // MARK: - Onboarding
-"onboarding.create_events_title" = "Créez vos événements";
-"onboarding.create_events_desc" = "Organisez facilement des événements entre amis et collègues. Définissez des dates, proposez des créneaux horaires et laissez les participants voter.";
+"onboarding.create_events_title" = "Crée tes événements";
+"onboarding.create_events_desc" = "Organise facilement des événements entre amis et collègues. Définis des dates, propose des créneaux horaires et laisse les participants voter.";
 "onboarding.feature.quick_creation" = "Création rapide d'événements";
 "onboarding.feature.availability_poll" = "Sondage de disponibilité";
 "onboarding.feature.auto_calculate" = "Calcul automatique du meilleur créneau";
 "onboarding.proof.create_title" = "D’une phrase à un vrai plan";
 "onboarding.proof.create_detail" = "Wakeve transforme l’idée en dates, lieux, checklist et message d’invitation modifiables.";
-"onboarding.organize_title" = "Organisez tout en un";
-"onboarding.organize_desc" = "Gérez l'hébergement, les repas, les activités et le budget. Tout au même endroit pour une organisation sans faille.";
-
-// MARK: - Shared Components
-"home.my_events" = "Mes Événements";
+"onboarding.organize_title" = "Organise tout en un";
+"onboarding.organize_desc" = "Gère l'hébergement, les repas, les activités et le budget. Tout au même endroit pour une organisation sans faille.";
 
 // MARK: - Location
 "location.validate_selection" = "Valider la sélection du lieu";
@@ -1284,7 +689,6 @@
 "location.open_settings" = "Ouvrir les réglages";
 
 // MARK: - Budget
-"budget.close" = "Fermer";
 "budget.expenses_loading" = "Chargement des dépenses...";
 "budget.loading" = "Chargement du budget...";
 "budget.add_expense" = "Ajouter une dépense";
@@ -1304,14 +708,14 @@
 "budget.overview.view_all_expenses" = "Voir toutes les dépenses";
 "budget.expenses_title" = "Dépenses";
 "budget.empty_expenses_title" = "Aucun coût à décider";
-"budget.empty_expenses_body" = "Ajoutez logement, transport, billets ou achats partagés avant que le groupe valide le plan final.";
+"budget.empty_expenses_body" = "Ajoute logement, transport, billets ou achats partagés avant que le groupe valide le plan final.";
 "budget.delete_confirmation.title" = "Supprimer cette dépense ?";
 "budget.mark_paid" = "Marquer payé";
 "budget.expense_actions_accessibility" = "Actions dépense";
 "budget.total_spent" = "Total dépensé";
 "budget.total_estimated" = "Budget estimé";
 "budget.add_sheet.title" = "Nouvelle dépense";
-"budget.add_sheet.subtitle" = "Ajoutez un coût clair avant la décision finale pour éviter les surprises de groupe.";
+"budget.add_sheet.subtitle" = "Ajoute un coût clair avant la décision finale pour éviter les surprises de groupe.";
 "budget.add_sheet.name" = "Nom de la dépense";
 "budget.add_sheet.name_placeholder" = "Train, logement, restaurant...";
 "budget.add_sheet.description" = "Description";
@@ -1320,216 +724,36 @@
 "budget.add_sheet.estimated_amount" = "Montant estimé";
 "budget.add_sheet.add_action" = "Ajouter la dépense";
 "budget.add_sheet.validation.name_required" = "Le nom est obligatoire.";
-"budget.add_sheet.validation.amount_required" = "Veuillez entrer un montant valide.";
-
-// MARK: - Explore (Legacy)
-"explore.loading_events" = "Chargement des événements...";
+"budget.add_sheet.validation.amount_required" = "Entre un montant valide.";
+"budget.add_item.error" = "Impossible d'ajouter la dépense. Réessaie.";
+"budget.mark_paid.error" = "Impossible de marquer la dépense comme payée. Réessaie.";
 
 // MARK: - Accommodation (Extended)
-"accommodation.title" = "Hébergement";
 "accommodation.address" = "Adresse";
-"accommodation.book" = "Réserver";
 "accommodation.capacity" = "Capacité";
-"accommodation.delete_message" = "Cette action est irréversible. Toutes les données seront définitivement supprimées.";
-"accommodation.add_title" = "Ajouter un hébergement";
-"accommodation.edit_title" = "Modifier l'hébergement";
-"accommodation.empty_message" = "Ajoutez votre premier hébergement pour cet événement.";
-"accommodation.empty_title" = "Aucun hébergement";
-"accommodation.night" = "nuit";
-"accommodation.nights" = "nuits";
-"accommodation.period" = "Période";
-"accommodation.persons" = "personnes";
-"accommodation.price" = "Prix";
-"accommodation.total" = "Total";
-"accommodation.field.booking_url" = "URL de réservation";
-"accommodation.field.capacity" = "Capacité";
-"accommodation.field.name" = "Nom";
-"accommodation.field.notes" = "Notes";
-"accommodation.field.number_of_nights" = "Nombre de nuits";
-"accommodation.field.price_per_night" = "Prix par nuit";
-"accommodation.field.status" = "Statut";
-"accommodation.field.type" = "Type";
-"accommodation.section.booking" = "Réservation";
-"accommodation.section.capacity_duration" = "Capacité et durée";
-"accommodation.section.dates" = "Dates";
-"accommodation.section.general_info" = "Informations générales";
-"accommodation.section.notes" = "Notes";
-"accommodation.section.pricing" = "Tarification";
-"accommodation.type.hostel" = "Auberge";
-"accommodation.type.hotel" = "Hôtel";
-"accommodation.type.other" = "Autre";
-"accommodation.type.vacation_rental" = "Location de vacances";
 
 // MARK: - Common (Extended)
-"common.double_tap_to_select" = "Appuyez deux fois pour sélectionner";
-"common.dictation" = "Dictée";
+"common.double_tap_to_select" = "Appuie deux fois pour sélectionner";
 "common.not_selected" = "Non sélectionné";
-"common.password_field_accessibility_hint" = "Champ de mot de passe";
-"common.search_action_accessibility" = "Action de recherche";
 "common.selected" = "Sélectionné";
-"common.text_field_accessibility_hint" = "Champ de texte";
-"common.share" = "Partager";
 
 // MARK: - Events (Extended)
-"events.add_background" = "Ajouter un arrière-plan";
-"events.background.photos" = "Photos";
-"events.background.camera" = "Caméra";
-"events.background.change" = "Modifier";
-"events.background.remove" = "Supprimer";
-"events.background.modify" = "Modifier l'arrière-plan";
-"events.background.adjust" = "Ajuster l'arrière-plan";
-"events.background.edit_description" = "Modifier la description de l'image";
-"events.background.description_placeholder" = "Description de l'image...";
-"events.background.delete" = "Supprimer l'arrière-plan";
-"events.background.select_preset" = "Sélectionner un arrière-plan prédéfini";
-"events.add_description" = "Ajouter une description";
-"events.add_end_time" = "Ajouter une heure de fin";
 "events.all_day" = "Jour entier";
-"events.create_error" = "Impossible de créer l'événement";
-"events.creating" = "Création en cours...";
-"events.date_and_time" = "Date et heure";
-"events.end" = "Fin";
-"events.type" = "Type d'événement";
-"events.type.choose" = "Choisir un type";
-"events.advanced_options" = "Options avancées";
 "events.location" = "Lieu";
-"events.preview" = "Aperçu";
-"events.preview.invitation_title" = "Aperçu de l'invitation";
-"events.preview.invitation_description" = "Voici l'invitation que verront vos invités. Dans la prochaine étape, vous publierez votre invitation et inviterez des personnes à votre évènement.";
-"events.preview.weather" = "Météo";
 "weather.title" = "Météo";
 "weather.loading" = "Chargement météo";
-"weather.stale_badge" = "Prévision en cache";
-"weather.required_date_message" = "Date confirmée requise pour afficher la météo.";
-"weather.past_date_message" = "La météo n'est plus disponible pour cette date passée.";
-"weather.unavailable_message" = "Météo indisponible. Vérifiez la capacité WeatherKit et la connexion.";
-"weather.unavailable_title" = "Météo indisponible";
 "weather.pending_title" = "Météo bientôt disponible";
-"weather.pending_body_format" = "Les prévisions seront demandées à partir du %@.";
-"weather.missing_location_title" = "Lieu à préciser";
-"weather.missing_location_body" = "Ajoutez un lieu ou une adresse pour afficher la météo de l'événement.";
-"weather.map_accessibility_format" = "Carte du lieu météo %@";
-"events.preview.itinerary" = "Itinéraire";
 "events.start" = "Début";
-"events.title_placeholder" = "Titre de\nl'événement";
-
-// MARK: - Explore (Extended)
-"explore.category_all" = "Tout";
-"explore.category_culture" = "Culture";
-"explore.category_professional" = "Pro";
-"explore.category_social" = "Social";
-"explore.category_sport" = "Sport";
-"explore.featured_events" = "Événements en vedette";
-"explore.no_events" = "Aucun événement";
-"explore.no_events_message" = "Créez votre premier événement pour commencer !";
-"explore.recommended_for_you" = "Recommandés pour vous";
-"explore.search_placeholder" = "Rechercher...";
-"explore.see_more" = "Voir plus";
-
-// MARK: - Filters
-"filter.active" = "Actifs";
-"filter.all" = "Tous";
-"filter.completed" = "Terminés";
-
-// MARK: - Inbox (Extended)
-"inbox.title" = "Messages";
-"inbox.selection.select" = "Sélectionner";
-"inbox.selection.select_all" = "Tout sélectionner";
-"inbox.event_conversation_count_singular_format" = "%d conversation d’événement";
-"inbox.event_conversation_count_plural_format" = "%d conversations d’événement";
-"inbox.search_placeholder" = "Rechercher un événement ou un message";
-"inbox.general_conversation" = "Conversation générale";
-"inbox.action_required" = "Action";
-"inbox.coordination.title" = "Pouls coordination";
-"inbox.coordination.subtitle" = "Voyez ce qui demande attention avant que la discussion de groupe ne disperse à nouveau les décisions.";
-"inbox.coordination.unread" = "Non lus";
-"inbox.coordination.action_required" = "À trancher";
-"inbox.coordination.events" = "Événements";
-"inbox.empty.no_message" = "Aucun message";
-"inbox.conversation_fallback_message" = "Les échanges de cet événement apparaîtront ici.";
-"inbox.current_step" = "Étape actuelle";
-"inbox.step.draft" = "Brouillon";
-"inbox.step.polling" = "Sondage";
-"inbox.step.comparing" = "Comparaison";
-"inbox.step.confirmed" = "Confirmé";
-"inbox.step.organizing" = "Organisation";
-"inbox.step.finalized" = "Finalisé";
-"inbox.handoff.title" = "Relancer le groupe";
-"inbox.handoff.subtitle" = "Envoyez un message prêt à coller dans Messages, WhatsApp ou le canal existant, puis gardez les décisions structurées ici.";
-"inbox.handoff.share_action" = "Partager sur Messages ou WhatsApp";
-"inbox.handoff.copy_action" = "Copier le message";
-"inbox.handoff.copied" = "Message copié";
-"inbox.handoff.code_line_format" = "\nCode Wakeve : %@";
-"inbox.handoff.message.invitation_format" = "Wakeve - %@\n%@\nRejoins l’événement et réponds directement dans Wakeve.%@";
-"inbox.handoff.message.poll_format" = "Wakeve - %@\n%@\nVote ou confirme ta dispo dans Wakeve pour qu’on tranche sans relancer tout le groupe.%@";
-"inbox.handoff.message.comment_format" = "Wakeve - %@\n%@\nJe centralise les réponses dans Wakeve pour éviter de perdre les décisions dans le fil.%@";
-"inbox.handoff.message.event_update_format" = "Wakeve - %@\n%@\nToutes les infos à jour sont dans Wakeve.%@";
-"inbox.decision.title" = "Instantané décision";
-"inbox.decision.subtitle" = "Wakeve transforme ce fil en prochaine décision concrète, pas en autre endroit à parcourir.";
-"inbox.decision.latest_signal" = "Dernier signal";
-"inbox.decision.open_items" = "Points ouverts";
-"inbox.decision.open_items_format" = "%lld à résoudre";
-"inbox.decision.next_action" = "Prochaine action";
-"inbox.decision.next.invitation" = "Collecter les RSVP avant de faire avancer l’événement.";
-"inbox.decision.next.poll" = "Obtenir les derniers votes et verrouiller l’option gagnante.";
-"inbox.decision.next.comment" = "Répondre une fois, puis garder la décision ici.";
-"inbox.decision.next.updated" = "Partager la mise à jour et garder tout le monde aligné.";
-"inbox.decision.signal.invite" = "Invite";
-"inbox.decision.signal.poll" = "Sondage";
-"inbox.decision.signal.comment" = "Commentaire";
-"inbox.decision.signal.update" = "Mise à jour";
-"inbox.detail.poll_trends" = "Tendances du sondage";
-"inbox.detail.invited_title" = "Vous êtes invité";
-"inbox.detail.event_fallback" = "Événement";
-"inbox.detail.participants_invited_format" = "%d participants invités";
-"inbox.detail.new_comment" = "Nouveau commentaire";
-"inbox.detail.event_update" = "Mise à jour de l’événement";
-"inbox.detail.event_progress" = "Progression de l’événement";
-"inbox.detail.conversations" = "Conversations";
-"inbox.detail.update.status_polling" = "Statut passé en sondage";
-"inbox.detail.update.new_participants" = "2 nouveaux participants ont rejoint l’événement";
-"inbox.detail.update.deadline_extended" = "Date limite prolongée jusqu’à vendredi prochain";
-"inbox.action.mark_read" = "Marquer comme lu";
-"inbox.action.mark_done" = "Marquer comme terminé";
-"inbox.author.group" = "Groupe";
-"inbox.author.invitation" = "Invitation Wakeve";
-"inbox.author.poll" = "Sondage Wakeve";
-"inbox.author.event_update" = "Mise à jour Wakeve";
-"inbox.all_events" = "Tous les événements";
-"inbox.empty.events_subtitle" = "Les événements auxquels vous participez apparaîtront ici.";
-"inbox.empty.focused_subtitle" = "Les éléments importants apparaîtront ici.";
-"inbox.empty.no_events" = "Aucun événement";
-"inbox.empty.no_notifications_for" = "Aucune notification pour %@";
-"inbox.empty.no_focused" = "Aucun élément focus";
-"inbox.empty.no_notifications" = "Aucune notification";
-"inbox.empty.no_unread" = "Aucun message non lu";
-"inbox.empty.notifications_subtitle" = "Vos notifications apparaîtront ici.";
-"inbox.empty.unread_subtitle" = "Vous avez lu tous vos messages.";
-"inbox.filter_by_event" = "Filtrer par événement";
-"inbox.filter_all_subtitle" = "Afficher toutes les conversations d'événement.";
-"inbox.filter_event_subtitle" = "Afficher seulement les messages de cet événement.";
-"inbox.filter.inbox" = "Inbox";
-"inbox.filter.focused" = "Prioritaires";
-"inbox.filter.new" = "Nouveau";
-"inbox.filter.unread" = "Non lus";
-"inbox.filter.event" = "Événement";
-"inbox.filter.clear_all" = "Effacer tous les filtres";
-"inbox.filter.one_applied" = "Un filtre appliqué.";
-"inbox.filter.many_applied" = "%lld filtres appliqués.";
-"inbox.type.comment" = "Commentaire";
-"inbox.type.event_update" = "Mise à jour de l'événement";
-"inbox.type.invitation" = "Invitation";
-"inbox.type.poll_update" = "Mise à jour du sondage";
 
 // MARK: - Location (Extended)
 "location.clear_search" = "Effacer la recherche";
 "location.current_position" = "Position actuelle";
-"location.custom_place_hint" = "Entrez un nom de lieu personnalisé";
+"location.custom_place_hint" = "Entre un nom de lieu personnalisé";
 "location.my_current_position" = "Ma position actuelle";
 "location.optional_hint" = "Facultatif";
-"location.permission_message" = "L'accès à la localisation vous permet de trouver des lieux à proximité et d'obtenir des suggestions.";
+"location.permission_message" = "L'accès à la localisation te permet de trouver des lieux à proximité et d'obtenir des suggestions.";
 "location.place_name" = "Nom du lieu";
-"location.place_name_placeholder" = "Saisissez un nom de lieu";
+"location.place_name_placeholder" = "Saisis un nom de lieu";
 "location.search_places" = "Rechercher des lieux";
 "location.suggestions" = "Suggestions";
 "location.use_current_position_hint" = "Utiliser la position actuelle";
@@ -1537,39 +761,23 @@
 "location.voice_search_hint" = "Rechercher par la voix";
 
 // MARK: - Meetings (Extended)
-"meetings.add_to_calendar" = "Ajouter au calendrier";
-"meetings.add_to_calendar_hint" = "Ajoute cette réunion à votre calendrier";
-"meetings.add_to_calendar_message" = "Cette réunion sera ajoutée à votre calendrier.";
-"meetings.cancel_warning" = "Cette action ne peut pas être annulée.";
-"meetings.date_time" = "Date et heure";
-"meetings.date_time_label" = "Date et heure";
 "meetings.description_label" = "Description de la réunion";
-"meetings.description_optional" = "Description (optionnel)";
 "meetings.detail_title" = "Détails de la réunion";
 "meetings.duration" = "Durée";
 "meetings.ended" = "Terminée";
-"meetings.ended_plural" = "Terminées";
 "meetings.field_title" = "Titre";
 "meetings.generate" = "Créer";
 "meetings.generate_link_description" = "Un nouveau lien de réunion sera généré.";
 "meetings.generate_link_info" = "Le lien existant sera remplacé.";
-"meetings.hours" = "Heures";
 "meetings.join" = "Rejoindre la réunion";
 "meetings.join_hint" = "Ouvre le lien de la réunion";
 "meetings.minutes" = "Minutes";
 "meetings.not_found" = "Réunion non trouvée";
-"meetings.organizer" = "Organisateur";
-"meetings.participants" = "Participants";
-"meetings.people" = "personnes";
 "meetings.platform" = "Plateforme";
-"meetings.ready_to_join" = "Prêt à rejoindre";
 "meetings.regenerate_link" = "Régénérer le lien";
 "meetings.scheduled" = "Planifiée";
-"meetings.scheduled_plural" = "Planifiées";
-"meetings.select_date" = "Sélectionner la date";
-"meetings.select_platform" = "Sélectionnez une plateforme";
+"meetings.select_platform" = "Sélectionne une plateforme";
 "meetings.started" = "En cours";
-"meetings.started_plural" = "En cours";
 "meetings.title" = "Réunions";
 "meetings.title_placeholder" = "Titre de la réunion";
 
@@ -1578,7 +786,7 @@
 "payment.shared_title" = "Cagnotte partagée";
 "payment.default_title_format" = "Cagnotte %@";
 "payment.goal_ratio_format" = "sur %@";
-"payment.no_active_body" = "Définissez un objectif avant de partager la cagnotte. Wakeve garde l'état local et synchronise ensuite, sans ouvrir de lien externe non vérifié.";
+"payment.no_active_body" = "Définis un objectif avant de partager la cagnotte. Wakeve garde l'état local et synchronise ensuite, sans ouvrir de lien externe non vérifié.";
 "payment.goal_section" = "Objectif";
 "payment.goal_placeholder" = "Montant à collecter";
 "payment.actions" = "Actions";
@@ -1592,7 +800,7 @@
 "payment.help.positive_required" = "Un montant positif est requis pour éviter une cagnotte vide ou ambiguë.";
 "payment.status.none" = "Aucune cagnotte active";
 "payment.status.active_format" = "Cagnotte active avec objectif %@.";
-"payment.status.create_requires_positive" = "Ajoutez un objectif positif avant de créer la cagnotte.";
+"payment.status.create_requires_positive" = "Ajoute un objectif positif avant de créer la cagnotte.";
 "payment.status.created_pending_format" = "Cagnotte créée avec objectif %@. Synchronisation en attente.";
 "payment.status.ready_to_share" = "Cagnotte prête à partager. Aucun lien externe n'est ouvert sans URL vérifiée.";
 "payment.status.none_to_open" = "Aucune cagnotte active à ouvrir.";
@@ -1612,15 +820,15 @@
 "tricount.open" = "Ouvrir Tricount";
 "tricount.status.not_needed" = "Tricount marqué comme non requis pour cet événement.";
 "tricount.status.verified" = "Lien Tricount vérifié et prêt pour le partage.";
-"tricount.status.missing" = "Aucun lien Tricount vérifié. Vous pouvez le configurer ou le déclarer non requis.";
-"tricount.status.invalid_url" = "Saisissez un lien Tricount valide avant de l'associer.";
+"tricount.status.missing" = "Aucun lien Tricount vérifié. Tu peux le configurer ou le déclarer non requis.";
+"tricount.status.invalid_url" = "Saisis un lien Tricount valide avant de l'associer.";
 "tricount.link_status_format" = "Lien %@";
 "tricount.no_verified_link" = "Aucun lien Tricount vérifié";
 "tricount.safe_link_explanation" = "Wakeve n'ouvre pas de lien Tricount tant que le domaine n'est pas validé.";
 "tricount.decision" = "Décision";
 "tricount.url_section" = "Lien Tricount";
 "tricount.url_placeholder" = "https://tricount.com/...";
-"tricount.url_help" = "Collez le vrai lien Tricount. Wakeve conserve et ouvre uniquement des domaines Tricount HTTPS vérifiés.";
+"tricount.url_help" = "Colle le vrai lien Tricount. Wakeve conserve et ouvre uniquement des domaines Tricount HTTPS vérifiés.";
 "tricount.link" = "Associer Tricount";
 "tricount.unlink" = "Dissocier Tricount";
 "tricount.not_needed" = "Tricount non requis";
@@ -1634,30 +842,28 @@
 
 // MARK: - Access
 "access_denied.title" = "Accès restreint";
-"organization.access.confirm_before_budget" = "Confirmez votre présence avant d'ouvrir le budget.";
-"organization.access.confirm_before_expenses" = "Confirmez votre présence avant d'ouvrir les dépenses.";
-"organization.access.confirm_before_meetings" = "Confirmez votre présence avant d'ouvrir les réunions.";
-"organization.access.confirm_before_meeting_detail" = "Confirmez votre présence avant d'ouvrir cette réunion.";
-"organization.access.confirm_before_payment_pot" = "Confirmez votre présence avant d'ouvrir la cagnotte.";
-"organization.access.confirm_before_tricount" = "Confirmez votre présence avant d'ouvrir Tricount.";
-"organization.access.confirm_before_transport" = "Confirmez votre présence avant d'ouvrir le transport.";
-"navigation.placeholder.event_creation" = "Création d'événement";
-"navigation.placeholder.select_event_options" = "Sélectionnez un événement pour voir les options";
-"navigation.placeholder.select_event_compare_options" = "Sélectionnez un événement pour comparer les options";
-"navigation.placeholder.select_event_budget" = "Sélectionnez un événement pour voir le budget";
-"navigation.placeholder.select_event_accommodation" = "Sélectionnez un événement pour voir le logement";
-"navigation.placeholder.scenario_detail" = "Détail de l'option";
-"navigation.placeholder.select_event_expenses" = "Sélectionnez un événement pour voir les dépenses";
-"navigation.placeholder.select_event_meetings" = "Sélectionnez un événement pour voir les réunions";
-"navigation.placeholder.select_meeting" = "Sélectionnez une réunion";
-"navigation.placeholder.select_event_payment_pot" = "Sélectionnez un événement pour voir la cagnotte";
-"navigation.placeholder.select_event_tricount" = "Sélectionnez un événement pour voir Tricount";
-"navigation.placeholder.select_event_transport" = "Sélectionnez un événement pour le transport";
+"organization.access.confirm_before_budget" = "Confirme ta présence avant d'ouvrir le budget.";
+"organization.access.confirm_before_expenses" = "Confirme ta présence avant d'ouvrir les dépenses.";
+"organization.access.confirm_before_meetings" = "Confirme ta présence avant d'ouvrir les réunions.";
+"organization.access.confirm_before_meeting_detail" = "Confirme ta présence avant d'ouvrir cette réunion.";
+"organization.access.confirm_before_payment_pot" = "Confirme ta présence avant d'ouvrir la cagnotte.";
+"organization.access.confirm_before_tricount" = "Confirme ta présence avant d'ouvrir Tricount.";
+"organization.access.confirm_before_transport" = "Confirme ta présence avant d'ouvrir le transport.";
+"navigation.placeholder.select_event_options" = "Sélectionne un événement pour voir les options";
+"navigation.placeholder.select_event_compare_options" = "Sélectionne un événement pour comparer les options";
+"navigation.placeholder.select_event_budget" = "Sélectionne un événement pour voir le budget";
+"navigation.placeholder.select_event_accommodation" = "Sélectionne un événement pour voir le logement";
+"navigation.placeholder.select_event_expenses" = "Sélectionne un événement pour voir les dépenses";
+"navigation.placeholder.select_event_meetings" = "Sélectionne un événement pour voir les réunions";
+"navigation.placeholder.select_meeting" = "Sélectionne une réunion";
+"navigation.placeholder.select_event_payment_pot" = "Sélectionne un événement pour voir la cagnotte";
+"navigation.placeholder.select_event_tricount" = "Sélectionne un événement pour voir Tricount";
+"navigation.placeholder.select_event_transport" = "Sélectionne un événement pour le transport";
 "safe_link.verified" = "vérifié";
 "comments.mention" = "Mentionner quelqu'un";
 "comments.send" = "Envoyer le commentaire";
 "comments.empty.title" = "Aucun message";
-"comments.empty.subtitle" = "Soyez le premier à partager une information utile pour le groupe.";
+"comments.empty.subtitle" = "Sois le premier à partager une information utile pour le groupe.";
 "comments.section.general" = "Messages";
 "comments.section.scenario" = "Messages sur les options";
 "comments.section.poll" = "Messages sur le sondage";
@@ -1669,12 +875,21 @@
 "comments.section.budget" = "Messages budget";
 "comments.load_more_replies" = "Charger plus de réponses (%lld)";
 "comments.add_placeholder" = "Ajouter un message...";
+"comments.reply.title_format" = "Répondre à %@";
+"comments.reply.placeholder" = "Ta réponse";
+"comments.edit.title" = "Modifier le message";
+"comments.edit.placeholder" = "Ton message";
+"comments.delete.title" = "Supprimer ce message ?";
+"comments.delete.message" = "Il ne sera plus visible par le groupe.";
+"comments.error.rejected" = "Ce message ne respecte pas les règles de la communauté. Reformule-le.";
+"comments.error.too_long" = "Ton message dépasse 2 000 caractères.";
+"comments.notice.pending_review" = "Ton message sera visible après vérification.";
 
 // MARK: - Onboarding (Extended)
-"onboarding.collaborate_desc" = "Invitez vos amis et collègues. Chacun peut proposer des dates et voter pour ses préférences.";
-"onboarding.collaborate_title" = "Collaborez ensemble";
-"onboarding.enjoy_desc" = "Suivez tout en temps réel : rappels, calendriers et notifications pour que tout le monde soit au courant.";
-"onboarding.enjoy_title" = "Profitez de l'expérience";
+"onboarding.collaborate_desc" = "Invite tes amis et collègues. Chacun peut proposer des dates et voter pour ses préférences.";
+"onboarding.collaborate_title" = "Collabore avec ton groupe";
+"onboarding.enjoy_desc" = "Suis tout en temps réel : rappels, calendriers et notifications pour que tout le monde soit au courant.";
+"onboarding.enjoy_title" = "Profite de l'expérience";
 "onboarding.feature.accommodation_planning" = "Planification de l'hébergement";
 "onboarding.feature.budget_tracking" = "Suivi du budget";
 "onboarding.feature.built_in_reminders" = "Rappels intégrés";
@@ -1685,7 +900,7 @@
 "onboarding.feature.realtime_tracking" = "Suivi en temps réel";
 "onboarding.feature.task_assignment" = "Attribution des tâches";
 "onboarding.proof.collaborate_title" = "WhatsApp devient la porte d’entrée, pas la source de vérité";
-"onboarding.proof.collaborate_detail" = "Partagez le lien Wakeve dans le groupe existant, puis gardez RSVP, votes et rappels structurés.";
+"onboarding.proof.collaborate_detail" = "Partage le lien Wakeve dans le groupe existant, puis garde RSVP, votes et rappels structurés.";
 "onboarding.proof.organize_title" = "Les plans complexes restent lisibles";
 "onboarding.proof.organize_detail" = "Pour les week-ends et voyages, scénarios, budgets et transport restent visibles avant le choix final.";
 "onboarding.proof.enjoy_title" = "L’événement reste vivant";
@@ -1700,24 +915,16 @@
 "poll.yes" = "Oui";
 
 // MARK: - Status (Extended)
-"status.assigned" = "Assigné";
 "status.comparing" = "Comparaison";
-"status.completed" = "Terminé";
 "status.finalized" = "Finalisé";
-"status.in_progress" = "En cours";
 "status.organizing" = "Organisation";
-"status.planned" = "Planifié";
-"status.searching" = "Recherche";
 
 // MARK: - Explore Scenarios
-"explore.discover" = "À découvrir";
-"scenario.checklist_title" = "Comment organiser";
-"scenario.create_event" = "Créer cet événement";
 
 // Brunch
-"scenario.brunch.title" = "Organisez un brunch entre amis";
-"scenario.brunch.subtitle" = "Trouvez le meilleur moment pour bruncher";
-"scenario.brunch.description" = "Rien de tel qu'un brunch pour se retrouver entre amis. Choisissez le créneau idéal, définissez le menu ensemble et profitez d'un moment convivial autour de bons plats.";
+"scenario.brunch.title" = "Organise un brunch entre amis";
+"scenario.brunch.subtitle" = "Trouve le meilleur moment pour bruncher";
+"scenario.brunch.description" = "Rien de tel qu'un brunch pour se retrouver entre amis. Choisis le créneau idéal, définis le menu ensemble et profite d'un moment convivial autour de bons plats.";
 "scenario.brunch.suggested_title" = "Brunch entre amis";
 "scenario.brunch.check1" = "Choisir un lieu ou un hôte";
 "scenario.brunch.check2" = "Définir le menu et les contributions";
@@ -1725,9 +932,9 @@
 "scenario.brunch.check4" = "Envoyer les invitations";
 
 // Team Building
-"scenario.team_building.title" = "Planifiez votre team building";
-"scenario.team_building.subtitle" = "Motivez votre équipe";
-"scenario.team_building.description" = "Renforcez la cohésion de votre équipe avec un événement team building mémorable. Trouvez le créneau qui convient à tous et organisez une activité fédératrice.";
+"scenario.team_building.title" = "Planifie ton team building";
+"scenario.team_building.subtitle" = "Motive ton équipe";
+"scenario.team_building.description" = "Renforce la cohésion de ton équipe avec un événement team building mémorable. Trouve le créneau qui convient à tous et organise une activité fédératrice.";
 "scenario.team_building.suggested_title" = "Team building d'équipe";
 "scenario.team_building.check1" = "Définir le type d'activité";
 "scenario.team_building.check2" = "Réserver un lieu ou un prestataire";
@@ -1736,8 +943,8 @@
 
 // Birthday
 "scenario.birthday.title" = "Fête d'anniversaire surprise";
-"scenario.birthday.subtitle" = "Coordonnez la surprise parfaite";
-"scenario.birthday.description" = "Organisez une fête d'anniversaire mémorable en toute discrétion. Coordonnez-vous avec les invités pour trouver le moment parfait et préparer la surprise.";
+"scenario.birthday.subtitle" = "Coordonne la surprise parfaite";
+"scenario.birthday.description" = "Organise une fête d'anniversaire mémorable en toute discrétion. Coordonne-toi avec les invités pour trouver le moment parfait et préparer la surprise.";
 "scenario.birthday.suggested_title" = "Anniversaire surprise";
 "scenario.birthday.check1" = "Créer la liste d'invités";
 "scenario.birthday.check2" = "Choisir un thème et un lieu";
@@ -1746,8 +953,8 @@
 
 // Cinema
 "scenario.cinema.title" = "Soirée cinéma maison";
-"scenario.cinema.subtitle" = "Invitez vos amis pour une soirée film";
-"scenario.cinema.description" = "Organisez une soirée cinéma chez vous ou chez un ami. Choisissez le film ensemble, préparez les snacks et passez un moment détente entre proches.";
+"scenario.cinema.subtitle" = "Invite tes amis pour une soirée film";
+"scenario.cinema.description" = "Organise une soirée cinéma chez toi ou chez un ami. Choisis le film avec tes proches, prévois les snacks et profite d'un moment détente ensemble.";
 "scenario.cinema.suggested_title" = "Soirée cinéma";
 "scenario.cinema.check1" = "Voter pour le film à regarder";
 "scenario.cinema.check2" = "Choisir la date avec le sondage";
@@ -1756,8 +963,8 @@
 
 // Hiking
 "scenario.hiking.title" = "Weekend randonnée";
-"scenario.hiking.subtitle" = "Planifiez une escapade nature";
-"scenario.hiking.description" = "Évadez-vous le temps d'un weekend en pleine nature. Trouvez le créneau idéal, choisissez l'itinéraire et organisez les détails logistiques en groupe.";
+"scenario.hiking.subtitle" = "Planifie une escapade nature";
+"scenario.hiking.description" = "Évade-toi le temps d'un weekend en pleine nature. Trouve le créneau idéal, choisis l'itinéraire et organise les détails logistiques en groupe.";
 "scenario.hiking.suggested_title" = "Randonnée en groupe";
 "scenario.hiking.check1" = "Choisir le parcours et le niveau de difficulté";
 "scenario.hiking.check2" = "Trouver la date qui convient à tous";
@@ -1766,8 +973,8 @@
 
 // Afterwork
 "scenario.afterwork.title" = "Afterwork entre collègues";
-"scenario.afterwork.subtitle" = "Décompressez ensemble";
-"scenario.afterwork.description" = "Terminez la semaine en beauté avec un afterwork convivial. Trouvez le bar idéal, sondez les collègues et organisez un moment de détente après le travail.";
+"scenario.afterwork.subtitle" = "Décompresse entre collègues";
+"scenario.afterwork.description" = "Termine la semaine en beauté avec un afterwork convivial. Trouve le bar idéal, sonde les collègues et organise un moment de détente après le travail.";
 "scenario.afterwork.suggested_title" = "Afterwork";
 "scenario.afterwork.check1" = "Choisir un bar ou restaurant";
 "scenario.afterwork.check2" = "Sonder les disponibilités";
@@ -1778,8 +985,8 @@
 
 // Picnic (Social)
 "scenario.picnic.title" = "Pique-nique au parc";
-"scenario.picnic.subtitle" = "Profitez du beau temps entre amis";
-"scenario.picnic.description" = "Organisez un pique-nique convivial dans votre parc préféré. Chacun apporte quelque chose et vous profitez ensemble d'un moment en plein air.";
+"scenario.picnic.subtitle" = "Profite du beau temps entre amis";
+"scenario.picnic.description" = "Organise un pique-nique convivial dans ton parc préféré. Chacun apporte quelque chose et on profite ensemble d'un moment en plein air.";
 "scenario.picnic.suggested_title" = "Pique-nique entre amis";
 "scenario.picnic.check1" = "Choisir le parc et vérifier la météo";
 "scenario.picnic.check2" = "Répartir les plats à apporter";
@@ -1788,8 +995,8 @@
 
 // Game Night (Social)
 "scenario.game_night.title" = "Soirée jeux de société";
-"scenario.game_night.subtitle" = "Défiez vos amis autour d'un plateau";
-"scenario.game_night.description" = "Réunissez vos amis pour une soirée jeux mémorable. Choisissez les jeux ensemble, préparez les snacks et que le meilleur gagne !";
+"scenario.game_night.subtitle" = "Défie tes amis autour d'un plateau";
+"scenario.game_night.description" = "Réunis tes amis pour une soirée jeux mémorable. Choisis les jeux avec eux, prépare les snacks et que le meilleur gagne !";
 "scenario.game_night.suggested_title" = "Soirée jeux";
 "scenario.game_night.check1" = "Choisir les jeux à prévoir";
 "scenario.game_night.check2" = "Trouver la date avec le sondage";
@@ -1798,8 +1005,8 @@
 
 // Dinner (Social)
 "scenario.dinner.title" = "Dîner entre amis";
-"scenario.dinner.subtitle" = "Partagez un bon repas ensemble";
-"scenario.dinner.description" = "Organisez un dîner chaleureux entre amis. Que ce soit au restaurant ou chez l'un d'entre vous, trouvez le créneau parfait pour vous retrouver.";
+"scenario.dinner.subtitle" = "Partage un bon repas entre amis";
+"scenario.dinner.description" = "Organise un dîner chaleureux entre amis. Que ce soit au restaurant ou chez quelqu'un du groupe, trouve le créneau parfait pour se retrouver.";
 "scenario.dinner.suggested_title" = "Dîner entre amis";
 "scenario.dinner.check1" = "Choisir restaurant ou hôte";
 "scenario.dinner.check2" = "Sonder les disponibilités";
@@ -1808,8 +1015,8 @@
 
 // Tournament (Sport)
 "scenario.tournament.title" = "Tournoi sportif entre amis";
-"scenario.tournament.subtitle" = "Organisez une compétition amicale";
-"scenario.tournament.description" = "Mettez en place un tournoi sportif entre amis. Foot, basket, pétanque ou badminton — trouvez le sport et la date qui plaisent à tous.";
+"scenario.tournament.subtitle" = "Organise une compétition amicale";
+"scenario.tournament.description" = "Mets en place un tournoi sportif entre amis. Foot, basket, pétanque ou badminton — trouve le sport et la date qui plaisent à tous.";
 "scenario.tournament.suggested_title" = "Tournoi sportif";
 "scenario.tournament.check1" = "Choisir le sport et le format";
 "scenario.tournament.check2" = "Réserver un terrain ou un lieu";
@@ -1818,8 +1025,8 @@
 
 // Yoga (Sport)
 "scenario.yoga.title" = "Session yoga en groupe";
-"scenario.yoga.subtitle" = "Détendez-vous ensemble";
-"scenario.yoga.description" = "Organisez une session de yoga entre amis ou collègues. En plein air ou en salle, trouvez le moment idéal pour pratiquer ensemble.";
+"scenario.yoga.subtitle" = "Détends-toi entre amis";
+"scenario.yoga.description" = "Organise une session de yoga entre amis ou collègues. En plein air ou en salle, trouve le moment idéal pour pratiquer ensemble.";
 "scenario.yoga.suggested_title" = "Yoga en groupe";
 "scenario.yoga.check1" = "Choisir le type de yoga et le niveau";
 "scenario.yoga.check2" = "Trouver un lieu ou un prof";
@@ -1828,8 +1035,8 @@
 
 // Cycling (Sport)
 "scenario.cycling.title" = "Sortie vélo en groupe";
-"scenario.cycling.subtitle" = "Pédalez entre amis";
-"scenario.cycling.description" = "Planifiez une sortie vélo en groupe. Choisissez l'itinéraire, le niveau de difficulté et partez à l'aventure ensemble.";
+"scenario.cycling.subtitle" = "Pédale entre amis";
+"scenario.cycling.description" = "Planifie une sortie vélo en groupe. Choisis l'itinéraire, le niveau de difficulté et pars à l'aventure avec le groupe.";
 "scenario.cycling.suggested_title" = "Sortie vélo";
 "scenario.cycling.check1" = "Choisir l'itinéraire et la distance";
 "scenario.cycling.check2" = "Vérifier le niveau de chacun";
@@ -1838,8 +1045,8 @@
 
 // Museum (Culture)
 "scenario.museum.title" = "Visite musée en groupe";
-"scenario.museum.subtitle" = "Explorez l'art et l'histoire ensemble";
-"scenario.museum.description" = "Organisez une visite culturelle en groupe. Musée, exposition ou galerie — trouvez la date et le lieu qui inspirent tout le monde.";
+"scenario.museum.subtitle" = "Explore l'art et l'histoire à plusieurs";
+"scenario.museum.description" = "Organise une visite culturelle en groupe. Musée, exposition ou galerie — trouve la date et le lieu qui inspirent tout le monde.";
 "scenario.museum.suggested_title" = "Visite musée";
 "scenario.museum.check1" = "Choisir le musée ou l'exposition";
 "scenario.museum.check2" = "Vérifier les horaires et tarifs";
@@ -1848,8 +1055,8 @@
 
 // Creative (Culture)
 "scenario.creative.title" = "Atelier créatif entre amis";
-"scenario.creative.subtitle" = "Libérez votre créativité ensemble";
-"scenario.creative.description" = "Organisez un atelier créatif : peinture, poterie, couture ou DIY. Partagez un moment artistique et repartez avec votre création.";
+"scenario.creative.subtitle" = "Libère ta créativité à plusieurs";
+"scenario.creative.description" = "Organise un atelier créatif : peinture, poterie, couture ou DIY. Partage un moment artistique et repars avec ta création.";
 "scenario.creative.suggested_title" = "Atelier créatif";
 "scenario.creative.check1" = "Choisir le type d'atelier";
 "scenario.creative.check2" = "Réserver auprès d'un animateur";
@@ -1858,8 +1065,8 @@
 
 // Theater (Culture)
 "scenario.theater.title" = "Sortie théâtre entre amis";
-"scenario.theater.subtitle" = "Vivez le spectacle ensemble";
-"scenario.theater.description" = "Planifiez une sortie au théâtre en groupe. Choisissez la pièce, réservez les places et passez une soirée culturelle mémorable.";
+"scenario.theater.subtitle" = "Vis le spectacle à plusieurs";
+"scenario.theater.description" = "Planifie une sortie au théâtre en groupe. Choisis la pièce, réserve les places et passe une soirée culturelle mémorable.";
 "scenario.theater.suggested_title" = "Sortie théâtre";
 "scenario.theater.check1" = "Choisir le spectacle";
 "scenario.theater.check2" = "Vérifier les dates et disponibilités";
@@ -1868,8 +1075,8 @@
 
 // Hackathon (Professional)
 "scenario.hackathon.title" = "Hackathon d'équipe";
-"scenario.hackathon.subtitle" = "Innovez ensemble en un temps record";
-"scenario.hackathon.description" = "Organisez un hackathon pour stimuler la créativité de votre équipe. Définissez le thème, formez les équipes et codez ensemble.";
+"scenario.hackathon.subtitle" = "Innove en équipe en un temps record";
+"scenario.hackathon.description" = "Organise un hackathon pour stimuler la créativité de ton équipe. Définis le thème, forme les équipes et place au code !";
 "scenario.hackathon.suggested_title" = "Hackathon";
 "scenario.hackathon.check1" = "Définir le thème et les objectifs";
 "scenario.hackathon.check2" = "Réserver un espace de travail";
@@ -1878,8 +1085,8 @@
 
 // Seminar (Professional)
 "scenario.seminar.title" = "Séminaire d'entreprise";
-"scenario.seminar.subtitle" = "Rassemblez votre équipe pour avancer";
-"scenario.seminar.description" = "Planifiez un séminaire d'entreprise productif. Trouvez le lieu, la date et le programme qui permettront à votre équipe de progresser.";
+"scenario.seminar.subtitle" = "Rassemble ton équipe pour avancer";
+"scenario.seminar.description" = "Planifie un séminaire d'entreprise productif. Trouve le lieu, la date et le programme qui permettront à ton équipe de progresser.";
 "scenario.seminar.suggested_title" = "Séminaire d'entreprise";
 "scenario.seminar.check1" = "Définir les objectifs et le programme";
 "scenario.seminar.check2" = "Réserver le lieu et l'hébergement";
@@ -1888,8 +1095,8 @@
 
 // Wine (Food)
 "scenario.wine.title" = "Dégustation de vins";
-"scenario.wine.subtitle" = "Découvrez de nouveaux crus ensemble";
-"scenario.wine.description" = "Organisez une dégustation de vins entre amis. Chez un caviste, dans un vignoble ou à domicile — partagez un moment œnologique convivial.";
+"scenario.wine.subtitle" = "Découvre de nouveaux crus entre amis";
+"scenario.wine.description" = "Organise une dégustation de vins entre amis. Chez un caviste, dans un vignoble ou à domicile — partage un moment œnologique convivial.";
 "scenario.wine.suggested_title" = "Dégustation de vins";
 "scenario.wine.check1" = "Choisir le lieu (cave, vignoble, maison)";
 "scenario.wine.check2" = "Sélectionner les vins ou le thème";
@@ -1898,8 +1105,8 @@
 
 // BBQ (Food)
 "scenario.bbq.title" = "Barbecue entre amis";
-"scenario.bbq.subtitle" = "Grillez et profitez ensemble";
-"scenario.bbq.description" = "Organisez un barbecue convivial. Choisissez le lieu, répartissez les courses et profitez d'un moment gourmand en plein air.";
+"scenario.bbq.subtitle" = "Grille et profite entre amis";
+"scenario.bbq.description" = "Organise un barbecue convivial. Choisis le lieu, répartis les courses et profite d'un moment gourmand en plein air.";
 "scenario.bbq.suggested_title" = "Barbecue entre amis";
 "scenario.bbq.check1" = "Choisir le lieu (jardin, parc, terrasse)";
 "scenario.bbq.check2" = "Répartir les courses et grillades";
@@ -1908,8 +1115,8 @@
 
 // Theme Dinner (Food)
 "scenario.theme_dinner.title" = "Dîner à thème";
-"scenario.theme_dinner.subtitle" = "Voyagez par les saveurs";
-"scenario.theme_dinner.description" = "Organisez un dîner à thème : cuisine italienne, japonaise, mexicaine... Choisissez le thème, répartissez les plats et régalez-vous.";
+"scenario.theme_dinner.subtitle" = "Voyage par les saveurs";
+"scenario.theme_dinner.description" = "Organise un dîner à thème : cuisine italienne, japonaise, mexicaine... Choisis le thème, répartis les plats et régale-toi avec le groupe.";
 "scenario.theme_dinner.suggested_title" = "Dîner à thème";
 "scenario.theme_dinner.check1" = "Choisir le thème culinaire";
 "scenario.theme_dinner.check2" = "Répartir les plats à préparer";
@@ -1918,8 +1125,8 @@
 
 // Retreat (Wellness)
 "scenario.retreat.title" = "Retraite bien-être";
-"scenario.retreat.subtitle" = "Ressourcez-vous en groupe";
-"scenario.retreat.description" = "Organisez une retraite bien-être entre amis. Yoga, méditation, nature — trouvez le lieu et le moment pour vous ressourcer ensemble.";
+"scenario.retreat.subtitle" = "Ressource-toi en groupe";
+"scenario.retreat.description" = "Organise une retraite bien-être entre amis. Yoga, méditation, nature — trouve le lieu et le moment pour se ressourcer ensemble.";
 "scenario.retreat.suggested_title" = "Retraite bien-être";
 "scenario.retreat.check1" = "Choisir le lieu et la durée";
 "scenario.retreat.check2" = "Définir le programme d'activités";
@@ -1928,8 +1135,8 @@
 
 // Spa (Wellness)
 "scenario.spa.title" = "Journée spa entre amis";
-"scenario.spa.subtitle" = "Offrez-vous un moment de détente";
-"scenario.spa.description" = "Planifiez une journée spa relaxante. Hammam, sauna, massages — trouvez le spa et la date qui conviennent à tous pour décompresser.";
+"scenario.spa.subtitle" = "Offre-toi un moment de détente";
+"scenario.spa.description" = "Planifie une journée spa relaxante. Hammam, sauna, massages — trouve le spa et la date qui conviennent à tous pour décompresser.";
 "scenario.spa.suggested_title" = "Journée spa";
 "scenario.spa.check1" = "Choisir le spa et les soins";
 "scenario.spa.check2" = "Vérifier les tarifs et forfaits groupe";
@@ -1938,8 +1145,8 @@
 
 // Meditation (Wellness)
 "scenario.meditation.title" = "Méditation en groupe";
-"scenario.meditation.subtitle" = "Trouvez la sérénité ensemble";
-"scenario.meditation.description" = "Organisez une session de méditation guidée en groupe. En plein air ou en salle, trouvez le cadre idéal pour un moment de calme partagé.";
+"scenario.meditation.subtitle" = "Trouve la sérénité à plusieurs";
+"scenario.meditation.description" = "Organise une session de méditation guidée en groupe. En plein air ou en salle, trouve le cadre idéal pour un moment de calme partagé.";
 "scenario.meditation.suggested_title" = "Méditation en groupe";
 "scenario.meditation.check1" = "Choisir le type de méditation";
 "scenario.meditation.check2" = "Trouver un guide ou une app";
@@ -1948,8 +1155,8 @@
 
 // Forest (Wellness)
 "scenario.forest.title" = "Balade en forêt";
-"scenario.forest.subtitle" = "Reconnectez-vous à la nature";
-"scenario.forest.description" = "Organisez une balade ressourçante en forêt. Marche douce, bain de forêt ou cueillette — profitez de la nature en bonne compagnie.";
+"scenario.forest.subtitle" = "Reconnecte-toi à la nature";
+"scenario.forest.description" = "Organise une balade ressourçante en forêt. Marche douce, bain de forêt ou cueillette — profite de la nature en bonne compagnie.";
 "scenario.forest.suggested_title" = "Balade en forêt";
 "scenario.forest.check1" = "Choisir le sentier et la durée";
 "scenario.forest.check2" = "Vérifier la météo";
@@ -1958,7 +1165,7 @@
 
 // Product audit - logistics localization
 "photos.permission.disabled_title" = "Accès aux photos désactivé";
-"photos.permission.disabled_message" = "Pour permettre l'accès aux photos, ouvrez Réglages > Confidentialité et sécurité > Photos, puis activez l'accès pour Wakeve.";
+"photos.permission.disabled_message" = "Pour permettre l'accès aux photos, ouvre Réglages > Confidentialité et sécurité > Photos, puis active l'accès pour Wakeve.";
 "photos.permission.settings" = "Réglages";
 
 "budget.category.transport" = "Transport";
@@ -2017,7 +1224,7 @@
 "meal.validation.cost_positive" = "Le coût doit être un nombre positif.";
 "meal.validation.servings_positive" = "Le nombre de personnes doit être supérieur à 0.";
 "meal.validation.start_before_end" = "La date de début doit être avant la date de fin.";
-"meal.validation.select_type" = "Sélectionnez au moins un type de repas.";
+"meal.validation.select_type" = "Sélectionne au moins un type de repas.";
 "meal.auto.period" = "Période";
 "meal.auto.start_date" = "Date de début";
 "meal.auto.end_date" = "Date de fin";
@@ -2031,7 +1238,7 @@
 "meal.default_name.dinner_format" = "Dîner du %@";
 "meal.dietary.title" = "Contraintes alimentaires";
 "meal.dietary.empty_title" = "Aucune contrainte";
-"meal.dietary.empty_body" = "Ajoutez les contraintes alimentaires des participants.";
+"meal.dietary.empty_body" = "Ajoute les contraintes alimentaires des participants.";
 "meal.dietary.add" = "Ajouter";
 "meal.dietary.vegetarian" = "Végétarien";
 "meal.dietary.vegan" = "Végétalien";
@@ -2049,20 +1256,6 @@
 "meal.dietary.constraint_type" = "Type de contrainte";
 "meal.dietary.add_title" = "Ajouter une contrainte";
 
-"gamification.badge_category.engagement" = "Engagement";
-"gamification.rarity.common" = "Commun";
-"gamification.rarity.rare" = "Rare";
-"gamification.rarity.epic" = "Épique";
-"gamification.rarity.legendary" = "Légendaire";
-"gamification.badge.first_event.description" = "A créé son premier événement";
-"gamification.badge.super_organizer.description" = "A créé 10 événements";
-"gamification.badge.early_bird.description" = "A voté dans les 24 h";
-"gamification.badge.voting_master.description" = "A voté 50 fois";
-"gamification.badge.active_participant.description" = "A participé à 5 événements";
-"gamification.badge.event_master.description" = "A organisé 5 événements ce mois";
-"gamification.badge.commentator.description" = "A commenté 10 options";
-"gamification.badge.dedicated.description" = "7 jours consécutifs de participation";
-
 "scenario.detail.duration_days_format" = "%lld jours";
 "scenario.detail.participants_format" = "%lld participants";
 "scenario.detail.budget_format" = "%.0f € par personne";
@@ -2072,19 +1265,20 @@
 "scenario.detail.empty_title" = "Scénario indisponible";
 "scenario.detail.empty_message" = "Ce scénario n’est plus disponible ou n’a pas encore été synchronisé.";
 "scenario.detail.title" = "Scénario";
-"accommodation.empty.subtitle" = "Ajoutez des options de logement une fois la destination confirmée.";
+"accommodation.empty.title" = "Aucun hébergement pour l’instant";
+"accommodation.empty.subtitle" = "Ajoute des options de logement une fois la destination confirmée.";
 "accommodation.capacity_format" = "%lld couchages";
 "meal.empty.title" = "Aucun repas prévu";
-"meal.empty.subtitle" = "Préparez les repas, les portions et les contraintes alimentaires du groupe.";
+"meal.empty.subtitle" = "Prépare les repas, les portions et les contraintes alimentaires du groupe.";
 "meal.servings_format" = "%lld portions";
 "equipment.empty.title" = "Aucun matériel";
-"equipment.empty.subtitle" = "Listez le matériel partagé et la personne responsable de chaque élément.";
+"equipment.empty.subtitle" = "Liste le matériel partagé et la personne responsable de chaque élément.";
 "activity.empty.title" = "Aucune activité";
-"activity.empty.subtitle" = "Planifiez les activités une fois la destination confirmée.";
+"activity.empty.subtitle" = "Planifie les activités une fois la destination confirmée.";
 "activity.date_pending" = "Date à confirmer";
 "activity.duration_format" = "%lld min";
 "photos.follow_up.title" = "Photos de l’événement";
-"photos.follow_up.message" = "Le partage de photos apparaîtra ici après l’événement. Continuez l’organisation dans l’espace événement.";
+"photos.follow_up.message" = "Le partage de photos apparaîtra ici après l’événement. Continue l’organisation dans l’espace événement.";
 "photos.follow_up.finalized_message" = "Cet événement est finalisé. Le partage de photos apparaîtra ici quand l’album de suivi sera disponible.";
 "organizer.dashboard.empty_title" = "Aucun événement organisateur";
 "organizer.dashboard.empty_message" = "Les événements qui demandent une action organisateur apparaîtront ici.";
@@ -2099,86 +1293,15 @@
 "organization.state.read_only" = "Lecture seule";
 "organization.state.editable" = "Modifiable";
 "organization.state.pending_sync" = "Synchronisation en attente";
-"event.detail.organization.accommodation_label" = "Logement";
-"event.detail.organization.accommodation_value" = "Vérifier les options";
-"event.detail.organization.meals_label" = "Repas";
-"event.detail.organization.meals_value" = "Planifier repas et contraintes";
-"event.detail.organization.equipment_label" = "Matériel";
-"event.detail.organization.equipment_value" = "Attribuer le matériel partagé";
-"event.detail.organization.activities_label" = "Activités";
-"event.detail.organization.activities_value" = "Coordonner le programme";
-"event.detail.organization.comments_label" = "Commentaires";
-"event.detail.organization.comments_value" = "Discuter de l’événement";
-"event.detail.organization.photos_label" = "Photos";
-"event.detail.organization.photos_value" = "Préparer le partage de suivi";
-"event.detail.organization.invitation_label" = "Invitation";
-"event.detail.organization.invitation_value" = "Partager le lien événement";
-"organization.access.confirm_before_accommodation" = "Confirmez votre présence avant d’ouvrir le logement.";
-"organization.access.confirm_before_meals" = "Confirmez votre présence avant d’ouvrir les repas.";
-"organization.access.confirm_before_equipment" = "Confirmez votre présence avant d’ouvrir le matériel.";
-"organization.access.confirm_before_activities" = "Confirmez votre présence avant d’ouvrir les activités.";
-"organization.access.confirm_before_comments" = "Confirmez votre présence avant d’ouvrir les commentaires.";
-"organization.access.confirm_before_photos" = "Confirmez votre présence avant d’ouvrir les photos.";
+"organization.access.confirm_before_accommodation" = "Confirme ta présence avant d’ouvrir le logement.";
+"organization.access.confirm_before_meals" = "Confirme ta présence avant d’ouvrir les repas.";
+"organization.access.confirm_before_equipment" = "Confirme ta présence avant d’ouvrir le matériel.";
+"organization.access.confirm_before_activities" = "Confirme ta présence avant d’ouvrir les activités.";
+"organization.access.confirm_before_comments" = "Confirme ta présence avant d’ouvrir les commentaires.";
+"organization.access.confirm_before_photos" = "Confirme ta présence avant d’ouvrir les photos.";
 
 /* Canvas d’invitation du détail événement */
-"event.detail.canvas.lifecycle.draft" = "Brouillon";
-"event.detail.canvas.lifecycle.polling" = "Vote en cours";
-"event.detail.canvas.lifecycle.confirmed" = "Confirmé";
-"event.detail.canvas.lifecycle.comparing" = "Options à l’étude";
-"event.detail.canvas.lifecycle.organizing" = "En organisation";
-"event.detail.canvas.lifecycle.finalized" = "Finalisé";
-"event.detail.canvas.lifecycle.unavailable" = "Statut indisponible";
-"event.detail.canvas.action.edit_draft" = "Revoir le brouillon";
-"event.detail.canvas.action.submit_vote" = "Voter maintenant";
-"event.detail.canvas.action.view_results" = "Voir les résultats";
-"event.detail.canvas.action.compare_options" = "Voir les options";
-"event.detail.canvas.action.continue_organization" = "Continuer l’organisation";
-"event.detail.canvas.action.view_final_details" = "Voir les détails finaux";
-"event.detail.canvas.action.show_access_state" = "Voir les détails disponibles";
 "event.detail.canvas.action.show_details" = "Voir les détails";
-"event.detail.canvas.next.draft_blocked" = "Ajoutez une date avant de partager l’invitation";
-"event.detail.canvas.next.draft_ready" = "Relisez l’invitation avant de lancer le vote";
-"event.detail.canvas.next.draft_read_only" = "L’organisateur prépare l’invitation";
-"event.detail.canvas.next.polling_organizer" = "Suivez les réponses du groupe";
-"event.detail.canvas.next.polling_response_due" = "Votre réponse est attendue";
-"event.detail.canvas.next.polling_response_submitted" = "Votre réponse est enregistrée";
-"event.detail.canvas.next.polling_neutral" = "Consultez les disponibilités du groupe";
-"event.detail.canvas.next.polling_restricted" = "Votre accès est limité pour le moment";
-"event.detail.canvas.next.confirmed" = "Choisissez la prochaine option d’organisation";
-"event.detail.canvas.next.confirmed_restricted" = "Le programme confirmé n’est pas encore accessible";
-"event.detail.canvas.next.comparing" = "Comparez les options retenues";
-"event.detail.canvas.next.comparing_restricted" = "Les options sont en cours de comparaison";
-"event.detail.canvas.next.organizing" = "Poursuivez la prochaine étape incomplète";
-"event.detail.canvas.next.organizing_restricted" = "Les détails d’organisation restent restreints";
-"event.detail.canvas.next.finalized" = "Tout est prêt";
-"event.detail.canvas.next.finalized_restricted" = "Les détails finaux restent restreints";
-"event.detail.canvas.next.unavailable" = "Ouvrez les détails disponibles de l’événement";
-"event.detail.canvas.image_loading" = "Chargement de l’image de l’événement";
-"event.detail.canvas.sync_pending" = "Mise à jour en attente de synchronisation";
-"event.detail.canvas.sync_confirmed" = "Mise à jour synchronisée";
-"event.detail.canvas.last_known" = "Dernières informations connues";
-"event.detail.canvas.organized_by" = "Organisé par";
-"event.detail.canvas.organizer.you" = "vous";
-"event.detail.canvas.organizer.generic" = "l’organisateur";
-"event.detail.canvas.participants.confirmed_format" = "%d confirmés";
-"event.detail.canvas.participants.pending_format" = "%d en attente";
-"event.detail.canvas.participants.loading" = "Chargement des réponses";
-"event.detail.canvas.participants.unavailable" = "Les réponses des participants sont indisponibles";
-"event.detail.canvas.participants.additional_format" = "%d participants supplémentaires";
-"event.detail.canvas.share" = "Partager l’invitation";
-"event.detail.canvas.share_unavailable" = "Partage de l’invitation indisponible";
-"event.detail.canvas.share_requesting" = "Préparation de l’invitation sécurisée";
-"event.detail.canvas.menu" = "Options de l’événement";
-"event.detail.canvas.next_step" = "Prochaine étape";
-"event.detail.canvas.responsibility.current_user" = "À vous de jouer";
-"event.detail.canvas.responsibility.organizer" = "L’organisateur s’en charge";
-"event.detail.canvas.responsibility.group" = "En attente du groupe";
-"invitation.library.title" = "Événements";
-"invitation.library.filter.drafts" = "Brouillons";
-"invitation.library.filter.hosting" = "Organisés";
-"invitation.library.filter.attending" = "Participations";
-"invitation.library.filter.upcoming" = "À venir";
-"invitation.library.filter.past" = "Passés";
 "invitation.studio.title" = "Studio d’invitation";
 "invitation.studio.preview" = "Prévisualiser l’invitation";
 "invitation.studio.pending_sync" = "Enregistré sur cet appareil, en attente de synchronisation";
@@ -2226,7 +1349,6 @@
 "invitation.state.pending_sync" = "Synchronisation en attente";
 "invitation.state.stale" = "Les informations enregistrées sont peut-être obsolètes";
 "invitation.state.unavailable" = "Information indisponible";
-"invitation.action.view_archive" = "Voir l’archive";
 "invitation.action.reload_projection" = "Actualiser les données";
 "invitation.audience.error.security_unavailable" = "Les invitations protégées ne sont pas disponibles sur cet appareil.";
 "invitation.audience.identity.invitation" = "Invitation";
@@ -2236,22 +1358,18 @@
 "invitation.audience.identity.status.pending" = "En attente";
 "invitation.audience.identity.status.declined" = "Invitation refusée";
 "invitation.audience.identity.status.delivered" = "Invitation remise";
-"invitation.audience.error.invalid_recipient" = "Saisissez une adresse e-mail ou un numéro de téléphone valide.";
-"invitation.audience.error.submit_failed" = "L’invitation n’a pas pu être enregistrée. Réessayez.";
+"invitation.audience.error.invalid_recipient" = "Saisis une adresse e-mail ou un numéro de téléphone valide.";
+"invitation.audience.error.submit_failed" = "L’invitation n’a pas pu être enregistrée. Réessaie.";
 
 /* QA 2026-09-27: event lifecycle transitions */
-"create_event.error.failed" = "L’événement n’a pas pu être créé. Réessayez.";
 "event.lifecycle.organizing.title" = "Prêt à organiser ?";
-"event.lifecycle.organizing.body" = "La date est retenue. Passez à l’organisation pour débloquer réunions, budget et cagnotte.";
 "event.lifecycle.organizing.action" = "Passer à l’organisation";
 "event.lifecycle.organizing.confirm_message" = "Les participants confirmés verront les réunions, le budget et la cagnotte.";
-"event.lifecycle.comparing.body" = "Retenez une option pour passer ensuite à l’organisation.";
 "event.lifecycle.finalize.title" = "Dernière étape";
-"event.lifecycle.finalize.body" = "Finalisez quand la logistique est bouclée. L’événement passera en lecture seule.";
 "event.lifecycle.finalize.action" = "Finaliser l’événement";
 "event.lifecycle.finalize.confirm_message" = "L’organisation sera figée pour tout le groupe.";
 "event.lifecycle.blocked_intro" = "Il reste à régler :";
-"event.lifecycle.error.generic" = "Impossible de changer l’étape de l’événement. Réessayez.";
+"event.lifecycle.error.generic" = "Impossible de changer l’étape de l’événement. Réessaie.";
 "event.lifecycle.blocker.organizer_required" = "un organisateur";
 "event.lifecycle.blocker.confirmed_participants_required" = "au moins un participant confirmé";
 "event.lifecycle.blocker.final_scenario_required" = "l’option finale";
@@ -2273,16 +1391,261 @@
 "event.lifecycle.blocker.event_not_organizing" = "le passage en organisation";
 "participants.add_dates.action" = "Ajouter des dates";
 "draft_dates.title" = "Dates possibles";
-"draft_dates.subtitle" = "Ajoutez les dates à proposer : le groupe votera ensuite pour la meilleure.";
+"draft_dates.subtitle" = "Ajoute les dates à proposer : le groupe votera ensuite pour la meilleure.";
 "draft_dates.day" = "Jour";
 "draft_dates.add" = "Ajouter cette date";
 "draft_dates.empty" = "Aucune date ajoutée pour l’instant.";
 "draft_dates.remove" = "Retirer cette date";
 "draft_dates.save" = "Enregistrer les dates";
-"draft_dates.error.save_failed" = "Les dates n’ont pas pu être enregistrées. Réessayez.";
+"draft_dates.error.save_failed" = "Les dates n’ont pas pu être enregistrées. Réessaie.";
 
 /* Local guest organizer: finalization needs an account */
 "event.lifecycle.guest.title" = "Un compte est nécessaire pour finaliser";
-"event.lifecycle.guest.body" = "En mode invité, cet événement reste sur cet appareil : il ne peut être ni partagé avec le groupe ni finalisé. Connectez-vous pour continuer avec les participants.";
 "event.lifecycle.guest.action" = "Se connecter";
-"event.lifecycle.guest.confirm_message" = "Vous allez quitter le mode invité pour vous connecter. Les événements créés en mode invité ne sont pas transférés automatiquement vers votre compte.";
+"event.lifecycle.guest.confirm_message" = "Tu vas quitter le mode invité pour te connecter. Les événements créés en mode invité ne sont pas transférés automatiquement vers ton compte.";
+
+/* WK design system (refonte 2026) */
+"wk.avatars.others_format" = "%d autres";
+"wk.nav.events" = "Événements";
+"wk.nav.create" = "Créer un événement";
+"wk.nav.activity" = "Activité";
+"wk.status.confirmed" = "Confirmé";
+"wk.status.pending" = "En attente";
+"wk.status.action_needed" = "À toi d'agir";
+"wk.status.draft" = "Brouillon";
+"wk.module.highlight" = "Prochaine étape";
+"wk.nav.profile" = "Profil";
+"wk.nav.settings" = "Réglages";
+
+/* Home v2 (refonte 2026) */
+"home.v2.status.draft" = "Brouillon";
+"home.v2.status.vote_required" = "À toi de voter";
+"home.v2.status.ready_to_confirm" = "Prêt à confirmer";
+"home.v2.status.polling" = "Vote en cours";
+"home.v2.status.organizing" = "En préparation";
+"home.v2.status.confirmed" = "Confirmé";
+"home.v2.status.past" = "Passé";
+"home.v2.next_step.caption_format" = "Prochaine étape · %@";
+"home.v2.next_step.vote.subtitle" = "Il manque ton vote";
+"home.v2.next_step.ready.subtitle" = "Tout le monde a voté";
+"home.v2.next_step.polling.subtitle" = "votes reçus";
+"home.v2.next_step.organizing.subtitle" = "avant l'événement";
+"home.v2.next_step.action.vote" = "Voter";
+"home.v2.next_step.action.results" = "Voir les résultats";
+"home.v2.next_step.action.organize" = "Continuer l'organisation";
+"home.v2.next_step.action.choose_date" = "Choisir la date";
+"home.v2.section.past" = "Passés";
+"home.v2.empty.title" = "Organise ton premier événement";
+"home.v2.empty.body" = "Propose des dates, le groupe vote, Wakeve suit le reste.";
+"home.v2.empty.action" = "Créer un événement";
+"home.v2.menu.open" = "Ouvrir";
+"home.v2.menu.edit" = "Modifier le brouillon";
+"home.v2.menu.delete" = "Supprimer";
+"home.v2.sync.pending" = "Modifications en attente de synchro";
+"home.v2.closes_today" = "clôture aujourd'hui";
+"home.v2.today" = "aujourd'hui";
+"home.v2.a11y.votes_format" = "%1$d votes sur %2$d";
+"wk.wordmark" = "wakeve";
+
+/* Hub d'événement (couche 4, #47) */
+"hub.module.date" = "Date";
+"hub.module.location" = "Lieu";
+"hub.module.participants" = "Invités";
+"hub.module.budget" = "Budget";
+"hub.module.scenarios" = "Scénarios";
+"hub.module.transport" = "Transport";
+"hub.module.accommodation" = "Hébergement";
+"hub.module.meals" = "Repas";
+"hub.module.equipment" = "Matériel";
+"hub.module.activities" = "Activités";
+"hub.module.meetings" = "Réunions";
+"hub.module.recap" = "Récap";
+"hub.module.photos" = "Photos";
+"hub.module.payments" = "Paiements";
+"hub.tile.locked" = "À confirmer d'abord";
+"hub.tile.hint" = "À préparer";
+"hub.tile.recap_hint" = "Revois l'essentiel";
+"hub.tile.photos_hint" = "Partage tes photos";
+"hub.module.discussion" = "Discussion";
+"hub.tile.discussion_hint" = "Échange avec le groupe";
+"hub.checklist.title" = "Checklist";
+"hub.checklist.progress_format" = "%1$d/%2$d faits";
+"hub.checklist.local_note" = "Enregistrée sur cet appareil uniquement.";
+"hub.checklist.toggle_hint" = "Coche ou décoche l'élément";
+"hub.ai.title" = "Suggestions";
+"hub.ai.subtitle" = "Générées sur ton appareil. Relis-les avant de t'en servir.";
+"hub.ai.generate" = "Générer";
+"hub.ai.regenerate" = "Générer à nouveau";
+"hub.ai.error" = "Les suggestions sont indisponibles pour le moment.";
+"hub.ai.summary_title" = "Où en est l'événement";
+"hub.ai.decided" = "Décidé";
+"hub.ai.missing" = "Reste à régler";
+"hub.ai.polls_title" = "Idées de sondage";
+"hub.ai.checklist_title" = "Idées pour la checklist";
+"hub.ai.add_to_checklist" = "Ajouter";
+"hub.ai.add_to_checklist_a11y_format" = "Ajouter « %@ » à la checklist";
+"hub.ai.in_checklist" = "Dans la checklist";
+"hub.ai.invitation_title" = "Message d'invitation";
+"hub.ai.invitation.simple" = "Simple";
+"hub.ai.invitation.warm" = "Chaleureux";
+"hub.ai.invitation.short" = "Court";
+"hub.ai.copy" = "Copier";
+"hub.ai.copied" = "Message copié";
+"hub.ai.share" = "Partager";
+"hub.weather.title_format" = "Météo · %@";
+"hub.weather.rain_format" = "Pluie : %d %%";
+"hub.weather.unavailable" = "La météo est indisponible pour le moment.";
+"hub.summary.format" = "%1$@ · %2$@";
+"hub.summary.meals_progress_format" = "%1$d/%2$d repas prêts";
+"hub.primary.vote" = "Voter";
+"hub.primary.results" = "Voir les résultats";
+"hub.primary.confirm_date_format" = "Confirmer le %@";
+"hub.primary.confirm_date" = "Choisir la date";
+"hub.primary.organize" = "Passer en organisation";
+"hub.primary.finalize" = "Finaliser l'événement";
+"hub.primary.sign_in" = "Connecte-toi pour finaliser";
+"hub.primary.add_dates" = "Ajouter des dates";
+"hub.quick_vote.title_format" = "Tu es dispo le %@ ?";
+"hub.quick_vote.hint" = "Ouvre le vote";
+"hub.menu.info" = "Infos de l'événement";
+"hub.menu.more" = "Plus d'options";
+"hub.menu.add_to_calendar" = "Ajouter au calendrier";
+
+/* Sheets de modules du hub (couche 5a, #47) */
+"hub.sheet.meals.progress_format" = "%1$d/%2$d prêts";
+"hub.sheet.meals.empty" = "Aucun repas prévu pour l'instant.";
+"hub.sheet.meals.add" = "Ajouter un repas";
+"hub.sheet.equipment.empty" = "Aucun matériel listé pour l'instant.";
+"hub.sheet.equipment.quantity_format" = "Quantité : %d";
+"hub.sheet.activities.empty" = "Aucune activité prévue pour l'instant.";
+"hub.sheet.accommodation.empty" = "Aucun hébergement proposé pour l'instant.";
+"hub.sheet.accommodation.none_selected" = "Aucun hébergement retenu pour l'instant.";
+"hub.sheet.accommodation.price_per_night_format" = "%@ / nuit";
+"hub.sheet.open_full" = "Plein écran";
+"hub.sheet.comments" = "Commentaires";
+"hub.sheet.status.meal_ready" = "Prêt";
+"hub.sheet.status.meal_todo" = "À préparer";
+"hub.sheet.status.equipment_covered" = "Pris en charge";
+"hub.sheet.status.equipment_needed" = "À trouver";
+"hub.sheet.status.accommodation_reserved" = "Réservé";
+"hub.sheet.status.accommodation_confirmed" = "Confirmé";
+"hub.sheet.a11y.meal_responsibles_format" = "Responsables : %@";
+"hub.sheet.a11y.activity_registered_format" = "Inscrits : %@";
+"hub.sheet.a11y.equipment_brought_by_format" = "Apporté par %@";
+"hub.sheet.budget.empty" = "Aucun budget pour l'instant.";
+"hub.sheet.budget.amounts_format" = "Réel %1$@ / estimé %2$@";
+"hub.sheet.budget.over_format" = "Le réel dépasse l'estimé de %@.";
+"hub.sheet.budget.view" = "Voir le budget";
+"hub.sheet.status.budget_over" = "Dépassé";
+"hub.sheet.payments.no_pot" = "Aucune cagnotte pour l'instant.";
+"hub.sheet.payments.manage_pot" = "Gérer la cagnotte";
+"hub.sheet.status.pot_open" = "Ouverte";
+"hub.sheet.status.pot_closed" = "Clôturée";
+"hub.sheet.status.tricount_ready" = "Prêt";
+"hub.sheet.status.tricount_todo" = "À faire";
+"hub.sheet.meetings.empty" = "Aucune réunion prévue pour l'instant.";
+"hub.sheet.meetings.plan" = "Planifier une réunion";
+"hub.sheet.status.meeting_link_ready" = "Lien prêt";
+"hub.sheet.status.meeting_no_link" = "Sans lien";
+"hub.sheet.transport.no_plan" = "Aucun plan de transport pour l'instant.";
+"hub.sheet.transport.choose" = "Aucun plan retenu pour l'instant.";
+"hub.sheet.transport.organize" = "Organiser le transport";
+"hub.sheet.transport.view" = "Voir le transport";
+"hub.sheet.status.transport_chosen" = "Plan choisi";
+"hub.sheet.status.transport_to_decide" = "À décider";
+"hub.sheet.status.transport_not_needed" = "Pas nécessaire";
+"hub.sheet.participants.invite" = "Inviter";
+"hub.sheet.participants.empty" = "Personne n'est invité pour l'instant.";
+"hub.sheet.participants.section.confirmed" = "Confirmés";
+"hub.sheet.participants.section.pending" = "En attente";
+"hub.sheet.participants.section.declined" = "Ont décliné";
+
+/* Activité de la refonte (couche 6, #47) */
+"activity.feed.filter.todo_format" = "À traiter (%d)";
+"activity.feed.filter.all" = "Tout";
+"activity.feed.vote_required" = "Vote : il manque ton vote";
+"activity.feed.ready_to_confirm" = "Tout le monde a voté, choisis la date";
+"activity.feed.rsvp_pending" = "Réponds à l'invitation";
+"activity.feed.empty.todo" = "Rien à traiter pour l'instant";
+"activity.feed.empty.all" = "Aucune activité pour l'instant";
+"activity.feed.a11y.to_do" = "À traiter";
+"activity.feed.unread" = "Non lu";
+"activity.feed.general" = "Général";
+"activity.feed.filter.label" = "Filtre";
+
+/* Création de la refonte (couche 7, #47) */
+"create_flow.question.what" = "C'est quoi, ton événement ?";
+"create_flow.question.who" = "Vous serez combien ?";
+"create_flow.question.place" = "Où ça pourrait se passer ?";
+"create_flow.question.time" = "Quand est-ce que ça pourrait se passer ?";
+"create_flow.subtitle.what" = "Donne-lui un nom et quelques mots pour ton groupe.";
+"create_flow.subtitle.who" = "Une estimation suffit, tu pourras l'ajuster plus tard.";
+"create_flow.subtitle.place" = "Propose une ou plusieurs idées, ou passe cette étape.";
+"create_flow.subtitle.time" = "Propose des créneaux : ton groupe votera pour ses préférés.";
+"create_flow.field.title" = "Titre";
+"create_flow.field.title_placeholder" = "Ex. : week-end à Annecy";
+"create_flow.field.description" = "Description";
+"create_flow.field.description_placeholder" = "Ce que tu as en tête, en quelques mots";
+"create_flow.field.type" = "Type d'événement";
+"create_flow.field.custom_type" = "Précise le type";
+"create_flow.field.templates" = "Partir d'un modèle";
+"create_flow.field.min" = "Minimum";
+"create_flow.field.expected" = "Attendus";
+"create_flow.field.max" = "Maximum";
+"create_flow.field.count_unset" = "Non précisé";
+"create_flow.field.location_placeholder" = "Ville, lieu ou adresse";
+"create_flow.type.other" = "Autre";
+"create_flow.invite_hint" = "Tu inviteras ton groupe juste après le lancement.";
+"create_flow.draft_saved" = "Brouillon enregistré";
+"create_flow.continue" = "Continuer";
+"create_flow.skip" = "Passer";
+"create_flow.add_location" = "Ajouter un lieu";
+"create_flow.search_location" = "Rechercher un lieu";
+"create_flow.add_slot" = "Ajouter un créneau";
+"create_flow.slot.editor_title" = "Nouveau créneau";
+"create_flow.slot.day" = "Jour";
+"create_flow.slot.start" = "Début";
+"create_flow.slot.end" = "Fin";
+"create_flow.slot.date_unset" = "Date à définir";
+"create_flow.moment.all_day" = "Journée";
+"create_flow.moment.morning" = "Matin";
+"create_flow.moment.afternoon" = "Après-midi";
+"create_flow.moment.evening" = "Soir";
+"create_flow.moment.specific" = "Heure précise";
+"create_flow.empty.locations" = "Aucun lieu pour l'instant.";
+"create_flow.empty.slots" = "Aucun créneau pour l'instant.";
+"create_flow.error.description_required" = "Ajoute quelques mots de description.";
+"create_flow.error.custom_type_required" = "Précise le type d'événement.";
+"create_flow.error.participants_positive" = "Indique au moins 1 personne.";
+"create_flow.error.max_less_than_min" = "Le maximum doit être au moins égal au minimum.";
+"create_flow.error.location_empty" = "Donne un nom à ce lieu.";
+"create_flow.error.location_duplicate" = "Ce lieu est déjà dans la liste.";
+"create_flow.error.slot_end_before_start" = "La fin doit être après le début.";
+"create_flow.error.slot_time_required" = "Ce créneau n'a pas encore d'heure. Retire-le, puis ajoute-le avec un début et une fin.";
+"create_flow.error.save_failed" = "Le brouillon n'a pas pu être enregistré. Réessaie.";
+"create_flow.a11y.progress_format" = "Étape %1$d sur %2$d";
+"create_flow.a11y.remove_location_format" = "Retirer %@";
+"create_flow.a11y.remove_slot" = "Retirer ce créneau";
+"create_flow.a11y.error_format" = "Erreur : %@";
+
+/* Mode immersif — invitation reçue (couche 8, #47) */
+"immersive.invitation.caption" = "Invitation";
+"immersive.invitation.caption_format" = "Organisé par %@";
+"immersive.invitation.polling_format" = "Vote en cours · %@";
+"immersive.invitation.response.organizer" = "Tu organises";
+"immersive.invitation.response.accepted" = "Tu as accepté";
+"immersive.invitation.response.pending" = "Ta réponse est attendue";
+"immersive.invitation.response.declined" = "Tu as décliné";
+"immersive.view_event" = "Voir l'événement";
+
+/* Mode immersif — jour J (couche 8, #47) */
+"immersive.event_day.caption" = "C'est aujourd'hui";
+"immersive.event_day.all_day" = "Toute la journée";
+"immersive.event_day.until_format" = "jusqu'à %@";
+"immersive.event_day.no_place" = "Lieu à préciser";
+"immersive.event_day.directions" = "Itinéraire";
+"immersive.event_day.map_format" = "Carte : %@";
+"immersive.event_day.banner" = "C'est aujourd'hui";
+"immersive.event_day.banner_hint" = "Ouvre le jour J";
+"home.v2.next_step.event_day.subtitle" = "C'est le jour J";
+"home.v2.next_step.action.event_day" = "Voir le jour J";

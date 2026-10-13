@@ -24,13 +24,6 @@ final class DesignTokensContractTests: XCTestCase {
         XCTAssertEqual(c.b, 234)
     }
 
-    func testWarmIvoryDarkMatchesMidnight() {
-        let c = components(Color.wakeveWarmIvoryDark)
-        XCTAssertEqual(c.r, 7)
-        XCTAssertEqual(c.g, 20)
-        XCTAssertEqual(c.b, 33)
-    }
-
     func testSemanticAppBackgroundLightUsesWarmIvory() {
         XCTAssertEqual(
             components(SemanticColor.appBackground(for: .light)),

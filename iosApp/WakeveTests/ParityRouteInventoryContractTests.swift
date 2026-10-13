@@ -107,13 +107,13 @@ final class ParityRouteInventoryContractTests: XCTestCase {
 
     func testAndroidEquivalentOrganizationRoutesDoNotRenderGenericPlaceholders() throws {
         let content = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
-        let homeContent = slice(content, from: "private var homeTabContent", to: "// MARK: - Tab Content")
+        let homeContent = slice(content, from: "private var homeTabContent", to: "private func persistCreationContext(")
 
         XCTAssertFalse(homeContent.contains("navigation.placeholder.event_creation"))
         let eventCreation = caseBlock(".eventCreation", in: homeContent)
         XCTAssertTrue(eventCreation.contains("invitationExperienceRolloutEnabled"))
         XCTAssertTrue(eventCreation.contains("EventCreationStudioView("))
-        XCTAssertTrue(eventCreation.contains("invitationExperienceLegacyCreationFallback"))
+        XCTAssertTrue(eventCreation.contains("creationFallbackWithoutStudio"))
         XCTAssertFalse(
             eventCreation.contains("showEventCreationSheet = true"),
             "The routed Studio destination must not also present the legacy creation sheet."
@@ -150,13 +150,6 @@ final class ParityRouteInventoryContractTests: XCTestCase {
             "scenario.detail.empty_title",
             "organization.state.pending_sync",
             "organization.state.read_only",
-            "event.detail.organization.accommodation_label",
-            "event.detail.organization.meals_label",
-            "event.detail.organization.equipment_label",
-            "event.detail.organization.activities_label",
-            "event.detail.organization.comments_label",
-            "event.detail.organization.photos_label",
-            "event.detail.organization.invitation_label",
             "organization.access.confirm_before_accommodation",
             "organization.access.confirm_before_meals",
             "organization.access.confirm_before_equipment",

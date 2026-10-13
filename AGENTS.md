@@ -217,8 +217,8 @@ Orchestrateur:
 - `shared/src/commonMain/kotlin/com/guyghost/wakeve/calendar/Models.kt` — CalendarEvent, ICSDocument, MeetingReminderTiming
 - `shared/src/androidMain/kotlin/com/guyghost/wakeve/calendar/PlatformCalendarService.android.kt` — Android actual implementation (CalendarContract, runtime permission checks)
 - `shared/src/iosMain/kotlin/com/guyghost/wakeve/calendar/PlatformCalendarService.ios.kt` — iOS actual implementation bridging to EventKit
-- `composeApp/src/commonMain/kotlin/com/guyghost/wakeve/ui/event/CalendarIntegrationCard.kt` — Compose UI card exposing `onAddToCalendar` and `onShareInvite`
-- `iosApp/src/Views/CalendarIntegrationCard.swift` — SwiftUI card calling the shared CalendarService via Kotlin/Native interop
+- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/event/CalendarIntegrationCard.kt` — Compose UI card exposing `onAddToCalendar` and `onShareInvite`
+- iOS : pas de carte dédiée. `AuthenticatedView.addInformationEventToCalendar` (`iosApp/src/Views/App/ContentView.swift`) appelle `CalendarService.addToNativeCalendar` (via `PlatformCalendarServiceImpl`) depuis l'écran Infos (`iosApp/src/Views/Invitations/EventInformationView.swift`, joignable seulement avec le rollout `iosInvitationExperienceV1`) et depuis le menu « … » du hub (`EventHubView`, « Ajouter au calendrier », avec ou sans rollout, une fois la date retenue)
 - `server/src/main/kotlin/com/guyghost/wakeve/routes/CalendarRoutes.kt` — server endpoints for ICS generation and download
 
 **Tests:**

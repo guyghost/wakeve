@@ -60,88 +60,6 @@ struct GlassCardModifier: ViewModifier {
     }
 }
 
-// MARK: - Thin Glass Modifier
-
-struct ThinGlassModifier: ViewModifier {
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-
-    var cornerRadius: CGFloat = 16
-
-    @ViewBuilder
-    func body(content: Content) -> some View {
-        if #available(iOS 26.0, *), !reduceTransparency {
-            content
-                .glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
-        } else {
-            content
-                .background(fallbackBackground)
-                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        }
-    }
-
-    private var fallbackBackground: AnyShapeStyle {
-        if reduceTransparency {
-            return AnyShapeStyle(Color(uiColor: .secondarySystemBackground))
-        }
-        return AnyShapeStyle(.thinMaterial)
-    }
-}
-
-// MARK: - Ultra Thin Glass Modifier
-
-struct UltraThinGlassModifier: ViewModifier {
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-
-    var cornerRadius: CGFloat = 16
-
-    @ViewBuilder
-    func body(content: Content) -> some View {
-        if #available(iOS 26.0, *), !reduceTransparency {
-            content
-                .glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
-        } else {
-            content
-                .background(fallbackBackground)
-                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        }
-    }
-
-    private var fallbackBackground: AnyShapeStyle {
-        if reduceTransparency {
-            return AnyShapeStyle(Color(uiColor: .secondarySystemBackground))
-        }
-        return AnyShapeStyle(.ultraThinMaterial)
-    }
-}
-
-// MARK: - Thick Glass Modifier
-
-struct ThickGlassModifier: ViewModifier {
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-
-    var cornerRadius: CGFloat = 24
-
-    @ViewBuilder
-    func body(content: Content) -> some View {
-        if #available(iOS 26.0, *), !reduceTransparency {
-            content
-                .glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
-        } else {
-            content
-                .background(fallbackBackground)
-                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-                .shadow(color: .black.opacity(0.08), radius: 12, x: 0, y: 6)
-        }
-    }
-
-    private var fallbackBackground: AnyShapeStyle {
-        if reduceTransparency {
-            return AnyShapeStyle(Color(uiColor: .secondarySystemBackground))
-        }
-        return AnyShapeStyle(.thickMaterial)
-    }
-}
-
 // MARK: - View Extensions
 
 extension View {
@@ -160,24 +78,6 @@ extension View {
         material: Material = .regularMaterial
     ) -> some View {
         modifier(GlassCardModifier(cornerRadius: cornerRadius, material: material))
-    }
-
-    /// Apply thin glass style for subtle backgrounds
-    /// - Parameter cornerRadius: Corner radius (default: 16)
-    func thinGlass(cornerRadius: CGFloat = 16) -> some View {
-        modifier(ThinGlassModifier(cornerRadius: cornerRadius))
-    }
-
-    /// Apply ultra thin glass style for very subtle backgrounds
-    /// - Parameter cornerRadius: Corner radius (default: 16)
-    func ultraThinGlass(cornerRadius: CGFloat = 16) -> some View {
-        modifier(UltraThinGlassModifier(cornerRadius: cornerRadius))
-    }
-
-    /// Apply thick glass style for prominent cards
-    /// - Parameter cornerRadius: Corner radius (default: 24)
-    func thickGlass(cornerRadius: CGFloat = 24) -> some View {
-        modifier(ThickGlassModifier(cornerRadius: cornerRadius))
     }
 }
 
@@ -203,23 +103,6 @@ extension View {
                     .frame(maxWidth: .infinity)
                     .padding(20)
                     .glassCard(cornerRadius: 20)
-            }
-
-            Section("Glass Variants") {
-                Text("Thin Glass")
-                    .frame(maxWidth: .infinity)
-                    .padding(20)
-                    .thinGlass()
-
-                Text("Ultra Thin Glass")
-                    .frame(maxWidth: .infinity)
-                    .padding(20)
-                    .ultraThinGlass()
-
-                Text("Thick Glass")
-                    .frame(maxWidth: .infinity)
-                    .padding(20)
-                    .thickGlass()
             }
         }
         .padding()
