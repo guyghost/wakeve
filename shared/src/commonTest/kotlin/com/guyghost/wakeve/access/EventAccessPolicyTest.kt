@@ -56,6 +56,7 @@ class EventAccessPolicyTest {
 
         assertEquals(InvitationPreviewVisibility.PUBLIC_METADATA_ONLY, preview.visibility)
         assertEquals("event-access-1", preview.eventId)
+        assertEquals(null, preview.title)
         assertFalse(preview.canJoin)
         assertFalse(preview.exposesOrganizationDetails)
     }
@@ -107,13 +108,15 @@ class EventAccessPolicyTest {
 
     @Test
     fun `organizer can access organization sections even without participant RSVP state`() {
-        val decision = EventAccessPolicy.canAccessOrganizationSection(
-            event = confirmedEvent,
-            viewer = ParticipantAccessState.organizer("organizer-1"),
-            section = OrganizationSection.BUDGET
-        )
+        OrganizationSection.entries.forEach { section ->
+            val decision = EventAccessPolicy.canAccessOrganizationSection(
+                event = confirmedEvent,
+                viewer = ParticipantAccessState.organizer("organizer-1"),
+                section = section
+            )
 
-        assertTrue(decision.isAllowed)
+            assertEquals(AccessDecision(isAllowed = true), decision, "Section $section")
+        }
     }
 
     @Test
@@ -125,14 +128,145 @@ class EventAccessPolicyTest {
         )
 
         deniedViewers.forEach { (viewer, expectedReason) ->
-            val decision = EventAccessPolicy.canAccessOrganizationSection(
+            OrganizationSection.entries.forEach { section ->
+                val decision = EventAccessPolicy.canAccessOrganizationSection(
+                    event = confirmedEvent,
+                    viewer = viewer,
+                    section = section
+                )
+
+                assertEquals(
+                    AccessDecision(isAllowed = false, reason = expectedReason),
+                    decision,
+                    "Viewer ${viewer.userId}, section $section"
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `exact organizer sees metadata but does not need to join`() {
+        val preview = EventAccessPolicy.invitationPreviewFor(
+            event = confirmedEvent,
+            viewer = ParticipantAccessState.organizer("organizer-1")
+        )
+
+        assertEquals(InvitationPreviewVisibility.EVENT_METADATA, preview.visibility)
+        assertEquals("event-access-1", preview.eventId)
+        assertEquals("Summer trip", preview.title)
+        assertFalse(preview.canJoin)
+        assertFalse(preview.exposesOrganizationDetails)
+    }
+
+    @Test
+    fun `exact organizer can submit ballot without being listed as a participant`() {
+        val decision = EventAccessPolicy.canSubmitPollBallot(
+            event = confirmedEvent,
+            viewer = ParticipantAccessState.organizer("organizer-1")
+        )
+
+        assertEquals(AccessDecision(isAllowed = true), decision)
+    }
+
+    @Test
+    fun `accepted event member can submit ballot before retained date validation`() {
+        val decision = EventAccessPolicy.canSubmitPollBallot(
+            event = confirmedEvent,
+            viewer = ParticipantAccessState.member(
+                userId = "pending-1",
+                rsvp = ParticipantRsvp.ACCEPTED,
+                dateValidation = DateValidationState.NOT_VALIDATED
+            )
+        )
+
+        assertEquals(AccessDecision(isAllowed = true), decision)
+    }
+
+    @Test
+    fun `event member with unconfirmed or declined attendance cannot submit ballot`() {
+        val deniedAttendance = listOf(
+            ParticipantRsvp.PENDING to AccessDeniedReason.ATTENDANCE_NOT_CONFIRMED,
+            ParticipantRsvp.DECLINED to AccessDeniedReason.PARTICIPATION_DECLINED,
+            ParticipantRsvp.NOT_APPLICABLE to AccessDeniedReason.ATTENDANCE_NOT_CONFIRMED,
+            ParticipantRsvp.UNAVAILABLE to AccessDeniedReason.ATTENDANCE_NOT_CONFIRMED
+        )
+
+        deniedAttendance.forEach { (rsvp, expectedReason) ->
+            val decision = EventAccessPolicy.canSubmitPollBallot(
                 event = confirmedEvent,
-                viewer = viewer,
-                section = OrganizationSection.PAYMENT
+                viewer = ParticipantAccessState.member(
+                    userId = "pending-1",
+                    rsvp = rsvp,
+                    dateValidation = DateValidationState.VALIDATED_RETAINED_DATE
+                )
             )
 
-            assertFalse(decision.isAllowed, "Expected ${viewer.userId} to be denied")
-            assertEquals(expectedReason, decision.reason)
+            assertEquals(
+                AccessDecision(isAllowed = false, reason = expectedReason),
+                decision,
+                "RSVP $rsvp"
+            )
+        }
+    }
+
+    @Test
+    fun `accepted outsider cannot vote or access organization despite favorable attendance state`() {
+        val viewer = ParticipantAccessState.member(
+            userId = "stranger-1",
+            rsvp = ParticipantRsvp.ACCEPTED,
+            dateValidation = DateValidationState.VALIDATED_RETAINED_DATE
+        )
+        val expected = AccessDecision(isAllowed = false, reason = AccessDeniedReason.NOT_EVENT_MEMBER)
+
+        assertEquals(expected, EventAccessPolicy.canSubmitPollBallot(confirmedEvent, viewer))
+        OrganizationSection.entries.forEach { section ->
+            assertEquals(
+                expected,
+                EventAccessPolicy.canAccessOrganizationSection(confirmedEvent, viewer, section),
+                "Section $section"
+            )
+        }
+    }
+
+    @Test
+    fun `unavailable attendance cannot access organization even with a validated retained date`() {
+        listOf(ParticipantRsvp.NOT_APPLICABLE, ParticipantRsvp.UNAVAILABLE).forEach { rsvp ->
+            val viewer = ParticipantAccessState.member(
+                userId = "confirmed-1",
+                rsvp = rsvp,
+                dateValidation = DateValidationState.VALIDATED_RETAINED_DATE
+            )
+
+            OrganizationSection.entries.forEach { section ->
+                assertEquals(
+                    AccessDecision(isAllowed = false, reason = AccessDeniedReason.ATTENDANCE_NOT_CONFIRMED),
+                    EventAccessPolicy.canAccessOrganizationSection(confirmedEvent, viewer, section),
+                    "RSVP $rsvp, section $section"
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `accepted member needs an explicitly validated retained date for organization`() {
+        listOf(
+            DateValidationState.NOT_VALIDATED,
+            DateValidationState.NOT_APPLICABLE,
+            DateValidationState.UNAVAILABLE
+        ).forEach { dateValidation ->
+            val viewer = ParticipantAccessState.member(
+                userId = "confirmed-1",
+                rsvp = ParticipantRsvp.ACCEPTED,
+                dateValidation = dateValidation
+            )
+
+            OrganizationSection.entries.forEach { section ->
+                assertEquals(
+                    AccessDecision(isAllowed = false, reason = AccessDeniedReason.RETAINED_DATE_NOT_VALIDATED),
+                    EventAccessPolicy.canAccessOrganizationSection(confirmedEvent, viewer, section),
+                    "Date validation $dateValidation, section $section"
+                )
+            }
         }
     }
 }
